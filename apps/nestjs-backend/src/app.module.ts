@@ -22,6 +22,7 @@ import { ChatModule } from './features/chat/chat.module';
 import { CollaboratorModule } from './features/collaborator/collaborator.module';
 import { CommentOpenApiModule } from './features/comment/comment-open-api.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
+import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
@@ -101,6 +102,7 @@ export const appModules = {
     LicenseModule,
     QuotaModule,
     DomainVerificationModule,
+    CustomDomainModule,
     SsoModule,
     PermissionMatrixModule,
     SettingOpenApiModule,

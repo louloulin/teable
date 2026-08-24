@@ -26,6 +26,7 @@ export type LicenseCapability =
   | 'sso'
   | 'permission_matrix'
   | 'custom_app_domain'
+  | 'custom_domain'
   | 'audit_log'
   | 'admin_panel';
 
@@ -46,6 +47,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'sso',
     'permission_matrix',
     'custom_app_domain',
+    'custom_domain',
     'audit_log',
     'admin_panel',
   ]),
@@ -57,6 +59,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'sso',
     'permission_matrix',
     'custom_app_domain',
+    'custom_domain',
     'audit_log',
     'admin_panel',
   ]),
