@@ -8,7 +8,9 @@ import Redis from 'ioredis';
 import type { ICacheConfig } from './configs/cache.config';
 import { ConfigModule } from './configs/config.module';
 import { AccessTokenModule } from './features/access-token/access-token.module';
+import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
+import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { AiModule } from './features/ai/ai.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
@@ -46,7 +48,6 @@ import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-c
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
 import { SelectionModule } from './features/selection/selection.module';
-import { AdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
 import { ShareModule } from './features/share/share.module';
 import { ShortLinkModule } from './features/short-link/short-link.module';
@@ -92,11 +93,13 @@ export const appModules = {
     BaseShareModule,
     NotificationModule,
     AccessTokenModule,
+    AdminOpenApiModule,
+    SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
     ExportOpenApiModule,
     PinModule,
-    AdminOpenApiModule,
+    SettingAdminOpenApiModule,
     CanaryModule,
     LicenseModule,
     QuotaModule,

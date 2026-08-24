@@ -27,7 +27,13 @@ export type LicenseCapability =
   | 'permission_matrix'
   | 'custom_app_domain'
   | 'audit_log'
-  | 'admin_panel';
+  | 'admin_panel'
+  // Stage 7 admin-panel per-route gates
+  | 'users_read'
+  | 'spaces_read'
+  | 'templates_read'
+  | 'ai'
+  | 'quota_view';
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -48,6 +54,11 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'custom_app_domain',
     'audit_log',
     'admin_panel',
+    'users_read',
+    'spaces_read',
+    'templates_read',
+    'ai',
+    'quota_view',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -59,6 +70,11 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'custom_app_domain',
     'audit_log',
     'admin_panel',
+    'users_read',
+    'spaces_read',
+    'templates_read',
+    'ai',
+    'quota_view',
   ]),
   self_hosted: new Set<LicenseCapability>(),
 };
