@@ -1259,6 +1259,20 @@ enum DomainVerificationStatus {
   revoked
 }
 
+enum SsoProviderType {
+  oidc
+  // saml reserved for a later stage; type is here so the column doesn't
+  // need a destructive migration when SAML lands.
+  saml
+}
+
+enum SsoConnectionStatus {
+  pending
+  active
+  disabled
+  failed
+}
+
 model OrganizationDomain {
   id              String                  @id @default(cuid())
   // The org that owns this domain (single-tenant self-host = 1 org).
@@ -1283,4 +1297,56 @@ model OrganizationDomain {
   @@index([organizationId])
   @@index([status])
   @@map("organization_domain")
+}
+
+model SsoIdentityProvider {
+  id                String              @id @default(cuid())
+  organizationId    String              @map("organization_id")
+  // Display name shown to admins; not user-visible.
+  name              String
+  // Which OIDC issuer this IdP serves. Used to discover endpoints + JWKS.
+  // SAML providers populate this with their entityID for parity.
+  issuer            String
+  // OIDC client credentials registered with the IdP. SAML uses different
+  // fields; left nullable so a future SAML row can omit them.
+  clientId          String?             @map("client_id")
+  clientSecret      String?             @map("client_secret")
+  // Optional discovery URL override; when null we use `${issuer}/.well-known/openid-configuration`.
+  discoveryUrl      String?             @map("discovery_url")
+  // Email domain this IdP handles — must match a verified OrganizationDomain row.
+  emailDomain       String              @map("email_domain")
+  type              SsoProviderType     @default(oidc)
+  status            SsoConnectionStatus @default(pending)
+  // Last discovery / JWKS fetch result, for admin debugging.
+  lastError         String?             @map("last_error")
+  lastCheckedAt     DateTime?           @map("last_checked_at")
+  createdBy         String              @map("created_by")
+  createdTime       DateTime            @default(now()) @map("created_time")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@unique([organizationId, emailDomain])
+  @@index([issuer])
+  @@index([status])
+  @@map("sso_identity_provider")
+}
+
+model SsoLoginState {
+  // Short-lived (5 min) state token for CSRF protection on the callback.
+  // Stored server-side so we can correlate the IdP redirect back to the
+  // original request without trusting the cookie / query string alone.
+  id           String   @id @default(cuid())
+  state        String   @unique
+  organizationId String @map("organization_id")
+  providerId   String   @map("provider_id")
+  // Email the user claimed to log in as; used for the post-auth user match.
+  emailHint    String?  @map("email_hint")
+  // Redirect target after success — typically the dashboard or invitation link.
+  redirectTo   String?  @map("redirect_to")
+  // Bumped on every retry so old links stop working once consumed.
+  consumed     Boolean  @default(false)
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("sso_login_state")
 }

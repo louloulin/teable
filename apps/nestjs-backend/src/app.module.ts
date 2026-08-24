@@ -39,6 +39,7 @@ import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
 import { LicenseModule } from './features/license/license.module';
 import { QuotaModule } from './features/quota/quota.module';
+import { SsoModule } from './features/sso/sso.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
@@ -99,6 +100,7 @@ export const appModules = {
     LicenseModule,
     QuotaModule,
     DomainVerificationModule,
+    SsoModule,
     SettingOpenApiModule,
     OAuthModule,
     TrashModule,
