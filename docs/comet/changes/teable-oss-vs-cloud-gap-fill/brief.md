@@ -95,15 +95,19 @@
 
 # Acceptance examples
 
-> 完整验收标准分散到各 child change 的 Spec 中;这里只列跨 child 的端到端验收项(AC-0xx)。
+> 完整验收标准分散到各 child change 的 Spec 中;这里只列跨 child 的端到端验收项。
 
-- **AC-001** 在测试库依次应用所有 child 的 migration 后,`prisma generate` 成功,无未定义枚举。
-- **AC-002** `pnpm test` 在 `apps/nestjs-backend` 全绿,新增模块单元测试覆盖所有决策点。
-- **AC-003** 设 `TEABLE_LICENSE_KEY=plan:business` 后启动,所有现有 spaces 自动切到 business plan,所有 Business-only 能力(sso / permission_matrix / custom_app_domain / admin_panel / audit_log)按 capability map 解锁。
-- **AC-004** 浏览器走完 SSO 登录链路后,本地 session cookie 写入,后续 `GET /api/auth/profile` 返回正确 user。
-- **AC-005** 用 permission matrix 把某表某字段设为 hidden,该 user 的 record list 响应中该字段为 `null`,PATCH 写入该字段返回 `403 RESTRICTED_RESOURCE`。
-- **AC-006** 任何 record create/update/delete 在 DB 留下对应 `audit_log` 行,可在 `/api/admin/audit-log?actorId=&action=&from=&to=` 分页检索。
-- **AC-007** 启用 `TEABLE_QUOTA_ENFORCEMENT_ENABLED=true` 后,record 创建超过 plan 上限返回 `402 QUOTA_EXCEEDED`,不再依赖 License 缺失的隐式关闭。
+- **A1** SSO callback 完整会话链路:从 /api/auth/sso/login 走完到本地 session cookie 写入,后续 /api/auth/profile 返回正确 user。
+- **A2** 审计日志存在与可检索:任何 record create/update/delete 在 DB 留对应 audit_log 行,可在 /api/admin/audit-log 分页筛选。
+- **A3** 权限矩阵热路径生效:hidden 字段在 list 响应中为 null,PATCH 写 hidden 字段返回 403 RESTRICTED_RESOURCE,row filter 实际缩小查询结果。
+- **A4** AI 细分计费:free plan 调 ai_field 返回 402 LICENSE_REQUIRED;pro plan 调 cuppy_claw 返回 402;business plan 调 ai_app_builder 不返错。
+- **A5** 自定义应用域名端点:/api/admin/custom-domain/check?domain=foo.com 返回 cnameTarget。
+- **A6** 配额 retention 差异化:plan 切到 business 后,record history cleanup 保留期内记录保留,过期记录被删除。
+- **A7** API 速率限制按档位:business plan 下超过 10 req/s 返回 429;self_hosted plan 默认无限。
+- **A8** License 激活联动:设 TEABLE_LICENSE_KEY=plan:business,启动后所有 spaces 自动切到 business plan。
+- **A9** SsoLoginState BullMQ 清理:超过 5 分钟的 state 行被删除,DB 中无残留。
+- **A10** Prisma migration 全部成功:测试库顺序应用 0 失败,prisma generate 拿到全部枚举。
+- **A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。
 
 # Constraints and invariants
 
@@ -126,14 +130,14 @@
 
 # Open questions
 
-- [blocking] Q1:10 个 child 范围是否 OK?是否需要增 / 减 / 调优先级?
-- [blocking] Q2:Stage 9 (SAML) 与 Stage 10 (自定义域名) 是否纳入本 change?(推荐"都纳入")
-- [blocking] Q3:Stage 11 保留期数值是否按定价页原文 — record: free 14 天 / pro 365 天 / business 1095 天;automation: 三档 14 天 / 365 天 / 365 天?
-- [blocking] Q4:是否接受"Supervisor 在所有 child `done` 后启动端到端 Verifier"?(这是 comet-native Supervisor 的标准流程)
-- [blocking] CONFIRM:目标、范围、关键决定、验收标准、非目标摘要确认。
-
-> 已在触发评论 `01a03606-9590-7978-95cb-95b70e811d53` 下发出确认请求,等待用户回复。
+- **Q1 解决 (2026-08-24T23:18Z)**:用户授权全 10 个 child 范围,无增/减/调优先级。
+- **Q2 解决 (2026-08-24T23:18Z)**:Stage 9 (SAML) + Stage 10 (自定义域名) 均纳入本 change。
+- **Q3 解决 (2026-08-24T23:18Z)**:Stage 11 retention 按定价页原文 — record free 14 天 / pro 365 天 / business 1095 天;automation 三档 14 天 / 365 天 / 365 天。
+- **Q4 解决 (2026-08-24T23:18Z)**:Supervisor 端到端 Verifier 流程接受。
+- **CONFIRM 解决 (2026-08-24T23:18Z)**:用户原文 "继续完善分析,综合考虑,基于 comet 实现后续的功能,自动实现完善整个功能" = 整体授权,无新增约束。
+> 用户授权:10 个 child 范围、SAML + 自定义域名纳入、retention 按定价页数值、Supervisor 端到端 Verifier。
 > 拆分 = Supervisor + children 已由 Agent 决定(实现选择),不需用户确认。
+> 当前 shape 已确认,Supervisor 进入 Build。
 
 # Verification expectations
 
