@@ -1181,7 +1181,8 @@ describe('record-history cold storage', () => {
 
     const makeProcessor = (
       queue: FakeColdQueue,
-      flushResult: Partial<IColdFlushRunResult> = {}
+      flushResult: Partial<IColdFlushRunResult> = {},
+      plan: 'self_hosted' | 'free' | 'pro' | 'business' | 'enterprise' = 'self_hosted'
     ) => {
       const flusher = {
         runFlush: async (): Promise<IColdFlushRunResult> => ({
@@ -1200,10 +1201,16 @@ describe('record-history cold storage', () => {
           ...flushResult,
         }),
       };
+      // Stage 11: the processor now reads the plan via LicenseCapabilityService
+      // and threads the resulting horizonMs into runFlush. A fake service that
+      // returns whatever plan the test wants keeps the existing assertions
+      // hermetic.
+      const caps = { currentPlan: () => plan };
       return new RecordHistoryColdProcessor(
         flusher as never,
         {} as never,
         {} as never,
+        caps as never,
         queue as never
       );
     };
@@ -1266,6 +1273,123 @@ describe('record-history cold storage', () => {
       await processor.process({ name: 'record-history-cold:flush', data: {} } as any);
 
       expect(queue.jobs).toHaveLength(1);
+    });
+
+    it('threads the per-plan record-history horizonMs into runFlush (Stage 11)', async () => {
+      // captures the runFlush options so we can assert what the processor
+      // actually passed in. A single sentinel per case keeps the test
+      // hermetic from real flusher work.
+      const captured: { horizonMs?: number } = {};
+      const flusher = {
+        runFlush: async (options: { horizonMs?: number }): Promise<IColdFlushRunResult> => {
+          captured.horizonMs = options.horizonMs;
+          return {
+            startedAt: '2026-08-24T00:00:00.000Z',
+            cutoff: '2026-08-24T00:00:00.000Z',
+            mode: 'incremental',
+            tables: [],
+            totalRows: 0,
+            totalParts: 0,
+            totalCompressedBytes: 0,
+            totalTruncatedValues: 0,
+            orphanRowsDeleted: 0,
+            durationMs: 1,
+            leftoverTables: 0,
+            budgetExhausted: false,
+          };
+        },
+      };
+      const queue = new FakeColdQueue();
+      const caps = { currentPlan: () => 'business' as const };
+      const processor = new RecordHistoryColdProcessor(
+        flusher as never,
+        {} as never,
+        {} as never,
+        caps as never,
+        queue as never
+      );
+
+      await processor.process({ name: 'record-history-cold:flush', data: {} } as any);
+
+      // business record-history retention is 1095 days, asserted in days so
+      // a refactor that swaps ms↔days stays loud.
+      expect(captured.horizonMs).toBe(1095 * 86_400_000);
+    });
+
+    it('uses the 14-day horizon for self_hosted plan', async () => {
+      const captured: { horizonMs?: number } = {};
+      const flusher = {
+        runFlush: async (options: { horizonMs?: number }): Promise<IColdFlushRunResult> => {
+          captured.horizonMs = options.horizonMs;
+          return {
+            startedAt: '2026-08-24T00:00:00.000Z',
+            cutoff: '2026-08-24T00:00:00.000Z',
+            mode: 'incremental',
+            tables: [],
+            totalRows: 0,
+            totalParts: 0,
+            totalCompressedBytes: 0,
+            totalTruncatedValues: 0,
+            orphanRowsDeleted: 0,
+            durationMs: 1,
+            leftoverTables: 0,
+            budgetExhausted: false,
+          };
+        },
+      };
+      const queue = new FakeColdQueue();
+      const caps = { currentPlan: () => 'self_hosted' as const };
+      const processor = new RecordHistoryColdProcessor(
+        flusher as never,
+        {} as never,
+        {} as never,
+        caps as never,
+        queue as never
+      );
+
+      await processor.process({ name: 'record-history-cold:flush', data: {} } as any);
+
+      // self_hosted record-history retention is 14 days; documented behavior
+      // even though PLAN_LIMITS.self_hosted.recordHistoryDays is null (the
+      // quota column says "unlimited", but cleanup must still run, and 14d
+      // is the conservative floor).
+      expect(captured.horizonMs).toBe(14 * 86_400_000);
+    });
+
+    it('uses the 365-day horizon for pro plan', async () => {
+      const captured: { horizonMs?: number } = {};
+      const flusher = {
+        runFlush: async (options: { horizonMs?: number }): Promise<IColdFlushRunResult> => {
+          captured.horizonMs = options.horizonMs;
+          return {
+            startedAt: '2026-08-24T00:00:00.000Z',
+            cutoff: '2026-08-24T00:00:00.000Z',
+            mode: 'incremental',
+            tables: [],
+            totalRows: 0,
+            totalParts: 0,
+            totalCompressedBytes: 0,
+            totalTruncatedValues: 0,
+            orphanRowsDeleted: 0,
+            durationMs: 1,
+            leftoverTables: 0,
+            budgetExhausted: false,
+          };
+        },
+      };
+      const queue = new FakeColdQueue();
+      const caps = { currentPlan: () => 'pro' as const };
+      const processor = new RecordHistoryColdProcessor(
+        flusher as never,
+        {} as never,
+        {} as never,
+        caps as never,
+        queue as never
+      );
+
+      await processor.process({ name: 'record-history-cold:flush', data: {} } as any);
+
+      expect(captured.horizonMs).toBe(365 * 86_400_000);
     });
   });
 });

@@ -2,6 +2,8 @@ import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { Queue } from 'bullmq';
+import { LicenseCapabilityService } from '../license/license-capability.service';
+import { getRetentionMsForPlan } from '../retention/retention-policy';
 import { RecordHistoryColdStorageService } from './record-history-cold-storage.service';
 import { recordHistoryColdConfig } from './record-history-cold.config';
 import type { ICompactMonthResult } from './record-history-compactor.service';
@@ -35,6 +37,7 @@ export class RecordHistoryColdProcessor extends WorkerHost {
     private readonly flusher: RecordHistoryFlusherService,
     private readonly compactor: RecordHistoryCompactorService,
     private readonly coldStorage: RecordHistoryColdStorageService,
+    private readonly caps: LicenseCapabilityService,
     @InjectQueue(RECORD_HISTORY_COLD_QUEUE) private readonly queue: Queue
   ) {
     super();
@@ -112,12 +115,21 @@ export class RecordHistoryColdProcessor extends WorkerHost {
     if (job.name === COMPACT_JOB_ID) {
       return this.runCompaction();
     }
+    // Stage 11: per-plan retention TTL. The horizon is what makes
+    // `record_history` rows either buffered (kept) or flushed-and-deleted
+    // (gone), so this is the single knob that drives "plan 切到 business
+    // 后 record history cleanup 保留期内记录保留,过期记录被删除".
+    // The fallback inside getRetentionMsForPlan keeps a misconfigured plan
+    // from throwing on every pod.
+    const plan = this.caps.currentPlan();
+    const horizonMs = getRetentionMsForPlan(plan, 'record');
     // monthly safety sweep: on the 1st the daily run ignores the BYODB
     // bookmarks, so a space whose activity signal was ever missed (however
     // that might happen) is stranded for at most a month instead of forever
     const result = await this.flusher.runFlush({
       mode: 'incremental',
       ignoreBookmarks: new Date().getUTCDate() === 1,
+      horizonMs,
     });
     this.logger.log(
       `record-history cold flush: tables=${result.tables.length} rows=${result.totalRows} ` +

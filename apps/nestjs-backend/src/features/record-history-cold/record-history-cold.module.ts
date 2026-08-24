@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
 import { StorageModule } from '../attachments/plugins/storage.module';
+import { LicenseModule } from '../license/license.module';
 import { RecordHistoryColdReadService } from './record-history-cold-read.service';
 import { RecordHistoryColdStorageService } from './record-history-cold-storage.service';
 import {
@@ -37,7 +38,11 @@ import { RecordHistoryFlusherService } from './record-history-flusher.service';
 export class RecordHistoryColdCoreModule {}
 
 @Module({
-  imports: [RecordHistoryColdCoreModule, EventJobModule.registerQueue(RECORD_HISTORY_COLD_QUEUE)],
+  imports: [
+    RecordHistoryColdCoreModule,
+    LicenseModule,
+    EventJobModule.registerQueue(RECORD_HISTORY_COLD_QUEUE),
+  ],
   providers: [RecordHistoryColdProcessor],
   exports: [RecordHistoryColdCoreModule],
 })
