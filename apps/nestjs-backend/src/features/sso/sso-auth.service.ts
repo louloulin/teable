@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { CustomHttpException } from '../../custom.exception';
 import { HttpErrorCode } from '@teable/core';
+import { PrismaService } from '@teable/db-main-prisma';
 import { UserService } from '../user/user.service';
 import { ISsoIdTokenClaims, ISsoProviderConfig } from './sso.constants';
 
@@ -18,7 +19,10 @@ import { ISsoIdTokenClaims, ISsoProviderConfig } from './sso.constants';
 export class SsoAuthService {
   private readonly logger = new Logger(SsoAuthService.name);
 
-  constructor(private readonly usersService: UserService) {}
+  constructor(
+    private readonly usersService: UserService,
+    private readonly prisma: PrismaService
+  ) {}
 
   /**
    * Resolve or create the local user bound to an SSO identity. Provider
@@ -76,6 +80,61 @@ export class SsoAuthService {
     }
     await this.usersService.refreshLastSignTime(user.id);
     this.logger.log(`SSO login: provider=${provider.id} user=${user.id}`);
+    return user;
+  }
+
+  /**
+   * Stage 4.1 — atomic completion step that bridges `SsoService.handleCallback`
+   * (which only validates state + id_token) into a real local session. Wraps
+   * the user resolve + state-consumed update in a single transaction so a
+   * mid-flight failure cannot leave the SsoLoginState marked consumed
+   * without a corresponding User, or vice versa.
+   *
+   * Returns the resolved user; the controller is responsible for calling
+   * `req.login(user)` to actually write the session cookie.
+   */
+  async completeCallback(
+    stateRow: { id: string; providerId: string; consumed: boolean | null; expiresAt: Date },
+    provider: ISsoProviderConfig,
+    claims: ISsoIdTokenClaims
+  ) {
+    if (stateRow.consumed) {
+      throw new CustomHttpException('state already consumed', HttpErrorCode.VALIDATION);
+    }
+    if (stateRow.expiresAt.getTime() < Date.now()) {
+      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION);
+    }
+    // resolveLocalUser already throws on email_verified=false and email/domain mismatch;
+    // any failure aborts the transaction before consumed=true is written.
+    const user = await this.prisma.$transaction(async (tx) => {
+      const resolved = await this.usersService.findOrCreateUser({
+        name: claims.name ?? (claims.email ?? '').split('@')[0] ?? 'sso user',
+        email: claims.email ?? '',
+        provider: `sso_${provider.type}`,
+        providerId: `${provider.id}:${claims.sub}`,
+        type: 'sso',
+        avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
+      });
+      await tx.ssoLoginState.update({
+        where: { id: stateRow.id },
+        data: { consumed: true },
+      });
+      return resolved;
+    });
+    if (!user) {
+      throw new CustomHttpException(
+        'failed to resolve user from SSO claims',
+        HttpErrorCode.FAILED
+      );
+    }
+    if (user.deactivatedTime) {
+      throw new CustomHttpException(
+        'account deactivated',
+        HttpErrorCode.RESTRICTED_RESOURCE
+      );
+    }
+    await this.usersService.refreshLastSignTime(user.id);
+    this.logger.log(`SSO login complete: provider=${provider.id} user=${user.id}`);
     return user;
   }
 }

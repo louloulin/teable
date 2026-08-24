@@ -169,11 +169,10 @@ export class SsoService {
       code: input.code,
     });
     const claims = await this.verifyIdToken(tokens.id_token, provider.issuer, provider.clientId ?? '');
-    // Single-use state: prevents replay if the callback URL leaks.
-    await this.prisma.ssoLoginState.update({
-      where: { id: stateRow.id },
-      data: { consumed: true },
-    });
+    // Single-use state is now marked consumed by `SsoAuthService.completeCallback`
+    // inside the same transaction as the user resolve — Stage 4.1. Leaving the
+    // row unconsumed here means a half-completed callback (id_token ok but user
+    // resolve failed) can be safely retried without leaking a fresh session.
     return {
       provider: {
         id: provider.id,
@@ -186,6 +185,12 @@ export class SsoService {
         emailDomain: provider.emailDomain,
       },
       claims,
+      stateRow: {
+        id: stateRow.id,
+        providerId: stateRow.providerId,
+        consumed: stateRow.consumed,
+        expiresAt: stateRow.expiresAt,
+      },
       redirectTo: stateRow.redirectTo,
     };
   }

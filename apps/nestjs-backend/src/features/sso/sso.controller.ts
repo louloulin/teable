@@ -1,11 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
+import { Body, Controller, Delete, Get, Logger, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
 import {
   LicenseCapabilityGuard,
 } from '../license/license-capability.guard';
+import { SsoAuthService } from './sso-auth.service';
 import { SsoService } from './sso.service';
 
 const SsoGuard = LicenseCapabilityGuard.for('sso');
@@ -32,8 +33,11 @@ interface IStartLoginDto {
 @Controller('api')
 @UseGuards(SsoGuard)
 export class SsoController {
+  private readonly logger = new Logger(SsoController.name);
+
   constructor(
     private readonly sso: SsoService,
+    private readonly ssoAuth: SsoAuthService,
     private readonly cls: ClsService<IClsStore>
   ) {}
 
@@ -98,32 +102,56 @@ export class SsoController {
   }
 
   /**
-   * IdP callback. Reads `code` + `state`, validates the id_token, and
-   * returns the claims for the caller to provision the local session.
-   * The actual session-creation step lives in `auth.service.ts` and is
-   * wired in a follow-up commit (Stage 4.1) — this stage ships the
-   * verifiable plumbing end-to-end.
+   * IdP callback. Reads `code` + `state`, validates the id_token, then
+   * resolves the local user and writes the session cookie in one
+   * transaction (Stage 4.1).
    */
   @Post('auth/sso/callback')
-  async handleCallback(@Body() body: { code: string; state: string }) {
-    return this.sso.handleCallback(body);
+  async handleCallback(
+    @Req() req: Request,
+    @Body() body: { code: string; state: string },
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = await this.sso.handleCallback(body);
+    const user = await this.ssoAuth.completeCallback(
+      result.stateRow,
+      result.provider,
+      result.claims
+    );
+    await new Promise<void>((resolve, reject) => {
+      req.login(user, (err) => (err ? reject(err) : resolve()));
+    });
+    return {
+      ok: true,
+      email: user.email,
+      id: user.id,
+      redirectTo: result.redirectTo ?? '/',
+    };
   }
 
   @Get('auth/sso/callback')
   async handleCallbackGet(
+    @Req() req: Request,
     @Query('code') code: string,
     @Query('state') state: string,
     @Res() res: Response
   ) {
-    const result = await this.sso.handleCallback({ code, state });
-    // Hand the verified claims to the auth layer; here we just echo the
-    // resolved payload so the test harness can assert end-to-end behavior
-    // without coupling this commit to the session-creation PR.
-    res.status(200).json({
-      ok: true,
-      email: result.claims.email,
-      sub: result.claims.sub,
-      redirectTo: result.redirectTo,
-    });
+    try {
+      const result = await this.sso.handleCallback({ code, state });
+      const user = await this.ssoAuth.completeCallback(
+        result.stateRow,
+        result.provider,
+        result.claims
+      );
+      await new Promise<void>((resolve, reject) => {
+        req.login(user, (err) => (err ? reject(err) : resolve()));
+      });
+      res.redirect(302, result.redirectTo ?? '/');
+    } catch (err) {
+      // Log the failure for the operator and bounce the user back to the
+      // home page with a generic error — never leak IdP-specific detail.
+      this.logger.warn(`SSO callback failed: ${(err as Error).message}`);
+      res.redirect(302, `/?sso_error=${encodeURIComponent('login_failed')}`);
+    }
   }
 }
