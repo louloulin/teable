@@ -47,6 +47,7 @@ import { getPublicFullStorageUrl } from '../attachments/plugins/utils';
 import { PermissionService } from '../auth/permission.service';
 import { BaseService } from '../base/base.service';
 import { CollaboratorService } from '../collaborator/collaborator.service';
+import { QuotaService } from '../quota/quota.service';
 import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
 import { SettingService } from '../setting/setting.service';
 import { normalizeSpaceAIIntegrationConfig } from './ai-integration-config';
@@ -65,6 +66,7 @@ export class SpaceService {
     protected readonly settingOpenApiService: SettingOpenApiService,
     protected readonly performanceCacheService: PerformanceCacheService,
     protected readonly dataDbBindingService: DataDbBindingService,
+    protected readonly quotaService: QuotaService,
     @ThresholdConfig() protected readonly thresholdConfig: IThresholdConfig,
     @InjectModel('CUSTOM_KNEX') protected readonly knex: Knex,
     @InjectDbProvider() protected readonly dbProvider: IDbProvider,
@@ -109,6 +111,11 @@ export class SpaceService {
         spaceId: result.id,
       });
       await this.createDefaultAIIntegration(result.id);
+      // Quota / SLA subsystem: provision the row that backs this space's
+      // enforcement & dashboard reporting. Self-host defaults make this a
+      // no-op on OSS; Cloud / Pro / Business populate concrete limits via
+      // QuotaService.setPlanLimits() during license activation.
+      await this.quotaService.ensureForSpace(result.id, 'self_hosted');
       return result;
     });
   }

@@ -9,6 +9,7 @@ import { CollaboratorModule } from '../collaborator/collaborator.module';
 import { TABLE_IMPORT_CSV_CHUNK_QUEUE } from '../import/open-api/import-csv-chunk.processor';
 import { TABLE_IMPORT_CSV_QUEUE } from '../import/open-api/import-csv.processor';
 import { InvitationModule } from '../invitation/invitation.module';
+import { QuotaModule } from '../quota/quota.module';
 import { SettingOpenApiModule } from '../setting/open-api/setting-open-api.module';
 import { SettingModule } from '../setting/setting.module';
 import { DataDbBaselineService } from './data-db-baseline.service';
@@ -52,6 +53,7 @@ import { TemplateSpaceInitService } from './template-space-init/template-space.i
     InvitationModule,
     BaseModule,
     PermissionModule,
+    QuotaModule,
     SpaceDataDbMigrationGuardModule,
     SpaceDataDbCopyModule,
     EventJobModule.registerQueue(BASE_IMPORT_CSV_QUEUE),

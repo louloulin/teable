@@ -1140,3 +1140,100 @@ model ShortLink {
   @@index([deletedTime])
   @@map("short_link")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quota / SLA subsystem (Self-Host Business parity, OSS-friendly defaults)
+//
+// Goals:
+//   - Track per-space hard limits for rows, attachment bytes, automation runs,
+//     AI credits and storage-derived counters; matches Teable.ai Cloud plans.
+//   - Track rolling usage counters (current period + lifetime) so enforcement
+//     and dashboards share a single source of truth.
+//   - Record quota hits for analytics and self-hosted admin review.
+//   - Self-host installs default to unlimited (`-1`); Cloud / Pro / Business
+//     plans populate concrete limits via `setPlanLimits`.
+//
+// NOTE: kept additive only — never drop or rename; quota history powers audit
+//       and is retained even when limits are relaxed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PlanLevel {
+  free
+  pro
+  business
+  enterprise
+  self_hosted
+}
+
+enum QuotaMetric {
+  rows
+  attachment_bytes
+  automation_runs
+  ai_credits
+  api_requests
+  record_history_days
+  automation_history_days
+  seats
+}
+
+model SpaceQuota {
+  id        String   @id @default(cuid())
+  spaceId   String   @unique @map("space_id")
+  plan      PlanLevel @default(free)
+  // -1 = unlimited (self-host default); >=0 = enforced hard cap.
+  rowLimit              Int? @map("row_limit")
+  attachmentByteLimit   BigInt? @map("attachment_byte_limit")
+  automationRunLimit    Int? @map("automation_run_limit")
+  aiCreditLimit         Int? @map("ai_credit_limit")
+  apiRequestLimitPerSec Int? @map("api_request_limit_per_sec")
+  recordHistoryDays     Int? @map("record_history_days")
+  automationHistoryDays Int? @map("automation_history_days")
+  seatLimit             Int? @map("seat_limit")
+  // bumped add-on packs (cloud-only invoice model; informational on self-host)
+  rowAddon              Int? @map("row_addon")
+  automationAddon       Int? @map("automation_addon")
+  aiCreditAddon         Int? @map("ai_credit_addon")
+  attachmentByteAddon   BigInt? @map("attachment_byte_addon")
+  effectiveFrom DateTime  @default(now()) @map("effective_from")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  updatedBy    String?   @map("updated_by")
+
+  @@map("space_quota")
+}
+
+// One row per (spaceId, metric, periodStart). Periods are calendar months in
+// UTC; we never mutate historical rows — counters only advance.
+model SpaceUsageCounter {
+  id            BigInt      @id @default(autoincrement())
+  spaceId       String      @map("space_id")
+  metric        QuotaMetric @map("metric")
+  periodStart   DateTime    @map("period_start") @db.Date
+  periodKind    String      @default("monthly") @map("period_kind") @db.VarChar(16)
+  used          BigInt      @default(0)
+  // Cached snapshot of the cap in force at period start; lets dashboards show
+  // "1000 / 25000" even if the cap changed mid-period.
+  capSnapshot   BigInt?     @map("cap_snapshot")
+  lastEventAt   DateTime    @default(now()) @map("last_event_at")
+  createdTime   DateTime    @default(now()) @map("created_time")
+
+  @@unique([spaceId, metric, periodKind, periodStart])
+  @@index([spaceId, metric])
+  @@index([periodStart])
+  @@map("space_usage_counter")
+}
+
+// Soft log of every enforcement rejection. Persisted only when enforcement is
+// active (i.e. cap != -1). Audit dashboard / admin panel read from here.
+model QuotaHit {
+  id          BigInt      @id @default(autoincrement())
+  spaceId     String      @map("space_id")
+  metric      QuotaMetric @map("metric")
+  attempted   BigInt      @map("attempted")
+  cap         BigInt      @map("cap")
+  actorId     String?     @map("actor_id")
+  resource    String?     @map("resource") // e.g. "table:abc", "automation:xyz"
+  createdTime DateTime    @default(now()) @map("created_time")
+
+  @@index([spaceId, metric, createdTime])
+  @@map("quota_hit")
+}
