@@ -1,0 +1,129 @@
+schema: comet.native.children.v2
+supervisor: teable-oss-vs-cloud-gap-fill
+
+# Acceptance index — 索引 brief 派生的父级验收 ID。
+# 每个 ID 保存来源 (supervisor_spec §N) 与完整文字 (本文件即权威),
+# child 的 `covers` 必须覆盖此处列出的全部 ID;
+# Spec 派生的细粒度验收仍由各 child 自己的 spec + Runtime 完整验收矩阵验证,
+# 不要求 initial child plan 重复列出。
+acceptance_index:
+  - id: A1
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.2
+    text: SSO callback 完整会话链路:从 /api/auth/sso/login 走完到本地 session cookie 写入,后续 /api/auth/profile 返回正确 user。
+  - id: A2
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.3
+    text: 审计日志存在与可检索:任何 record create/update/delete 在 DB 留对应 audit_log 行,可在 /api/admin/audit-log 分页筛选。
+  - id: A3
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.4
+    text: 权限矩阵热路径生效:hidden 字段在 list 响应中为 null,PATCH 写 hidden 字段返回 403 RESTRICTED_RESOURCE,row filter 实际缩小查询结果。
+  - id: A4
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.5
+    text: AI 细分计费:free plan 调 ai_field 返回 402 LICENSE_REQUIRED;pro plan 调 cuppy_claw 返回 402;business plan 调 ai_app_builder 不返错。
+  - id: A5
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.6
+    text: 自定义应用域名端点:/api/admin/custom-domain/check?domain=foo.com 返回 cnameTarget。
+  - id: A6
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.7
+    text: 配额 retention 差异化:plan 切到 business 后,record history cleanup 保留期内记录保留,过期记录被删除。
+  - id: A7
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.8
+    text: API 速率限制按档位:business plan 下超过 10 req/s 返回 429;self_hosted plan 默认无限。
+  - id: A8
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.1
+    text: License 激活联动:设 TEABLE_LICENSE_KEY=plan:business,启动后所有 spaces 自动切到 business plan。
+  - id: A9
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §3.2 + Stage 4.2 行为
+    text: SsoLoginState BullMQ 清理:超过 5 分钟的 state 行被删除,DB 中无残留。
+  - id: A10
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md §2
+    text: Prisma migration 全部成功:测试库顺序应用 0 失败,prisma generate 拿到全部枚举。
+  - id: A11
+    source: specs/teable-oss-vs-cloud-gap-fill/spec.md 全文
+    text: 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。
+
+# Children — 每个 child 是一个普通 Native change,
+# 在独立 worktree 中创建,以 supervisor.changeBranch 为目标分支;
+# 没有依赖的 child 可并行 Build/Verify,但 Archive 必须逐个 finish=merge 合入 supervisor 分支。
+children:
+  - name: stage-4-1-sso-callback
+    depends_on: []
+    covers: [A1, A8, A10, A11]
+    summary: |
+      把 Stage 4 的 OIDC plumbing 接进 auth.service / SessionService,
+      让 /api/auth/sso/callback 返回本地 session cookie。
+      复用 d0d1e13cb 已落地的 SsoAuthService.resolveLocalUser 助手。
+    spec_path: specs/stage-4-1-sso-callback/spec.md
+
+  - name: stage-4-2-sso-state-cleanup
+    depends_on: []
+    covers: [A9, A10, A11]
+    summary: |
+      新增 BullMQ repeatable job,清理 5 分钟前的 SsoLoginState 行;
+      在 app.module 启动时 register;不依赖 4.1,可独立并行。
+    spec_path: specs/stage-4-2-sso-state-cleanup/spec.md
+
+  - name: stage-6-audit-log
+    depends_on: []
+    covers: [A2, A10, A11]
+    summary: |
+      新增 audit_log 表 + AuditLogService + LocalJsonlAuditSink,
+      在 record / permission / SSO / quota 路径埋点;
+      /api/admin/audit-log 提供分页筛选 API。
+    spec_path: specs/stage-6-audit-log/spec.md
+
+  - name: stage-5b-permission-hot-path
+    depends_on: []
+    covers: [A3, A10, A11]
+    summary: |
+      把已有的 PermissionInterceptor + PermissionGuard 真正挂载到
+      record-open-api 各 handler;row filter 注入 Prisma where。
+    spec_path: specs/stage-5b-permission-hot-path/spec.md
+
+  - name: stage-8b-ai-granular-gating
+    depends_on: [stage-6-audit-log]
+    covers: [A4, A10, A11]
+    summary: |
+      AiService 各入口细分 caps.require('ai_field' / 'ai_chat' /
+      'ai_app_builder' / 'cuppy_claw'),每次调用前 quota.consume('ai_credits')。
+      依赖 stage-6 提供审计埋点。
+    spec_path: specs/stage-8b-ai-granular-gating/spec.md
+
+  - name: stage-7-admin-panel-api
+    depends_on: []
+    covers: [A8, A10, A11]
+    summary: |
+      AdminOpenApiModule 增一组路由:用户列表 / 空间列表 / 模板管理 /
+      AI 设置 / 配额仪表;前端 UI 不在本 change scope。
+    spec_path: specs/stage-7-admin-panel-api/spec.md
+
+  - name: stage-9-saml-provider
+    depends_on: [stage-4-1-sso-callback]
+    covers: [A1, A10, A11]
+    summary: |
+      实现 SAML 2.0 provider;复用 SsoProviderType.saml 枚举已留位;
+      依赖 4.1 把 session 通路打通后再接入 SAML assertions。
+    spec_path: specs/stage-9-saml-provider/spec.md
+
+  - name: stage-10-custom-domain-check
+    depends_on: [stage-3-5-domain-verification]
+    covers: [A5, A10, A11]
+    summary: |
+      自定义应用域名的 CNAME 检测 + 反代提示端点;
+      复用 stage-3-5 已落地的 DomainVerificationService。
+    spec_path: specs/stage-10-custom-domain-check/spec.md
+
+  - name: stage-11-retention-by-plan
+    depends_on: []
+    covers: [A6, A10, A11]
+    summary: |
+      record history / automation run cleanup job 按 plan 取 TTL
+      (free 14天 / pro 365天 / business 1095天 record,365天 automation)。
+    spec_path: specs/stage-11-retention-by-plan/spec.md
+
+  - name: stage-12-api-rate-limit-by-plan
+    depends_on: []
+    covers: [A7, A10, A11]
+    summary: |
+      ApiThrottleGuard 读 plan 后按档位 throttle 限额 (10 req/s);
+      自托管默认无限。
+    spec_path: specs/stage-12-api-rate-limit-by-plan/spec.md
