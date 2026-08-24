@@ -1237,3 +1237,50 @@ model QuotaHit {
   @@index([spaceId, metric, createdTime])
   @@map("quota_hit")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Domain verification — minimal scaffolding shared by SSO + custom app domain.
+//
+// Owner claims ownership of a domain by adding a Teable-issued TXT record;
+// we poll DNS to confirm. Once verified, downstream flows can:
+//   - bind SSO for the org (only members whose email matches the domain
+//     get auto-provisioned)
+//   - point a custom app subdomain (e.g. `crm.acme.com`) at a published
+//     App via the reverse proxy (`teable-gateway`).
+//
+// Self-host OSS ships the API + state machine. DNS resolution uses Node's
+// built-in `dns/promises` so we don't add a new runtime dependency.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DomainVerificationStatus {
+  pending
+  verified
+  failed
+  revoked
+}
+
+model OrganizationDomain {
+  id              String                  @id @default(cuid())
+  // The org that owns this domain (single-tenant self-host = 1 org).
+  organizationId  String                  @map("organization_id")
+  domain          String                  @unique
+  // Token the operator must publish as `_teable-verify.<domain>` TXT.
+  verificationToken String                @unique @map("verification_token") @db.VarChar(64)
+  status          DomainVerificationStatus @default(pending)
+  lastCheckedAt   DateTime?               @map("last_checked_at")
+  lastError       String?                 @map("last_error")
+  // When the org downgrades / revokes the claim, set this and reset status.
+  revokedAt       DateTime?               @map("revoked_at")
+  // For SSO auto-provisioning: once verified, all emails matching `domain`
+  // are eligible for the org without an explicit invite.
+  ssoBound        Boolean                 @default(false) @map("sso_bound")
+  // For custom app domains: which app id the CNAME points at.
+  boundAppId      String?                 @map("bound_app_id")
+  createdBy       String                  @map("created_by")
+  createdTime     DateTime                @default(now()) @map("created_time")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("organization_domain")
+}

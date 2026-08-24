@@ -22,6 +22,7 @@ import { ChatModule } from './features/chat/chat.module';
 import { CollaboratorModule } from './features/collaborator/collaborator.module';
 import { CommentOpenApiModule } from './features/comment/comment-open-api.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
+import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
 import { HealthModule } from './features/health/health.module';
@@ -36,6 +37,7 @@ import { OAuthModule } from './features/oauth/oauth.module';
 import { OrganizationModule } from './features/organization/organization.module';
 import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
+import { LicenseModule } from './features/license/license.module';
 import { QuotaModule } from './features/quota/quota.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
@@ -94,7 +96,9 @@ export const appModules = {
     PinModule,
     AdminOpenApiModule,
     CanaryModule,
+    LicenseModule,
     QuotaModule,
+    DomainVerificationModule,
     SettingOpenApiModule,
     OAuthModule,
     TrashModule,
