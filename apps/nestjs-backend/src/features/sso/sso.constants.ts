@@ -6,6 +6,13 @@ export const SSO_JWKS_CACHE_TTL_MS = 10 * 60 * 1000;
 export const SSO_LOGIN_PATH = '/api/auth/sso/login';
 export const SSO_CALLBACK_PATH = '/api/auth/sso/callback';
 
+// Stage 4.2 — repeat interval for the background job that deletes expired
+// SsoLoginState rows. Kept small (1 minute) so the DB never holds PII
+// (state, emailHint, redirectTo) for more than ~6 minutes after a login
+// attempt completes or expires.
+export const SSO_LOGIN_STATE_CLEANUP_QUEUE = 'sso-login-state-cleanup';
+export const SSO_LOGIN_STATE_CLEANUP_REPEAT_MS = 60 * 1000;
+
 export interface ISsoDiscoveryDoc {
   issuer: string;
   authorization_endpoint: string;
