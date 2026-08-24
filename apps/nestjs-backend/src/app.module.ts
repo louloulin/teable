@@ -12,6 +12,7 @@ import { AggregationOpenApiModule } from './features/aggregation/open-api/aggreg
 import { AiModule } from './features/ai/ai.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
+import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
@@ -84,6 +85,7 @@ export const appModules = {
     AggregationOpenApiModule,
     UserModule,
     AuthModule,
+    AuditSourceModule,
     SpaceModule,
     CollaboratorModule,
     InvitationModule,

@@ -58,6 +58,11 @@ export enum Events {
   USER_RENAME = 'user.rename',
   USER_SIGNOUT = 'user.signout',
   USER_DELETE = 'user.delete',
+  // SSO login outcomes — emitted by Stage 4.1 callback. Mirrors the
+  // existing `user.signin` event but splits success from failure so the
+  // audit log can distinguish "legit login" from "rejected callback".
+  USER_SSO_LOGIN_SUCCESS = 'user.sso.login.success',
+  USER_SSO_LOGIN_FAILURE = 'user.sso.login.failure',
 
   // USER_PASSWORD_RESET = 'user.password.reset',
   USER_PASSWORD_CHANGE = 'user.password.change',

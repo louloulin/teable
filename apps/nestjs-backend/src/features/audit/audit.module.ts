@@ -1,9 +1,26 @@
 import { Global, Module } from '@nestjs/common';
-import { AuditScope } from './audit-scope';
+import { PrismaModule } from '@teable/db-main-prisma';
 
+import { LicenseModule } from '../license/license.module';
+import { AuditScope } from './audit-scope';
+import { AuditLogController } from './audit-log.controller';
+import { AuditLogService } from './audit-log.service';
+
+/**
+ * Audit module — exposes both the in-process emission helpers used by
+ * every audit-aware service (`AuditScope`, `@Audit`) and the admin-side
+ * read endpoint (`AuditLogController`).
+ *
+ * Marked `@Global()` so `AuditScope` is injectable everywhere without
+ * each feature module having to re-import it. The `AuditLogController` is
+ * exported as a route, not a provider — its registration only requires
+ * this module to be in the root `AppModule.imports`.
+ */
 @Global()
 @Module({
-  providers: [AuditScope],
-  exports: [AuditScope],
+  imports: [PrismaModule, LicenseModule],
+  controllers: [AuditLogController],
+  providers: [AuditScope, AuditLogService],
+  exports: [AuditScope, AuditLogService],
 })
 export class AuditSourceModule {}
