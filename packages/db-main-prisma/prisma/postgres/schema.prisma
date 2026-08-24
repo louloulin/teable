@@ -1350,3 +1350,115 @@ model SsoLoginState {
   @@index([expiresAt])
   @@map("sso_login_state")
 }
+
+enum PermissionRoleStatus {
+  enabled
+  disabled
+}
+
+enum PermissionNodeAccess {
+  // No access to the table at all; UI should hide it.
+  none
+  // Read/write access to the table subject to record + field filters.
+  editable
+}
+
+enum PermissionFieldAccess {
+  // Field hidden from this role (returns null + UI grays it out).
+  hidden
+  // Read-only; mutations throw on this field.
+  readonly
+  // Full CRUD on this field.
+  editable
+}
+
+enum PermissionRecordAction {
+  view
+  update
+  create
+  delete
+  comment
+}
+
+// JSON-encoded filter graph (subset of the public filter DSL). Kept
+// portable as `Json` so future operators don't require schema migration.
+model PermissionRoleRecordFilter {
+  id          String   @id @default(cuid())
+  roleId      String   @map("role_id")
+  tableId     String   @map("table_id")
+  // The shape mirrors `IRecordFilter` from openapi but stored as JSON so
+  // we don't have to migrate the schema when the filter DSL evolves.
+  filter      Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([roleId, tableId])
+  @@map("permission_role_record_filter")
+}
+
+model PermissionRoleFieldPermission {
+  id        String              @id @default(cuid())
+  roleId    String              @map("role_id")
+  tableId   String              @map("table_id")
+  fieldId   String              @map("field_id")
+  access    PermissionFieldAccess
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  @@unique([roleId, fieldId])
+  @@map("permission_role_field_permission")
+}
+
+model PermissionRoleRecordAction {
+  id        String                @id @default(cuid())
+  roleId    String                @map("role_id")
+  tableId   String                @map("table_id")
+  action    PermissionRecordAction
+  createdAt DateTime              @default(now()) @map("created_at")
+
+  @@unique([roleId, tableId, action])
+  @@map("permission_role_record_action")
+}
+
+model PermissionRoleNode {
+  id        String              @id @default(cuid())
+  roleId    String              @map("role_id")
+  tableId   String              @map("table_id")
+  access    PermissionNodeAccess
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  @@unique([roleId, tableId])
+  @@map("permission_role_node")
+}
+
+model PermissionRoleMember {
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([roleId, userId])
+  @@map("permission_role_member")
+}
+
+model PermissionRole {
+  id           String              @id @default(cuid())
+  baseId       String              @map("base_id")
+  // Human-readable label shown in the admin UI.
+  name         String
+  description  String?
+  status       PermissionRoleStatus @default(enabled)
+  createdBy    String              @map("created_by")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  members      PermissionRoleMember[]
+  nodes        PermissionRoleNode[]
+  fieldPerms   PermissionRoleFieldPermission[]
+  recordActions PermissionRoleRecordAction[]
+  recordFilter PermissionRoleRecordFilter?
+
+  @@unique([baseId, name])
+  @@index([baseId])
+  @@map("permission_role")
+}

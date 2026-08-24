@@ -38,6 +38,7 @@ import { OrganizationModule } from './features/organization/organization.module'
 import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
 import { LicenseModule } from './features/license/license.module';
+import { PermissionMatrixModule } from './features/permission-matrix/permission-matrix.module';
 import { QuotaModule } from './features/quota/quota.module';
 import { SsoModule } from './features/sso/sso.module';
 import { PluginModule } from './features/plugin/plugin.module';
@@ -101,6 +102,7 @@ export const appModules = {
     QuotaModule,
     DomainVerificationModule,
     SsoModule,
+    PermissionMatrixModule,
     SettingOpenApiModule,
     OAuthModule,
     TrashModule,
