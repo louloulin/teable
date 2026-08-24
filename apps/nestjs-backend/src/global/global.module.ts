@@ -19,6 +19,8 @@ import { ConfigModule } from '../configs/config.module';
 import { X_REQUEST_ID } from '../const';
 import { DbProvider } from '../db-provider/db.provider';
 import { EventEmitterModule } from '../event-emitter/event-emitter.module';
+import { ApiThrottleGuard } from '../features/api-rate-limit/api-rate-limit.guard';
+import { ApiRateLimitModule } from '../features/api-rate-limit/api-rate-limit.module';
 import { AuditSourceModule } from '../features/audit/audit.module';
 import { AuthGuard } from '../features/auth/guard/auth.guard';
 import { PermissionGuard } from '../features/auth/guard/permission.guard';
@@ -68,6 +70,7 @@ const globalModules = {
     PermissionModule,
     DataLoaderModule,
     PerformanceCacheModule,
+    ApiRateLimitModule,
     I18nModule.forRootAsync({
       useFactory: () => {
         const i18nPath = getI18nPath();
@@ -114,6 +117,14 @@ const globalModules = {
     {
       provide: APP_GUARD,
       useClass: PermissionGuard,
+    },
+    {
+      // Stage 12: per-plan API throttle. Registered last so it sits at
+      // the outermost layer — anonymous floods are rejected before they
+      // burn DB cycles on permission lookups, while authenticated bursts
+      // are still capped at the plan rate.
+      provide: APP_GUARD,
+      useClass: ApiThrottleGuard,
     },
     {
       provide: APP_INTERCEPTOR,
