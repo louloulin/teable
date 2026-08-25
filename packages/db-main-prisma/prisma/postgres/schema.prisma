@@ -3385,3 +3385,21 @@ model WebhookCanvas {
   @@index([baseId])
   @@map("webhook_canvas")
 }
+
+model DrCanvas {
+  id        String   @id
+  baseId    String   @map("base_id")
+  name      String
+  /// JSON: nodes/edges/target
+  canvasJson Json    @map("canvas_json")
+  /// "primary" → "replica" etc
+  sourceRegion String  @map("source_region")
+  destRegion   String  @map("dest_region")
+  version   Int      @default(1)
+  hash      String
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([baseId])
+  @@map("dr_canvas")
+}
