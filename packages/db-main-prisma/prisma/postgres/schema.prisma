@@ -2800,3 +2800,31 @@ model FederationRefresh {
   @@index([viewId, status])
   @@map("federation_refresh")
 }
+
+model RiskPolicy {
+  id            String   @id
+  orgId         String   @map("org_id")
+  defaultAction String   @map("default_action")
+  auditAll      Boolean  @default(true) @map("audit_all")
+  rulesJson     String   @default("[]") @map("rules_json")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  @@index([orgId])
+  @@map("risk_policy")
+}
+
+model RiskDecision {
+  id              String   @id
+  orgId           String   @map("org_id")
+  actorId         String   @map("actor_id")
+  score           Int      @default(0)
+  /// "low" | "medium" | "high" | "critical"
+  band            String
+  /// "allow" | "challenge" | "soft-block" | "hard-block"
+  action          String
+  firedRulesJson  String   @default("[]") @map("fired_rules_json")
+  detail          String   @default("")
+  createdAt       DateTime @default(now()) @map("created_at")
+  @@index([orgId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("risk_decision")
+}
