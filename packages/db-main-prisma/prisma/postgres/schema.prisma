@@ -2940,3 +2940,26 @@ model SeatCycle {
   @@index([orgId, tier, startedAt])
   @@map("seat_cycle")
 }
+
+model StorageSample {
+  id      String   @id
+  orgId   String   @map("org_id")
+  baseId  String   @map("base_id")
+  /// "records" | "attachments" | "snapshots" | "history" | "other"
+  kind    String
+  bytes   BigInt   @default(0)
+  endedAt DateTime @map("ended_at")
+  @@index([orgId, baseId, endedAt])
+  @@map("storage_sample")
+}
+
+model StorageBillableLine {
+  id      String   @id
+  orgId   String   @map("org_id")
+  baseId  String   @map("base_id")
+  bytes   BigInt   @default(0)
+  cents   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([orgId, createdAt])
+  @@map("storage_billable_line")
+}
