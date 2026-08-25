@@ -2083,3 +2083,51 @@ model KmsAuditEntry {
   @@index([organizationId, atTime])
   @@map("kms_audit_entry")
 }
+
+model IntegrationProvider {
+  id              String   @id
+  code            String   @unique
+  displayName     String   @map("display_name")
+  category        String
+  authType        String   @map("auth_type")
+  webhookStyle    String   @default("catch-hook") @map("webhook_style")
+  description     String?
+  docsUrl         String?  @map("docs_url")
+  enabled         Boolean  @default(true)
+  createdTime     DateTime @default(now()) @map("created_time")
+  @@map("integration_provider")
+}
+
+model IntegrationInstall {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  providerCode    String   @map("provider_code")
+  status          String   @default("active")
+  externalAccountId String? @map("external_account_id")
+  accessTokenJson String?  @map("access_token_json")
+  refreshToken    String?  @map("refresh_token")
+  scopesCsv       String?  @map("scopes_csv")
+  webhookSecret   String?  @map("webhook_secret")
+  expiresAt       DateTime? @map("expires_at")
+  installedBy     String   @map("installed_by")
+  installedTime   DateTime @default(now()) @map("installed_time")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  revokedAt       DateTime? @map("revoked_at")
+  @@unique([organizationId, providerCode])
+  @@index([organizationId])
+  @@map("integration_install")
+}
+
+model IntegrationEventLog {
+  id              String   @id
+  installId       String   @map("install_id")
+  direction       String
+  eventType       String   @map("event_type")
+  payloadHash     String?  @map("payload_hash")
+  status          String   @default("delivered")
+  attempts        Int      @default(1)
+  receivedAt      DateTime @default(now()) @map("received_at")
+  errorMessage    String?  @map("error_message")
+  @@index([installId, receivedAt])
+  @@map("integration_event_log")
+}
