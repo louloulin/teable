@@ -1905,3 +1905,32 @@ model AiCreditLedger {
   @@index([organizationId, createdTime])
   @@map("ai_credit_ledger")
 }
+
+model WorkspaceSwitchSession {
+  id              String   @id
+  userId          String   @map("user_id")
+  fromSpaceId     String?  @map("from_space_id")
+  toSpaceId       String   @map("to_space_id")
+  token           String   @unique
+  expiresAt       DateTime @map("expires_at")
+  consumedAt      DateTime? @map("consumed_at")
+  createdTime     DateTime @default(now()) @map("created_time")
+  @@index([userId])
+  @@index([token])
+  @@map("workspace_switch_session")
+}
+
+model CrossOrgAdminGrant {
+  id              String   @id
+  userId          String   @map("user_id")
+  spaceId         String   @map("space_id")
+  grantedBy       String   @map("granted_by")
+  role            String   // "admin" | "owner"
+  reason          String?
+  expiresAt       DateTime? @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  createdTime     DateTime @default(now()) @map("created_time")
+  @@index([userId])
+  @@index([spaceId])
+  @@map("cross_org_admin_grant")
+}
