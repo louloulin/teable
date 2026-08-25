@@ -1635,3 +1635,21 @@ model OAuthAccessToken {
   @@index([userId])
   @@map("oauth_access_token")
 }
+
+// Stage 17 — view-level permission (ACL on top of views)
+// Each row grants one subject (user or role) a permission on a view.
+// 'owner' / 'write' / 'read' / 'denied' (overrides everything).
+model ViewPermission {
+  id               String   @id
+  viewId           String   @map("view_id")
+  subjectKind      String   @map("subject_kind")
+  subjectId        String   @map("subject_id")
+  permission       String
+  createdTime      DateTime @default(now()) @map("created_time")
+  lastModifiedTime DateTime @default(now()) @map("last_modified_time")
+
+  @@unique([viewId, subjectKind, subjectId])
+  @@index([viewId])
+  @@index([subjectKind, subjectId])
+  @@map("view_permission")
+}
