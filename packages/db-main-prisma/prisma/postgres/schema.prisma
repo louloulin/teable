@@ -3100,3 +3100,21 @@ model ConflictEvent {
   @@index([idempotencyKey])
   @@map("conflict_event")
 }
+
+model ImportJob {
+  id         String   @id
+  orgId      String   @map("org_id")
+  /// "import" | "export"
+  direction  String
+  /// "csv" | "json" | "xlsx"
+  format     String
+  sourceUri  String?  @map("source_uri")
+  targetUri  String?  @map("target_uri")
+  chunkSize  Int      @map("chunk_size")
+  maxRows    Int      @map("max_rows")
+  deadline   DateTime
+  checkpoint Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  @@index([orgId])
+  @@map("import_job")
+}
