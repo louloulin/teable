@@ -1863,3 +1863,22 @@ model SiemWebhook {
   @@index([organizationId, enabled])
   @@map("siem_webhook")
 }
+
+// Stage 25 — operator-managed IP allowlist. CIDR strings (IPv4 +
+// IPv6). An org with rows here rejects every request whose remote
+// address doesn't match an entry. "Block mode" (default) is the
+// production posture; "audit-only" mirrors to the audit log but
+// doesn't reject (useful for rolling out).
+model OrganizationIpAllowlist {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  cidr            String   @map("cidr")
+  // "block" or "audit".
+  mode            String   @default("block") @map("mode")
+  note            String?
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+
+  @@index([organizationId])
+  @@map("organization_ip_allowlist")
+}
