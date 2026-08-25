@@ -3350,3 +3350,23 @@ model AutomationTriggerCatalog {
   @@index([category])
   @@map("automation_trigger_catalog")
 }
+
+model AutomationActionCatalog {
+  id          String   @id
+  /// Action type id, e.g. 'update_record'
+  type        String   @unique
+  label       String
+  /// "record" | "notification" | "integration" | "ai" | "system"
+  category    String
+  description String?
+  icon        String?
+  /// JSON: field spec array
+  fieldsJson  Json     @map("fields_json")
+  /// JSON: {maxAttempts, backoff, initialDelayMs}
+  retryJson   Json?    @map("retry_json")
+  rollback    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("automation_action_catalog")
+}
