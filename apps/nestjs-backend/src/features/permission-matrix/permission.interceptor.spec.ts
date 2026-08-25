@@ -74,7 +74,9 @@ describe('PermissionInterceptor.response projection', () => {
 
   it('handles bare rows (no `fields` envelope)', () => {
     const m = matrix();
-    (m.fieldAccess as import('vitest').Mock).mockReturnValueOnce('hidden' as never);
+    (m.fieldAccess as import('vitest').Mock).mockImplementation((_r, _t, fid: string) =>
+      fid === 'secret' ? ('hidden' as const) : ('editable' as const)
+    );
     const interceptor = new PermissionInterceptor(m, cls({ id: 'u1' }), reflector(true));
     const projected = (
       interceptor as unknown as {
