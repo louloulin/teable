@@ -24,6 +24,7 @@ import { CanaryModule } from './features/canary';
 import { ChatModule } from './features/chat/chat.module';
 import { CollaboratorModule } from './features/collaborator/collaborator.module';
 import { CommentOpenApiModule } from './features/comment/comment-open-api.module';
+import { ConditionalFormatModule } from './features/conditional-format/conditional-format.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -90,6 +91,7 @@ export const appModules = {
     AuditSourceModule,
     SpaceModule,
     CollaboratorModule,
+    ConditionalFormatModule,
     InvitationModule,
     ShareModule,
     ShortLinkModule,

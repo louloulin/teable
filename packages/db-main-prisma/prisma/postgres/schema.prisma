@@ -1472,3 +1472,25 @@ model PermissionRole {
   @@index([baseId])
   @@map("permission_role")
 }
+
+// Stage 18 — conditional formatting (per-view rules)
+// `style` is JSON; supports {bgColor, fgColor, bold, italic, icon}.
+// `value` is the right-hand side of the operator comparison; for
+// operator in 'in' it is a JSON array.
+model ConditionalFormatRule {
+  id               String   @id
+  viewId           String   @map("view_id")
+  name             String
+  fieldId          String?  @map("field_id")
+  operator         String
+  value            Json?
+  style            Json
+  priority         Int      @default(100)
+  enabled          Boolean  @default(true)
+  createdTime      DateTime @default(now()) @map("created_time")
+  lastModifiedTime DateTime @default(now()) @map("last_modified_time")
+
+  @@index([viewId, priority])
+  @@index([viewId, fieldId])
+  @@map("conditional_format_rule")
+}
