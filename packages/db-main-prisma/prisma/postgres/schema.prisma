@@ -3248,3 +3248,27 @@ model OpenApiOperation {
   @@index([resource])
   @@map("openapi_operation")
 }
+
+model TestFixture {
+  id     String @id
+  /// Stable seed for replay
+  seed   String
+  org    Json
+  users  Json
+  tokens Json
+
+  @@map("test_fixture")
+}
+
+model TestCallLog {
+  id         String   @id
+  seed       String
+  verb       String
+  path       String
+  status     Int
+  durationMs Int      @map("duration_ms")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([seed])
+  @@map("test_call_log")
+}
