@@ -126,7 +126,7 @@ export class QuotaEnforcementInterceptor implements NestInterceptor {
               (err as Error)?.message ?? err
             }`
           );
-          return of(null);
+          return next.handle();
         }
         throw err;
       })

@@ -132,7 +132,7 @@ describe('QuotaEnforcementInterceptor', () => {
     expect(quota.consume).toHaveBeenCalledWith(
       'sp_custom',
       'attachment_bytes',
-      1024n,
+      1024,
       expect.any(Object)
     );
   });
