@@ -1934,3 +1934,28 @@ model CrossOrgAdminGrant {
   @@index([spaceId])
   @@map("cross_org_admin_grant")
 }
+
+model AiUsageBucket {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  model           String   // e.g. "gpt-4o-mini", "claude-haiku-4-5"
+  action          String   // e.g. "completion", "embedding", "image"
+  credits         Int      @map("credits")
+  eventCount      Int      @default(0) @map("event_count")
+  monthBucket     String   @map("month_bucket")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@unique([organizationId, model, action, monthBucket])
+  @@index([organizationId, monthBucket])
+  @@map("ai_usage_bucket")
+}
+
+model AiCreditGrantPolicy {
+  id              String   @id
+  organizationId  String   @unique @map("organization_id")
+  monthlyLimit    Int      @map("monthly_limit")
+  carryCap        Int      @default(0) @map("carry_cap")
+  perModelCapJson String?  @map("per_model_cap_json")
+  updatedBy       String   @map("updated_by")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@map("ai_credit_grant_policy")
+}
