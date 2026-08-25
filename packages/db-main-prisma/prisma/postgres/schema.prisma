@@ -2344,3 +2344,66 @@ model SearchSynonym {
   @@unique([indexId, term])
   @@map("search_synonym")
 }
+
+model AiField {
+  id              String   @id
+  baseId          String   @map("base_id")
+  tableId         String   @map("table_id")
+  fieldId         String   @map("field_id")
+  /// "classify" | "summarize" | "translate"
+  operation       String
+  /// Model code reference (gpt-4o-mini, claude-haiku-4-5-20251001, etc).
+  model           String
+  /// Source fieldId(s) — comma-separated when multiple inputs.
+  sourceFieldIds  String   @map("source_field_ids")
+  /// Operation-specific config: JSON {labels:[...], targetLang:"zh", maxLength:200, prompt:"..."}
+  configJson      String   @map("config_json")
+  /// "enabled" | "paused" | "error"
+  status          String   @default("enabled")
+  /// Stable hash over config so we can detect drift on update.
+  configHash      String   @map("config_hash")
+  lastRunAt       DateTime? @map("last_run_at")
+  lastErrorMessage String? @map("last_error_message")
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@unique([baseId, tableId, fieldId, operation])
+  @@index([baseId, tableId])
+  @@map("ai_field")
+}
+
+model AiFieldRun {
+  id              String   @id
+  aiFieldId       String   @map("ai_field_id")
+  recordId        String   @map("record_id")
+  /// "ok" | "failed" | "rate-limited" | "skipped"
+  status          String   @default("ok")
+  /// Input text fed into the model.
+  inputText       String   @map("input_text")
+  /// Truncated output (full body for record).
+  outputText      String   @map("output_text")
+  promptTokens    Int      @default(0) @map("prompt_tokens")
+  completionTokens Int     @default(0) @map("completion_tokens")
+  model           String
+  durationMs      Int      @default(0) @map("duration_ms")
+  errorMessage    String?  @map("error_message")
+  startedAt       DateTime @default(now()) @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  @@index([aiFieldId, startedAt])
+  @@map("ai_field_run")
+}
+
+model AiFieldTemplate {
+  id              String   @id
+  /// "classify" | "summarize" | "translate"
+  operation       String
+  language        String   @default("english")
+  name            String
+  promptTemplate  String   @map("prompt_template")
+  description     String?
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@unique([operation, language, name])
+  @@map("ai_field_template")
+}
