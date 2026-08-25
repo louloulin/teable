@@ -2848,3 +2848,36 @@ model LoginAttempt {
   @@index([orgId, occurredAt])
   @@map("login_attempt")
 }
+
+model OrgBanEntry {
+  id             String    @id
+  orgId          String    @map("org_id")
+  /// "ip" | "email" | "device" | "actor" | "country"
+  kind           String
+  value          String
+  /// "allow" | "block"
+  mode           String
+  reason         String
+  expiresAt      DateTime? @map("expires_at")
+  createdBy      String    @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  lastModifiedBy String?   @map("last_modified_by")
+  revokedAt      DateTime? @map("revoked_at")
+  @@index([orgId, kind, value])
+  @@index([orgId, mode])
+  @@map("org_ban_entry")
+}
+
+model OrgBanAudit {
+  id         String   @id
+  orgId      String   @map("org_id")
+  entryId    String   @map("entry_id")
+  /// "create" | "revoke" | "edit"
+  action     String
+  actorId    String   @map("actor_id")
+  detail     String   @default("")
+  occurredAt DateTime @map("occurred_at")
+  @@index([entryId, occurredAt])
+  @@index([orgId, occurredAt])
+  @@map("org_ban_audit")
+}
