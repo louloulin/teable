@@ -3301,3 +3301,33 @@ model EnvSpec {
 
   @@map("env_spec")
 }
+
+model AutomationCanvas {
+  id        String   @id
+  baseId    String   @map("base_id")
+  name      String
+  /// JSON: {nodes, edges, viewport, version}
+  graphJson Json     @map("graph_json")
+  version   Int      @default(1)
+  /// SHA-256 of the canonical JSON for fast equality checks
+  hash      String
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([baseId])
+  @@map("automation_canvas")
+}
+
+model AutomationCanvasRevision {
+  id        String   @id
+  canvasId  String   @map("canvas_id")
+  version   Int
+  /// JSON snapshot at the time of revision
+  graphJson Json     @map("graph_json")
+  hash      String
+  author    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([canvasId, version])
+  @@map("automation_canvas_revision")
+}
