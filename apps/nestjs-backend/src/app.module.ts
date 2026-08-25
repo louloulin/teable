@@ -16,6 +16,7 @@ import { AirtableImportModule } from './features/airtable-import/airtable-import
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
+import { AutomationModule } from './features/automation/automation.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
 import { BaseShareModule } from './features/base-share/base-share.module';
@@ -88,6 +89,7 @@ export const appModules = {
     UserModule,
     AuthModule,
     AuditSourceModule,
+    AutomationModule,
     SpaceModule,
     CollaboratorModule,
     InvitationModule,

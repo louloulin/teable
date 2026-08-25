@@ -1472,3 +1472,103 @@ model PermissionRole {
   @@index([baseId])
   @@map("permission_role")
 }
+
+// Stage 13 — Automation engine MVP
+enum AutomationTriggerType {
+  record_created
+  record_updated
+  record_deleted
+  schedule
+
+  @@map("AutomationTriggerType")
+}
+
+enum AutomationActionType {
+  update_record
+  webhook
+  email
+  slack
+  discord
+  telegram
+
+  @@map("AutomationActionType")
+}
+
+enum AutomationRunStatus {
+  pending
+  running
+  succeeded
+  failed
+  skipped
+
+  @@map("AutomationRunStatus")
+}
+
+model Automation {
+  id              String              @id @default(cuid())
+  baseId          String              @map("base_id")
+  name            String
+  description     String?
+  enabled         Boolean             @default(true)
+  createdBy       String              @map("created_by")
+  createdTime     DateTime            @default(now()) @map("created_time")
+  lastModifiedBy  String?             @map("last_modified_by")
+  lastModifiedTime DateTime?          @updatedAt @map("last_modified_time")
+
+  triggers AutomationTrigger[]
+  actions  AutomationAction[]
+  runs     AutomationRun[]
+
+  @@index([baseId])
+  @@map("automation")
+}
+
+model AutomationTrigger {
+  id              String                 @id @default(cuid())
+  automationId    String                 @map("automation_id")
+  type            AutomationTriggerType
+  tableId         String?                @map("table_id")
+  config          Json                   @default("{}")
+  createdTime     DateTime               @default(now()) @map("created_time")
+
+  automation      Automation             @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@index([type])
+  @@map("automation_trigger")
+}
+
+model AutomationAction {
+  id              String                @id @default(cuid())
+  automationId    String                @map("automation_id")
+  type            AutomationActionType
+  orderIndex      Int                   @default(0) @map("order_index")
+  config          Json                  @default("{}")
+  createdTime     DateTime              @default(now()) @map("created_time")
+
+  automation      Automation            @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@map("automation_action")
+}
+
+model AutomationRun {
+  id              String                 @id @default(cuid())
+  automationId    String                 @map("automation_id")
+  triggerType     AutomationTriggerType  @map("trigger_type")
+  status          AutomationRunStatus    @default(pending)
+  input           Json                   @default("{}")
+  output          Json?
+  error           String?
+  retryCount      Int                    @default(0) @map("retry_count")
+  startedAt       DateTime?              @map("started_at")
+  finishedAt      DateTime?              @map("finished_at")
+  createdTime     DateTime               @default(now()) @map("created_time")
+
+  automation      Automation             @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@index([status])
+  @@index([createdTime])
+  @@map("automation_run")
+}
