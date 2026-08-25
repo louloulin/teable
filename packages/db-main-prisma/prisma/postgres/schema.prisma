@@ -1,7 +1,7 @@
 generator client {
-  provider      = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  binaryTargets   = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -28,11 +28,11 @@ model Space {
   lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
   isTemplate       Boolean?  @map("is_template")
 
-  baseGroup Base[]
-  dataDbBinding       SpaceDataDbBinding?
-  dataDbMigrationJobs SpaceDataDbMigrationJob[]
-  baseDataDbMoveJobsAsSource BaseDataDbMoveJob[] @relation("BaseDataDbMoveSourceSpace")
-  baseDataDbMoveJobsAsTarget BaseDataDbMoveJob[] @relation("BaseDataDbMoveTargetSpace")
+  baseGroup                  Base[]
+  dataDbBinding              SpaceDataDbBinding?
+  dataDbMigrationJobs        SpaceDataDbMigrationJob[]
+  baseDataDbMoveJobsAsSource BaseDataDbMoveJob[]       @relation("BaseDataDbMoveSourceSpace")
+  baseDataDbMoveJobsAsTarget BaseDataDbMoveJob[]       @relation("BaseDataDbMoveTargetSpace")
 
   @@map("space")
 }
@@ -95,7 +95,7 @@ model DataDbConnection {
   createdTime      DateTime               @default(now()) @map("created_time")
   lastModifiedTime DateTime?              @updatedAt @map("last_modified_time")
 
-  spaceBindings SpaceDataDbBinding[]
+  spaceBindings       SpaceDataDbBinding[]
   sourceMigrationJobs SpaceDataDbMigrationJob[] @relation("SpaceDataDbMigrationSourceConnection")
   targetMigrationJobs SpaceDataDbMigrationJob[] @relation("SpaceDataDbMigrationTargetConnection")
 
@@ -103,17 +103,17 @@ model DataDbConnection {
 }
 
 model SpaceDataDbBinding {
-  id                 String                  @id @default(cuid())
-  spaceId            String                  @unique @map("space_id")
-  dataDbConnectionId String?                 @map("data_db_connection_id")
-  mode               SpaceDataDbBindingMode  @default(default)
-  state              SpaceDataDbBindingState @default(ready)
-  createdBy          String                  @map("created_by")
-  createdTime        DateTime                @default(now()) @map("created_time")
-  lastModifiedTime   DateTime?               @updatedAt @map("last_modified_time")
-  lastHistoryFlushedAt DateTime?             @map("last_history_flushed_at")
-  space              Space                   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  dataDbConnection   DataDbConnection?       @relation(fields: [dataDbConnectionId], references: [id])
+  id                   String                  @id @default(cuid())
+  spaceId              String                  @unique @map("space_id")
+  dataDbConnectionId   String?                 @map("data_db_connection_id")
+  mode                 SpaceDataDbBindingMode  @default(default)
+  state                SpaceDataDbBindingState @default(ready)
+  createdBy            String                  @map("created_by")
+  createdTime          DateTime                @default(now()) @map("created_time")
+  lastModifiedTime     DateTime?               @updatedAt @map("last_modified_time")
+  lastHistoryFlushedAt DateTime?               @map("last_history_flushed_at")
+  space                Space                   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  dataDbConnection     DataDbConnection?       @relation(fields: [dataDbConnectionId], references: [id])
 
   @@index([dataDbConnectionId])
   @@map("space_data_db_binding")
@@ -203,20 +203,20 @@ model PinResource {
 }
 
 model Base {
-  id               String      @id @default(cuid())
-  spaceId          String      @map("space_id")
+  id               String              @id @default(cuid())
+  spaceId          String              @map("space_id")
   name             String
   order            Float
   icon             String?
-  schemaPass       String?     @map("schema_pass")
-  v2Enabled        Boolean     @default(false) @map("v2_enabled")
-  provisionState   ProvisionState @default(ready) @map("provision_state")
-  deletedTime      DateTime?   @map("deleted_time")
-  createdTime      DateTime    @default(now()) @map("created_time")
-  createdBy        String      @map("created_by")
-  lastModifiedBy   String?     @map("last_modified_by")
-  lastModifiedTime DateTime?   @updatedAt @map("last_modified_time")
-  space            Space       @relation(fields: [spaceId], references: [id])
+  schemaPass       String?             @map("schema_pass")
+  v2Enabled        Boolean             @default(false) @map("v2_enabled")
+  provisionState   ProvisionState      @default(ready) @map("provision_state")
+  deletedTime      DateTime?           @map("deleted_time")
+  createdTime      DateTime            @default(now()) @map("created_time")
+  createdBy        String              @map("created_by")
+  lastModifiedBy   String?             @map("last_modified_by")
+  lastModifiedTime DateTime?           @updatedAt @map("last_modified_time")
+  space            Space               @relation(fields: [spaceId], references: [id])
   tables           TableMeta[]
   dataDbMoveJobs   BaseDataDbMoveJob[]
 
@@ -267,55 +267,55 @@ model SchemaOperation {
   result           Json?
   attempts         Int       @default(0)
   maxAttempts      Int       @default(8) @map("max_attempts")
-  nextRunAt        DateTime  @default(now()) @map("next_run_at")        @db.Timestamptz(6)
-  lockedAt         DateTime? @map("locked_at")                          @db.Timestamptz(6)
+  nextRunAt        DateTime  @default(now()) @map("next_run_at") @db.Timestamptz(6)
+  lockedAt         DateTime? @map("locked_at") @db.Timestamptz(6)
   lockedBy         String?   @map("locked_by")
   lastError        String?   @map("last_error")
-  createdTime      DateTime  @default(now()) @map("created_time")       @db.Timestamptz(6)
+  createdTime      DateTime  @default(now()) @map("created_time") @db.Timestamptz(6)
   createdBy        String    @map("created_by")
-  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")      @db.Timestamptz(6)
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time") @db.Timestamptz(6)
   lastModifiedBy   String?   @map("last_modified_by")
 
   @@index([status, nextRunAt])
   @@index([resourceType, resourceId, status], map: "schema_operation_resource_status_idx")
-  @@index([baseId, status],                   map: "schema_operation_base_status_idx")
-  @@index([tableId, status],                  map: "schema_operation_table_status_idx")
+  @@index([baseId, status], map: "schema_operation_base_status_idx")
+  @@index([tableId, status], map: "schema_operation_table_status_idx")
   @@map("schema_operation")
 }
 
 model Field {
-  id                  String    @id
+  id                  String         @id
   name                String
   description         String?
   options             String?
   meta                String?
-  aiConfig            String?   @map("ai_config")
+  aiConfig            String?        @map("ai_config")
   type                String
-  cellValueType       String    @map("cell_value_type")
-  isMultipleCellValue Boolean?  @map("is_multiple_cell_value")
-  dbFieldType         String    @map("db_field_type")
-  dbFieldName         String    @map("db_field_name")
+  cellValueType       String         @map("cell_value_type")
+  isMultipleCellValue Boolean?       @map("is_multiple_cell_value")
+  dbFieldType         String         @map("db_field_type")
+  dbFieldName         String         @map("db_field_name")
   provisionState      ProvisionState @default(ready) @map("provision_state")
-  notNull             Boolean?  @map("not_null")
+  notNull             Boolean?       @map("not_null")
   unique              Boolean?
-  isPrimary           Boolean?  @map("is_primary")
-  isComputed          Boolean?  @map("is_computed")
-  isLookup            Boolean?  @map("is_lookup")
-  isConditionalLookup Boolean?  @map("is_conditional_lookup")
-  isPending           Boolean?  @map("is_pending")
-  hasError            Boolean?  @map("has_error")
+  isPrimary           Boolean?       @map("is_primary")
+  isComputed          Boolean?       @map("is_computed")
+  isLookup            Boolean?       @map("is_lookup")
+  isConditionalLookup Boolean?       @map("is_conditional_lookup")
+  isPending           Boolean?       @map("is_pending")
+  hasError            Boolean?       @map("has_error")
   // the link field id that a lookup field is linked to
-  lookupLinkedFieldId String?   @map("lookup_linked_field_id")
-  lookupOptions       String?   @map("lookup_options")
-  tableId             String    @map("table_id")
+  lookupLinkedFieldId String?        @map("lookup_linked_field_id")
+  lookupOptions       String?        @map("lookup_options")
+  tableId             String         @map("table_id")
   order               Float
   version             Int
-  createdTime         DateTime  @default(now()) @map("created_time")
-  lastModifiedTime    DateTime? @updatedAt @map("last_modified_time")
-  deletedTime         DateTime? @map("deleted_time")
-  createdBy           String    @map("created_by")
-  lastModifiedBy      String?   @map("last_modified_by")
-  table               TableMeta @relation(fields: [tableId], references: [id])
+  createdTime         DateTime       @default(now()) @map("created_time")
+  lastModifiedTime    DateTime?      @updatedAt @map("last_modified_time")
+  deletedTime         DateTime?      @map("deleted_time")
+  createdBy           String         @map("created_by")
+  lastModifiedBy      String?        @map("last_modified_by")
+  table               TableMeta      @relation(fields: [tableId], references: [id])
 
   @@index([lookupLinkedFieldId])
   @@index([tableId, deletedTime])
@@ -323,32 +323,32 @@ model Field {
 }
 
 model ComputedUpdateOutbox {
-  id                 String   @id @default(cuid())
-  baseId             String   @map("base_id")
-  seedTableId        String   @map("seed_table_id")
-  seedRecordIds      Json?    @map("seed_record_ids")
-  changeType         String   @map("change_type")
-  steps              Json?
-  edges              Json?
-  status             String
-  attempts           Int      @default(0)
-  maxAttempts        Int      @default(8) @map("max_attempts")
-  nextRunAt          DateTime @default(now()) @map("next_run_at")
-  lockedAt           DateTime? @map("locked_at")
-  lockedBy           String?  @map("locked_by")
-  lastError          String?  @map("last_error")
-  estimatedComplexity Int     @default(0) @map("estimated_complexity")
-  planHash           String   @map("plan_hash")
-  dirtyStats         Json?    @map("dirty_stats")
-  runId              String   @map("run_id")
-  originRunIds       String[] @default([]) @map("origin_run_ids")
-  runTotalSteps      Int      @default(0) @map("run_total_steps")
-  runCompletedStepsBefore Int @default(0) @map("run_completed_steps_before")
-  affectedTableIds   String[] @default([]) @map("affected_table_ids")
-  affectedFieldIds   String[] @default([]) @map("affected_field_ids")
-  syncMaxLevel       Int?     @map("sync_max_level")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                      String    @id @default(cuid())
+  baseId                  String    @map("base_id")
+  seedTableId             String    @map("seed_table_id")
+  seedRecordIds           Json?     @map("seed_record_ids")
+  changeType              String    @map("change_type")
+  steps                   Json?
+  edges                   Json?
+  status                  String
+  attempts                Int       @default(0)
+  maxAttempts             Int       @default(8) @map("max_attempts")
+  nextRunAt               DateTime  @default(now()) @map("next_run_at")
+  lockedAt                DateTime? @map("locked_at")
+  lockedBy                String?   @map("locked_by")
+  lastError               String?   @map("last_error")
+  estimatedComplexity     Int       @default(0) @map("estimated_complexity")
+  planHash                String    @map("plan_hash")
+  dirtyStats              Json?     @map("dirty_stats")
+  runId                   String    @map("run_id")
+  originRunIds            String[]  @default([]) @map("origin_run_ids")
+  runTotalSteps           Int       @default(0) @map("run_total_steps")
+  runCompletedStepsBefore Int       @default(0) @map("run_completed_steps_before")
+  affectedTableIds        String[]  @default([]) @map("affected_table_ids")
+  affectedFieldIds        String[]  @default([]) @map("affected_field_ids")
+  syncMaxLevel            Int?      @map("sync_max_level")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   seeds ComputedUpdateOutboxSeed[]
 
@@ -372,34 +372,34 @@ model ComputedUpdateOutboxSeed {
 }
 
 model ComputedUpdateDeadLetter {
-  id                 String   @id
-  baseId             String   @map("base_id")
-  seedTableId        String   @map("seed_table_id")
-  seedRecordIds      Json?    @map("seed_record_ids")
-  changeType         String   @map("change_type")
-  steps              Json?
-  edges              Json?
-  status             String
-  attempts           Int      @default(0)
-  maxAttempts        Int      @default(8) @map("max_attempts")
-  nextRunAt          DateTime @map("next_run_at")
-  lockedAt           DateTime? @map("locked_at")
-  lockedBy           String?  @map("locked_by")
-  lastError          String?  @map("last_error")
-  estimatedComplexity Int     @default(0) @map("estimated_complexity")
-  planHash           String   @map("plan_hash")
-  dirtyStats         Json?    @map("dirty_stats")
-  runId              String   @map("run_id")
-  originRunIds       String[] @default([]) @map("origin_run_ids")
-  runTotalSteps      Int      @default(0) @map("run_total_steps")
-  runCompletedStepsBefore Int @default(0) @map("run_completed_steps_before")
-  affectedTableIds   String[] @default([]) @map("affected_table_ids")
-  affectedFieldIds   String[] @default([]) @map("affected_field_ids")
-  syncMaxLevel       Int?     @map("sync_max_level")
-  traceData          Json?    @map("trace_data")
-  failedAt           DateTime @map("failed_at")
-  createdAt          DateTime @map("created_at")
-  updatedAt          DateTime @map("updated_at")
+  id                      String    @id
+  baseId                  String    @map("base_id")
+  seedTableId             String    @map("seed_table_id")
+  seedRecordIds           Json?     @map("seed_record_ids")
+  changeType              String    @map("change_type")
+  steps                   Json?
+  edges                   Json?
+  status                  String
+  attempts                Int       @default(0)
+  maxAttempts             Int       @default(8) @map("max_attempts")
+  nextRunAt               DateTime  @map("next_run_at")
+  lockedAt                DateTime? @map("locked_at")
+  lockedBy                String?   @map("locked_by")
+  lastError               String?   @map("last_error")
+  estimatedComplexity     Int       @default(0) @map("estimated_complexity")
+  planHash                String    @map("plan_hash")
+  dirtyStats              Json?     @map("dirty_stats")
+  runId                   String    @map("run_id")
+  originRunIds            String[]  @default([]) @map("origin_run_ids")
+  runTotalSteps           Int       @default(0) @map("run_total_steps")
+  runCompletedStepsBefore Int       @default(0) @map("run_completed_steps_before")
+  affectedTableIds        String[]  @default([]) @map("affected_table_ids")
+  affectedFieldIds        String[]  @default([]) @map("affected_field_ids")
+  syncMaxLevel            Int?      @map("sync_max_level")
+  traceData               Json?     @map("trace_data")
+  failedAt                DateTime  @map("failed_at")
+  createdAt               DateTime  @map("created_at")
+  updatedAt               DateTime  @map("updated_at")
 
   @@index([baseId, seedTableId])
   @@index([planHash])
@@ -666,17 +666,17 @@ model InvitationRecord {
 }
 
 model Notification {
-  id                   String   @id @default(cuid())
-  fromUserId           String   @map("from_user_id")
-  toUserId             String   @map("to_user_id")
-  type                 String   @map("type")
-  message              String   @map("message")
-  messageI18n          String?  @map("message_i18n")
-  severity             String   @default("info")
-  urlPath              String?  @map("url_path")
-  isRead               Boolean  @default(false) @map("is_read")
-  createdTime          DateTime @default(now()) @map("created_time")
-  createdBy            String   @map("created_by")
+  id          String   @id @default(cuid())
+  fromUserId  String   @map("from_user_id")
+  toUserId    String   @map("to_user_id")
+  type        String   @map("type")
+  message     String   @map("message")
+  messageI18n String?  @map("message_i18n")
+  severity    String   @default("info")
+  urlPath     String?  @map("url_path")
+  isRead      Boolean  @default(false) @map("is_read")
+  createdTime DateTime @default(now()) @map("created_time")
+  createdBy   String   @map("created_by")
 
   @@index([toUserId, isRead, createdTime])
   @@map("notification")
@@ -715,17 +715,17 @@ model Setting {
 }
 
 model OAuthApp {
-  id               String    @id @default(cuid())
+  id               String               @id @default(cuid())
   name             String
   logo             String?
   homepage         String
   description      String?
-  clientId         String    @unique @map("client_id")
-  redirectUris     String?   @map("redirect_uris")
+  clientId         String               @unique @map("client_id")
+  redirectUris     String?              @map("redirect_uris")
   scopes           String?
-  createdTime      DateTime  @default(now()) @map("created_time")
-  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
-  createdBy        String    @map("created_by")
+  createdTime      DateTime             @default(now()) @map("created_time")
+  lastModifiedTime DateTime?            @updatedAt @map("last_modified_time")
+  createdBy        String               @map("created_by")
   secrets          OAuthAppSecret[]
   authorized       OAuthAppAuthorized[]
   tokens           OAuthAppToken[]
@@ -746,13 +746,13 @@ model OAuthAppAuthorized {
 }
 
 model OAuthAppSecret {
-  id           String    @id @default(cuid())
-  clientId     String    @map("client_id")
-  secret       String    @unique
-  maskedSecret String    @map("masked_secret")
-  createdTime  DateTime  @default(now()) @map("created_time")
-  createdBy    String    @map("created_by")
-  lastUsedTime DateTime? @map("last_used_time")
+  id           String          @id @default(cuid())
+  clientId     String          @map("client_id")
+  secret       String          @unique
+  maskedSecret String          @map("masked_secret")
+  createdTime  DateTime        @default(now()) @map("created_time")
+  createdBy    String          @map("created_by")
+  lastUsedTime DateTime?       @map("last_used_time")
   tokens       OAuthAppToken[]
 
   oAuthApp OAuthApp @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
@@ -770,10 +770,9 @@ model OAuthAppToken {
   createdBy        String   @map("created_by")
 
   oAuthAppSecret OAuthAppSecret? @relation(fields: [appSecretId], references: [id], onDelete: Cascade)
-  oAuthApp OAuthApp @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  oAuthApp       OAuthApp        @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   @@index([clientId])
-
   @@map("oauth_app_token")
 }
 
@@ -1068,40 +1067,37 @@ model Waitlist {
   @@map("waitlist")
 }
 
-
 model BaseNode {
-  id                String     @id @default(cuid())
-  parentId          String?    @map("parent_id")
-  baseId            String     @map("base_id")
-  resourceType      String     @map("resource_type")
-  resourceId        String     @map("resource_id")
-  order             Float      @map("order")
+  id           String  @id @default(cuid())
+  parentId     String? @map("parent_id")
+  baseId       String  @map("base_id")
+  resourceType String  @map("resource_type")
+  resourceId   String  @map("resource_id")
+  order        Float   @map("order")
 
-  createdTime       DateTime   @default(now()) @map("created_time")
-  createdBy         String     @map("created_by")
-  lastModifiedTime  DateTime?  @updatedAt      @map("last_modified_time")
-  lastModifiedBy    String?    @map("last_modified_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  createdBy        String    @map("created_by")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  lastModifiedBy   String?   @map("last_modified_by")
 
-  parent            BaseNode?  @relation("NodeToChildren", fields: [parentId], references: [id])
-  children          BaseNode[] @relation("NodeToChildren")
+  parent   BaseNode?  @relation("NodeToChildren", fields: [parentId], references: [id])
+  children BaseNode[] @relation("NodeToChildren")
 
   @@unique([baseId, resourceType, resourceId])
-
   @@map("base_node")
 }
 
 model BaseNodeFolder {
-  id                String     @id @default(cuid())
-  baseId            String     @map("base_id")
-  name              String     @map("name")
+  id     String @id @default(cuid())
+  baseId String @map("base_id")
+  name   String @map("name")
 
-  createdTime       DateTime   @default(now()) @map("created_time")
-  createdBy         String     @map("created_by")
-  lastModifiedTime  DateTime?  @updatedAt      @map("last_modified_time")
-  lastModifiedBy    String?    @map("last_modified_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  createdBy        String    @map("created_by")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  lastModifiedBy   String?   @map("last_modified_by")
 
   @@unique([baseId, name])
-
   @@map("base_node_folder")
 }
 
@@ -1177,26 +1173,26 @@ enum QuotaMetric {
 }
 
 model SpaceQuota {
-  id        String   @id @default(cuid())
-  spaceId   String   @unique @map("space_id")
-  plan      PlanLevel @default(free)
+  id                    String    @id @default(cuid())
+  spaceId               String    @unique @map("space_id")
+  plan                  PlanLevel @default(free)
   // -1 = unlimited (self-host default); >=0 = enforced hard cap.
-  rowLimit              Int? @map("row_limit")
-  attachmentByteLimit   BigInt? @map("attachment_byte_limit")
-  automationRunLimit    Int? @map("automation_run_limit")
-  aiCreditLimit         Int? @map("ai_credit_limit")
-  apiRequestLimitPerSec Int? @map("api_request_limit_per_sec")
-  recordHistoryDays     Int? @map("record_history_days")
-  automationHistoryDays Int? @map("automation_history_days")
-  seatLimit             Int? @map("seat_limit")
+  rowLimit              Int?      @map("row_limit")
+  attachmentByteLimit   BigInt?   @map("attachment_byte_limit")
+  automationRunLimit    Int?      @map("automation_run_limit")
+  aiCreditLimit         Int?      @map("ai_credit_limit")
+  apiRequestLimitPerSec Int?      @map("api_request_limit_per_sec")
+  recordHistoryDays     Int?      @map("record_history_days")
+  automationHistoryDays Int?      @map("automation_history_days")
+  seatLimit             Int?      @map("seat_limit")
   // bumped add-on packs (cloud-only invoice model; informational on self-host)
-  rowAddon              Int? @map("row_addon")
-  automationAddon       Int? @map("automation_addon")
-  aiCreditAddon         Int? @map("ai_credit_addon")
-  attachmentByteAddon   BigInt? @map("attachment_byte_addon")
-  effectiveFrom DateTime  @default(now()) @map("effective_from")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  updatedBy    String?   @map("updated_by")
+  rowAddon              Int?      @map("row_addon")
+  automationAddon       Int?      @map("automation_addon")
+  aiCreditAddon         Int?      @map("ai_credit_addon")
+  attachmentByteAddon   BigInt?   @map("attachment_byte_addon")
+  effectiveFrom         DateTime  @default(now()) @map("effective_from")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  updatedBy             String?   @map("updated_by")
 
   @@map("space_quota")
 }
@@ -1204,17 +1200,17 @@ model SpaceQuota {
 // One row per (spaceId, metric, periodStart). Periods are calendar months in
 // UTC; we never mutate historical rows — counters only advance.
 model SpaceUsageCounter {
-  id            BigInt      @id @default(autoincrement())
-  spaceId       String      @map("space_id")
-  metric        QuotaMetric @map("metric")
-  periodStart   DateTime    @map("period_start") @db.Date
-  periodKind    String      @default("monthly") @map("period_kind") @db.VarChar(16)
-  used          BigInt      @default(0)
+  id          BigInt      @id @default(autoincrement())
+  spaceId     String      @map("space_id")
+  metric      QuotaMetric @map("metric")
+  periodStart DateTime    @map("period_start") @db.Date
+  periodKind  String      @default("monthly") @map("period_kind") @db.VarChar(16)
+  used        BigInt      @default(0)
   // Cached snapshot of the cap in force at period start; lets dashboards show
   // "1000 / 25000" even if the cap changed mid-period.
-  capSnapshot   BigInt?     @map("cap_snapshot")
-  lastEventAt   DateTime    @default(now()) @map("last_event_at")
-  createdTime   DateTime    @default(now()) @map("created_time")
+  capSnapshot BigInt?     @map("cap_snapshot")
+  lastEventAt DateTime    @default(now()) @map("last_event_at")
+  createdTime DateTime    @default(now()) @map("created_time")
 
   @@unique([spaceId, metric, periodKind, periodStart])
   @@index([spaceId, metric])
@@ -1274,25 +1270,25 @@ enum SsoConnectionStatus {
 }
 
 model OrganizationDomain {
-  id              String                  @id @default(cuid())
+  id                String                   @id @default(cuid())
   // The org that owns this domain (single-tenant self-host = 1 org).
-  organizationId  String                  @map("organization_id")
-  domain          String                  @unique
+  organizationId    String                   @map("organization_id")
+  domain            String                   @unique
   // Token the operator must publish as `_teable-verify.<domain>` TXT.
-  verificationToken String                @unique @map("verification_token") @db.VarChar(64)
-  status          DomainVerificationStatus @default(pending)
-  lastCheckedAt   DateTime?               @map("last_checked_at")
-  lastError       String?                 @map("last_error")
+  verificationToken String                   @unique @map("verification_token") @db.VarChar(64)
+  status            DomainVerificationStatus @default(pending)
+  lastCheckedAt     DateTime?                @map("last_checked_at")
+  lastError         String?                  @map("last_error")
   // When the org downgrades / revokes the claim, set this and reset status.
-  revokedAt       DateTime?               @map("revoked_at")
+  revokedAt         DateTime?                @map("revoked_at")
   // For SSO auto-provisioning: once verified, all emails matching `domain`
   // are eligible for the org without an explicit invite.
-  ssoBound        Boolean                 @default(false) @map("sso_bound")
+  ssoBound          Boolean                  @default(false) @map("sso_bound")
   // For custom app domains: which app id the CNAME points at.
-  boundAppId      String?                 @map("bound_app_id")
-  createdBy       String                  @map("created_by")
-  createdTime     DateTime                @default(now()) @map("created_time")
-  updatedAt       DateTime                @updatedAt @map("updated_at")
+  boundAppId        String?                  @map("bound_app_id")
+  createdBy         String                   @map("created_by")
+  createdTime       DateTime                 @default(now()) @map("created_time")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
 
   @@index([organizationId])
   @@index([status])
@@ -1300,29 +1296,29 @@ model OrganizationDomain {
 }
 
 model SsoIdentityProvider {
-  id                String              @id @default(cuid())
-  organizationId    String              @map("organization_id")
+  id             String              @id @default(cuid())
+  organizationId String              @map("organization_id")
   // Display name shown to admins; not user-visible.
-  name              String
+  name           String
   // Which OIDC issuer this IdP serves. Used to discover endpoints + JWKS.
   // SAML providers populate this with their entityID for parity.
-  issuer            String
+  issuer         String
   // OIDC client credentials registered with the IdP. SAML uses different
   // fields; left nullable so a future SAML row can omit them.
-  clientId          String?             @map("client_id")
-  clientSecret      String?             @map("client_secret")
+  clientId       String?             @map("client_id")
+  clientSecret   String?             @map("client_secret")
   // Optional discovery URL override; when null we use `${issuer}/.well-known/openid-configuration`.
-  discoveryUrl      String?             @map("discovery_url")
+  discoveryUrl   String?             @map("discovery_url")
   // Email domain this IdP handles — must match a verified OrganizationDomain row.
-  emailDomain       String              @map("email_domain")
-  type              SsoProviderType     @default(oidc)
-  status            SsoConnectionStatus @default(pending)
+  emailDomain    String              @map("email_domain")
+  type           SsoProviderType     @default(oidc)
+  status         SsoConnectionStatus @default(pending)
   // Last discovery / JWKS fetch result, for admin debugging.
-  lastError         String?             @map("last_error")
-  lastCheckedAt     DateTime?           @map("last_checked_at")
-  createdBy         String              @map("created_by")
-  createdTime       DateTime            @default(now()) @map("created_time")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
+  lastError      String?             @map("last_error")
+  lastCheckedAt  DateTime?           @map("last_checked_at")
+  createdBy      String              @map("created_by")
+  createdTime    DateTime            @default(now()) @map("created_time")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
 
   @@unique([organizationId, emailDomain])
   @@index([issuer])
@@ -1334,18 +1330,18 @@ model SsoLoginState {
   // Short-lived (5 min) state token for CSRF protection on the callback.
   // Stored server-side so we can correlate the IdP redirect back to the
   // original request without trusting the cookie / query string alone.
-  id           String   @id @default(cuid())
-  state        String   @unique
-  organizationId String @map("organization_id")
-  providerId   String   @map("provider_id")
+  id             String   @id @default(cuid())
+  state          String   @unique
+  organizationId String   @map("organization_id")
+  providerId     String   @map("provider_id")
   // Email the user claimed to log in as; used for the post-auth user match.
-  emailHint    String?  @map("email_hint")
+  emailHint      String?  @map("email_hint")
   // Redirect target after success — typically the dashboard or invitation link.
-  redirectTo   String?  @map("redirect_to")
+  redirectTo     String?  @map("redirect_to")
   // Bumped on every retry so old links stop working once consumed.
-  consumed     Boolean  @default(false)
-  expiresAt    DateTime @map("expires_at")
-  createdAt    DateTime @default(now()) @map("created_at")
+  consumed       Boolean  @default(false)
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([expiresAt])
   @@map("sso_login_state")
@@ -1383,14 +1379,14 @@ enum PermissionRecordAction {
 // JSON-encoded filter graph (subset of the public filter DSL). Kept
 // portable as `Json` so future operators don't require schema migration.
 model PermissionRoleRecordFilter {
-  id          String   @id @default(cuid())
-  roleId      String   @map("role_id")
-  tableId     String   @map("table_id")
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  tableId   String   @map("table_id")
   // The shape mirrors `IRecordFilter` from openapi but stored as JSON so
   // we don't have to migrate the schema when the filter DSL evolves.
-  filter      Json
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  filter    Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   role PermissionRole @relation("PermissionRoleRecordFilterToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -1399,12 +1395,12 @@ model PermissionRoleRecordFilter {
 }
 
 model PermissionRoleFieldPermission {
-  id        String              @id @default(cuid())
-  roleId    String              @map("role_id")
-  tableId   String              @map("table_id")
-  fieldId   String              @map("field_id")
+  id        String                @id @default(cuid())
+  roleId    String                @map("role_id")
+  tableId   String                @map("table_id")
+  fieldId   String                @map("field_id")
   access    PermissionFieldAccess
-  createdAt DateTime            @default(now()) @map("created_at")
+  createdAt DateTime              @default(now()) @map("created_at")
 
   role PermissionRole @relation("PermissionRoleFieldPermissionToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -1413,11 +1409,11 @@ model PermissionRoleFieldPermission {
 }
 
 model PermissionRoleRecordAction {
-  id        String                @id @default(cuid())
-  roleId    String                @map("role_id")
-  tableId   String                @map("table_id")
+  id        String                 @id @default(cuid())
+  roleId    String                 @map("role_id")
+  tableId   String                 @map("table_id")
   action    PermissionRecordAction
-  createdAt DateTime              @default(now()) @map("created_at")
+  createdAt DateTime               @default(now()) @map("created_at")
 
   role PermissionRole @relation("PermissionRoleRecordActionToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -1426,12 +1422,12 @@ model PermissionRoleRecordAction {
 }
 
 model PermissionRoleNode {
-  id        String              @id @default(cuid())
-  roleId    String              @map("role_id")
-  tableId   String              @map("table_id")
+  id        String               @id @default(cuid())
+  roleId    String               @map("role_id")
+  tableId   String               @map("table_id")
   access    PermissionNodeAccess
-  createdAt DateTime            @default(now()) @map("created_at")
-  updatedAt DateTime            @updatedAt @map("updated_at")
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
 
   role PermissionRole @relation("PermissionRoleNodeToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -1452,21 +1448,21 @@ model PermissionRoleMember {
 }
 
 model PermissionRole {
-  id           String              @id @default(cuid())
-  baseId       String              @map("base_id")
+  id          String               @id @default(cuid())
+  baseId      String               @map("base_id")
   // Human-readable label shown in the admin UI.
-  name         String
-  description  String?
-  status       PermissionRoleStatus @default(enabled)
-  createdBy    String              @map("created_by")
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
+  name        String
+  description String?
+  status      PermissionRoleStatus @default(enabled)
+  createdBy   String               @map("created_by")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
 
-  members      PermissionRoleMember[] @relation("PermissionRoleMemberToPermissionRole")
-  nodes        PermissionRoleNode[] @relation("PermissionRoleNodeToPermissionRole")
-  fieldPerms   PermissionRoleFieldPermission[] @relation("PermissionRoleFieldPermissionToPermissionRole")
-  recordActions PermissionRoleRecordAction[] @relation("PermissionRoleRecordActionToPermissionRole")
-  recordFilters PermissionRoleRecordFilter[] @relation("PermissionRoleRecordFilterToPermissionRole")
+  members       PermissionRoleMember[]          @relation("PermissionRoleMemberToPermissionRole")
+  nodes         PermissionRoleNode[]            @relation("PermissionRoleNodeToPermissionRole")
+  fieldPerms    PermissionRoleFieldPermission[] @relation("PermissionRoleFieldPermissionToPermissionRole")
+  recordActions PermissionRoleRecordAction[]    @relation("PermissionRoleRecordActionToPermissionRole")
+  recordFilters PermissionRoleRecordFilter[]    @relation("PermissionRoleRecordFilterToPermissionRole")
 
   @@unique([baseId, name])
   @@index([baseId])
@@ -1505,15 +1501,15 @@ enum AutomationRunStatus {
 }
 
 model Automation {
-  id              String              @id @default(cuid())
-  baseId          String              @map("base_id")
-  name            String
-  description     String?
-  enabled         Boolean             @default(true)
-  createdBy       String              @map("created_by")
-  createdTime     DateTime            @default(now()) @map("created_time")
-  lastModifiedBy  String?             @map("last_modified_by")
-  lastModifiedTime DateTime?          @updatedAt @map("last_modified_time")
+  id               String    @id @default(cuid())
+  baseId           String    @map("base_id")
+  name             String
+  description      String?
+  enabled          Boolean   @default(true)
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  lastModifiedBy   String?   @map("last_modified_by")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
 
   triggers AutomationTrigger[]
   actions  AutomationAction[]
@@ -1524,14 +1520,14 @@ model Automation {
 }
 
 model AutomationTrigger {
-  id              String                 @id @default(cuid())
-  automationId    String                 @map("automation_id")
-  type            AutomationTriggerType
-  tableId         String?                @map("table_id")
-  config          Json                   @default("{}")
-  createdTime     DateTime               @default(now()) @map("created_time")
+  id           String                @id @default(cuid())
+  automationId String                @map("automation_id")
+  type         AutomationTriggerType
+  tableId      String?               @map("table_id")
+  config       Json                  @default("{}")
+  createdTime  DateTime              @default(now()) @map("created_time")
 
-  automation      Automation             @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
 
   @@index([automationId])
   @@index([type])
@@ -1539,33 +1535,33 @@ model AutomationTrigger {
 }
 
 model AutomationAction {
-  id              String                @id @default(cuid())
-  automationId    String                @map("automation_id")
-  type            AutomationActionType
-  orderIndex      Int                   @default(0) @map("order_index")
-  config          Json                  @default("{}")
-  createdTime     DateTime              @default(now()) @map("created_time")
+  id           String               @id @default(cuid())
+  automationId String               @map("automation_id")
+  type         AutomationActionType
+  orderIndex   Int                  @default(0) @map("order_index")
+  config       Json                 @default("{}")
+  createdTime  DateTime             @default(now()) @map("created_time")
 
-  automation      Automation            @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
 
   @@index([automationId])
   @@map("automation_action")
 }
 
 model AutomationRun {
-  id              String                 @id @default(cuid())
-  automationId    String                 @map("automation_id")
-  triggerType     AutomationTriggerType  @map("trigger_type")
-  status          AutomationRunStatus    @default(pending)
-  input           Json                   @default("{}")
-  output          Json?
-  error           String?
-  retryCount      Int                    @default(0) @map("retry_count")
-  startedAt       DateTime?              @map("started_at")
-  finishedAt      DateTime?              @map("finished_at")
-  createdTime     DateTime               @default(now()) @map("created_time")
+  id           String                @id @default(cuid())
+  automationId String                @map("automation_id")
+  triggerType  AutomationTriggerType @map("trigger_type")
+  status       AutomationRunStatus   @default(pending)
+  input        Json                  @default("{}")
+  output       Json?
+  error        String?
+  retryCount   Int                   @default(0) @map("retry_count")
+  startedAt    DateTime?             @map("started_at")
+  finishedAt   DateTime?             @map("finished_at")
+  createdTime  DateTime              @default(now()) @map("created_time")
 
-  automation      Automation             @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
 
   @@index([automationId])
   @@index([status])
@@ -1590,25 +1586,25 @@ model OAuthApplication {
   createdTime      DateTime @default(now()) @map("created_time")
   lastModifiedTime DateTime @default(now()) @map("last_modified_time")
 
-  codes   OAuthAuthorizationCode[]
-  tokens  OAuthAccessToken[]
+  codes  OAuthAuthorizationCode[]
+  tokens OAuthAccessToken[]
 
   @@index([createdBy])
   @@map("oauth_application")
 }
 
 model OAuthAuthorizationCode {
-  id                  String   @id
-  codeHash            String   @unique @map("code_hash")
-  applicationId       String   @map("application_id")
-  userId              String   @map("user_id")
-  redirectUri         String   @map("redirect_uri")
+  id                  String    @id
+  codeHash            String    @unique @map("code_hash")
+  applicationId       String    @map("application_id")
+  userId              String    @map("user_id")
+  redirectUri         String    @map("redirect_uri")
   scope               String
-  codeChallenge       String?  @map("code_challenge")
-  codeChallengeMethod String?  @map("code_challenge_method")
-  expiresAt           DateTime @map("expires_at")
+  codeChallenge       String?   @map("code_challenge")
+  codeChallengeMethod String?   @map("code_challenge_method")
+  expiresAt           DateTime  @map("expires_at")
   consumedAt          DateTime? @map("consumed_at")
-  createdTime         DateTime @default(now()) @map("created_time")
+  createdTime         DateTime  @default(now()) @map("created_time")
 
   application OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
@@ -1618,16 +1614,16 @@ model OAuthAuthorizationCode {
 }
 
 model OAuthAccessToken {
-  id                String   @id
-  tokenHash         String   @unique @map("token_hash")
-  refreshHash       String?  @unique @map("refresh_hash")
-  applicationId     String   @map("application_id")
-  userId            String   @map("user_id")
-  scope             String
-  expiresAt         DateTime @map("expires_at")
-  refreshExpiresAt  DateTime? @map("refresh_expires_at")
-  revokedAt         DateTime? @map("revoked_at")
-  createdTime       DateTime @default(now()) @map("created_time")
+  id               String    @id
+  tokenHash        String    @unique @map("token_hash")
+  refreshHash      String?   @unique @map("refresh_hash")
+  applicationId    String    @map("application_id")
+  userId           String    @map("user_id")
+  scope            String
+  expiresAt        DateTime  @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdTime      DateTime  @default(now()) @map("created_time")
 
   application OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
@@ -1680,16 +1676,16 @@ model ConditionalFormatRule {
 // `manifest` carries the table list + record counts captured at backup
 // time, so listing doesn't need to re-open the archive file.
 model BackupSnapshot {
-  id               String        @id
-  baseId           String        @map("base_id")
-  createdBy        String        @map("created_by")
+  id               String             @id
+  baseId           String             @map("base_id")
+  createdBy        String             @map("created_by")
   status           BackupStatus
-  sizeBytes        BigInt        @default(0) @map("size_bytes")
-  archivePath      String        @map("archive_path")
+  sizeBytes        BigInt             @default(0) @map("size_bytes")
+  archivePath      String             @map("archive_path")
   manifest         Json?
-  errorMessage     String?       @map("error_message")
-  createdTime      DateTime      @default(now()) @map("created_time")
-  lastModifiedTime DateTime      @default(now()) @map("last_modified_time")
+  errorMessage     String?            @map("error_message")
+  createdTime      DateTime           @default(now()) @map("created_time")
+  lastModifiedTime DateTime           @default(now()) @map("last_modified_time")
   restoreLogs      BackupRestoreLog[]
 
   @@index([baseId, createdTime])
@@ -1704,17 +1700,17 @@ enum BackupStatus {
 }
 
 model BackupRestoreLog {
-  id              String        @id
-  snapshotId      String        @map("snapshot_id")
-  targetBaseId    String        @map("target_base_id")
-  status          RestoreStatus
-  startedTime     DateTime?     @map("started_time")
-  finishedTime    DateTime?     @map("finished_time")
-  rowsRestored    Int           @default(0) @map("rows_restored")
-  errorMessage    String?       @map("error_message")
-  createdTime     DateTime      @default(now()) @map("created_time")
+  id           String        @id
+  snapshotId   String        @map("snapshot_id")
+  targetBaseId String        @map("target_base_id")
+  status       RestoreStatus
+  startedTime  DateTime?     @map("started_time")
+  finishedTime DateTime?     @map("finished_time")
+  rowsRestored Int           @default(0) @map("rows_restored")
+  errorMessage String?       @map("error_message")
+  createdTime  DateTime      @default(now()) @map("created_time")
 
-  snapshot        BackupSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshot BackupSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@index([snapshotId, createdTime])
   @@index([status])
@@ -1733,23 +1729,23 @@ enum RestoreStatus {
 // token registered later). `secret` is the base32-encoded shared
 // secret; we never store the user's current/recovery state.
 model UserTotpFactor {
-  id           String   @id
-  userId       String   @map("user_id")
+  id          String   @id
+  userId      String   @map("user_id")
   // Friendly label shown in the user's security settings ("iPhone", "YubiKey 5").
-  label        String
+  label       String
   // base32 shared secret. At least 20 chars per RFC 4226 §4.
-  secret       String   @map("secret")
+  secret      String   @map("secret")
   // Algorithm + digits + period — pinned at enrollment so later
   // changes to defaults don't invalidate existing factors.
-  algorithm    String   @default("SHA1") @map("algorithm")
-  digits       Int      @default(6) @map("digits")
-  period       Int      @default(30) @map("period")
+  algorithm   String   @default("SHA1") @map("algorithm")
+  digits      Int      @default(6) @map("digits")
+  period      Int      @default(30) @map("period")
   // Last accepted counter, used to prevent replay within a window.
-  lastCounter  BigInt   @default(0) @map("last_counter")
-  enabled      Boolean  @default(true) @map("enabled")
-  createdTime  DateTime @default(now()) @map("created_time")
+  lastCounter BigInt   @default(0) @map("last_counter")
+  enabled     Boolean  @default(true) @map("enabled")
+  createdTime DateTime @default(now()) @map("created_time")
 
-  backupCodes  UserTotpBackupCode[]
+  backupCodes UserTotpBackupCode[]
 
   @@index([userId])
   @@map("user_totp_factor")
@@ -1759,15 +1755,15 @@ model UserTotpFactor {
 // the normalized lowercase code); the plaintext is shown once at
 // enrollment and never recoverable.
 model UserTotpBackupCode {
-  id           String   @id
-  factorId     String   @map("factor_id")
+  id          String    @id
+  factorId    String    @map("factor_id")
   // Lowercase hex digest of the code. The plaintext column is gone
   // the moment enrollment returns the codes to the user.
-  codeHash     String   @map("code_hash")
-  usedAt       DateTime? @map("used_at")
-  createdTime  DateTime @default(now()) @map("created_time")
+  codeHash    String    @map("code_hash")
+  usedAt      DateTime? @map("used_at")
+  createdTime DateTime  @default(now()) @map("created_time")
 
-  factor       UserTotpFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
+  factor UserTotpFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
 
   @@index([factorId])
   @@map("user_totp_backup_code")
@@ -1778,20 +1774,20 @@ model UserTotpBackupCode {
 // presented as `Authorization: Bearer <token>`; we hash at rest so a
 // leaked DB row can't be used to talk to SCIM endpoints.
 model ScimToken {
-  id              String    @id
-  organizationId  String    @map("organization_id")
+  id             String    @id
+  organizationId String    @map("organization_id")
   // Friendly label shown in admin UI ("Okta production").
-  label           String
+  label          String
   // sha256 of the plaintext bearer token; never the token itself.
-  tokenHash       String    @unique @map("token_hash")
+  tokenHash      String    @unique @map("token_hash")
   // Optional last-4 prefix, shown in the UI so operators can spot
   // which token was used in an audit log.
-  tokenPrefix     String?   @map("token_prefix")
-  enabled         Boolean   @default(true) @map("enabled")
-  lastUsedAt      DateTime? @map("last_used_at")
-  expiresAt       DateTime? @map("expires_at")
-  createdBy       String    @map("created_by")
-  createdTime     DateTime  @default(now()) @map("created_time")
+  tokenPrefix    String?   @map("token_prefix")
+  enabled        Boolean   @default(true) @map("enabled")
+  lastUsedAt     DateTime? @map("last_used_at")
+  expiresAt      DateTime? @map("expires_at")
+  createdBy      String    @map("created_by")
+  createdTime    DateTime  @default(now()) @map("created_time")
 
   @@index([organizationId, enabled])
   @@map("scim_token")
@@ -1801,18 +1797,18 @@ model ScimToken {
 // IdP request creates one row that an admin can replay later for
 // forensics.
 model ScimEvent {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  tokenId         String   @map("token_id")
+  id             String   @id
+  organizationId String   @map("organization_id")
+  tokenId        String   @map("token_id")
   // "create_user" / "update_user" / "delete_user" / "create_group" …
-  action          String
+  action         String
   // The externalId from the SCIM payload — operator-facing handle.
-  externalId      String?  @map("external_id")
+  externalId     String?  @map("external_id")
   // Local userId / groupId we resolved to (null on no-op).
-  targetId        String?  @map("target_id")
-  requestJson     Json     @map("request_json")
-  statusCode      Int      @map("status_code")
-  createdTime     DateTime @default(now()) @map("created_time")
+  targetId       String?  @map("target_id")
+  requestJson    Json     @map("request_json")
+  statusCode     Int      @map("status_code")
+  createdTime    DateTime @default(now()) @map("created_time")
 
   @@index([organizationId, createdTime])
   @@index([tokenId])
@@ -1823,18 +1819,18 @@ model ScimEvent {
 // fans out to an in-memory sink; we add a persisted table so events
 // survive restarts and can be exported / forwarded.
 model AuditEvent {
-  id              String   @id
-  organizationId  String?  @map("organization_id")
-  actorId         String?  @map("actor_id")
+  id             String   @id
+  organizationId String?  @map("organization_id")
+  actorId        String?  @map("actor_id")
   // "user.login" / "record.create" / "sso.start" — stable verb-noun.
-  action          String
+  action         String
   // Free-form structured detail (resource id, ip, etc).
-  detail          Json?
+  detail         Json?
   // IP captured at the boundary; null for system events.
-  ipAddress       String?  @map("ip_address")
+  ipAddress      String?  @map("ip_address")
   // Optional request id for tracing.
-  requestId       String?  @map("request_id")
-  createdTime     DateTime @default(now()) @map("created_time")
+  requestId      String?  @map("request_id")
+  createdTime    DateTime @default(now()) @map("created_time")
 
   @@index([organizationId, createdTime])
   @@index([action, createdTime])
@@ -1845,20 +1841,20 @@ model AuditEvent {
 // Stage 24 — outbound SIEM webhook subscriptions. Operators paste a
 // URL + a shared HMAC secret; events are batched and POSTed.
 model SiemWebhook {
-  id              String   @id
-  organizationId  String   @map("organization_id")
+  id              String    @id
+  organizationId  String    @map("organization_id")
   label           String
   url             String
   // Shared HMAC-SHA256 secret for the `X-Teable-Signature` header.
-  secret          String   @map("secret")
-  enabled         Boolean  @default(true) @map("enabled")
+  secret          String    @map("secret")
+  enabled         Boolean   @default(true) @map("enabled")
   // Only forward events whose action matches one of these. Empty = all.
-  actions         String[] @map("actions")
+  actions         String[]  @map("actions")
   lastDeliveredAt DateTime? @map("last_delivered_at")
   lastErrorAt     DateTime? @map("last_error_at")
-  lastError       String?  @map("last_error")
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
+  lastError       String?   @map("last_error")
+  createdBy       String    @map("created_by")
+  createdTime     DateTime  @default(now()) @map("created_time")
 
   @@index([organizationId, enabled])
   @@map("siem_webhook")
@@ -1870,14 +1866,14 @@ model SiemWebhook {
 // production posture; "audit-only" mirrors to the audit log but
 // doesn't reject (useful for rolling out).
 model OrganizationIpAllowlist {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  cidr            String   @map("cidr")
+  id             String   @id
+  organizationId String   @map("organization_id")
+  cidr           String   @map("cidr")
   // "block" or "audit".
-  mode            String   @default("block") @map("mode")
-  note            String?
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
+  mode           String   @default("block") @map("mode")
+  note           String?
+  createdBy      String   @map("created_by")
+  createdTime    DateTime @default(now()) @map("created_time")
 
   @@index([organizationId])
   @@map("organization_ip_allowlist")
@@ -1887,19 +1883,19 @@ model OrganizationIpAllowlist {
 // (charge / refund / grant). `monthBucket` is a YYYY-MM string so the
 // monthly rollup is a single index range scan.
 model AiCreditLedger {
-  id              String   @id
-  organizationId  String   @map("organization_id")
+  id             String   @id
+  organizationId String   @map("organization_id")
   // "charge" / "refund" / "grant". Positive deltas add credits; charges add 0.
-  action          String
+  action         String
   // Tokens or credits consumed (for "charge") or restored (for "refund" / "grant").
-  credits         Int      @map("credits")
+  credits        Int      @map("credits")
   // "openai" / "anthropic" / "internal" — provider name; used for cost dashboards.
-  provider        String?
+  provider       String?
   // Stable handle to the upstream event — an automation id, an AI run id, etc.
-  sourceRef       String?  @map("source_ref")
+  sourceRef      String?  @map("source_ref")
   // YYYY-MM. Denormalized so rollups are index-only.
-  monthBucket     String   @map("month_bucket")
-  createdTime     DateTime @default(now()) @map("created_time")
+  monthBucket    String   @map("month_bucket")
+  createdTime    DateTime @default(now()) @map("created_time")
 
   @@index([organizationId, monthBucket])
   @@index([organizationId, createdTime])
@@ -1907,43 +1903,46 @@ model AiCreditLedger {
 }
 
 model WorkspaceSwitchSession {
-  id              String   @id
-  userId          String   @map("user_id")
-  fromSpaceId     String?  @map("from_space_id")
-  toSpaceId       String   @map("to_space_id")
-  token           String   @unique
-  expiresAt       DateTime @map("expires_at")
-  consumedAt      DateTime? @map("consumed_at")
-  createdTime     DateTime @default(now()) @map("created_time")
+  id          String    @id
+  userId      String    @map("user_id")
+  fromSpaceId String?   @map("from_space_id")
+  toSpaceId   String    @map("to_space_id")
+  token       String    @unique
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  createdTime DateTime  @default(now()) @map("created_time")
+
   @@index([userId])
   @@index([token])
   @@map("workspace_switch_session")
 }
 
 model CrossOrgAdminGrant {
-  id              String   @id
-  userId          String   @map("user_id")
-  spaceId         String   @map("space_id")
-  grantedBy       String   @map("granted_by")
-  role            String   // "admin" | "owner"
-  reason          String?
-  expiresAt       DateTime? @map("expires_at")
-  revokedAt       DateTime? @map("revoked_at")
-  createdTime     DateTime @default(now()) @map("created_time")
+  id          String    @id
+  userId      String    @map("user_id")
+  spaceId     String    @map("space_id")
+  grantedBy   String    @map("granted_by")
+  role        String // "admin" | "owner"
+  reason      String?
+  expiresAt   DateTime? @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdTime DateTime  @default(now()) @map("created_time")
+
   @@index([userId])
   @@index([spaceId])
   @@map("cross_org_admin_grant")
 }
 
 model AiUsageBucket {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  model           String   // e.g. "gpt-4o-mini", "claude-haiku-4-5"
-  action          String   // e.g. "completion", "embedding", "image"
-  credits         Int      @map("credits")
-  eventCount      Int      @default(0) @map("event_count")
-  monthBucket     String   @map("month_bucket")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  id             String   @id
+  organizationId String   @map("organization_id")
+  model          String // e.g. "gpt-4o-mini", "claude-haiku-4-5"
+  action         String // e.g. "completion", "embedding", "image"
+  credits        Int      @map("credits")
+  eventCount     Int      @default(0) @map("event_count")
+  monthBucket    String   @map("month_bucket")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+
   @@unique([organizationId, model, action, monthBucket])
   @@index([organizationId, monthBucket])
   @@map("ai_usage_bucket")
@@ -1957,216 +1956,231 @@ model AiCreditGrantPolicy {
   perModelCapJson String?  @map("per_model_cap_json")
   updatedBy       String   @map("updated_by")
   updatedTime     DateTime @updatedAt @map("updated_time")
+
   @@map("ai_credit_grant_policy")
 }
 
 model PageDefinition {
-  id          String   @id
-  baseId      String   @map("base_id")
+  id          String    @id
+  baseId      String    @map("base_id")
   name        String
-  slug        String   @unique
-  blocksJson  String   @map("blocks_json")
-  visibility  String   @default("authenticated")
-  themeJson   String?  @map("theme_json")
+  slug        String    @unique
+  blocksJson  String    @map("blocks_json")
+  visibility  String    @default("authenticated")
+  themeJson   String?   @map("theme_json")
   publishedAt DateTime? @map("published_at")
-  createdBy   String   @map("created_by")
-  createdTime DateTime @default(now()) @map("created_time")
-  updatedTime DateTime @updatedAt @map("updated_time")
+  createdBy   String    @map("created_by")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+
   @@index([baseId])
   @@map("page_definition")
 }
 
 model PageToken {
-  id          String   @id
-  pageId      String   @map("page_id")
-  token       String   @unique
+  id          String    @id
+  pageId      String    @map("page_id")
+  token       String    @unique
   expiresAt   DateTime? @map("expires_at")
   revokedAt   DateTime? @map("revoked_at")
-  createdTime DateTime @default(now()) @map("created_time")
+  createdTime DateTime  @default(now()) @map("created_time")
+
   @@index([pageId])
   @@map("page_token")
 }
 
 model Subscription {
-  id                       String    @id
-  organizationId           String    @unique @map("organization_id")
-  planCode                 String    @map("plan_code")
-  status                   String    @default("incomplete")
-  externalSubscriptionId   String    @unique @map("external_subscription_id")
-  externalCustomerId       String    @map("external_customer_id")
-  currentPeriodStart       DateTime  @map("current_period_start")
-  currentPeriodEnd         DateTime  @map("current_period_end")
-  cancelAtPeriodEnd        Boolean   @default(false) @map("cancel_at_period_end")
-  canceledAt               DateTime? @map("canceled_at")
-  seats                    Int       @default(1)
-  createdTime              DateTime  @default(now()) @map("created_time")
-  updatedTime              DateTime  @updatedAt @map("updated_time")
+  id                     String    @id
+  organizationId         String    @unique @map("organization_id")
+  planCode               String    @map("plan_code")
+  status                 String    @default("incomplete")
+  externalSubscriptionId String    @unique @map("external_subscription_id")
+  externalCustomerId     String    @map("external_customer_id")
+  currentPeriodStart     DateTime  @map("current_period_start")
+  currentPeriodEnd       DateTime  @map("current_period_end")
+  cancelAtPeriodEnd      Boolean   @default(false) @map("cancel_at_period_end")
+  canceledAt             DateTime? @map("canceled_at")
+  seats                  Int       @default(1)
+  createdTime            DateTime  @default(now()) @map("created_time")
+  updatedTime            DateTime  @updatedAt @map("updated_time")
+
   @@index([status])
   @@map("subscription")
 }
 
 model Invoice {
-  id                     String    @id
-  subscriptionId         String    @map("subscription_id")
-  externalInvoiceId      String    @unique @map("external_invoice_id")
-  amountCents            Int       @map("amount_cents")
-  currency               String    @default("usd")
-  status                 String    @default("draft")
-  issuedAt               DateTime  @default(now()) @map("issued_at")
-  periodStart            DateTime  @map("period_start")
-  periodEnd              DateTime  @map("period_end")
-  paidAt                 DateTime? @map("paid_at")
+  id                String    @id
+  subscriptionId    String    @map("subscription_id")
+  externalInvoiceId String    @unique @map("external_invoice_id")
+  amountCents       Int       @map("amount_cents")
+  currency          String    @default("usd")
+  status            String    @default("draft")
+  issuedAt          DateTime  @default(now()) @map("issued_at")
+  periodStart       DateTime  @map("period_start")
+  periodEnd         DateTime  @map("period_end")
+  paidAt            DateTime? @map("paid_at")
+
   @@index([subscriptionId])
   @@map("invoice")
 }
 
 model WebhookEvent {
-  id              String   @id
-  externalEventId String   @unique @map("external_event_id")
-  eventType       String   @map("event_type")
-  receivedAt      DateTime @default(now()) @map("received_at")
-  payloadJson     String   @map("payload_json")
+  id              String    @id
+  externalEventId String    @unique @map("external_event_id")
+  eventType       String    @map("event_type")
+  receivedAt      DateTime  @default(now()) @map("received_at")
+  payloadJson     String    @map("payload_json")
   processedAt     DateTime? @map("processed_at")
-  processingError String?  @map("processing_error")
+  processingError String?   @map("processing_error")
+
   @@map("webhook_event")
 }
 
 model Region {
-  id                  String   @id
-  code                String   @unique
-  displayName         String   @map("display_name")
-  status              String   @default("active")
-  dataCenterLocation  String?  @map("data_center_location")
-  createdTime         DateTime @default(now()) @map("created_time")
-  updatedTime         DateTime @updatedAt @map("updated_time")
+  id                 String   @id
+  code               String   @unique
+  displayName        String   @map("display_name")
+  status             String   @default("active")
+  dataCenterLocation String?  @map("data_center_location")
+  createdTime        DateTime @default(now()) @map("created_time")
+  updatedTime        DateTime @updatedAt @map("updated_time")
+
   @@map("region")
 }
 
 model DataResidencyPolicy {
-  id              String   @id
-  organizationId  String   @unique @map("organization_id")
-  regionCode      String   @map("region_code")
-  locked          Boolean  @default(false)
-  updatedBy       String   @map("updated_by")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  id             String   @id
+  organizationId String   @unique @map("organization_id")
+  regionCode     String   @map("region_code")
+  locked         Boolean  @default(false)
+  updatedBy      String   @map("updated_by")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+
   @@index([regionCode])
   @@map("data_residency_policy")
 }
 
 model CustomerKmsKey {
-  id                String    @id
-  organizationId    String    @map("organization_id")
-  alias             String
-  provider          String
-  keyId             String    @map("key_id")
-  keyVersion        String?   @map("key_version")
-  status            String    @default("enabled")
-  rotationPolicyJson String?  @map("rotation_policy_json")
-  createdBy         String    @map("created_by")
-  createdTime       DateTime  @default(now()) @map("created_time")
-  updatedTime       DateTime  @updatedAt @map("updated_time")
-  lastUsedAt        DateTime? @map("last_used_at")
+  id                 String    @id
+  organizationId     String    @map("organization_id")
+  alias              String
+  provider           String
+  keyId              String    @map("key_id")
+  keyVersion         String?   @map("key_version")
+  status             String    @default("enabled")
+  rotationPolicyJson String?   @map("rotation_policy_json")
+  createdBy          String    @map("created_by")
+  createdTime        DateTime  @default(now()) @map("created_time")
+  updatedTime        DateTime  @updatedAt @map("updated_time")
+  lastUsedAt         DateTime? @map("last_used_at")
+
   @@unique([organizationId, alias])
   @@index([organizationId])
   @@map("customer_kms_key")
 }
 
 model KmsAuditEntry {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  keyId           String   @map("key_id")
-  operation       String
-  callerType      String   @map("caller_type")
-  callerId        String?  @map("caller_id")
-  payloadHash     String?  @map("payload_hash")
-  atTime          DateTime @default(now()) @map("at_time")
+  id             String   @id
+  organizationId String   @map("organization_id")
+  keyId          String   @map("key_id")
+  operation      String
+  callerType     String   @map("caller_type")
+  callerId       String?  @map("caller_id")
+  payloadHash    String?  @map("payload_hash")
+  atTime         DateTime @default(now()) @map("at_time")
+
   @@index([organizationId, atTime])
   @@map("kms_audit_entry")
 }
 
 model IntegrationProvider {
-  id              String   @id
-  code            String   @unique
-  displayName     String   @map("display_name")
-  category        String
-  authType        String   @map("auth_type")
-  webhookStyle    String   @default("catch-hook") @map("webhook_style")
-  description     String?
-  docsUrl         String?  @map("docs_url")
-  enabled         Boolean  @default(true)
-  createdTime     DateTime @default(now()) @map("created_time")
+  id           String   @id
+  code         String   @unique
+  displayName  String   @map("display_name")
+  category     String
+  authType     String   @map("auth_type")
+  webhookStyle String   @default("catch-hook") @map("webhook_style")
+  description  String?
+  docsUrl      String?  @map("docs_url")
+  enabled      Boolean  @default(true)
+  createdTime  DateTime @default(now()) @map("created_time")
+
   @@map("integration_provider")
 }
 
 model IntegrationInstall {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  providerCode    String   @map("provider_code")
-  status          String   @default("active")
-  externalAccountId String? @map("external_account_id")
-  accessTokenJson String?  @map("access_token_json")
-  refreshToken    String?  @map("refresh_token")
-  scopesCsv       String?  @map("scopes_csv")
-  webhookSecret   String?  @map("webhook_secret")
-  expiresAt       DateTime? @map("expires_at")
-  installedBy     String   @map("installed_by")
-  installedTime   DateTime @default(now()) @map("installed_time")
-  updatedTime     DateTime @updatedAt @map("updated_time")
-  revokedAt       DateTime? @map("revoked_at")
+  id                String    @id
+  organizationId    String    @map("organization_id")
+  providerCode      String    @map("provider_code")
+  status            String    @default("active")
+  externalAccountId String?   @map("external_account_id")
+  accessTokenJson   String?   @map("access_token_json")
+  refreshToken      String?   @map("refresh_token")
+  scopesCsv         String?   @map("scopes_csv")
+  webhookSecret     String?   @map("webhook_secret")
+  expiresAt         DateTime? @map("expires_at")
+  installedBy       String    @map("installed_by")
+  installedTime     DateTime  @default(now()) @map("installed_time")
+  updatedTime       DateTime  @updatedAt @map("updated_time")
+  revokedAt         DateTime? @map("revoked_at")
+
   @@unique([organizationId, providerCode])
   @@index([organizationId])
   @@map("integration_install")
 }
 
 model IntegrationEventLog {
-  id              String   @id
-  installId       String   @map("install_id")
-  direction       String
-  eventType       String   @map("event_type")
-  payloadHash     String?  @map("payload_hash")
-  status          String   @default("delivered")
-  attempts        Int      @default(1)
-  receivedAt      DateTime @default(now()) @map("received_at")
-  errorMessage    String?  @map("error_message")
+  id           String   @id
+  installId    String   @map("install_id")
+  direction    String
+  eventType    String   @map("event_type")
+  payloadHash  String?  @map("payload_hash")
+  status       String   @default("delivered")
+  attempts     Int      @default(1)
+  receivedAt   DateTime @default(now()) @map("received_at")
+  errorMessage String?  @map("error_message")
+
   @@index([installId, receivedAt])
   @@map("integration_event_log")
 }
 
 model AirtableConnection {
-  id              String   @id
-  organizationId  String   @map("organization_id")
-  baseId          String   @map("base_id")
-  baseName        String   @map("base_name")
+  id              String    @id
+  organizationId  String    @map("organization_id")
+  baseId          String    @map("base_id")
+  baseName        String    @map("base_name")
   /// Encrypted PAT or OAuth token blob.
-  accessTokenJson String   @map("access_token_json")
-  grantedScopes   String?  @map("granted_scopes")
-  connectedBy     String   @map("connected_by")
-  connectedTime   DateTime @default(now()) @map("connected_time")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  accessTokenJson String    @map("access_token_json")
+  grantedScopes   String?   @map("granted_scopes")
+  connectedBy     String    @map("connected_by")
+  connectedTime   DateTime  @default(now()) @map("connected_time")
+  updatedTime     DateTime  @updatedAt @map("updated_time")
   revokedAt       DateTime? @map("revoked_at")
+
   @@unique([organizationId, baseId])
   @@index([organizationId])
   @@map("airtable_connection")
 }
 
 model AirtableTableMapping {
-  id                String   @id
-  connectionId      String   @map("connection_id")
-  airtableTableId   String   @map("airtable_table_id")
-  airtableTableName String   @map("airtable_table_name")
-  teableBaseId      String   @map("teable_base_id")
-  teableTableId     String   @map("teable_table_id")
+  id                String    @id
+  connectionId      String    @map("connection_id")
+  airtableTableId   String    @map("airtable_table_id")
+  airtableTableName String    @map("airtable_table_name")
+  teableBaseId      String    @map("teable_base_id")
+  teableTableId     String    @map("teable_table_id")
   /// "one-way-push" | "one-way-pull" | "bi-directional"
-  direction         String   @default("bi-directional")
+  direction         String    @default("bi-directional")
   /// "ready" | "paused" | "error"
-  status            String   @default("ready")
-  fieldMapJson      String   @map("field_map_json")
+  status            String    @default("ready")
+  fieldMapJson      String    @map("field_map_json")
   /// Stable hash over fieldMapJson so we can detect drift.
-  fieldMapHash      String   @map("field_map_hash")
+  fieldMapHash      String    @map("field_map_hash")
   lastSyncedTime    DateTime? @map("last_synced_time")
-  lastErrorMessage  String?  @map("last_error_message")
-  createdTime       DateTime @default(now()) @map("created_time")
-  updatedTime       DateTime @updatedAt @map("updated_time")
+  lastErrorMessage  String?   @map("last_error_message")
+  createdTime       DateTime  @default(now()) @map("created_time")
+  updatedTime       DateTime  @updatedAt @map("updated_time")
+
   @@unique([connectionId, airtableTableId])
   @@unique([connectionId, teableTableId])
   @@index([connectionId])
@@ -2174,16 +2188,17 @@ model AirtableTableMapping {
 }
 
 model AirtableSyncRecord {
-  id                 String   @id
-  mappingId          String   @map("mapping_id")
-  airtableRecordId   String   @map("airtable_record_id")
-  teableRecordId     String   @map("teable_record_id")
+  id                String    @id
+  mappingId         String    @map("mapping_id")
+  airtableRecordId  String    @map("airtable_record_id")
+  teableRecordId    String    @map("teable_record_id")
   /// "synced" | "remote-only" | "local-only" | "conflict"
-  state              String   @default("synced")
-  lastRemoteVersion  Int?     @map("last_remote_version")
-  lastLocalVersion   Int?     @map("last_local_version")
-  lastSyncedAt       DateTime? @map("last_synced_at")
-  lastHash           String?  @map("last_hash")
+  state             String    @default("synced")
+  lastRemoteVersion Int?      @map("last_remote_version")
+  lastLocalVersion  Int?      @map("last_local_version")
+  lastSyncedAt      DateTime? @map("last_synced_at")
+  lastHash          String?   @map("last_hash")
+
   @@unique([mappingId, airtableRecordId])
   @@unique([mappingId, teableRecordId])
   @@index([mappingId])
@@ -2191,255 +2206,269 @@ model AirtableSyncRecord {
 }
 
 model AirtableSyncLog {
-  id              String   @id
-  mappingId       String   @map("mapping_id")
+  id              String    @id
+  mappingId       String    @map("mapping_id")
   /// "push" | "pull" | "conflict-resolved"
   direction       String
-  recordsExamined Int      @default(0) @map("records_examined")
-  recordsCreated  Int      @default(0) @map("records_created")
-  recordsUpdated  Int      @default(0) @map("records_updated")
-  conflictsFound  Int      @default(0) @map("conflicts_found")
-  status          String   @default("ok")
-  errorMessage    String?  @map("error_message")
-  startedAt       DateTime @default(now()) @map("started_at")
+  recordsExamined Int       @default(0) @map("records_examined")
+  recordsCreated  Int       @default(0) @map("records_created")
+  recordsUpdated  Int       @default(0) @map("records_updated")
+  conflictsFound  Int       @default(0) @map("conflicts_found")
+  status          String    @default("ok")
+  errorMessage    String?   @map("error_message")
+  startedAt       DateTime  @default(now()) @map("started_at")
   finishedAt      DateTime? @map("finished_at")
+
   @@index([mappingId, startedAt])
   @@map("airtable_sync_log")
 }
 
 model SdkApp {
-  id                String   @id
-  organizationId    String   @map("organization_id")
-  name              String
+  id               String    @id
+  organizationId   String    @map("organization_id")
+  name             String
   /// "js" | "python" | "go" | "java" | "ruby" | "other"
-  language          String
-  homepageUrl       String?  @map("homepage_url")
-  redirectUrl       String?  @map("redirect_url")
+  language         String
+  homepageUrl      String?   @map("homepage_url")
+  redirectUrl      String?   @map("redirect_url")
   /// Scopes the app can request (comma-separated).
-  scopesCsv         String   @map("scopes_csv")
-  clientId          String   @unique @map("client_id")
+  scopesCsv        String    @map("scopes_csv")
+  clientId         String    @unique @map("client_id")
   /// bcrypt hash of the client secret — never plaintext.
-  clientSecretHash  String?  @map("client_secret_hash")
-  description       String?
-  enabled           Boolean  @default(true)
-  createdBy         String   @map("created_by")
-  createdTime       DateTime @default(now()) @map("created_time")
-  updatedTime       DateTime @updatedAt @map("updated_time")
-  revokedAt         DateTime? @map("revoked_at")
+  clientSecretHash String?   @map("client_secret_hash")
+  description      String?
+  enabled          Boolean   @default(true)
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  updatedTime      DateTime  @updatedAt @map("updated_time")
+  revokedAt        DateTime? @map("revoked_at")
+
   @@index([organizationId])
   @@map("sdk_app")
 }
 
 model SdkToken {
-  id               String   @id
-  appId            String   @map("app_id")
-  organizationId   String   @map("organization_id")
-  userId           String?  @map("user_id")
+  id             String    @id
+  appId          String    @map("app_id")
+  organizationId String    @map("organization_id")
+  userId         String?   @map("user_id")
   /// Display label shown in the management UI.
-  label            String
+  label          String
   /// SHA-256 hash of the secret token — never the plaintext.
-  tokenHash        String   @unique @map("token_hash")
+  tokenHash      String    @unique @map("token_hash")
   /// Last 8 chars of the plaintext token shown to the user once.
-  tokenLastFour    String   @map("token_last_four")
-  scopesCsv        String   @map("scopes_csv")
+  tokenLastFour  String    @map("token_last_four")
+  scopesCsv      String    @map("scopes_csv")
   /// "active" | "expired" | "revoked"
-  status           String   @default("active")
-  createdBy        String   @map("created_by")
-  createdTime      DateTime @default(now()) @map("created_time")
-  lastUsedAt       DateTime? @map("last_used_at")
-  expiresAt        DateTime? @map("expires_at")
-  revokedAt        DateTime? @map("revoked_at")
+  status         String    @default("active")
+  createdBy      String    @map("created_by")
+  createdTime    DateTime  @default(now()) @map("created_time")
+  lastUsedAt     DateTime? @map("last_used_at")
+  expiresAt      DateTime? @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+
   @@index([appId])
   @@index([organizationId])
   @@map("sdk_token")
 }
 
 model SdkUsageLog {
-  id              String   @id
-  appId           String   @map("app_id")
-  tokenId         String?  @map("token_id")
-  method          String
-  path            String
-  statusCode      Int      @map("status_code")
-  durationMs      Int      @map("duration_ms")
-  bytesIn         Int      @default(0) @map("bytes_in")
-  bytesOut        Int      @default(0) @map("bytes_out")
+  id         String   @id
+  appId      String   @map("app_id")
+  tokenId    String?  @map("token_id")
+  method     String
+  path       String
+  statusCode Int      @map("status_code")
+  durationMs Int      @map("duration_ms")
+  bytesIn    Int      @default(0) @map("bytes_in")
+  bytesOut   Int      @default(0) @map("bytes_out")
   /// "ok" | "rate-limited" | "unauthorized" | "error"
-  outcome         String   @default("ok")
-  occurredAt      DateTime @default(now()) @map("occurred_at")
+  outcome    String   @default("ok")
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
   @@index([appId, occurredAt])
   @@map("sdk_usage_log")
 }
 
 model SdkRelease {
-  id              String   @id
-  language        String
-  version         String
-  changelog       String?
-  artifactUrl     String?  @map("artifact_url")
-  publishedAt     DateTime @default(now()) @map("published_at")
+  id          String   @id
+  language    String
+  version     String
+  changelog   String?
+  artifactUrl String?  @map("artifact_url")
+  publishedAt DateTime @default(now()) @map("published_at")
   /// "stable" | "beta" | "deprecated"
-  channel         String   @default("stable")
+  channel     String   @default("stable")
+
   @@unique([language, version])
   @@map("sdk_release")
 }
 
 model SearchIndex {
-  id              String   @id
-  baseId          String   @map("base_id")
-  tableId         String   @map("table_id")
+  id            String    @id
+  baseId        String    @map("base_id")
+  tableId       String    @map("table_id")
   /// "row" | "record-history" | "comments"
-  scope           String   @default("row")
+  scope         String    @default("row")
   /// "enabled" | "paused" | "rebuild" | "error"
-  status          String   @default("enabled")
+  status        String    @default("enabled")
   /// Comma-separated fieldIds to index, or null = all text fields.
-  fieldIdsCsv     String?  @map("field_ids_csv")
-  language        String   @default("english")
-  lastBuiltAt     DateTime? @map("last_built_at")
-  documentCount   Int      @default(0) @map("document_count")
-  bytesUsed       BigInt   @default(0) @map("bytes_used")
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  fieldIdsCsv   String?   @map("field_ids_csv")
+  language      String    @default("english")
+  lastBuiltAt   DateTime? @map("last_built_at")
+  documentCount Int       @default(0) @map("document_count")
+  bytesUsed     BigInt    @default(0) @map("bytes_used")
+  createdBy     String    @map("created_by")
+  createdTime   DateTime  @default(now()) @map("created_time")
+  updatedTime   DateTime  @updatedAt @map("updated_time")
+
   @@unique([baseId, tableId, scope])
   @@map("search_index")
 }
 
 model SearchDocument {
-  id              String   @id
-  indexId         String   @map("index_id")
-  recordId        String   @map("record_id")
+  id            String   @id
+  indexId       String   @map("index_id")
+  recordId      String   @map("record_id")
   /// Indexed body — concatenated text fields, lower-cased + trimmed.
-  bodyText        String   @map("body_text")
+  bodyText      String   @map("body_text")
   /// Tokens used for ranked retrieval (tsvector-like, space-separated).
-  tokens          String
+  tokens        String
   /// Hash of record fields used to skip unchanged reindex.
-  contentHash     String   @map("content_hash")
-  lastIndexedAt   DateTime @default(now()) @map("last_indexed_at")
+  contentHash   String   @map("content_hash")
+  lastIndexedAt DateTime @default(now()) @map("last_indexed_at")
+
   @@unique([indexId, recordId])
   @@index([indexId])
   @@map("search_document")
 }
 
 model SearchQueryLog {
-  id              String   @id
-  indexId         String   @map("index_id")
-  userId          String?  @map("user_id")
-  queryText       String   @map("query_text")
-  hitCount        Int      @default(0) @map("hit_count")
-  durationMs      Int      @default(0) @map("duration_ms")
-  occurredAt      DateTime @default(now()) @map("occurred_at")
+  id         String   @id
+  indexId    String   @map("index_id")
+  userId     String?  @map("user_id")
+  queryText  String   @map("query_text")
+  hitCount   Int      @default(0) @map("hit_count")
+  durationMs Int      @default(0) @map("duration_ms")
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
   @@index([indexId, occurredAt])
   @@map("search_query_log")
 }
 
 model SearchSynonym {
-  id              String   @id
-  indexId         String?  @map("index_id")
+  id          String   @id
+  indexId     String?  @map("index_id")
   /// null indexId = global synonym across all indexes.
-  term            String
-  synonymsCsv     String   @map("synonyms_csv")
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
+  term        String
+  synonymsCsv String   @map("synonyms_csv")
+  createdBy   String   @map("created_by")
+  createdTime DateTime @default(now()) @map("created_time")
+
   @@unique([indexId, term])
   @@map("search_synonym")
 }
 
 model AiField {
-  id              String   @id
-  baseId          String   @map("base_id")
-  tableId         String   @map("table_id")
-  fieldId         String   @map("field_id")
+  id               String    @id
+  baseId           String    @map("base_id")
+  tableId          String    @map("table_id")
+  fieldId          String    @map("field_id")
   /// "classify" | "summarize" | "translate"
-  operation       String
+  operation        String
   /// Model code reference (gpt-4o-mini, claude-haiku-4-5-20251001, etc).
-  model           String
+  model            String
   /// Source fieldId(s) — comma-separated when multiple inputs.
-  sourceFieldIds  String   @map("source_field_ids")
+  sourceFieldIds   String    @map("source_field_ids")
   /// Operation-specific config: JSON {labels:[...], targetLang:"zh", maxLength:200, prompt:"..."}
-  configJson      String   @map("config_json")
+  configJson       String    @map("config_json")
   /// "enabled" | "paused" | "error"
-  status          String   @default("enabled")
+  status           String    @default("enabled")
   /// Stable hash over config so we can detect drift on update.
-  configHash      String   @map("config_hash")
-  lastRunAt       DateTime? @map("last_run_at")
-  lastErrorMessage String? @map("last_error_message")
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  configHash       String    @map("config_hash")
+  lastRunAt        DateTime? @map("last_run_at")
+  lastErrorMessage String?   @map("last_error_message")
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  updatedTime      DateTime  @updatedAt @map("updated_time")
+
   @@unique([baseId, tableId, fieldId, operation])
   @@index([baseId, tableId])
   @@map("ai_field")
 }
 
 model AiFieldRun {
-  id              String   @id
-  aiFieldId       String   @map("ai_field_id")
-  recordId        String   @map("record_id")
+  id               String    @id
+  aiFieldId        String    @map("ai_field_id")
+  recordId         String    @map("record_id")
   /// "ok" | "failed" | "rate-limited" | "skipped"
-  status          String   @default("ok")
+  status           String    @default("ok")
   /// Input text fed into the model.
-  inputText       String   @map("input_text")
+  inputText        String    @map("input_text")
   /// Truncated output (full body for record).
-  outputText      String   @map("output_text")
-  promptTokens    Int      @default(0) @map("prompt_tokens")
-  completionTokens Int     @default(0) @map("completion_tokens")
-  model           String
-  durationMs      Int      @default(0) @map("duration_ms")
-  errorMessage    String?  @map("error_message")
-  startedAt       DateTime @default(now()) @map("started_at")
-  finishedAt      DateTime? @map("finished_at")
+  outputText       String    @map("output_text")
+  promptTokens     Int       @default(0) @map("prompt_tokens")
+  completionTokens Int       @default(0) @map("completion_tokens")
+  model            String
+  durationMs       Int       @default(0) @map("duration_ms")
+  errorMessage     String?   @map("error_message")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+
   @@index([aiFieldId, startedAt])
   @@map("ai_field_run")
 }
 
 model AiFieldTemplate {
-  id              String   @id
+  id             String   @id
   /// "classify" | "summarize" | "translate"
-  operation       String
-  language        String   @default("english")
-  name            String
-  promptTemplate  String   @map("prompt_template")
-  description     String?
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
-  updatedTime     DateTime @updatedAt @map("updated_time")
+  operation      String
+  language       String   @default("english")
+  name           String
+  promptTemplate String   @map("prompt_template")
+  description    String?
+  createdBy      String   @map("created_by")
+  createdTime    DateTime @default(now()) @map("created_time")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+
   @@unique([operation, language, name])
   @@map("ai_field_template")
 }
 
 model AiBuilderProposal {
-  id              String   @id
-  baseId          String   @map("base_id")
+  id                String    @id
+  baseId            String    @map("base_id")
   /// "draft" | "approved" | "rejected" | "applied"
-  status          String   @default("draft")
-  sourcePrompt    String   @map("source_prompt")
-  proposalJson    String   @map("proposal_json")
-  proposalHash    String   @map("proposal_hash")
-  model           String
-  createdBy       String   @map("created_by")
-  createdTime     DateTime @default(now()) @map("created_time")
-  approvedBy      String?  @map("approved_by")
-  approvedTime    DateTime? @map("approved_time")
-  appliedResourceId String? @map("applied_resource_id")
+  status            String    @default("draft")
+  sourcePrompt      String    @map("source_prompt")
+  proposalJson      String    @map("proposal_json")
+  proposalHash      String    @map("proposal_hash")
+  model             String
+  createdBy         String    @map("created_by")
+  createdTime       DateTime  @default(now()) @map("created_time")
+  approvedBy        String?   @map("approved_by")
+  approvedTime      DateTime? @map("approved_time")
+  appliedResourceId String?   @map("applied_resource_id")
+
   @@index([baseId, status])
   @@index([baseId, createdTime])
   @@map("ai_builder_proposal")
 }
 
 model VectorCollection {
-  id            String   @id
-  baseId        String   @map("base_id")
+  id            String    @id
+  baseId        String    @map("base_id")
   name          String
   /// "cosine" | "dotProduct" | "euclidean"
-  metric        String   @default("cosine")
-  dimensions    Int      @map("dimensions")
+  metric        String    @default("cosine")
+  dimensions    Int       @map("dimensions")
   /// "building" | "ready" | "paused" | "error"
-  status        String   @default("building")
+  status        String    @default("building")
   lastIndexedAt DateTime? @map("last_indexed_at")
-  createdBy     String   @map("created_by")
-  createdTime   DateTime @default(now()) @map("created_time")
-  updatedTime   DateTime @updatedAt @map("updated_time")
+  createdBy     String    @map("created_by")
+  createdTime   DateTime  @default(now()) @map("created_time")
+  updatedTime   DateTime  @updatedAt @map("updated_time")
+
   @@unique([baseId, name])
   @@index([baseId, status])
   @@map("vector_collection")
@@ -2454,170 +2483,181 @@ model VectorRecord {
   content      String
   contentHash  String   @map("content_hash")
   createdTime  DateTime @default(now()) @map("created_time")
+
   @@unique([collectionId, sourceRef])
   @@index([collectionId, createdTime])
   @@map("vector_record")
 }
 
 model GoogleSheetsConnection {
-  id                  String   @id
-  organizationId      String   @map("organization_id")
-  baseId              String   @map("base_id")
-  spreadsheetId       String   @map("spreadsheet_id")
-  spreadsheetTitle    String   @map("spreadsheet_title")
-  refreshTokenHash    String   @map("refresh_token_hash")
-  serviceAccountEmail String?  @map("service_account_email")
-  connectedBy         String   @map("connected_by")
-  connectedTime       DateTime @default(now()) @map("connected_time")
-  updatedTime         DateTime @updatedAt @map("updated_time")
+  id                  String    @id
+  organizationId      String    @map("organization_id")
+  baseId              String    @map("base_id")
+  spreadsheetId       String    @map("spreadsheet_id")
+  spreadsheetTitle    String    @map("spreadsheet_title")
+  refreshTokenHash    String    @map("refresh_token_hash")
+  serviceAccountEmail String?   @map("service_account_email")
+  connectedBy         String    @map("connected_by")
+  connectedTime       DateTime  @default(now()) @map("connected_time")
+  updatedTime         DateTime  @updatedAt @map("updated_time")
   revokedAt           DateTime? @map("revoked_at")
+
   @@unique([baseId, spreadsheetId])
   @@index([organizationId])
   @@map("google_sheets_connection")
 }
 
 model GoogleSheetsMapping {
-  id              String   @id
-  connectionId    String   @map("connection_id")
-  sheetId         String   @map("sheet_id")
-  sheetTitle      String   @map("sheet_title")
-  sheetGid        Int      @map("sheet_gid")
-  teableBaseId    String   @map("teable_base_id")
-  teableTableId   String   @map("teable_table_id")
+  id               String    @id
+  connectionId     String    @map("connection_id")
+  sheetId          String    @map("sheet_id")
+  sheetTitle       String    @map("sheet_title")
+  sheetGid         Int       @map("sheet_gid")
+  teableBaseId     String    @map("teable_base_id")
+  teableTableId    String    @map("teable_table_id")
   /// "one-way-push" | "one-way-pull" | "bi-directional"
-  direction       String   @default("bi-directional")
+  direction        String    @default("bi-directional")
   /// "ready" | "paused" | "error"
-  status          String   @default("ready")
-  headerRow       Int      @default(1) @map("header_row")
-  fieldMapJson    String   @map("field_map_json")
-  fieldMapHash    String   @map("field_map_hash")
-  lastSyncedTime  DateTime? @map("last_synced_time")
-  lastErrorMessage String? @map("last_error_message")
-  createdTime     DateTime @default(now()) @map("created_time")
+  status           String    @default("ready")
+  headerRow        Int       @default(1) @map("header_row")
+  fieldMapJson     String    @map("field_map_json")
+  fieldMapHash     String    @map("field_map_hash")
+  lastSyncedTime   DateTime? @map("last_synced_time")
+  lastErrorMessage String?   @map("last_error_message")
+  createdTime      DateTime  @default(now()) @map("created_time")
+
   @@unique([connectionId, sheetId])
   @@index([teableBaseId, teableTableId])
   @@map("google_sheets_mapping")
 }
 
 model GoogleSheetsSyncRecord {
-  id              String   @id
-  mappingId       String   @map("mapping_id")
-  recordId        String?  @map("record_id")
-  sheetsRowNumber Int?     @map("sheets_row_number")
+  id              String    @id
+  mappingId       String    @map("mapping_id")
+  recordId        String?   @map("record_id")
+  sheetsRowNumber Int?      @map("sheets_row_number")
   /// "synced" | "remote-only" | "local-only" | "conflict"
-  state           String   @default("synced")
+  state           String    @default("synced")
   localUpdatedAt  DateTime? @map("local_updated_at")
   remoteUpdatedAt DateTime? @map("remote_updated_at")
   lastSyncedAt    DateTime? @map("last_synced_at")
+
   @@index([mappingId, lastSyncedAt])
   @@map("google_sheets_sync_record")
 }
 
 model GoogleSheetsSyncLog {
-  id                String   @id
-  mappingId         String   @map("mapping_id")
+  id                String    @id
+  mappingId         String    @map("mapping_id")
   /// "push" | "pull" | "conflict-resolved"
   direction         String
   /// "ok" | "failed" | "partial"
-  status            String   @default("ok")
-  rowsRead          Int      @default(0) @map("rows_read")
-  rowsWritten       Int      @default(0) @map("rows_written")
-  conflictsResolved Int      @default(0) @map("conflicts_resolved")
-  startedAt         DateTime @default(now()) @map("started_at")
+  status            String    @default("ok")
+  rowsRead          Int       @default(0) @map("rows_read")
+  rowsWritten       Int       @default(0) @map("rows_written")
+  conflictsResolved Int       @default(0) @map("conflicts_resolved")
+  startedAt         DateTime  @default(now()) @map("started_at")
   finishedAt        DateTime? @map("finished_at")
-  errorMessage      String?  @map("error_message")
+  errorMessage      String?   @map("error_message")
+
   @@index([mappingId, startedAt])
   @@map("google_sheets_sync_log")
 }
 
 model GoogleSheetsWebhookChannel {
-  id           String   @id
-  resourceId   String   @map("resource_id")
+  id           String @id
+  resourceId   String @map("resource_id")
   /// Milliseconds since epoch.
   expiration   BigInt
-  mappingId    String   @map("mapping_id")
-  connectionId String   @map("connection_id")
+  mappingId    String @map("mapping_id")
+  connectionId String @map("connection_id")
+
   @@index([expiration])
   @@map("google_sheets_webhook_channel")
 }
 
 model TimelineView {
-  id                     String   @id
-  baseId                 String   @map("base_id")
-  tableId                String   @map("table_id")
-  name                   String
-  windowStart            DateTime @map("window_start")
-  windowEnd              DateTime @map("window_end")
-  highlightCriticalPath  Boolean  @default(true) @map("highlight_critical_path")
-  createdBy              String   @map("created_by")
-  createdTime            DateTime @default(now()) @map("created_time")
-  updatedTime            DateTime @updatedAt @map("updated_time")
+  id                    String   @id
+  baseId                String   @map("base_id")
+  tableId               String   @map("table_id")
+  name                  String
+  windowStart           DateTime @map("window_start")
+  windowEnd             DateTime @map("window_end")
+  highlightCriticalPath Boolean  @default(true) @map("highlight_critical_path")
+  createdBy             String   @map("created_by")
+  createdTime           DateTime @default(now()) @map("created_time")
+  updatedTime           DateTime @updatedAt @map("updated_time")
+
   @@unique([baseId, tableId, name])
   @@index([baseId, tableId])
   @@map("timeline_view")
 }
 
 model TimelineTask {
-  id            String    @id
-  baseId        String    @map("base_id")
-  tableId       String    @map("table_id")
-  recordId      String    @map("record_id")
-  viewId        String?   @map("view_id")
-  name          String
-  start         DateTime?
-  end           DateTime?
-  progress      Float     @default(0)
-  parentTaskId  String?   @map("parent_task_id")
+  id           String    @id
+  baseId       String    @map("base_id")
+  tableId      String    @map("table_id")
+  recordId     String    @map("record_id")
+  viewId       String?   @map("view_id")
+  name         String
+  start        DateTime?
+  end          DateTime?
+  progress     Float     @default(0)
+  parentTaskId String?   @map("parent_task_id")
+
   @@index([tableId])
   @@index([recordId])
   @@map("timeline_task")
 }
 
 model TimelineDependency {
-  id            String  @id
-  taskId        String  @map("task_id")
-  predecessorId String  @map("predecessor_id")
+  id            String @id
+  taskId        String @map("task_id")
+  predecessorId String @map("predecessor_id")
   /// "FS" | "SS" | "FF" | "SF"
   type          String
-  lagDays       Int     @default(0) @map("lag_days")
+  lagDays       Int    @default(0) @map("lag_days")
+
   @@unique([taskId, predecessorId])
   @@index([predecessorId])
   @@map("timeline_dependency")
 }
 
 model ReadReplica {
-  id             String   @id
-  baseId         String   @map("base_id")
+  id            String   @id
+  baseId        String   @map("base_id")
   /// "primary" | "logical-replica" | "physical-replica"
-  kind           String
-  region         String
-  connectionUrl  String   @map("connection_url")
+  kind          String
+  region        String
+  connectionUrl String   @map("connection_url")
   /// "online" | "lagging" | "paused" | "error"
-  status         String   @default("online")
+  status        String   @default("online")
   /// Max tolerated replication lag (ms) before reads are routed back to primary.
-  maxLagMs       Int      @default(2000) @map("max_lag_ms")
+  maxLagMs      Int      @default(2000) @map("max_lag_ms")
   /// "round-robin" | "nearest" | "primary-when-stale"
-  routingPolicy  String   @default("nearest") @map("routing_policy")
-  weight         Int      @default(1)
-  createdTime    DateTime @default(now()) @map("created_time")
-  updatedTime    DateTime @updatedAt @map("updated_time")
+  routingPolicy String   @default("nearest") @map("routing_policy")
+  weight        Int      @default(1)
+  createdTime   DateTime @default(now()) @map("created_time")
+  updatedTime   DateTime @updatedAt @map("updated_time")
+
   @@unique([baseId, region, kind])
   @@index([status])
   @@map("read_replica")
 }
 
 model ReadRouteLog {
-  id          String   @id
-  baseId      String   @map("base_id")
+  id           String   @id
+  baseId       String   @map("base_id")
   /// "primary" | "replica"
-  routeTo     String   @map("route_to")
-  replicaId   String?  @map("replica_id")
+  routeTo      String   @map("route_to")
+  replicaId    String?  @map("replica_id")
   /// "round-robin" | "nearest" | "primary-when-stale"
-  policy      String
+  policy       String
   /// Measured replication lag at decision time (ms, -1 = primary).
-  lagMs       Int      @map("lag_ms")
-  clientRegion String  @map("client_region")
-  createdTime DateTime @default(now()) @map("created_time")
+  lagMs        Int      @map("lag_ms")
+  clientRegion String   @map("client_region")
+  createdTime  DateTime @default(now()) @map("created_time")
+
   @@index([baseId, createdTime])
   @@map("read_route_log")
 }
@@ -2634,72 +2674,77 @@ model CustomRole {
   enabled      Boolean  @default(true)
   createdTime  DateTime @default(now()) @map("created_time")
   updatedTime  DateTime @updatedAt @map("updated_time")
+
   @@unique([orgId, name])
   @@index([orgId])
   @@map("custom_role")
 }
 
 model RoleAssignment {
-  id          String   @id
-  orgId       String   @map("org_id")
-  userId      String   @map("user_id")
+  id        String   @id
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
   /// Built-in role name or custom role id.
-  roleId      String   @map("role_id")
+  roleId    String   @map("role_id")
   /// null = org-wide; non-null = scoped to a base.
-  baseId      String?  @map("base_id")
-  grantedAt   DateTime @map("granted_at")
+  baseId    String?  @map("base_id")
+  grantedAt DateTime @map("granted_at")
   /// User id of the grantor.
-  grantedBy   String   @map("granted_by")
+  grantedBy String   @map("granted_by")
+
   @@index([orgId, userId])
   @@index([userId])
   @@map("role_assignment")
 }
 
 model AuditRetentionPolicy {
-  orgId       String   @id @map("org_id")
-  hotDays     Int      @map("hot_days")
-  coldDays    Int      @map("cold_days")
+  orgId      String   @id @map("org_id")
+  hotDays    Int      @map("hot_days")
+  coldDays   Int      @map("cold_days")
   /// "s3" | "oss" | "gcs" | "azure-blob" | null
-  coldTarget  String?  @map("cold_target")
-  coldBucket  String?  @map("cold_bucket")
-  coldPrefix  String?  @map("cold_prefix")
-  redactPii   Boolean  @default(false) @map("redact_pii")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  updatedBy   String   @map("updated_by")
+  coldTarget String?  @map("cold_target")
+  coldBucket String?  @map("cold_bucket")
+  coldPrefix String?  @map("cold_prefix")
+  redactPii  Boolean  @default(false) @map("redact_pii")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  updatedBy  String   @map("updated_by")
+
   @@map("audit_retention_policy")
 }
 
 model AuditRetentionJob {
-  id              String   @id
-  orgId           String   @map("org_id")
+  id             String    @id
+  orgId          String    @map("org_id")
   /// "pending" | "running" | "done" | "failed"
-  status          String
-  startedAt       DateTime? @map("started_at")
-  finishedAt      DateTime? @map("finished_at")
-  scanned         Int      @default(0)
-  promotedToCold  Int      @default(0) @map("promoted_to_cold")
-  purged          Int      @default(0)
-  lastError       String?  @map("last_error")
+  status         String
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  scanned        Int       @default(0)
+  promotedToCold Int       @default(0) @map("promoted_to_cold")
+  purged         Int       @default(0)
+  lastError      String?   @map("last_error")
+
   @@index([orgId, status])
   @@map("audit_retention_job")
 }
 
 model EmailDomainClaim {
-  id             String   @id
-  orgId          String   @map("org_id")
+  id            String    @id
+  orgId         String    @map("org_id")
   /// Lowercased domain ("acme.com").
-  domain         String
-  token          String
+  domain        String
+  token         String
   /// "pending" | "verified" | "failed" | "revoked"
-  status         String
+  status        String
   /// "open" | "review" | "locked"
-  mode           String
-  defaultRoleId  String?  @map("default_role_id")
-  lastCheckedAt  DateTime? @map("last_checked_at")
-  lastError      String?  @map("last_error")
-  verifiedAt     DateTime? @map("verified_at")
-  createdTime    DateTime @default(now()) @map("created_time")
-  updatedTime    DateTime @updatedAt @map("updated_time")
+  mode          String
+  defaultRoleId String?   @map("default_role_id")
+  lastCheckedAt DateTime? @map("last_checked_at")
+  lastError     String?   @map("last_error")
+  verifiedAt    DateTime? @map("verified_at")
+  createdTime   DateTime  @default(now()) @map("created_time")
+  updatedTime   DateTime  @updatedAt @map("updated_time")
+
   @@unique([orgId, domain])
   @@index([domain, status])
   @@map("email_domain_claim")
@@ -2713,61 +2758,65 @@ model EmailDomainClaimAudit {
   actorId   String   @map("actor_id")
   details   String   @default("")
   createdAt DateTime @default(now()) @map("created_at")
+
   @@index([orgId, createdAt])
   @@map("email_domain_claim_audit")
 }
 
 model OrgQuotaReservation {
-  id        String   @id
-  orgId     String   @map("org_id")
-  baseId    String   @map("base_id")
+  id          String   @id
+  orgId       String   @map("org_id")
+  baseId      String   @map("base_id")
   /// "rows" | "ai-credits" | "requests-per-min" | ...
-  metric    String
-  amount    Int
+  metric      String
+  amount      Int
   /// "critical" | "high" | "normal" | "low"
-  priority  String
+  priority    String
   /// "active" | "released" | "expired" | "consumed"
-  status    String
-  expiresAt DateTime @map("expires_at")
-  consumed  Boolean  @default(false)
-  reason    String   @default("")
+  status      String
+  expiresAt   DateTime @map("expires_at")
+  consumed    Boolean  @default(false)
+  reason      String   @default("")
   createdTime DateTime @default(now()) @map("created_time")
   updatedTime DateTime @updatedAt @map("updated_time")
+
   @@index([orgId, metric, status])
   @@index([baseId])
   @@map("org_quota_reservation")
 }
 
 model FederationView {
-  id                    String   @id
-  orgId                 String   @map("org_id")
-  name                  String
-  description           String   @default("")
+  id                     String    @id
+  orgId                  String    @map("org_id")
+  name                   String
+  description            String    @default("")
   /// "active" | "paused" | "broken" | "draft"
-  status                String
+  status                 String
   /// "event" | "interval" | "manual"
-  refreshMode           String   @map("refresh_mode")
-  refreshIntervalSeconds Int     @map("refresh_interval_seconds")
-  lastRefreshedBy       String?  @map("last_refreshed_by")
-  lastRefreshedAt       DateTime? @map("last_refreshed_at")
-  lastStalenessSeconds  Int?     @map("last_staleness_seconds")
-  createdTime           DateTime @default(now()) @map("created_time")
-  updatedTime           DateTime @updatedAt @map("updated_time")
+  refreshMode            String    @map("refresh_mode")
+  refreshIntervalSeconds Int       @map("refresh_interval_seconds")
+  lastRefreshedBy        String?   @map("last_refreshed_by")
+  lastRefreshedAt        DateTime? @map("last_refreshed_at")
+  lastStalenessSeconds   Int?      @map("last_staleness_seconds")
+  createdTime            DateTime  @default(now()) @map("created_time")
+  updatedTime            DateTime  @updatedAt @map("updated_time")
+
   @@index([orgId, status])
   @@map("federation_view")
 }
 
 model FederationSource {
-  id      String  @id
-  viewId  String  @map("view_id")
-  baseId  String  @map("base_id")
+  id       String  @id
+  viewId   String  @map("view_id")
+  baseId   String  @map("base_id")
   /// "table" | "view"
-  kind    String
-  targetId String @map("target_id")
-  alias   String
+  kind     String
+  targetId String  @map("target_id")
+  alias    String
   /// JSON array of field names — null = all fields.
-  fields  Json?
-  filter  String?
+  fields   Json?
+  filter   String?
+
   @@index([viewId])
   @@index([baseId])
   @@map("federation_source")
@@ -2782,21 +2831,23 @@ model FederationEvent {
   occurredAt DateTime @map("occurred_at")
   summary    String   @default("")
   processed  Boolean  @default(false)
+
   @@index([viewId, processed])
   @@map("federation_event")
 }
 
 model FederationRefresh {
-  id             String   @id
-  viewId         String   @map("view_id")
+  id             String    @id
+  viewId         String    @map("view_id")
   /// "pending" | "running" | "done" | "failed"
   status         String
   startedAt      DateTime? @map("started_at")
   finishedAt     DateTime? @map("finished_at")
-  eventsConsumed Int      @default(0) @map("events_consumed")
-  rowsWritten    Int      @default(0) @map("rows_written")
-  durationMs     Int?     @map("duration_ms")
-  lastError      String?  @map("last_error")
+  eventsConsumed Int       @default(0) @map("events_consumed")
+  rowsWritten    Int       @default(0) @map("rows_written")
+  durationMs     Int?      @map("duration_ms")
+  lastError      String?   @map("last_error")
+
   @@index([viewId, status])
   @@map("federation_refresh")
 }
@@ -2808,22 +2859,24 @@ model RiskPolicy {
   auditAll      Boolean  @default(true) @map("audit_all")
   rulesJson     String   @default("[]") @map("rules_json")
   updatedAt     DateTime @updatedAt @map("updated_at")
+
   @@index([orgId])
   @@map("risk_policy")
 }
 
 model RiskDecision {
-  id              String   @id
-  orgId           String   @map("org_id")
-  actorId         String   @map("actor_id")
-  score           Int      @default(0)
+  id             String   @id
+  orgId          String   @map("org_id")
+  actorId        String   @map("actor_id")
+  score          Int      @default(0)
   /// "low" | "medium" | "high" | "critical"
-  band            String
+  band           String
   /// "allow" | "challenge" | "soft-block" | "hard-block"
-  action          String
-  firedRulesJson  String   @default("[]") @map("fired_rules_json")
-  detail          String   @default("")
-  createdAt       DateTime @default(now()) @map("created_at")
+  action         String
+  firedRulesJson String   @default("[]") @map("fired_rules_json")
+  detail         String   @default("")
+  createdAt      DateTime @default(now()) @map("created_at")
+
   @@index([orgId, createdAt])
   @@index([actorId, createdAt])
   @@map("risk_decision")
@@ -2844,6 +2897,7 @@ model LoginAttempt {
   band            String   @default("low")
   failureReason   String?  @map("failure_reason")
   occurredAt      DateTime @map("occurred_at")
+
   @@index([actorId, occurredAt])
   @@index([orgId, occurredAt])
   @@map("login_attempt")
@@ -2863,6 +2917,7 @@ model OrgBanEntry {
   createdAt      DateTime  @default(now()) @map("created_at")
   lastModifiedBy String?   @map("last_modified_by")
   revokedAt      DateTime? @map("revoked_at")
+
   @@index([orgId, kind, value])
   @@index([orgId, mode])
   @@map("org_ban_entry")
@@ -2877,6 +2932,7 @@ model OrgBanAudit {
   actorId    String   @map("actor_id")
   detail     String   @default("")
   occurredAt DateTime @map("occurred_at")
+
   @@index([entryId, occurredAt])
   @@index([orgId, occurredAt])
   @@map("org_ban_audit")
@@ -2890,22 +2946,24 @@ model QuotaSample {
   endedAt DateTime @map("ended_at")
   value   BigInt   @default(0)
   cap     BigInt   @default(0)
+
   @@index([orgId, metric, endedAt])
   @@map("quota_sample")
 }
 
 model QuotaAnomalyReport {
-  id          String   @id
-  orgId       String   @map("org_id")
+  id           String   @id
+  orgId        String   @map("org_id")
   /// "rows" | "apiCalls" | "storage" | "aiCredits" | "webhooks" | "attachments"
-  metric      String
+  metric       String
   /// "info" | "warning" | "critical"
-  severity    String
-  ratio       Float    @default(0)
-  capRatio    Float    @default(0) @map("cap_ratio")
-  channelsJson String  @default("[]") @map("channels_json")
-  detail      String   @default("")
-  detectedAt  DateTime @map("detected_at")
+  severity     String
+  ratio        Float    @default(0)
+  capRatio     Float    @default(0) @map("cap_ratio")
+  channelsJson String   @default("[]") @map("channels_json")
+  detail       String   @default("")
+  detectedAt   DateTime @map("detected_at")
+
   @@index([orgId, metric, detectedAt])
   @@map("quota_anomaly_report")
 }
@@ -2921,6 +2979,7 @@ model SeatAssignment {
   assignedAt  DateTime  @map("assigned_at")
   removedAt   DateTime? @map("removed_at")
   cycleAnchor DateTime  @map("cycle_anchor")
+
   @@index([orgId, tier, status])
   @@index([orgId, cycleAnchor])
   @@map("seat_assignment")
@@ -2937,6 +2996,7 @@ model SeatCycle {
   seatsProrated  Float    @default(0) @map("seats_prorated")
   unitPriceCents Int      @default(0) @map("unit_price_cents")
   totalCents     Int      @default(0) @map("total_cents")
+
   @@index([orgId, tier, startedAt])
   @@map("seat_cycle")
 }
@@ -2949,30 +3009,33 @@ model StorageSample {
   kind    String
   bytes   BigInt   @default(0)
   endedAt DateTime @map("ended_at")
+
   @@index([orgId, baseId, endedAt])
   @@map("storage_sample")
 }
 
 model StorageBillableLine {
-  id      String   @id
-  orgId   String   @map("org_id")
-  baseId  String   @map("base_id")
-  bytes   BigInt   @default(0)
-  cents   Int      @default(0)
+  id        String   @id
+  orgId     String   @map("org_id")
+  baseId    String   @map("base_id")
+  bytes     BigInt   @default(0)
+  cents     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
+
   @@index([orgId, createdAt])
   @@map("storage_billable_line")
 }
 
 model LicenseKey {
-  id           String   @id
-  orgId        String   @map("org_id")
+  id           String    @id
+  orgId        String    @map("org_id")
   /// "community" | "pro" | "business" | "enterprise"
-  tier         String   @default("community")
+  tier         String    @default("community")
   /// Next tier change is allowed after this timestamp.
   nextChangeAt DateTime? @map("next_change_at")
   activatedAt  DateTime? @map("activated_at")
   expiresAt    DateTime? @map("expires_at")
+
   @@index([orgId, tier])
   @@map("license_key")
 }
@@ -2989,6 +3052,7 @@ model LicenseTierAudit {
   createdAt   DateTime @default(now()) @map("created_at")
   reason      String?
   actorId     String?  @map("actor_id")
+
   @@index([licenseId, effectiveAt])
   @@map("license_tier_audit")
 }
@@ -3001,22 +3065,24 @@ model StripeWebhookEvent {
   invoiceId          String?  @map("invoice_id")
   signature          String
   signatureTimestamp Int      @map("signature_timestamp")
+
   @@index([invoiceId, createdAt])
   @@map("stripe_webhook_event")
 }
 
 model StripeReconciliationEntry {
-  id            String   @id
-  eventId       String   @map("event_id")
-  invoiceId     String   @map("invoice_id")
-  lineItemId    String   @map("line_item_id")
+  id            String    @id
+  eventId       String    @map("event_id")
+  invoiceId     String    @map("invoice_id")
+  lineItemId    String    @map("line_item_id")
   /// "pending" | "matched" | "mismatch" | "applied"
   status        String
-  expectedCents Int      @map("expected_cents")
-  actualCents   Int      @map("actual_cents")
-  deltaCents    Int      @map("delta_cents")
+  expectedCents Int       @map("expected_cents")
+  actualCents   Int       @map("actual_cents")
+  deltaCents    Int       @map("delta_cents")
   appliedAt     DateTime? @map("applied_at")
   reason        String?
+
   @@index([invoiceId, status])
   @@map("stripe_reconciliation_entry")
 }
@@ -3026,24 +3092,26 @@ model InternalBillableLine {
   invoiceId  String @map("invoice_id")
   lineItemId String @map("line_item_id")
   cents      Int    @default(0)
+
   @@index([invoiceId])
   @@map("internal_billable_line")
 }
 
 model BillingInvoice {
-  id           String   @id
-  orgId        String   @map("org_id")
-  customerName String   @map("customer_name")
-  customerEmail String? @map("customer_email")
+  id            String   @id
+  orgId         String   @map("org_id")
+  customerName  String   @map("customer_name")
+  customerEmail String?  @map("customer_email")
   /// "USD" | "EUR" | "GBP" | "JPY" | "CNY"
-  currency     String
-  periodStart  DateTime @map("period_start")
-  periodEnd    DateTime @map("period_end")
-  issuedAt     DateTime @map("issued_at")
+  currency      String
+  periodStart   DateTime @map("period_start")
+  periodEnd     DateTime @map("period_end")
+  issuedAt      DateTime @map("issued_at")
   /// JSON-encoded IBillingLineItem[]
-  lines        Json
-  taxBps       Int      @default(0) @map("tax_bps")
-  notes        String?
+  lines         Json
+  taxBps        Int      @default(0) @map("tax_bps")
+  notes         String?
+
   @@index([orgId, periodStart])
   @@map("billing_invoice")
 }
@@ -3055,6 +3123,7 @@ model BillingPdfExport {
   size      Int
   sha256    String
   createdAt DateTime @default(now()) @map("created_at")
+
   @@index([invoiceId, createdAt])
   @@map("billing_pdf_export")
 }
@@ -3069,6 +3138,7 @@ model FieldTypeMap {
   conversion String
   lossless   Boolean
   notes      String?
+
   @@index([orgId, source, target])
   @@map("field_type_map")
 }
@@ -3080,22 +3150,24 @@ model ConversionPipeline {
   /// JSON-encoded IPipelineStep[]
   steps     Json
   createdAt DateTime @default(now()) @map("created_at")
+
   @@index([orgId])
   @@map("conversion_pipeline")
 }
 
 model ConflictEvent {
-  id              String    @id
-  orgId           String    @map("org_id")
-  recordId        String    @map("record_id")
+  id             String    @id
+  orgId          String    @map("org_id")
+  recordId       String    @map("record_id")
   /// "optimistic-lock" | "duplicate-write" | "stale-read" | "incompatible-version"
-  kind            String
-  idempotencyKey  String    @map("idempotency_key")
-  offset          Int
-  attempts        Int       @default(0)
-  lastError       String?
-  enqueuedAt      DateTime  @map("enqueued_at")
-  lastAttemptAt   DateTime? @map("last_attempt_at")
+  kind           String
+  idempotencyKey String    @map("idempotency_key")
+  offset         Int
+  attempts       Int       @default(0)
+  lastError      String?
+  enqueuedAt     DateTime  @map("enqueued_at")
+  lastAttemptAt  DateTime? @map("last_attempt_at")
+
   @@index([orgId, offset])
   @@index([idempotencyKey])
   @@map("conflict_event")
@@ -3115,32 +3187,31 @@ model ImportJob {
   deadline   DateTime
   checkpoint Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
+
   @@index([orgId])
   @@map("import_job")
 }
 
-model AuditEvent {
-  id          String   @id
-  orgId       String   @map("org_id")
-  actor       String
-  /// "export" | "import" | "sync" | "pipeline-run" | "conflict-resolved" | "webhook-dispatch" | "share-link"
-  action      String
-  recordId    String?  @map("record_id")
-  metadata    Json
-  occurredAt  DateTime @map("occurred_at")
-  /// SHA-256 hex chain
-  chainHash   String   @map("chain_hash")
-  @@index([orgId, occurredAt])
-  @@map("audit_event")
+model ModuleEntry {
+  id            String   @id
+  /// Feature module name (one of FEATURE_MODULE_NAMES)
+  name          String
+  registered    Boolean  @default(false)
+  hasController Boolean  @default(false) @map("has_controller")
+  guarded       Boolean  @default(false)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("module_entry")
 }
 
-model ModuleEntry {
-  id           String  @id
-  /// Feature module name (one of FEATURE_MODULE_NAMES)
-  name         String
-  registered   Boolean @default(false)
-  hasController Boolean @default(false) @map("has_controller")
-  guarded      Boolean @default(false)
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  @@map("module_entry")
+model ControllerSpec {
+  id        String   @id
+  /// Resource name (path segment)
+  resource  String
+  /// Routes under the controller
+  routes    Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([resource])
+  @@map("controller_spec")
 }
