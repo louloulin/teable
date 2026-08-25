@@ -1818,3 +1818,48 @@ model ScimEvent {
   @@index([tokenId])
   @@map("scim_event")
 }
+
+// Stage 24 — durable audit event store. The audit decorator already
+// fans out to an in-memory sink; we add a persisted table so events
+// survive restarts and can be exported / forwarded.
+model AuditEvent {
+  id              String   @id
+  organizationId  String?  @map("organization_id")
+  actorId         String?  @map("actor_id")
+  // "user.login" / "record.create" / "sso.start" — stable verb-noun.
+  action          String
+  // Free-form structured detail (resource id, ip, etc).
+  detail          Json?
+  // IP captured at the boundary; null for system events.
+  ipAddress       String?  @map("ip_address")
+  // Optional request id for tracing.
+  requestId       String?  @map("request_id")
+  createdTime     DateTime @default(now()) @map("created_time")
+
+  @@index([organizationId, createdTime])
+  @@index([action, createdTime])
+  @@index([actorId, createdTime])
+  @@map("audit_event")
+}
+
+// Stage 24 — outbound SIEM webhook subscriptions. Operators paste a
+// URL + a shared HMAC secret; events are batched and POSTed.
+model SiemWebhook {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  label           String
+  url             String
+  // Shared HMAC-SHA256 secret for the `X-Teable-Signature` header.
+  secret          String   @map("secret")
+  enabled         Boolean  @default(true) @map("enabled")
+  // Only forward events whose action matches one of these. Empty = all.
+  actions         String[] @map("actions")
+  lastDeliveredAt DateTime? @map("last_delivered_at")
+  lastErrorAt     DateTime? @map("last_error_at")
+  lastError       String?  @map("last_error")
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+
+  @@index([organizationId, enabled])
+  @@map("siem_webhook")
+}
