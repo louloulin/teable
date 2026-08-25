@@ -2716,3 +2716,24 @@ model EmailDomainClaimAudit {
   @@index([orgId, createdAt])
   @@map("email_domain_claim_audit")
 }
+
+model OrgQuotaReservation {
+  id        String   @id
+  orgId     String   @map("org_id")
+  baseId    String   @map("base_id")
+  /// "rows" | "ai-credits" | "requests-per-min" | ...
+  metric    String
+  amount    Int
+  /// "critical" | "high" | "normal" | "low"
+  priority  String
+  /// "active" | "released" | "expired" | "consumed"
+  status    String
+  expiresAt DateTime @map("expires_at")
+  consumed  Boolean  @default(false)
+  reason    String   @default("")
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+  @@index([orgId, metric, status])
+  @@index([baseId])
+  @@map("org_quota_reservation")
+}
