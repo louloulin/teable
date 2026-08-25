@@ -1959,3 +1959,30 @@ model AiCreditGrantPolicy {
   updatedTime     DateTime @updatedAt @map("updated_time")
   @@map("ai_credit_grant_policy")
 }
+
+model PageDefinition {
+  id          String   @id
+  baseId      String   @map("base_id")
+  name        String
+  slug        String   @unique
+  blocksJson  String   @map("blocks_json")
+  visibility  String   @default("authenticated")
+  themeJson   String?  @map("theme_json")
+  publishedAt DateTime? @map("published_at")
+  createdBy   String   @map("created_by")
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+  @@index([baseId])
+  @@map("page_definition")
+}
+
+model PageToken {
+  id          String   @id
+  pageId      String   @map("page_id")
+  token       String   @unique
+  expiresAt   DateTime? @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdTime DateTime @default(now()) @map("created_time")
+  @@index([pageId])
+  @@map("page_token")
+}
