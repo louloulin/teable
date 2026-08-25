@@ -3287,3 +3287,17 @@ model AppModuleWire {
   @@index([round])
   @@map("app_module_wire")
 }
+
+model EnvSpec {
+  id           String   @id
+  name         String
+  /// "string" | "number" | "boolean" | "enum"
+  kind         String
+  required     Boolean
+  defaultValue String?  @map("default_value")
+  enumValues   Json?
+  description  String?
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("env_spec")
+}
