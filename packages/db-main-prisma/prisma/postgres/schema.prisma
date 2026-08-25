@@ -3083,3 +3083,20 @@ model ConversionPipeline {
   @@index([orgId])
   @@map("conversion_pipeline")
 }
+
+model ConflictEvent {
+  id              String    @id
+  orgId           String    @map("org_id")
+  recordId        String    @map("record_id")
+  /// "optimistic-lock" | "duplicate-write" | "stale-read" | "incompatible-version"
+  kind            String
+  idempotencyKey  String    @map("idempotency_key")
+  offset          Int
+  attempts        Int       @default(0)
+  lastError       String?
+  enqueuedAt      DateTime  @map("enqueued_at")
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  @@index([orgId, offset])
+  @@index([idempotencyKey])
+  @@map("conflict_event")
+}
