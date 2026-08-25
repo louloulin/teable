@@ -2909,3 +2909,34 @@ model QuotaAnomalyReport {
   @@index([orgId, metric, detectedAt])
   @@map("quota_anomaly_report")
 }
+
+model SeatAssignment {
+  id          String    @id
+  orgId       String    @map("org_id")
+  actorId     String    @map("actor_id")
+  /// "starter" | "pro" | "enterprise"
+  tier        String
+  /// "active" | "invited" | "deactivated" | "pending"
+  status      String
+  assignedAt  DateTime  @map("assigned_at")
+  removedAt   DateTime? @map("removed_at")
+  cycleAnchor DateTime  @map("cycle_anchor")
+  @@index([orgId, tier, status])
+  @@index([orgId, cycleAnchor])
+  @@map("seat_assignment")
+}
+
+model SeatCycle {
+  id             String   @id
+  orgId          String   @map("org_id")
+  /// "starter" | "pro" | "enterprise"
+  tier           String
+  startedAt      DateTime @map("started_at")
+  endedAt        DateTime @map("ended_at")
+  seatsActive    Int      @default(0) @map("seats_active")
+  seatsProrated  Float    @default(0) @map("seats_prorated")
+  unitPriceCents Int      @default(0) @map("unit_price_cents")
+  totalCents     Int      @default(0) @map("total_cents")
+  @@index([orgId, tier, startedAt])
+  @@map("seat_cycle")
+}
