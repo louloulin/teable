@@ -1727,3 +1727,48 @@ enum RestoreStatus {
   complete
   failed
 }
+
+// Stage 22 — TOTP two-factor factors. One row per enabled factor
+// (a user may have multiple: e.g. an authenticator app + a hardware
+// token registered later). `secret` is the base32-encoded shared
+// secret; we never store the user's current/recovery state.
+model UserTotpFactor {
+  id           String   @id
+  userId       String   @map("user_id")
+  // Friendly label shown in the user's security settings ("iPhone", "YubiKey 5").
+  label        String
+  // base32 shared secret. At least 20 chars per RFC 4226 §4.
+  secret       String   @map("secret")
+  // Algorithm + digits + period — pinned at enrollment so later
+  // changes to defaults don't invalidate existing factors.
+  algorithm    String   @default("SHA1") @map("algorithm")
+  digits       Int      @default(6) @map("digits")
+  period       Int      @default(30) @map("period")
+  // Last accepted counter, used to prevent replay within a window.
+  lastCounter  BigInt   @default(0) @map("last_counter")
+  enabled      Boolean  @default(true) @map("enabled")
+  createdTime  DateTime @default(now()) @map("created_time")
+
+  backupCodes  UserTotpBackupCode[]
+
+  @@index([userId])
+  @@map("user_totp_factor")
+}
+
+// Stage 22 — single-use backup codes. Hashed at rest (SHA-256 of
+// the normalized lowercase code); the plaintext is shown once at
+// enrollment and never recoverable.
+model UserTotpBackupCode {
+  id           String   @id
+  factorId     String   @map("factor_id")
+  // Lowercase hex digest of the code. The plaintext column is gone
+  // the moment enrollment returns the codes to the user.
+  codeHash     String   @map("code_hash")
+  usedAt       DateTime? @map("used_at")
+  createdTime  DateTime @default(now()) @map("created_time")
+
+  factor       UserTotpFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
+
+  @@index([factorId])
+  @@map("user_totp_backup_code")
+}
