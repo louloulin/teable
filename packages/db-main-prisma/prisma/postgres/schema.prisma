@@ -2426,3 +2426,35 @@ model AiBuilderProposal {
   @@index([baseId, createdTime])
   @@map("ai_builder_proposal")
 }
+
+model VectorCollection {
+  id            String   @id
+  baseId        String   @map("base_id")
+  name          String
+  /// "cosine" | "dotProduct" | "euclidean"
+  metric        String   @default("cosine")
+  dimensions    Int      @map("dimensions")
+  /// "building" | "ready" | "paused" | "error"
+  status        String   @default("building")
+  lastIndexedAt DateTime? @map("last_indexed_at")
+  createdBy     String   @map("created_by")
+  createdTime   DateTime @default(now()) @map("created_time")
+  updatedTime   DateTime @updatedAt @map("updated_time")
+  @@unique([baseId, name])
+  @@index([baseId, status])
+  @@map("vector_collection")
+}
+
+model VectorRecord {
+  id           String   @id
+  collectionId String   @map("collection_id")
+  sourceRef    String   @map("source_ref")
+  /// Float array, stored as JSON string for portability.
+  embedding    String
+  content      String
+  contentHash  String   @map("content_hash")
+  createdTime  DateTime @default(now()) @map("created_time")
+  @@unique([collectionId, sourceRef])
+  @@index([collectionId, createdTime])
+  @@map("vector_record")
+}
