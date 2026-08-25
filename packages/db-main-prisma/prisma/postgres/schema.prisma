@@ -3072,3 +3072,14 @@ model FieldTypeMap {
   @@index([orgId, source, target])
   @@map("field_type_map")
 }
+
+model ConversionPipeline {
+  id        String   @id
+  orgId     String   @map("org_id")
+  name      String
+  /// JSON-encoded IPipelineStep[]
+  steps     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([orgId])
+  @@map("conversion_pipeline")
+}
