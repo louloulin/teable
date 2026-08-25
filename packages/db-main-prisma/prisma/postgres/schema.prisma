@@ -2683,3 +2683,36 @@ model AuditRetentionJob {
   @@index([orgId, status])
   @@map("audit_retention_job")
 }
+
+model EmailDomainClaim {
+  id             String   @id
+  orgId          String   @map("org_id")
+  /// Lowercased domain ("acme.com").
+  domain         String
+  token          String
+  /// "pending" | "verified" | "failed" | "revoked"
+  status         String
+  /// "open" | "review" | "locked"
+  mode           String
+  defaultRoleId  String?  @map("default_role_id")
+  lastCheckedAt  DateTime? @map("last_checked_at")
+  lastError      String?  @map("last_error")
+  verifiedAt     DateTime? @map("verified_at")
+  createdTime    DateTime @default(now()) @map("created_time")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+  @@unique([orgId, domain])
+  @@index([domain, status])
+  @@map("email_domain_claim")
+}
+
+model EmailDomainClaimAudit {
+  id        String   @id
+  orgId     String   @map("org_id")
+  domain    String
+  action    String
+  actorId   String   @map("actor_id")
+  details   String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([orgId, createdAt])
+  @@map("email_domain_claim_audit")
+}
