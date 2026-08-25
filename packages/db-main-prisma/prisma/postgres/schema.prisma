@@ -2540,3 +2540,84 @@ model GoogleSheetsWebhookChannel {
   @@index([expiration])
   @@map("google_sheets_webhook_channel")
 }
+
+model TimelineView {
+  id                     String   @id
+  baseId                 String   @map("base_id")
+  tableId                String   @map("table_id")
+  name                   String
+  windowStart            DateTime @map("window_start")
+  windowEnd              DateTime @map("window_end")
+  highlightCriticalPath  Boolean  @default(true) @map("highlight_critical_path")
+  createdBy              String   @map("created_by")
+  createdTime            DateTime @default(now()) @map("created_time")
+  updatedTime            DateTime @updatedAt @map("updated_time")
+  @@unique([baseId, tableId, name])
+  @@index([baseId, tableId])
+  @@map("timeline_view")
+}
+
+model TimelineTask {
+  id            String    @id
+  baseId        String    @map("base_id")
+  tableId       String    @map("table_id")
+  recordId      String    @map("record_id")
+  viewId        String?   @map("view_id")
+  name          String
+  start         DateTime?
+  end           DateTime?
+  progress      Float     @default(0)
+  parentTaskId  String?   @map("parent_task_id")
+  @@index([tableId])
+  @@index([recordId])
+  @@map("timeline_task")
+}
+
+model TimelineDependency {
+  id            String  @id
+  taskId        String  @map("task_id")
+  predecessorId String  @map("predecessor_id")
+  /// "FS" | "SS" | "FF" | "SF"
+  type          String
+  lagDays       Int     @default(0) @map("lag_days")
+  @@unique([taskId, predecessorId])
+  @@index([predecessorId])
+  @@map("timeline_dependency")
+}
+
+model ReadReplica {
+  id             String   @id
+  baseId         String   @map("base_id")
+  /// "primary" | "logical-replica" | "physical-replica"
+  kind           String
+  region         String
+  connectionUrl  String   @map("connection_url")
+  /// "online" | "lagging" | "paused" | "error"
+  status         String   @default("online")
+  /// Max tolerated replication lag (ms) before reads are routed back to primary.
+  maxLagMs       Int      @default(2000) @map("max_lag_ms")
+  /// "round-robin" | "nearest" | "primary-when-stale"
+  routingPolicy  String   @default("nearest") @map("routing_policy")
+  weight         Int      @default(1)
+  createdTime    DateTime @default(now()) @map("created_time")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+  @@unique([baseId, region, kind])
+  @@index([status])
+  @@map("read_replica")
+}
+
+model ReadRouteLog {
+  id          String   @id
+  baseId      String   @map("base_id")
+  /// "primary" | "replica"
+  routeTo     String   @map("route_to")
+  replicaId   String?  @map("replica_id")
+  /// "round-robin" | "nearest" | "primary-when-stale"
+  policy      String
+  /// Measured replication lag at decision time (ms, -1 = primary).
+  lagMs       Int      @map("lag_ms")
+  clientRegion String  @map("client_region")
+  createdTime DateTime @default(now()) @map("created_time")
+  @@index([baseId, createdTime])
+  @@map("read_route_log")
+}
