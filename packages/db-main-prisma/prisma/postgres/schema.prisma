@@ -3058,3 +3058,17 @@ model BillingPdfExport {
   @@index([invoiceId, createdAt])
   @@map("billing_pdf_export")
 }
+
+model FieldTypeMap {
+  id         String  @id
+  orgId      String  @map("org_id")
+  /// "string" | "number" | "integer" | "boolean" | "date" | "datetime" | "json" | "array" | "attachment" | "enum"
+  source     String
+  target     String
+  /// "direct" | "cast" | "parse" | "serialize" | "reject"
+  conversion String
+  lossless   Boolean
+  notes      String?
+  @@index([orgId, source, target])
+  @@map("field_type_map")
+}
