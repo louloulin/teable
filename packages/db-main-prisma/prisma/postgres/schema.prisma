@@ -2283,3 +2283,64 @@ model SdkRelease {
   @@unique([language, version])
   @@map("sdk_release")
 }
+
+model SearchIndex {
+  id              String   @id
+  baseId          String   @map("base_id")
+  tableId         String   @map("table_id")
+  /// "row" | "record-history" | "comments"
+  scope           String   @default("row")
+  /// "enabled" | "paused" | "rebuild" | "error"
+  status          String   @default("enabled")
+  /// Comma-separated fieldIds to index, or null = all text fields.
+  fieldIdsCsv     String?  @map("field_ids_csv")
+  language        String   @default("english")
+  lastBuiltAt     DateTime? @map("last_built_at")
+  documentCount   Int      @default(0) @map("document_count")
+  bytesUsed       BigInt   @default(0) @map("bytes_used")
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@unique([baseId, tableId, scope])
+  @@map("search_index")
+}
+
+model SearchDocument {
+  id              String   @id
+  indexId         String   @map("index_id")
+  recordId        String   @map("record_id")
+  /// Indexed body — concatenated text fields, lower-cased + trimmed.
+  bodyText        String   @map("body_text")
+  /// Tokens used for ranked retrieval (tsvector-like, space-separated).
+  tokens          String
+  /// Hash of record fields used to skip unchanged reindex.
+  contentHash     String   @map("content_hash")
+  lastIndexedAt   DateTime @default(now()) @map("last_indexed_at")
+  @@unique([indexId, recordId])
+  @@index([indexId])
+  @@map("search_document")
+}
+
+model SearchQueryLog {
+  id              String   @id
+  indexId         String   @map("index_id")
+  userId          String?  @map("user_id")
+  queryText       String   @map("query_text")
+  hitCount        Int      @default(0) @map("hit_count")
+  durationMs      Int      @default(0) @map("duration_ms")
+  occurredAt      DateTime @default(now()) @map("occurred_at")
+  @@index([indexId, occurredAt])
+  @@map("search_query_log")
+}
+
+model SearchSynonym {
+  id              String   @id
+  indexId         String?  @map("index_id")
+  /// null indexId = global synonym across all indexes.
+  term            String
+  synonymsCsv     String   @map("synonyms_csv")
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+  @@unique([indexId, term])
+  @@map("search_synonym")
+}
