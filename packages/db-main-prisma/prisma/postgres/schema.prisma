@@ -2881,3 +2881,31 @@ model OrgBanAudit {
   @@index([orgId, occurredAt])
   @@map("org_ban_audit")
 }
+
+model QuotaSample {
+  id      String   @id
+  orgId   String   @map("org_id")
+  /// "rows" | "apiCalls" | "storage" | "aiCredits" | "webhooks" | "attachments"
+  metric  String
+  endedAt DateTime @map("ended_at")
+  value   BigInt   @default(0)
+  cap     BigInt   @default(0)
+  @@index([orgId, metric, endedAt])
+  @@map("quota_sample")
+}
+
+model QuotaAnomalyReport {
+  id          String   @id
+  orgId       String   @map("org_id")
+  /// "rows" | "apiCalls" | "storage" | "aiCredits" | "webhooks" | "attachments"
+  metric      String
+  /// "info" | "warning" | "critical"
+  severity    String
+  ratio       Float    @default(0)
+  capRatio    Float    @default(0) @map("cap_ratio")
+  channelsJson String  @default("[]") @map("channels_json")
+  detail      String   @default("")
+  detectedAt  DateTime @map("detected_at")
+  @@index([orgId, metric, detectedAt])
+  @@map("quota_anomaly_report")
+}
