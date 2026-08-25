@@ -2131,3 +2131,78 @@ model IntegrationEventLog {
   @@index([installId, receivedAt])
   @@map("integration_event_log")
 }
+
+model AirtableConnection {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  baseId          String   @map("base_id")
+  baseName        String   @map("base_name")
+  /// Encrypted PAT or OAuth token blob.
+  accessTokenJson String   @map("access_token_json")
+  grantedScopes   String?  @map("granted_scopes")
+  connectedBy     String   @map("connected_by")
+  connectedTime   DateTime @default(now()) @map("connected_time")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  revokedAt       DateTime? @map("revoked_at")
+  @@unique([organizationId, baseId])
+  @@index([organizationId])
+  @@map("airtable_connection")
+}
+
+model AirtableTableMapping {
+  id                String   @id
+  connectionId      String   @map("connection_id")
+  airtableTableId   String   @map("airtable_table_id")
+  airtableTableName String   @map("airtable_table_name")
+  teableBaseId      String   @map("teable_base_id")
+  teableTableId     String   @map("teable_table_id")
+  /// "one-way-push" | "one-way-pull" | "bi-directional"
+  direction         String   @default("bi-directional")
+  /// "ready" | "paused" | "error"
+  status            String   @default("ready")
+  fieldMapJson      String   @map("field_map_json")
+  /// Stable hash over fieldMapJson so we can detect drift.
+  fieldMapHash      String   @map("field_map_hash")
+  lastSyncedTime    DateTime? @map("last_synced_time")
+  lastErrorMessage  String?  @map("last_error_message")
+  createdTime       DateTime @default(now()) @map("created_time")
+  updatedTime       DateTime @updatedAt @map("updated_time")
+  @@unique([connectionId, airtableTableId])
+  @@unique([connectionId, teableTableId])
+  @@index([connectionId])
+  @@map("airtable_table_mapping")
+}
+
+model AirtableSyncRecord {
+  id                 String   @id
+  mappingId          String   @map("mapping_id")
+  airtableRecordId   String   @map("airtable_record_id")
+  teableRecordId     String   @map("teable_record_id")
+  /// "synced" | "remote-only" | "local-only" | "conflict"
+  state              String   @default("synced")
+  lastRemoteVersion  Int?     @map("last_remote_version")
+  lastLocalVersion   Int?     @map("last_local_version")
+  lastSyncedAt       DateTime? @map("last_synced_at")
+  lastHash           String?  @map("last_hash")
+  @@unique([mappingId, airtableRecordId])
+  @@unique([mappingId, teableRecordId])
+  @@index([mappingId])
+  @@map("airtable_sync_record")
+}
+
+model AirtableSyncLog {
+  id              String   @id
+  mappingId       String   @map("mapping_id")
+  /// "push" | "pull" | "conflict-resolved"
+  direction       String
+  recordsExamined Int      @default(0) @map("records_examined")
+  recordsCreated  Int      @default(0) @map("records_created")
+  recordsUpdated  Int      @default(0) @map("records_updated")
+  conflictsFound  Int      @default(0) @map("conflicts_found")
+  status          String   @default("ok")
+  errorMessage    String?  @map("error_message")
+  startedAt       DateTime @default(now()) @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  @@index([mappingId, startedAt])
+  @@map("airtable_sync_log")
+}
