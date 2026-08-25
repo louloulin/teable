@@ -1472,3 +1472,55 @@ model PermissionRole {
   @@index([baseId])
   @@map("permission_role")
 }
+
+// Stage 20 — backup / restore
+// `manifest` carries the table list + record counts captured at backup
+// time, so listing doesn't need to re-open the archive file.
+model BackupSnapshot {
+  id               String        @id
+  baseId           String        @map("base_id")
+  createdBy        String        @map("created_by")
+  status           BackupStatus
+  sizeBytes        BigInt        @default(0) @map("size_bytes")
+  archivePath      String        @map("archive_path")
+  manifest         Json?
+  errorMessage     String?       @map("error_message")
+  createdTime      DateTime      @default(now()) @map("created_time")
+  lastModifiedTime DateTime      @default(now()) @map("last_modified_time")
+  restoreLogs      BackupRestoreLog[]
+
+  @@index([baseId, createdTime])
+  @@index([status])
+  @@map("backup_snapshot")
+}
+
+enum BackupStatus {
+  pending
+  complete
+  failed
+}
+
+model BackupRestoreLog {
+  id              String        @id
+  snapshotId      String        @map("snapshot_id")
+  targetBaseId    String        @map("target_base_id")
+  status          RestoreStatus
+  startedTime     DateTime?     @map("started_time")
+  finishedTime    DateTime?     @map("finished_time")
+  rowsRestored    Int           @default(0) @map("rows_restored")
+  errorMessage    String?       @map("error_message")
+  createdTime     DateTime      @default(now()) @map("created_time")
+
+  snapshot        BackupSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId, createdTime])
+  @@index([status])
+  @@map("backup_restore_log")
+}
+
+enum RestoreStatus {
+  queued
+  running
+  complete
+  failed
+}
