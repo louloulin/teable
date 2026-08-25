@@ -54,6 +54,7 @@ import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
 import { SelectionModule } from './features/selection/selection.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
+import { SmtpModule } from './features/smtp/smtp.module';
 import { ShareModule } from './features/share/share.module';
 import { ShortLinkModule } from './features/short-link/short-link.module';
 import { SpaceModule } from './features/space/space.module';
@@ -87,6 +88,7 @@ export const appModules = {
     AttachmentsModule,
     WsModule,
     SelectionModule,
+    SmtpModule,
     UndoRedoModule,
     AggregationOpenApiModule,
     UserModule,
