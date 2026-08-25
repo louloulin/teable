@@ -2030,3 +2030,25 @@ model WebhookEvent {
   processingError String?  @map("processing_error")
   @@map("webhook_event")
 }
+
+model Region {
+  id                  String   @id
+  code                String   @unique
+  displayName         String   @map("display_name")
+  status              String   @default("active")
+  dataCenterLocation  String?  @map("data_center_location")
+  createdTime         DateTime @default(now()) @map("created_time")
+  updatedTime         DateTime @updatedAt @map("updated_time")
+  @@map("region")
+}
+
+model DataResidencyPolicy {
+  id              String   @id
+  organizationId  String   @unique @map("organization_id")
+  regionCode      String   @map("region_code")
+  locked          Boolean  @default(false)
+  updatedBy       String   @map("updated_by")
+  updatedTime     DateTime @updatedAt @map("updated_time")
+  @@index([regionCode])
+  @@map("data_residency_policy")
+}
