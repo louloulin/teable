@@ -39,6 +39,7 @@ import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-send
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { OAuthModule } from './features/oauth/oauth.module';
+import { OAuthServerModule } from './features/oauth-server/oauth-server.module';
 import { OrganizationModule } from './features/organization/organization.module';
 import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
@@ -114,6 +115,7 @@ export const appModules = {
     PermissionMatrixModule,
     SettingOpenApiModule,
     OAuthModule,
+    OAuthServerModule,
     TrashModule,
     DashboardModule,
     CommentOpenApiModule,
