@@ -2828,3 +2828,23 @@ model RiskDecision {
   @@index([actorId, createdAt])
   @@map("risk_decision")
 }
+
+model LoginAttempt {
+  id              String   @id
+  orgId           String   @map("org_id")
+  actorId         String   @map("actor_id")
+  deviceId        String   @map("device_id")
+  ip              String
+  countryCode     String   @map("country_code")
+  regionCode      String   @map("region_code")
+  tzOffsetMinutes Int      @map("tz_offset_minutes")
+  userAgent       String   @map("user_agent")
+  /// "success" | "mfa-challenge" | "soft-blocked" | "hard-blocked" | "failed"
+  outcome         String
+  band            String   @default("low")
+  failureReason   String?  @map("failure_reason")
+  occurredAt      DateTime @map("occurred_at")
+  @@index([actorId, occurredAt])
+  @@index([orgId, occurredAt])
+  @@map("login_attempt")
+}
