@@ -3215,3 +3215,19 @@ model ControllerSpec {
   @@index([resource])
   @@map("controller_spec")
 }
+
+model GuardAudit {
+  id         String   @id
+  /// "read" | "create" | "update" | "delete" | "export" | "admin"
+  action     String
+  principal  String
+  resourceId String?  @map("resource_id")
+  /// "ok" | "denied" | "error"
+  outcome    String
+  context    Json
+  occurredAt DateTime @map("occurred_at")
+
+  @@index([action])
+  @@index([principal])
+  @@map("guard_audit")
+}
