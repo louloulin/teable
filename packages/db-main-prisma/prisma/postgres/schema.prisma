@@ -1472,3 +1472,66 @@ model PermissionRole {
   @@index([baseId])
   @@map("permission_role")
 }
+
+// Stage 16 — OAuth 2.0 server (RFC 6749 + PKCE / RFC 7636)
+// Independent gap-fill for OSS Business+ parity. The pre-existing
+// oauth_app_* tables are kept untouched for backward compatibility;
+// these new tables cover the authorization_code + refresh_token + PKCE
+// surface that third-party integrations actually need.
+
+model OAuthApplication {
+  id               String   @id
+  clientId         String   @unique @map("client_id")
+  clientSecretHash String   @map("client_secret_hash")
+  name             String
+  redirectUris     String[] @map("redirect_uris")
+  scopes           String[]
+  createdBy        String   @map("created_by")
+  createdTime      DateTime @default(now()) @map("created_time")
+  lastModifiedTime DateTime @default(now()) @map("last_modified_time")
+
+  codes   OAuthAuthorizationCode[]
+  tokens  OAuthAccessToken[]
+
+  @@index([createdBy])
+  @@map("oauth_application")
+}
+
+model OAuthAuthorizationCode {
+  id                  String   @id
+  codeHash            String   @unique @map("code_hash")
+  applicationId       String   @map("application_id")
+  userId              String   @map("user_id")
+  redirectUri         String   @map("redirect_uri")
+  scope               String
+  codeChallenge       String?  @map("code_challenge")
+  codeChallengeMethod String?  @map("code_challenge_method")
+  expiresAt           DateTime @map("expires_at")
+  consumedAt          DateTime? @map("consumed_at")
+  createdTime         DateTime @default(now()) @map("created_time")
+
+  application OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("oauth_authorization_code")
+}
+
+model OAuthAccessToken {
+  id                String   @id
+  tokenHash         String   @unique @map("token_hash")
+  refreshHash       String?  @unique @map("refresh_hash")
+  applicationId     String   @map("application_id")
+  userId            String   @map("user_id")
+  scope             String
+  expiresAt         DateTime @map("expires_at")
+  refreshExpiresAt  DateTime? @map("refresh_expires_at")
+  revokedAt         DateTime? @map("revoked_at")
+  createdTime       DateTime @default(now()) @map("created_time")
+
+  application OAuthApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("oauth_access_token")
+}
