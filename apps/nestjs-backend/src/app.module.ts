@@ -58,6 +58,7 @@ import { TemplateOpenApiModule } from './features/template/template-open-api.mod
 import { TrashModule } from './features/trash/trash.module';
 import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
 import { UserModule } from './features/user/user.module';
+import { ViewPermissionModule } from './features/view-permission/view-permission.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
 import { GlobalModule } from './global/global.module';
@@ -86,6 +87,7 @@ export const appModules = {
     UndoRedoModule,
     AggregationOpenApiModule,
     UserModule,
+    ViewPermissionModule,
     AuthModule,
     AuditSourceModule,
     SpaceModule,
