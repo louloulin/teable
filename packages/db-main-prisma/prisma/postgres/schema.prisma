@@ -2654,3 +2654,32 @@ model RoleAssignment {
   @@index([userId])
   @@map("role_assignment")
 }
+
+model AuditRetentionPolicy {
+  orgId       String   @id @map("org_id")
+  hotDays     Int      @map("hot_days")
+  coldDays    Int      @map("cold_days")
+  /// "s3" | "oss" | "gcs" | "azure-blob" | null
+  coldTarget  String?  @map("cold_target")
+  coldBucket  String?  @map("cold_bucket")
+  coldPrefix  String?  @map("cold_prefix")
+  redactPii   Boolean  @default(false) @map("redact_pii")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String   @map("updated_by")
+  @@map("audit_retention_policy")
+}
+
+model AuditRetentionJob {
+  id              String   @id
+  orgId           String   @map("org_id")
+  /// "pending" | "running" | "done" | "failed"
+  status          String
+  startedAt       DateTime? @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  scanned         Int      @default(0)
+  promotedToCold  Int      @default(0) @map("promoted_to_cold")
+  purged          Int      @default(0)
+  lastError       String?  @map("last_error")
+  @@index([orgId, status])
+  @@map("audit_retention_job")
+}
