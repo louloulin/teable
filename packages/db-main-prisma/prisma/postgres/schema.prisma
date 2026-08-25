@@ -2407,3 +2407,22 @@ model AiFieldTemplate {
   @@unique([operation, language, name])
   @@map("ai_field_template")
 }
+
+model AiBuilderProposal {
+  id              String   @id
+  baseId          String   @map("base_id")
+  /// "draft" | "approved" | "rejected" | "applied"
+  status          String   @default("draft")
+  sourcePrompt    String   @map("source_prompt")
+  proposalJson    String   @map("proposal_json")
+  proposalHash    String   @map("proposal_hash")
+  model           String
+  createdBy       String   @map("created_by")
+  createdTime     DateTime @default(now()) @map("created_time")
+  approvedBy      String?  @map("approved_by")
+  approvedTime    DateTime? @map("approved_time")
+  appliedResourceId String? @map("applied_resource_id")
+  @@index([baseId, status])
+  @@index([baseId, createdTime])
+  @@map("ai_builder_proposal")
+}
