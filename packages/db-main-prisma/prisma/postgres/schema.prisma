@@ -3403,3 +3403,23 @@ model DrCanvas {
   @@index([baseId])
   @@map("dr_canvas")
 }
+
+model ViewMetadata {
+  id        String   @id
+  baseId    String   @map("base_id")
+  tableId   String   @map("table_id")
+  name      String
+  /// "grid" | "kanban" | "gallery" | "calendar" | "form" | "map" | "timeline"
+  kind      String
+  /// JSON: full ViewMetadataSpec
+  metadata  Json
+  version   Int      @default(1)
+  /// SHA-256 hash for fast equality
+  hash      String
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([baseId])
+  @@index([tableId, kind])
+  @@map("view_metadata")
+}
