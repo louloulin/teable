@@ -1882,3 +1882,26 @@ model OrganizationIpAllowlist {
   @@index([organizationId])
   @@map("organization_ip_allowlist")
 }
+
+// Stage 26 — AI credit ledger. One row per credit-affecting event
+// (charge / refund / grant). `monthBucket` is a YYYY-MM string so the
+// monthly rollup is a single index range scan.
+model AiCreditLedger {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  // "charge" / "refund" / "grant". Positive deltas add credits; charges add 0.
+  action          String
+  // Tokens or credits consumed (for "charge") or restored (for "refund" / "grant").
+  credits         Int      @map("credits")
+  // "openai" / "anthropic" / "internal" — provider name; used for cost dashboards.
+  provider        String?
+  // Stable handle to the upstream event — an automation id, an AI run id, etc.
+  sourceRef       String?  @map("source_ref")
+  // YYYY-MM. Denormalized so rollups are index-only.
+  monthBucket     String   @map("month_bucket")
+  createdTime     DateTime @default(now()) @map("created_time")
+
+  @@index([organizationId, monthBucket])
+  @@index([organizationId, createdTime])
+  @@map("ai_credit_ledger")
+}
