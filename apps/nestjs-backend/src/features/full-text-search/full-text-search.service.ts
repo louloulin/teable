@@ -27,7 +27,11 @@ import {
 
 /** Lowercase + strip diacritics (best-effort Unicode normalization). */
 export function normalizeText(input: string): string {
-  return input.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+  // Strip combining diacritical marks (Unicode block U+0300–U+036F).
+  return input
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '');
 }
 
 /** Split a string into raw word tokens (Unicode letter+digit runs). */
@@ -111,19 +115,31 @@ export function validateQuery(q: ISearchQuery): void {
   if (!q) throw new Error('query required');
   if (!Array.isArray(q.tokens) || q.tokens.length === 0) throw new Error('query.tokens required');
   if (q.mode !== 'and' && q.mode !== 'or') throw new Error(`invalid mode: ${q.mode}`);
-  if (q.limit !== undefined && (q.limit < 1 || q.limit > MAX_SEARCH_LIMIT)) {
+  validateLimit(q.limit);
+  validateSort(q.sort);
+  for (const t of q.tokens) validateQueryToken(t);
+}
+
+function validateLimit(limit: number | undefined): void {
+  if (limit === undefined) return;
+  if (limit < 1 || limit > MAX_SEARCH_LIMIT) {
     throw new Error(`limit out of range (1-${MAX_SEARCH_LIMIT})`);
   }
-  if (q.sort && q.sort !== 'relevance' && q.sort !== 'recent') {
-    throw new Error(`invalid sort: ${q.sort}`);
+}
+
+function validateSort(sort: ISearchQuery['sort']): void {
+  if (sort === undefined) return;
+  if (sort !== 'relevance' && sort !== 'recent') {
+    throw new Error(`invalid sort: ${sort}`);
   }
-  for (const t of q.tokens) {
-    if (!t || typeof t.value !== 'string' || t.value.length === 0) {
-      throw new Error('token.value required');
-    }
-    if (t.isPhrase && t.value.split(/\s+/).length > MAX_PHRASE_TOKENS) {
-      throw new Error(`phrase too long (max ${MAX_PHRASE_TOKENS} tokens)`);
-    }
+}
+
+function validateQueryToken(t: ISearchToken | undefined): void {
+  if (!t || typeof t.value !== 'string' || t.value.length === 0) {
+    throw new Error('token.value required');
+  }
+  if (t.isPhrase && t.value.split(/\s+/).length > MAX_PHRASE_TOKENS) {
+    throw new Error(`phrase too long (max ${MAX_PHRASE_TOKENS} tokens)`);
   }
 }
 
@@ -152,36 +168,61 @@ export function scoreDocument(
   let positiveRequired = 0;
   let positiveMatched = 0;
   for (const t of query.tokens) {
-    if (t.isPhrase) {
-      const phraseTokens = t.value.split(/\s+/).filter((w) => w.length > 0);
-      const hit = phraseTokens.every((w, i) =>
-        i + 1 < phraseTokens.length
-          ? bigrams.has(`${phraseTokens[i]} ${phraseTokens[i + 1]}`)
-          : tokens.has(w)
-      );
-      if (hit) {
-        score += 5;
-        matched.push(t.value);
-        if (!t.negate) positiveMatched += 1;
-      } else if (!t.negate) {
-        return null;
-      }
-    } else {
-      if (tokens.has(t.value)) {
-        score += 2;
-        matched.push(t.value);
-        if (!t.negate) positiveMatched += 1;
-      } else if (t.negate) {
-        // Negated token absent — fine.
-      } else {
-        if (query.mode === 'and') return null;
-      }
-    }
+    const tally = scoreOneToken(t, tokens, bigrams, matched, query.mode);
     if (!t.negate) positiveRequired += 1;
+    if (tally === null) {
+      if (!t.negate && query.mode === 'and') return null;
+      continue;
+    }
+    score += tally.score;
+    if (!t.negate) positiveMatched += 1;
   }
   if (positiveRequired === 0) return null;
   if (query.mode === 'and' && positiveMatched < positiveRequired) return null;
   return { score, matched };
+}
+
+function scoreOneToken(
+  t: ISearchToken,
+  tokens: Set<string>,
+  bigrams: Set<string>,
+  matched: string[],
+  mode: SearchMatchMode
+): { score: number } | null {
+  if (t.isPhrase) return scorePhrase(t, tokens, bigrams, matched);
+  return scoreWord(t, tokens, matched, mode);
+}
+
+function scorePhrase(
+  t: ISearchToken,
+  tokens: Set<string>,
+  bigrams: Set<string>,
+  matched: string[]
+): { score: number } | null {
+  const phraseTokens = t.value.split(/\s+/).filter((w) => w.length > 0);
+  const hit = phraseTokens.every((w, i) =>
+    i + 1 < phraseTokens.length
+      ? bigrams.has(`${phraseTokens[i]} ${phraseTokens[i + 1]}`)
+      : tokens.has(w)
+  );
+  if (!hit) return null;
+  matched.push(t.value);
+  return { score: 5 };
+}
+
+function scoreWord(
+  t: ISearchToken,
+  tokens: Set<string>,
+  matched: string[],
+  mode: SearchMatchMode
+): { score: number } | null {
+  if (tokens.has(t.value)) {
+    matched.push(t.value);
+    return { score: 2 };
+  }
+  if (t.negate) return { score: 0 };
+  if (mode === 'or') return { score: 0 };
+  return null;
 }
 
 /** Convert a score + total tokens into a 0..1 normalized relevance. */

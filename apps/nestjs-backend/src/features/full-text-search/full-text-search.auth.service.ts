@@ -33,6 +33,7 @@ export class FullTextSearchAuthService {
     const doc = buildIndexedDocument(input);
     await this.prisma.searchIndex.upsert({
       where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         tableId_recordId_fieldId: {
           tableId: input.tableId,
           recordId: input.recordId,
@@ -68,6 +69,7 @@ export class FullTextSearchAuthService {
   async getDocument(tableId: string, recordId: string, fieldId: string): Promise<IIndexedDocument> {
     const row = await this.prisma.searchIndex.findUnique({
       where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         tableId_recordId_fieldId: { tableId, recordId, fieldId },
       },
     });
