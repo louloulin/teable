@@ -3133,3 +3133,14 @@ model AuditEvent {
   @@index([orgId, occurredAt])
   @@map("audit_event")
 }
+
+model ModuleEntry {
+  id           String  @id
+  /// Feature module name (one of FEATURE_MODULE_NAMES)
+  name         String
+  registered   Boolean @default(false)
+  hasController Boolean @default(false) @map("has_controller")
+  guarded      Boolean @default(false)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  @@map("module_entry")
+}
