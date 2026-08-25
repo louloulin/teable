@@ -2737,3 +2737,66 @@ model OrgQuotaReservation {
   @@index([baseId])
   @@map("org_quota_reservation")
 }
+
+model FederationView {
+  id                    String   @id
+  orgId                 String   @map("org_id")
+  name                  String
+  description           String   @default("")
+  /// "active" | "paused" | "broken" | "draft"
+  status                String
+  /// "event" | "interval" | "manual"
+  refreshMode           String   @map("refresh_mode")
+  refreshIntervalSeconds Int     @map("refresh_interval_seconds")
+  lastRefreshedBy       String?  @map("last_refreshed_by")
+  lastRefreshedAt       DateTime? @map("last_refreshed_at")
+  lastStalenessSeconds  Int?     @map("last_staleness_seconds")
+  createdTime           DateTime @default(now()) @map("created_time")
+  updatedTime           DateTime @updatedAt @map("updated_time")
+  @@index([orgId, status])
+  @@map("federation_view")
+}
+
+model FederationSource {
+  id      String  @id
+  viewId  String  @map("view_id")
+  baseId  String  @map("base_id")
+  /// "table" | "view"
+  kind    String
+  targetId String @map("target_id")
+  alias   String
+  /// JSON array of field names — null = all fields.
+  fields  Json?
+  filter  String?
+  @@index([viewId])
+  @@index([baseId])
+  @@map("federation_source")
+}
+
+model FederationEvent {
+  id         String   @id
+  viewId     String   @map("view_id")
+  sourceId   String   @map("source_id")
+  /// "row.created" | "row.updated" | "row.deleted" | "schema.changed"
+  kind       String
+  occurredAt DateTime @map("occurred_at")
+  summary    String   @default("")
+  processed  Boolean  @default(false)
+  @@index([viewId, processed])
+  @@map("federation_event")
+}
+
+model FederationRefresh {
+  id             String   @id
+  viewId         String   @map("view_id")
+  /// "pending" | "running" | "done" | "failed"
+  status         String
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  eventsConsumed Int      @default(0) @map("events_consumed")
+  rowsWritten    Int      @default(0) @map("rows_written")
+  durationMs     Int?     @map("duration_ms")
+  lastError      String?  @map("last_error")
+  @@index([viewId, status])
+  @@map("federation_refresh")
+}
