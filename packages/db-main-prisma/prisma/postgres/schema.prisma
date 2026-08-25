@@ -3029,3 +3029,32 @@ model InternalBillableLine {
   @@index([invoiceId])
   @@map("internal_billable_line")
 }
+
+model BillingInvoice {
+  id           String   @id
+  orgId        String   @map("org_id")
+  customerName String   @map("customer_name")
+  customerEmail String? @map("customer_email")
+  /// "USD" | "EUR" | "GBP" | "JPY" | "CNY"
+  currency     String
+  periodStart  DateTime @map("period_start")
+  periodEnd    DateTime @map("period_end")
+  issuedAt     DateTime @map("issued_at")
+  /// JSON-encoded IBillingLineItem[]
+  lines        Json
+  taxBps       Int      @default(0) @map("tax_bps")
+  notes        String?
+  @@index([orgId, periodStart])
+  @@map("billing_invoice")
+}
+
+model BillingPdfExport {
+  id        String   @id
+  invoiceId String   @map("invoice_id")
+  bytes     Bytes
+  size      Int
+  sha256    String
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([invoiceId, createdAt])
+  @@map("billing_pdf_export")
+}
