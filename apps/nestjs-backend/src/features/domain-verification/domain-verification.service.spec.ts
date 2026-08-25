@@ -26,6 +26,9 @@ class FakeDomainStore {
   findUnique = vi.fn(async ({ where }: { where: { domain: string } }) => {
     return this.rows.get(where.domain) ?? null;
   });
+  findMany = vi.fn(async ({ where }: { where: { organizationId: string } }) => {
+    return Array.from(this.rows.values()).filter((r) => r.organizationId === where.organizationId);
+  });
   upsert = vi.fn(
     async ({
       where,

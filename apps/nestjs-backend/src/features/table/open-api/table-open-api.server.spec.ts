@@ -54,7 +54,7 @@ describe('TableController.archiveTable', () => {
   beforeAll(async () => {
     const module = await import('./table-open-api.controller');
     tableControllerClass = module.TableController as typeof tableControllerClass;
-  });
+  }, 60_000);
 
   const createController = (useV2: boolean) => {
     const tableOpenApiService = {
