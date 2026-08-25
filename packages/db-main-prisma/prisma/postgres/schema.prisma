@@ -3331,3 +3331,22 @@ model AutomationCanvasRevision {
   @@index([canvasId, version])
   @@map("automation_canvas_revision")
 }
+
+model AutomationTriggerCatalog {
+  id          String   @id
+  /// Trigger type id, e.g. 'record_created'
+  type        String   @unique
+  label       String
+  /// "record" | "schedule" | "webhook" | "manual" | "system"
+  category    String
+  description String?
+  icon        String?
+  /// JSON: field spec array
+  fieldsJson  Json     @map("fields_json")
+  /// JSON: output key list
+  outputKeys  Json     @map("output_keys")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("automation_trigger_catalog")
+}
