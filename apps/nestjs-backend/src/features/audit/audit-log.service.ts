@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService } from '@teable/db-main-prisma';
 
 /**
  * Filter DTO for `AuditLogService.query()`.

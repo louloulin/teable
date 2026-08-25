@@ -26,6 +26,7 @@ import { AuthGuard } from '../features/auth/guard/auth.guard';
 import { PermissionGuard } from '../features/auth/guard/permission.guard';
 import { PermissionModule } from '../features/auth/permission.module';
 import { DataLoaderModule } from '../features/data-loader/data-loader.module';
+import { LicenseModule } from '../features/license/license.module';
 import { ModelModule } from '../features/model/model.module';
 import { DataDbMigrationService } from '../features/space/data-db-migration.service';
 import { SpaceDataDbMigrationGuardService } from '../features/space/space-data-db-migration-guard.service';
@@ -64,6 +65,7 @@ const globalModules = {
     EventEmitterModule.register({ global: true }),
     AuditSourceModule,
     KnexModule.register(),
+    LicenseModule,
     ModelModule,
     PrismaModule,
     DataPrismaModule,

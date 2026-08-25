@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 
@@ -19,10 +20,10 @@ class FakeDomainStore {
     }
   >();
 
-  findUnique = jest.fn(async ({ where }: { where: { domain: string } }) => {
+  findUnique = vi.fn(async ({ where }: { where: { domain: string } }) => {
     return this.rows.get(where.domain) ?? null;
   });
-  upsert = jest.fn(
+  upsert = vi.fn(
     async ({
       where,
       create,
@@ -40,8 +41,9 @@ class FakeDomainStore {
     }) => {
       const existing = this.rows.get(where.domain);
       if (existing) {
-        Object.assign(existing, update);
-        return existing;
+        const updated = { ...existing, ...update };
+        this.rows.set(where.domain, updated);
+        return updated;
       }
       const row = {
         id: `id-${this.rows.size}`,
@@ -63,7 +65,10 @@ describe('CustomDomainService', () => {
     store = new FakeDomainStore();
     delete process.env.TEABLE_LB_DNS_NAME;
     const module = await Test.createTestingModule({
-      providers: [CustomDomainService, { provide: PrismaService, useValue: { organizationDomain: store } }],
+      providers: [
+        CustomDomainService,
+        { provide: PrismaService, useValue: { organizationDomain: store } },
+      ],
     }).compile();
     service = module.get(CustomDomainService);
   });

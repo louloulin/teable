@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "teable-oss-vs-cloud-gap-fill",
+  "basedOnStateVersion": 4,
+  "workspace": {
+    "projectRoot": "/root/multica_workspaces/77113af3-bd2e-4c2a-9f11-659117e3ca3d/df9d120d2105/workdir/teable-gap-fill",
+    "worktreeRoot": "/root/multica_workspaces/77113af3-bd2e-4c2a-9f11-659117e3ca3d/df9d120d2105/workdir/teable-gap-fill",
+    "branch": "comet/teable-oss-vs-cloud-gap-fill"
+  },
+  "execution": null,
+  "checks": []
+}

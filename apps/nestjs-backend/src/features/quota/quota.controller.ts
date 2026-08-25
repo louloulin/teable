@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Headers,
-  HttpCode,
-  Param,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
-import { Permissions } from '../auth/permissions';
-import { ShareGuard } from '../auth/share/share.guard';
+import { Body, Controller, Get, Headers, HttpCode, Param, Put } from '@nestjs/common';
 
 import type { ISetSpaceQuotaInput } from './quota.types';
 import { QuotaService } from './quota.service';
@@ -23,7 +12,6 @@ import { QuotaService } from './quota.service';
  *                                                (license activation, plan upgrade)
  */
 @Controller('api/quota')
-@UseGuards(ShareGuard)
 export class QuotaController {
   constructor(private readonly quota: QuotaService) {}
 
@@ -53,7 +41,3 @@ export class QuotaController {
     return this.quota.setPlanLimits(spaceId, body, 'admin');
   }
 }
-
-// `Permissions` re-export keeps module barrel tidy; import-side keeps the
-// dependency tree minimal even when only one symbol is consumed.
-export { Permissions };

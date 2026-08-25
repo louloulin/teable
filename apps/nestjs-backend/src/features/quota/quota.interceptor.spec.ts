@@ -8,9 +8,13 @@ import {
   quotaEnforcementPermissive,
   setQuotaResolver,
 } from './quota.interceptor';
+import { vi } from 'vitest';
 import { QuotaService } from './quota.service';
 
-function ctxWith(headers: Record<string, string>, body: Record<string, unknown> = {}): ExecutionContext {
+function ctxWith(
+  headers: Record<string, string>,
+  body: Record<string, unknown> = {}
+): ExecutionContext {
   return {
     switchToHttp: () => ({
       getRequest: () => ({ headers, body, user: { id: 'u1' } }),
@@ -33,7 +37,7 @@ describe('QuotaEnforcementInterceptor', () => {
   it('is a no-op when the feature flag is off', async () => {
     delete process.env.TEABLE_QUOTA_ENFORCEMENT_ENABLED;
     expect(quotaEnforcementEnabled()).toBe(false);
-    const quota = { consume: jest.fn() } as unknown as QuotaService;
+    const quota = { consume: vi.fn() } as unknown as QuotaService;
     const interceptor = new QuotaEnforcementInterceptor(quota);
     const handler: CallHandler = { handle: () => of('ok') };
     const result = await new Promise((resolve) => {
@@ -45,7 +49,7 @@ describe('QuotaEnforcementInterceptor', () => {
 
   it('calls consume before the handler runs when flag is on', async () => {
     process.env.TEABLE_QUOTA_ENFORCEMENT_ENABLED = 'true';
-    const quota = { consume: jest.fn().mockResolvedValue(undefined) } as unknown as QuotaService;
+    const quota = { consume: vi.fn().mockResolvedValue(undefined) } as unknown as QuotaService;
     const interceptor = new QuotaEnforcementInterceptor(quota);
     const handler: CallHandler = { handle: () => of('result') };
     let consumed = false;
@@ -66,7 +70,7 @@ describe('QuotaEnforcementInterceptor', () => {
     expect(quota.consume).toHaveBeenCalledWith(
       'sp1',
       'rows',
-      3,
+      3n,
       expect.objectContaining({ actorId: 'u1', resource: undefined })
     );
   });
@@ -75,7 +79,7 @@ describe('QuotaEnforcementInterceptor', () => {
     process.env.TEABLE_QUOTA_ENFORCEMENT_ENABLED = 'true';
     delete process.env.TEABLE_QUOTA_ENFORCEMENT_PERMISSIVE;
     const quota = {
-      consume: jest.fn().mockRejectedValue(new QuotaExceededException('rows', 100n, 1n, 'sp1')),
+      consume: vi.fn().mockRejectedValue(new QuotaExceededException('rows', 100n, 1n, 'sp1')),
     } as unknown as QuotaService;
     const interceptor = new QuotaEnforcementInterceptor(quota);
     const handler: CallHandler = { handle: () => of('should-not-run') };
@@ -86,7 +90,12 @@ describe('QuotaEnforcementInterceptor', () => {
           ctxWith({ 'x-space-id': 'sp1', 'x-quota-metric': 'rows', 'x-quota-amount': '5' }),
           handler
         )
-        .subscribe({ error: (e) => { err = e; resolve(); } });
+        .subscribe({
+          error: (e) => {
+            err = e;
+            resolve();
+          },
+        });
     });
     expect(err).toBeInstanceOf(QuotaExceededException);
   });
@@ -96,7 +105,7 @@ describe('QuotaEnforcementInterceptor', () => {
     process.env.TEABLE_QUOTA_ENFORCEMENT_PERMISSIVE = 'true';
     expect(quotaEnforcementPermissive()).toBe(true);
     const quota = {
-      consume: jest.fn().mockRejectedValue(new QuotaExceededException('rows', 100n, 1n, 'sp1')),
+      consume: vi.fn().mockRejectedValue(new QuotaExceededException('rows', 100n, 1n, 'sp1')),
     } as unknown as QuotaService;
     const interceptor = new QuotaEnforcementInterceptor(quota);
     const handler: CallHandler = { handle: () => of('still-runs') };
@@ -114,7 +123,7 @@ describe('QuotaEnforcementInterceptor', () => {
   it('honors custom resolver', async () => {
     process.env.TEABLE_QUOTA_ENFORCEMENT_ENABLED = 'true';
     setQuotaResolver(() => ({ spaceId: 'sp_custom', metric: 'attachment_bytes', amount: 1024 }));
-    const quota = { consume: jest.fn().mockResolvedValue(undefined) } as unknown as QuotaService;
+    const quota = { consume: vi.fn().mockResolvedValue(undefined) } as unknown as QuotaService;
     const interceptor = new QuotaEnforcementInterceptor(quota);
     const handler: CallHandler = { handle: () => of('ok') };
     await new Promise((resolve) => {
@@ -123,7 +132,7 @@ describe('QuotaEnforcementInterceptor', () => {
     expect(quota.consume).toHaveBeenCalledWith(
       'sp_custom',
       'attachment_bytes',
-      1024,
+      1024n,
       expect.any(Object)
     );
   });

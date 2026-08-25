@@ -1,4 +1,6 @@
 import type { TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
+import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '@teable/db-main-prisma';
 
@@ -7,10 +9,10 @@ import { LicenseService } from './license.service';
 
 describe('LicenseService', () => {
   let service: LicenseService;
-  let quota: { setPlanLimits: jest.Mock };
+  let quota: { setPlanLimits: import('vitest').Mock };
 
   beforeEach(async () => {
-    quota = { setPlanLimits: jest.fn().mockResolvedValue({}) };
+    quota = { setPlanLimits: vi.fn().mockResolvedValue({}) };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LicenseService,

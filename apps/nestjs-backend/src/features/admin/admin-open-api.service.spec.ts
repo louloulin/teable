@@ -2,6 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '@teable/db-main-prisma';
 import { SettingKey } from '@teable/openapi';
+import { vi } from 'vitest';
 import { AdminOpenApiService } from './admin-open-api.service';
 
 /**
@@ -13,23 +14,23 @@ import { AdminOpenApiService } from './admin-open-api.service';
  */
 class FakePrisma {
   user = {
-    findMany: jest.fn(),
-    count: jest.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
   };
   space = {
-    findMany: jest.fn(),
-    count: jest.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
   };
   template = {
-    findMany: jest.fn(),
-    count: jest.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
   };
   setting = {
-    findFirst: jest.fn(),
+    findFirst: vi.fn(),
   };
   quotaHit = {
-    findMany: jest.fn(),
-    count: jest.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
   };
 }
 

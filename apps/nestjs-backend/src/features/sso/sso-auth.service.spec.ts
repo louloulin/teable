@@ -1,14 +1,15 @@
 import { SsoAuthService } from './sso-auth.service';
+import { vi } from 'vitest';
 import { ISsoIdTokenClaims, ISsoProviderConfig } from './sso.constants';
 
 interface MockUserService {
-  findOrCreateUser: jest.Mock;
-  refreshLastSignTime: jest.Mock;
+  findOrCreateUser: import('vitest').Mock;
+  refreshLastSignTime: import('vitest').Mock;
 }
 
 interface MockPrisma {
-  $transaction: jest.Mock;
-  ssoLoginState: { update: jest.Mock };
+  $transaction: import('vitest').Mock;
+  ssoLoginState: { update: import('vitest').Mock };
 }
 
 const provider: ISsoProviderConfig = {
@@ -36,24 +37,28 @@ const baseClaims: ISsoIdTokenClaims = {
 const buildPrismaMock = (): MockPrisma => {
   const stateUpdates: Array<{ id: string; data: unknown }> = [];
   return {
-    $transaction: jest.fn(async (fn: (tx: MockPrisma) => Promise<unknown>) =>
-      fn({ ssoLoginState: { update: jest.fn(async ({ where, data }) => {
-        stateUpdates.push({ id: where.id, data });
-        return { id: where.id, ...data };
-      }) } } as unknown as MockPrisma)
+    $transaction: vi.fn(async (fn: (tx: MockPrisma) => Promise<unknown>) =>
+      fn({
+        ssoLoginState: {
+          update: vi.fn(async ({ where, data }) => {
+            stateUpdates.push({ id: where.id, data });
+            return { id: where.id, ...data };
+          }),
+        },
+      } as unknown as MockPrisma)
     ),
-    ssoLoginState: { update: jest.fn() },
+    ssoLoginState: { update: vi.fn() },
   };
 };
 
 const buildUserServiceMock = (overrides: Partial<MockUserService> = {}): MockUserService => ({
-  findOrCreateUser: jest.fn(async () => ({
+  findOrCreateUser: vi.fn(async () => ({
     id: 'usr_alice',
     email: 'alice@acme.com',
     name: 'Alice',
     deactivatedTime: null,
   })),
-  refreshLastSignTime: jest.fn(async () => undefined),
+  refreshLastSignTime: vi.fn(async () => undefined),
   ...overrides,
 });
 
@@ -94,17 +99,15 @@ describe('SsoAuthService — Stage 4.1 completeCallback', () => {
 
   it('refuses when state is past its expiry', async () => {
     const row = { ...freshStateRow(), expiresAt: new Date(Date.now() - 1000) };
-    await expect(svc.completeCallback(row, provider, baseClaims)).rejects.toThrow(
-      /expired/
-    );
+    await expect(svc.completeCallback(row, provider, baseClaims)).rejects.toThrow(/expired/);
     expect(users.findOrCreateUser).not.toHaveBeenCalled();
   });
 
   it('rolls back state update when user resolve fails mid-transaction', async () => {
     users.findOrCreateUser.mockRejectedValueOnce(new Error('email denied'));
-    await expect(
-      svc.completeCallback(freshStateRow(), provider, baseClaims)
-    ).rejects.toThrow(/email denied/);
+    await expect(svc.completeCallback(freshStateRow(), provider, baseClaims)).rejects.toThrow(
+      /email denied/
+    );
     // transaction aborted → no refresh of last-sign time
     expect(users.refreshLastSignTime).not.toHaveBeenCalled();
   });
@@ -146,9 +149,9 @@ describe('SsoAuthService — Stage 4.1 completeCallback', () => {
       name: 'Dead',
       deactivatedTime: new Date(),
     });
-    await expect(
-      svc.completeCallback(freshStateRow(), provider, baseClaims)
-    ).rejects.toThrow(/deactivated/);
+    await expect(svc.completeCallback(freshStateRow(), provider, baseClaims)).rejects.toThrow(
+      /deactivated/
+    );
     // transaction committed consumed=true; signin is blocked at the next layer.
     expect(users.refreshLastSignTime).not.toHaveBeenCalled();
   });

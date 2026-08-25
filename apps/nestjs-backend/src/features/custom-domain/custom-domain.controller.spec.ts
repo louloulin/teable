@@ -1,4 +1,5 @@
 import { HttpErrorCode } from '@teable/core';
+import { vi } from 'vitest';
 
 import { CustomHttpException } from '../../custom.exception';
 import { LicenseCapabilityService } from '../license/license-capability.service';
@@ -6,8 +7,8 @@ import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 
 describe('CustomDomain capability guard', () => {
   const caps = {
-    isEnabled: jest.fn(),
-    require: jest.fn((cap: string) => {
+    isEnabled: vi.fn(),
+    require: vi.fn((cap: string) => {
       throw new CustomHttpException(
         `capability "${cap}" requires a license upgrade`,
         HttpErrorCode.PAYMENT_REQUIRED,
@@ -19,13 +20,13 @@ describe('CustomDomain capability guard', () => {
   const Guard = LicenseCapabilityGuard.for('custom_domain');
 
   it('allows the request when the capability is enabled', () => {
-    (caps.isEnabled as jest.Mock).mockReturnValueOnce(true);
+    (caps.isEnabled as import('vitest').Mock).mockReturnValueOnce(true);
     const guard = new Guard(caps);
     expect(guard.canActivate({} as never)).toBe(true);
   });
 
   it('rejects the request when the capability is disabled (402 LICENSE_REQUIRED)', () => {
-    (caps.isEnabled as jest.Mock).mockReturnValueOnce(false);
+    (caps.isEnabled as import('vitest').Mock).mockReturnValueOnce(false);
     const guard = new Guard(caps);
     expect(() => guard.canActivate({} as never)).toThrow(CustomHttpException);
     try {

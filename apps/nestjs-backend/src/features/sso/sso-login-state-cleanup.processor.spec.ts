@@ -1,24 +1,25 @@
 import { SsoLoginStateCleanupProcessor } from './sso-login-state-cleanup.processor';
+import { vi } from 'vitest';
 import { SSO_LOGIN_STATE_CLEANUP_QUEUE, SSO_LOGIN_STATE_TTL_MS } from './sso.constants';
 
 interface MockPrisma {
-  ssoLoginState: { deleteMany: jest.Mock };
+  ssoLoginState: { deleteMany: import('vitest').Mock };
 }
 
 interface MockQueue {
-  add: jest.Mock;
-  close: jest.Mock;
+  add: import('vitest').Mock;
+  close: import('vitest').Mock;
 }
 
 const buildPrismaMock = (deletedCount = 0): MockPrisma => ({
   ssoLoginState: {
-    deleteMany: jest.fn(async () => ({ count: deletedCount })),
+    deleteMany: vi.fn(async () => ({ count: deletedCount })),
   },
 });
 
 const buildQueueMock = (): MockQueue => ({
-  add: jest.fn(async () => undefined),
-  close: jest.fn(async () => undefined),
+  add: vi.fn(async () => undefined),
+  close: vi.fn(async () => undefined),
 });
 
 const buildProcessor = (prisma: MockPrisma, queue: MockQueue) =>

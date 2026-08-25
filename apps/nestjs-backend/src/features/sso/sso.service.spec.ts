@@ -1,4 +1,6 @@
 import { SsoService } from './sso.service';
+import { vi } from 'vitest';
+import { vi } from 'vitest';
 import {
   ISsoIdTokenClaims,
   SSO_DISCOVERY_CACHE_TTL_MS,
@@ -7,27 +9,35 @@ import {
 import { generateKeyPairSync } from 'crypto';
 
 interface MockStore {
-  ssoIdentityProvider: { create?: jest.Mock; findFirst?: jest.Mock; findUnique?: jest.Mock };
-  ssoLoginState: { create?: jest.Mock; findUnique?: jest.Mock; update?: jest.Mock };
-  organizationDomain: { findUnique?: jest.Mock };
+  ssoIdentityProvider: {
+    create?: import('vitest').Mock;
+    findFirst?: import('vitest').Mock;
+    findUnique?: import('vitest').Mock;
+  };
+  ssoLoginState: {
+    create?: import('vitest').Mock;
+    findUnique?: import('vitest').Mock;
+    update?: import('vitest').Mock;
+  };
+  organizationDomain: { findUnique?: import('vitest').Mock };
 }
 
 const prismaMock = (): MockStore => ({
   ssoIdentityProvider: {
-    create: jest.fn(async ({ data }) => ({ id: 'pid_1', ...data })),
-    findFirst: jest.fn(async () => null),
-    findUnique: jest.fn(async () => null),
+    create: vi.fn(async ({ data }) => ({ id: 'pid_1', ...data })),
+    findFirst: vi.fn(async () => null),
+    findUnique: vi.fn(async () => null),
   },
   ssoLoginState: {
-    create: jest.fn(async ({ data }) => ({ id: `sso_${data.state}`, ...data })),
-    findUnique: jest.fn(async () => null),
-    update: jest.fn(async ({ where, data }) => ({ id: where.id, ...data })),
+    create: vi.fn(async ({ data }) => ({ id: `sso_${data.state}`, ...data })),
+    findUnique: vi.fn(async () => null),
+    update: vi.fn(async ({ where, data }) => ({ id: where.id, ...data })),
   },
-  organizationDomain: { findUnique: jest.fn(async () => null) },
+  organizationDomain: { findUnique: vi.fn(async () => null) },
 });
 
 const domainVerificationMock = () => ({
-  isSsoDomainVerified: jest.fn(async () => true),
+  isSsoDomainVerified: vi.fn(async () => true),
 });
 
 describe('SsoService', () => {
@@ -57,28 +67,7 @@ describe('SsoService', () => {
   });
 
   it('round-trips discovery with TTL cache', async () => {
-    const fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            issuer: 'https://idp.example.com',
-            authorization_endpoint: 'https://idp.example.com/auth',
-            token_endpoint: 'https://idp.example.com/token',
-            jwks_uri: 'https://idp.example.com/jwks',
-          }),
-          { status: 200 }
-        )
-      );
-    const first = await svc.fetchDiscovery('https://idp.example.com');
-    const second = await svc.fetchDiscovery('https://idp.example.com');
-    expect(first).toBe(second);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    fetchSpy.mockRestore();
-  });
-
-  it('cache expires after the configured TTL', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(
         JSON.stringify({
           issuer: 'https://idp.example.com',
@@ -88,6 +77,26 @@ describe('SsoService', () => {
         }),
         { status: 200 }
       )
+    );
+    const first = await svc.fetchDiscovery('https://idp.example.com');
+    const second = await svc.fetchDiscovery('https://idp.example.com');
+    expect(first).toBe(second);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    fetchSpy.mockRestore();
+  });
+
+  it('cache expires after the configured TTL', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            issuer: 'https://idp.example.com',
+            authorization_endpoint: 'https://idp.example.com/auth',
+            token_endpoint: 'https://idp.example.com/token',
+            jwks_uri: 'https://idp.example.com/jwks',
+          }),
+          { status: 200 }
+        )
     );
     await svc.fetchDiscovery('https://idp.example.com');
     // Force expiry by reading the cache and rewinding the timestamp.
@@ -114,8 +123,7 @@ describe('SsoService', () => {
       iat: Math.floor(Date.now() / 1000),
       email: 'u@acme.com',
     };
-    const enc = (o: object) =>
-      Buffer.from(JSON.stringify(o)).toString('base64url');
+    const enc = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
     const signingInput = `${enc(header)}.${enc(claims)}`;
     const sign = (require('crypto') as typeof import('crypto')).createSign('RSA-SHA256');
     sign.update(signingInput);

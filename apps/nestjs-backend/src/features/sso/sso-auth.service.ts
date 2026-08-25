@@ -39,16 +39,10 @@ export class SsoAuthService {
   ): Promise<Awaited<ReturnType<UserService['findOrCreateUser']>>> {
     const email = claims.email;
     if (!email) {
-      throw new CustomHttpException(
-        'id_token missing email claim',
-        HttpErrorCode.VALIDATION
-      );
+      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION);
     }
     if (claims.email_verified === false) {
-      throw new CustomHttpException(
-        'id_token email is not verified',
-        HttpErrorCode.VALIDATION
-      );
+      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION);
     }
     // domain-claim guard — recheck here so a config drift between SSO
     // and the verification table doesn't widen trust.
@@ -67,16 +61,10 @@ export class SsoAuthService {
       avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
     });
     if (!user) {
-      throw new CustomHttpException(
-        'failed to resolve user from SSO claims',
-        HttpErrorCode.FAILED
-      );
+      throw new CustomHttpException('failed to resolve user from SSO claims', HttpErrorCode.FAILED);
     }
     if (user.deactivatedTime) {
-      throw new CustomHttpException(
-        'account deactivated',
-        HttpErrorCode.RESTRICTED_RESOURCE
-      );
+      throw new CustomHttpException('account deactivated', HttpErrorCode.RESTRICTED_RESOURCE);
     }
     await this.usersService.refreshLastSignTime(user.id);
     this.logger.log(`SSO login: provider=${provider.id} user=${user.id}`);
@@ -104,12 +92,25 @@ export class SsoAuthService {
     if (stateRow.expiresAt.getTime() < Date.now()) {
       throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION);
     }
-    // resolveLocalUser already throws on email_verified=false and email/domain mismatch;
-    // any failure aborts the transaction before consumed=true is written.
+    // Mirror resolveLocalUser's claim checks here so any failure aborts the
+    // transaction before consumed=true is written. These run BEFORE the
+    // transaction so a malformed state row never opens a useless tx.
+    if (!claims.email) {
+      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION);
+    }
+    if (claims.email_verified === false) {
+      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION);
+    }
+    if (!claims.email.toLowerCase().endsWith(`@${provider.emailDomain.toLowerCase()}`)) {
+      throw new CustomHttpException(
+        'email does not match IdP emailDomain',
+        HttpErrorCode.VALIDATION
+      );
+    }
     const user = await this.prisma.$transaction(async (tx) => {
       const resolved = await this.usersService.findOrCreateUser({
-        name: claims.name ?? (claims.email ?? '').split('@')[0] ?? 'sso user',
-        email: claims.email ?? '',
+        name: claims.name ?? claims.email!.split('@')[0],
+        email: claims.email!,
         provider: `sso_${provider.type}`,
         providerId: `${provider.id}:${claims.sub}`,
         type: 'sso',
@@ -122,16 +123,10 @@ export class SsoAuthService {
       return resolved;
     });
     if (!user) {
-      throw new CustomHttpException(
-        'failed to resolve user from SSO claims',
-        HttpErrorCode.FAILED
-      );
+      throw new CustomHttpException('failed to resolve user from SSO claims', HttpErrorCode.FAILED);
     }
     if (user.deactivatedTime) {
-      throw new CustomHttpException(
-        'account deactivated',
-        HttpErrorCode.RESTRICTED_RESOURCE
-      );
+      throw new CustomHttpException('account deactivated', HttpErrorCode.RESTRICTED_RESOURCE);
     }
     await this.usersService.refreshLastSignTime(user.id);
     this.logger.log(`SSO login complete: provider=${provider.id} user=${user.id}`);

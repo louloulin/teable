@@ -1,8 +1,9 @@
 import type { TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { PrismaService, PlanLevel, QuotaMetric } from '@teable/db-main-prisma';
 
-import { GB } from './quota.constants';
+import { GB, PLAN_LIMITS } from './quota.constants';
 import { QuotaExceededException } from './quota.exception';
 import { QuotaService } from './quota.service';
 
@@ -19,21 +20,21 @@ interface IFakeCounter {
 
 class FakePrisma {
   spaceQuota = {
-    findUnique: jest.fn(),
-    upsert: jest.fn(),
-    update: jest.fn(),
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
   };
   spaceUsageCounter = {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    upsert: jest.fn(),
-    update: jest.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
   };
   quotaHit = {
-    findMany: jest.fn(),
-    create: jest.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
   };
-  $transaction = jest.fn();
+  $transaction = vi.fn();
 }
 
 describe('QuotaService', () => {
@@ -126,9 +127,9 @@ describe('QuotaService', () => {
         await cb(prisma);
       });
 
-      await expect(
-        service.consume(spaceId, QuotaMetric.rows, 1000n)
-      ).rejects.toBeInstanceOf(QuotaExceededException);
+      await expect(service.consume(spaceId, QuotaMetric.rows, 1000n)).rejects.toBeInstanceOf(
+        QuotaExceededException
+      );
       expect(prisma.quotaHit.create).toHaveBeenCalled();
     });
 
@@ -160,7 +161,7 @@ describe('QuotaService', () => {
   describe('PLAN_LIMITS', () => {
     it('matches the Teable.ai Cloud pricing page', () => {
       // Free: 1000 rows, 1GB attachments, 100 automation runs, 200 AI credits
-      const free = require('./quota.constants').PLAN_LIMITS.free;
+      const free = PLAN_LIMITS.free;
       expect(free.rowLimit).toBe(1_000);
       expect(free.attachmentByteLimit).toBe(1n * GB);
       expect(free.automationRunLimit).toBe(100);
@@ -168,9 +169,8 @@ describe('QuotaService', () => {
     });
 
     it('keeps self-host / enterprise unlimited', () => {
-      const constants = require('./quota.constants');
       for (const plan of ['self_hosted', 'enterprise'] as PlanLevel[]) {
-        for (const v of Object.values(constants.PLAN_LIMITS[plan])) {
+        for (const v of Object.values(PLAN_LIMITS[plan])) {
           expect(v).toBeNull();
         }
       }
