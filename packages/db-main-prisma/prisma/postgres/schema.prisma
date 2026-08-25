@@ -2621,3 +2621,36 @@ model ReadRouteLog {
   @@index([baseId, createdTime])
   @@map("read_route_log")
 }
+
+model CustomRole {
+  id           String   @id
+  orgId        String   @map("org_id")
+  name         String
+  description  String   @default("")
+  /// Capability strings ("base.read", "row.create", ...).
+  capabilities String[]
+  /// Per-resource scopes (view/field/row + filter).
+  scopes       Json[]
+  enabled      Boolean  @default(true)
+  createdTime  DateTime @default(now()) @map("created_time")
+  updatedTime  DateTime @updatedAt @map("updated_time")
+  @@unique([orgId, name])
+  @@index([orgId])
+  @@map("custom_role")
+}
+
+model RoleAssignment {
+  id          String   @id
+  orgId       String   @map("org_id")
+  userId      String   @map("user_id")
+  /// Built-in role name or custom role id.
+  roleId      String   @map("role_id")
+  /// null = org-wide; non-null = scoped to a base.
+  baseId      String?  @map("base_id")
+  grantedAt   DateTime @map("granted_at")
+  /// User id of the grantor.
+  grantedBy   String   @map("granted_by")
+  @@index([orgId, userId])
+  @@index([userId])
+  @@map("role_assignment")
+}
