@@ -3,16 +3,16 @@ import { vi } from 'vitest';
 
 import { AiCreditAuthService } from './ai-credit.auth.service';
 
-interface MockAiCreditLedger {
+interface IMockAiCreditLedger {
   create: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
 }
-interface MockPrisma {
-  aiCreditLedger: MockAiCreditLedger;
+interface IMockPrisma {
+  aiCreditLedger: IMockAiCreditLedger;
 }
 
-const buildPrisma = (): MockPrisma => ({
+const buildPrisma = (): IMockPrisma => ({
   aiCreditLedger: {
     create: vi.fn(async ({ data }) => data),
     findMany: vi.fn(async () => []),
@@ -21,7 +21,7 @@ const buildPrisma = (): MockPrisma => ({
 });
 
 describe('AiCreditAuthService (Stage 26)', () => {
-  let prisma: MockPrisma;
+  let prisma: IMockPrisma;
   let svc: AiCreditAuthService;
 
   beforeEach(() => {
