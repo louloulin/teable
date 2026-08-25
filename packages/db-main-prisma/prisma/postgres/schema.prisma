@@ -2052,3 +2052,34 @@ model DataResidencyPolicy {
   @@index([regionCode])
   @@map("data_residency_policy")
 }
+
+model CustomerKmsKey {
+  id                String    @id
+  organizationId    String    @map("organization_id")
+  alias             String
+  provider          String
+  keyId             String    @map("key_id")
+  keyVersion        String?   @map("key_version")
+  status            String    @default("enabled")
+  rotationPolicyJson String?  @map("rotation_policy_json")
+  createdBy         String    @map("created_by")
+  createdTime       DateTime  @default(now()) @map("created_time")
+  updatedTime       DateTime  @updatedAt @map("updated_time")
+  lastUsedAt        DateTime? @map("last_used_at")
+  @@unique([organizationId, alias])
+  @@index([organizationId])
+  @@map("customer_kms_key")
+}
+
+model KmsAuditEntry {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  keyId           String   @map("key_id")
+  operation       String
+  callerType      String   @map("caller_type")
+  callerId        String?  @map("caller_id")
+  payloadHash     String?  @map("payload_hash")
+  atTime          DateTime @default(now()) @map("at_time")
+  @@index([organizationId, atTime])
+  @@map("kms_audit_entry")
+}
