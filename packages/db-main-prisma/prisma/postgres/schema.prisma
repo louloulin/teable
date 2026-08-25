@@ -3272,3 +3272,18 @@ model TestCallLog {
   @@index([seed])
   @@map("test_call_log")
 }
+
+model AppModuleWire {
+  id        String   @id
+  /// NestJS module class name
+  name      String
+  /// "core" | "infra" | "feature"
+  category  String
+  round     Int
+  required  Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([round])
+  @@map("app_module_wire")
+}
