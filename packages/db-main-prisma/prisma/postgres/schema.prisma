@@ -3231,3 +3231,20 @@ model GuardAudit {
   @@index([principal])
   @@map("guard_audit")
 }
+
+model OpenApiOperation {
+  id           String   @id
+  operationId  String   @map("operation_id")
+  resource     String
+  verb         String
+  path         String
+  summary      String
+  authRequired Boolean  @default(true) @map("auth_required")
+  params       Json
+  body         Json?
+  responses    Json
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([resource])
+  @@map("openapi_operation")
+}
