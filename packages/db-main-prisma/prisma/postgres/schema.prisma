@@ -3118,3 +3118,18 @@ model ImportJob {
   @@index([orgId])
   @@map("import_job")
 }
+
+model AuditEvent {
+  id          String   @id
+  orgId       String   @map("org_id")
+  actor       String
+  /// "export" | "import" | "sync" | "pipeline-run" | "conflict-resolved" | "webhook-dispatch" | "share-link"
+  action      String
+  recordId    String?  @map("record_id")
+  metadata    Json
+  occurredAt  DateTime @map("occurred_at")
+  /// SHA-256 hex chain
+  chainHash   String   @map("chain_hash")
+  @@index([orgId, occurredAt])
+  @@map("audit_event")
+}
