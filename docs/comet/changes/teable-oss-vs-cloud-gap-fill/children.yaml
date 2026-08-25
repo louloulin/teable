@@ -37,9 +37,6 @@ acceptance_index:
   A11:
     source: brief.md
     text: "**A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。"
-  # Round 2 acceptance (A12-A19) 由独立 native change(stage-13~20)各自 spec 负责,
-  # 不纳入 supervisor 当前 children.yaml 是因为 supervisor 状态快照锁在 A1-A11,
-  # 等待下一轮 shape 重新确认再合并。详细文本保留在 brief.md。
 
 # Children — 每个 child 是普通 Native change,在独立 worktree 中创建。
 # covers 引用 acceptance_index 的 key (A1-A19 = brief-derived IDs)。
@@ -83,38 +80,3 @@ children:
   - name: stage-12-api-rate-limit-by-plan
     depends_on: []
     covers: [A7, A10, A11]
-
-  # ---- Round 2 (Stage 13-20):平台能力扩展,直对 Cloud Business 等价差距 ----
-  # 注:supervisor 状态快照锁在 A1-A11,新 children 的 covers 暂用 A10/A11 占位,
-  # 详细 A12-A19 见 brief.md 与 children.yaml acceptance_index(下个 shape cycle 同步)。
-  - name: stage-13-automation-engine-mvp
-    depends_on: []
-    covers: [A10, A11]
-
-  - name: stage-14-webhook-public-api
-    depends_on: [stage-13-automation-engine-mvp]
-    covers: [A10, A11]
-
-  - name: stage-15-im-bridge-scaffold
-    depends_on: [stage-13-automation-engine-mvp]
-    covers: [A10, A11]
-
-  - name: stage-16-oauth-server
-    depends_on: []
-    covers: [A10, A11]
-
-  - name: stage-17-view-level-permission
-    depends_on: []
-    covers: [A10, A11]
-
-  - name: stage-18-conditional-formatting
-    depends_on: []
-    covers: [A10, A11]
-
-  - name: stage-19-builtin-smtp
-    depends_on: [stage-13-automation-engine-mvp]
-    covers: [A10, A11]
-
-  - name: stage-20-backup-restore-api
-    depends_on: []
-    covers: [A10, A11]

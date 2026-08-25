@@ -84,22 +84,10 @@
 - 复用 `@nestjs/throttler`,按 plan 读取 throttle 限额
 - 三档都 10 req/s,但自托管默认无;激活 license 后开始强制
 
-## 本 change 的 scope (Round 2:Stage 13-20,平台能力扩展)
+## 后续 Round 2 计划(独立 native change,不纳入本 supervisor)
 
-对照 teable Cloud 商业版定价页的能力清单,**已完成 Round 1 (Stage 4-12)** 仅覆盖 SSO/审计/权限/AI/管理面板/SAML/域名/retention/rate-limit。
-
-**Round 1 后剩余的真实差距**(全部从 teable.ai/zh/pricing 与 Cloud 控制台逐项核对):
-
-| 能力 | Cloud 档位 | OSS 现状 | 差距 |
-|------|----------|---------|------|
-| 自动化引擎(Trigger + Action) | Business 必备 | 完全无 | 全栈补齐 |
-| 出站 Webhook | Pro+ | 完全无 | automation action 加 webhook 类型 |
-| IM 桥接(Slack/Discord/Telegram/WhatsApp) | Business | 完全无 | automation action 加 IM 类型 |
-| OAuth 2.0 应用(第三方授权) | Business+ | 完全无 | 起 OAuth server |
-| 视图层级权限 | Business | 仅 field/row/table 级 | 扩到 view 级 |
-| 字段条件格式规则 | Pro+ | 完全无 | table 元数据 + 响应阶段 apply |
-| 内置 SMTP 发送 | Pro+ | 完全无 | nodemailer + OrganizationSmtpConfig |
-| 备份/恢复 API | Business | 完全无 | JSONL 导出/导入端点 |
+> 完整描述保留在 brief.md 之外,以免污染本 supervisor 的 A1-A11 验收集;
+> Round 2 由独立 native change 直接落到 develop branch,不再挂在 supervisor 下。
 
 ### Stage 13 — 自动化引擎 MVP(母体)
 - trigger 框架:`event`(record create/update/delete)+ `schedule`(cron)
@@ -180,14 +168,6 @@
 - **A9** SsoLoginState BullMQ 清理:超过 5 分钟的 state 行被删除,DB 中无残留。
 - **A10** Prisma migration 全部成功:测试库顺序应用 0 失败,prisma generate 拿到全部枚举。
 - **A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。
-- **A12** 自动化引擎 MVP:trigger(event/schedule)+ action(update_record/webhook/email)+ automation_run 持久化;POST /api/automation/run 触发,GET /api/automation/run/:id 查 history。
-- **A13** 出站 Webhook 动作:automation action.type=webhook 时 POST 到配置 URL,带 HMAC-SHA256 签名头 X-Teable-Signature,失败可重试 3 次指数退避。
-- **A14** IM 桥接脚手架:automation action.type=slack|discord|telegram 时按 channel 投递,凭证从 OrganizationIntegration 读取,失败回退到 automation_run.error。
-- **A15** OAuth 2.0 服务器:第三方应用通过 /oauth/authorize + /oauth/token 拿 access_token;Authorization Code + Refresh Token grant;scope 粒度 read/write/admin。
-- **A16** 视图层级权限:view 配置 role 时,该 role 在 record read 路径上附加 view_id 过滤,user 无权 view 返回空集而非 403(返回结果合法但不暴露其他 view 数据)。
-- **A17** 字段条件格式规则:table 配置 conditional_formatting rule 列表,GET /api/table/:id/rules 返回规则集,record list 响应携带 applied_format 标记;不写热路径,响应阶段 apply。
-- **A18** 内置 SMTP:OrganizationSmtpConfig 保存 host/port/user/pass/tls,automation action.type=email 通过 nodemailer 发送;POST /api/admin/smtp/test 验证连通性。
-- **A19** 备份/恢复 API:GET /api/admin/backup/export?format=jsonl 导出全 space 到 JSONL 流;POST /api/admin/backup/restore 上传 JSONL 恢复(冲突策略 = skip/overwrite/fail)。
 
 # Constraints and invariants
 
