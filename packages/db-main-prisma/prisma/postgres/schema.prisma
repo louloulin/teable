@@ -2458,3 +2458,85 @@ model VectorRecord {
   @@index([collectionId, createdTime])
   @@map("vector_record")
 }
+
+model GoogleSheetsConnection {
+  id                  String   @id
+  organizationId      String   @map("organization_id")
+  baseId              String   @map("base_id")
+  spreadsheetId       String   @map("spreadsheet_id")
+  spreadsheetTitle    String   @map("spreadsheet_title")
+  refreshTokenHash    String   @map("refresh_token_hash")
+  serviceAccountEmail String?  @map("service_account_email")
+  connectedBy         String   @map("connected_by")
+  connectedTime       DateTime @default(now()) @map("connected_time")
+  updatedTime         DateTime @updatedAt @map("updated_time")
+  revokedAt           DateTime? @map("revoked_at")
+  @@unique([baseId, spreadsheetId])
+  @@index([organizationId])
+  @@map("google_sheets_connection")
+}
+
+model GoogleSheetsMapping {
+  id              String   @id
+  connectionId    String   @map("connection_id")
+  sheetId         String   @map("sheet_id")
+  sheetTitle      String   @map("sheet_title")
+  sheetGid        Int      @map("sheet_gid")
+  teableBaseId    String   @map("teable_base_id")
+  teableTableId   String   @map("teable_table_id")
+  /// "one-way-push" | "one-way-pull" | "bi-directional"
+  direction       String   @default("bi-directional")
+  /// "ready" | "paused" | "error"
+  status          String   @default("ready")
+  headerRow       Int      @default(1) @map("header_row")
+  fieldMapJson    String   @map("field_map_json")
+  fieldMapHash    String   @map("field_map_hash")
+  lastSyncedTime  DateTime? @map("last_synced_time")
+  lastErrorMessage String? @map("last_error_message")
+  createdTime     DateTime @default(now()) @map("created_time")
+  @@unique([connectionId, sheetId])
+  @@index([teableBaseId, teableTableId])
+  @@map("google_sheets_mapping")
+}
+
+model GoogleSheetsSyncRecord {
+  id              String   @id
+  mappingId       String   @map("mapping_id")
+  recordId        String?  @map("record_id")
+  sheetsRowNumber Int?     @map("sheets_row_number")
+  /// "synced" | "remote-only" | "local-only" | "conflict"
+  state           String   @default("synced")
+  localUpdatedAt  DateTime? @map("local_updated_at")
+  remoteUpdatedAt DateTime? @map("remote_updated_at")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  @@index([mappingId, lastSyncedAt])
+  @@map("google_sheets_sync_record")
+}
+
+model GoogleSheetsSyncLog {
+  id                String   @id
+  mappingId         String   @map("mapping_id")
+  /// "push" | "pull" | "conflict-resolved"
+  direction         String
+  /// "ok" | "failed" | "partial"
+  status            String   @default("ok")
+  rowsRead          Int      @default(0) @map("rows_read")
+  rowsWritten       Int      @default(0) @map("rows_written")
+  conflictsResolved Int      @default(0) @map("conflicts_resolved")
+  startedAt         DateTime @default(now()) @map("started_at")
+  finishedAt        DateTime? @map("finished_at")
+  errorMessage      String?  @map("error_message")
+  @@index([mappingId, startedAt])
+  @@map("google_sheets_sync_log")
+}
+
+model GoogleSheetsWebhookChannel {
+  id           String   @id
+  resourceId   String   @map("resource_id")
+  /// Milliseconds since epoch.
+  expiration   BigInt
+  mappingId    String   @map("mapping_id")
+  connectionId String   @map("connection_id")
+  @@index([expiration])
+  @@map("google_sheets_webhook_channel")
+}
