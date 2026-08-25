@@ -2963,3 +2963,32 @@ model StorageBillableLine {
   @@index([orgId, createdAt])
   @@map("storage_billable_line")
 }
+
+model LicenseKey {
+  id           String   @id
+  orgId        String   @map("org_id")
+  /// "community" | "pro" | "business" | "enterprise"
+  tier         String   @default("community")
+  /// Next tier change is allowed after this timestamp.
+  nextChangeAt DateTime? @map("next_change_at")
+  activatedAt  DateTime? @map("activated_at")
+  expiresAt    DateTime? @map("expires_at")
+  @@index([orgId, tier])
+  @@map("license_key")
+}
+
+model LicenseTierAudit {
+  id          String   @id
+  licenseId   String   @map("license_id")
+  /// "community" | "pro" | "business" | "enterprise"
+  from        String
+  to          String
+  /// "upgrade" | "downgrade" | "lateral"
+  direction   String
+  effectiveAt DateTime @map("effective_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  reason      String?
+  actorId     String?  @map("actor_id")
+  @@index([licenseId, effectiveAt])
+  @@map("license_tier_audit")
+}
