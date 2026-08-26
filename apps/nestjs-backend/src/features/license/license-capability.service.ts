@@ -27,7 +27,10 @@ export type LicenseCapability =
   | 'permission_matrix'
   | 'custom_app_domain'
   | 'audit_log'
-  | 'admin_panel';
+  | 'admin_panel'
+  | 'ip_allowlist'
+  | 'delete_user'
+  | 'metrics';
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -48,6 +51,9 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'custom_app_domain',
     'audit_log',
     'admin_panel',
+    'ip_allowlist',
+    'delete_user',
+    'metrics',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -59,6 +65,9 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'custom_app_domain',
     'audit_log',
     'admin_panel',
+    'ip_allowlist',
+    'delete_user',
+    'metrics',
   ]),
   self_hosted: new Set<LicenseCapability>(),
 };

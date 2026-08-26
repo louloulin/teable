@@ -86,3 +86,8 @@ dispatch-verifier.json
 .comet-builder-handoff.json
 .comet-dispatch-verifier.json
 .gitignore.local
+.gitignore.local
+.comet-builder-handoff.json
+.comet-dispatch-verifier.json
+builder-handoff.json
+dispatch-verifier.json

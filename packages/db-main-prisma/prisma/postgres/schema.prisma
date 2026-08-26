@@ -1392,6 +1392,8 @@ model PermissionRoleRecordFilter {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  role PermissionRole @relation("PermissionRoleRecordFilterToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
+
   @@unique([roleId, tableId])
   @@map("permission_role_record_filter")
 }
@@ -1404,6 +1406,8 @@ model PermissionRoleFieldPermission {
   access    PermissionFieldAccess
   createdAt DateTime            @default(now()) @map("created_at")
 
+  role PermissionRole @relation("PermissionRoleFieldPermissionToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
+
   @@unique([roleId, fieldId])
   @@map("permission_role_field_permission")
 }
@@ -1414,6 +1418,8 @@ model PermissionRoleRecordAction {
   tableId   String                @map("table_id")
   action    PermissionRecordAction
   createdAt DateTime              @default(now()) @map("created_at")
+
+  role PermissionRole @relation("PermissionRoleRecordActionToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, tableId, action])
   @@map("permission_role_record_action")
@@ -1427,6 +1433,8 @@ model PermissionRoleNode {
   createdAt DateTime            @default(now()) @map("created_at")
   updatedAt DateTime            @updatedAt @map("updated_at")
 
+  role PermissionRole @relation("PermissionRoleNodeToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
+
   @@unique([roleId, tableId])
   @@map("permission_role_node")
 }
@@ -1436,6 +1444,8 @@ model PermissionRoleMember {
   roleId    String   @map("role_id")
   userId    String   @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
+
+  role PermissionRole @relation("PermissionRoleMemberToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, userId])
   @@map("permission_role_member")
@@ -1452,11 +1462,11 @@ model PermissionRole {
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
 
-  members      PermissionRoleMember[]
-  nodes        PermissionRoleNode[]
-  fieldPerms   PermissionRoleFieldPermission[]
-  recordActions PermissionRoleRecordAction[]
-  recordFilter PermissionRoleRecordFilter?
+  members      PermissionRoleMember[] @relation("PermissionRoleMemberToPermissionRole")
+  nodes        PermissionRoleNode[] @relation("PermissionRoleNodeToPermissionRole")
+  fieldPerms   PermissionRoleFieldPermission[] @relation("PermissionRoleFieldPermissionToPermissionRole")
+  recordActions PermissionRoleRecordAction[] @relation("PermissionRoleRecordActionToPermissionRole")
+  recordFilters PermissionRoleRecordFilter[] @relation("PermissionRoleRecordFilterToPermissionRole")
 
   @@unique([baseId, name])
   @@index([baseId])
