@@ -169,6 +169,19 @@
 - **A10** Prisma migration 全部成功:测试库顺序应用 0 失败,prisma generate 拿到全部枚举。
 - **A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。
 
+# Round 28 G2 验收项(用户授权 2026-08-26T01:06Z 全量实现)
+
+- **G2A1** 全局权限矩阵 Guard/Interceptor 接线:任意 /api/space/* /api/base/* /api/table/* 写操作命中矩阵行/列/字段规则,hidden 字段在 PATCH 时返回 403 RESTRICTED_RESOURCE,row filter 真实缩小查询结果。
+- **G2A2** Quota 全局 Interceptor + Plan-aware 阈值:TEABLE_QUOTA_ENFORCEMENT_ENABLED=true 时,所有写请求按 plan 配额(行数/附件/API 调用)生效,超额返回 429 QUOTA_EXCEEDED。
+- **G2A3** Audit 全局 Interceptor:APP_INTERCEPTOR 自动审计所有 controller 调用,与 @Audit() 双轨并存,漏 service 补齐后端到端审计无残留。
+- **G2A4** HttpErrorCode 静态校验:build-time 检查所有 HttpErrorCode.* 引用命中现有枚举键,失配即 build fail;运行时不再抛 RangeError。
+- **G2A5** business/enterprise plan 端到端冒烟:TEABLE_LICENSE_KEY=plan:business 启动后,/api/admin/permission-matrix/* /api/admin/sso/providers /api/admin/audit-log 全套端点通过闸门后业务路径不崩。
+- **G2A6** Wave N1 模块接线:ip-allowlist / risk-control / turnstile / delete-user / retention / tracking / metrics / session 全部在 app.module.ts 激活,各 module controller 暴露端点 smoke 测试通过。
+- **G2A7** Wave N2 模块接线:github / google / social / chart / dashboard / database-view / graph / stack / view / model / computed / field-calculate / field-duplicate / record-modify / table-domain / record / table / folder / data-loader / query-builder / plugins / calculation / last-visit 共 20+ module 接线,各模块 controller 可达。
+- **G2A8** Webhook / BYOK / KMS / DR 复制(Wave H 漏接):webhook-bridge / webhook-delivery / byok-kms / byok-llm / kms-encrypt / dr-replication 等 module 接线,端到端 smoke 命中。
+- **G2A9** OpenAPI 文档站 + E2E 测试覆盖:Stage 103-106 输出文档站可访问,E2E 测试集覆盖 G2A1~G2A8 主要端点。
+- **G2A10** 全局回归 + 文档同步:pnpm test 全绿,G2A1~G2A9 全部独立验证,最终 Supervisor Verifier 在集成分支一次过 A1-A11 + G2A1-G2A10。
+
 # Constraints and invariants
 
 - **AGPL-3.0 合规**:任何新增源代码在本仓库内,改动可被 fork 验证,不引入与 AGPL 冲突的依赖。
