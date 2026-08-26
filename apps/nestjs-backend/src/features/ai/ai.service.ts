@@ -869,4 +869,44 @@ export class AiService {
 
     return undefined;
   }
+
+  /**
+   * Token-by-token streaming variant of `generateText`. Reuses the existing
+   * `getGenerationModelInstance` path so the model selection (task-based
+   * chat model, gateway mapping, custom providers) is identical to the
+   * non-streaming call. Yields `{delta, done, value?}` chunks consumable by
+   * `AiStreamingService.streamChunks`.
+   *
+   * Round 12 T-14: existing `generateText` and `generateStream` are
+   * untouched. `signal` is honored between chunks so the frontend can abort
+   * the upstream call without waiting for the model to finish.
+   */
+  async *generateTextStream(
+    baseId: string,
+    aiGenerateRo: IAiGenerateRo,
+    signal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; done: boolean; value?: string }> {
+    const { prompt } = aiGenerateRo;
+    const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
+
+    const result = streamText({
+      model: modelInstance,
+      prompt,
+      ...(signal ? { abortSignal: signal } : {}),
+    });
+
+    let accumulated = '';
+    for await (const chunk of result.textStream) {
+      if (signal?.aborted) {
+        return;
+      }
+      accumulated += chunk;
+      yield { delta: chunk, done: false };
+    }
+
+    if (signal?.aborted) {
+      return;
+    }
+    yield { delta: '', done: true, value: accumulated };
+  }
 }
