@@ -52,7 +52,7 @@ export class WorkspaceMirrorAuthService {
         baseId: args.baseId,
         region: args.region,
         kind: args.kind,
-        payload: JSON as Record,
+        payload: JSON as unknown as Record<string, unknown>,
         seq,
         recordedAt: new Date(),
       },
@@ -115,7 +115,7 @@ export class WorkspaceMirrorAuthService {
       where: { baseId: cfg.baseId },
     });
     const lags: IMirrorLag[] = cfg.standbys.map((s) => {
-      const row = lagRows.find((l) => l.region === s.region);
+      const row = lagRows.find((l: { region: string; lastAckSeq?: number; shippedAt?: Date }) => l.region === s.region);
       return computeLag({
         region: s.region,
         lastAckSeq: row?.lastAckSeq ?? 0,

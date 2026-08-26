@@ -196,14 +196,14 @@ export class ByokLlmAuthService {
         atIso: { gte: new Date(`${day}T00:00:00Z`) },
       },
     });
-    const attempts: ILlmCallAttempt[] = existing.map((r) => ({
+    const attempts: ILlmCallAttempt[] = existing.map((r: ILlmCallAttempt) => ({
       orgId: r.orgId,
       keyId: r.keyId,
       provider: r.provider as LlmProvider,
       tokens: typeof r.tokens === 'bigint' ? Number(r.tokens) : r.tokens,
       costCents: typeof r.costCents === 'bigint' ? Number(r.costCents) : r.costCents,
       succeeded: r.succeeded,
-      atIso: r.atIso.toISOString(),
+      atIso: r.atIso,
     }));
     const row = buildUsageRow({
       orgId: attempt.orgId,
@@ -271,7 +271,9 @@ export class ByokLlmAuthService {
     const rows = await this.prisma.byokLlmAttempt.findMany({
       where: { keyId, atIso: { gte: new Date(Date.now() - 60_000) } },
     });
-    const attempts = rows.map((r) => attemptFromDb(r));
+    const attempts = rows.map((r: ILlmCallAttempt) =>
+      attemptFromDb(r as unknown as Record<string, unknown>)
+    );
     return computeHealth({ keyId, provider, attempts });
   }
 
@@ -282,14 +284,14 @@ export class ByokLlmAuthService {
     const rows = await this.prisma.byokLlmAttempt.findMany({
       where: { keyId, atIso: { gte: new Date(Date.now() - 60_000) } },
     });
-    const attempts: ILlmCallAttempt[] = rows.map((r) => ({
+    const attempts: ILlmCallAttempt[] = rows.map((r: ILlmCallAttempt) => ({
       orgId: r.orgId,
       keyId: r.keyId,
       provider: r.provider as LlmProvider,
       tokens: typeof r.tokens === 'bigint' ? Number(r.tokens) : r.tokens,
       costCents: typeof r.costCents === 'bigint' ? Number(r.costCents) : r.costCents,
       succeeded: r.succeeded,
-      atIso: r.atIso.toISOString(),
+      atIso: r.atIso,
     }));
     return computeHealth({ keyId, provider: key.provider, attempts });
   }

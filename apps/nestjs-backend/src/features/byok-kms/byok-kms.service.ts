@@ -47,7 +47,7 @@ export function encryptWithDek(input: { dek: Buffer; plaintext: Buffer }): Buffe
   const iv = randomBytes(IV_BYTES);
   const cipher = createCipheriv(ALGORITHM, input.dek, iv);
   const ciphertext = Buffer.concat([cipher.update(input.plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
+  const tag = (cipher as unknown as { getAuthTag: () => Buffer }).getAuthTag();
   return Buffer.concat([iv, tag, ciphertext]);
 }
 
@@ -57,7 +57,7 @@ export function decryptWithDek(input: { dek: Buffer; blob: Buffer }): Buffer {
   const tag = input.blob.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
   const ciphertext = input.blob.subarray(IV_BYTES + TAG_BYTES);
   const decipher = createDecipheriv(ALGORITHM, input.dek, iv);
-  decipher.setAuthTag(tag);
+  (decipher as unknown as { setAuthTag: (tag: Buffer) => void }).setAuthTag(tag);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
