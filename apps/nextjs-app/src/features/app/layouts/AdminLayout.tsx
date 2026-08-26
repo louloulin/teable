@@ -2,6 +2,7 @@ import type { DehydratedState } from '@tanstack/react-query';
 import {
   Code,
   Download as ImportIcon,
+  FileText,
   Key,
   LayoutTemplate as TemplateIcon,
   Settings,
@@ -65,6 +66,12 @@ export const AdminLayout: React.FC<{
       label: tSpace('adminImport.navTitle'),
       route: '/admin/import',
       pathTo: '/admin/import',
+    },
+    {
+      Icon: FileText,
+      label: tCommon('admin.notion.title'),
+      route: '/admin/notion',
+      pathTo: '/admin/notion',
     },
   ];
 
