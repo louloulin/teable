@@ -32,6 +32,14 @@ node_modules
 # v2 packages build output
 packages/v2/**/dist/
 
+# Wave N2 build artifacts (transitive prisma + i18n generated client)
+packages/db-data-prisma/dist/
+packages/i18n-keys/dist/
+
+# Comet agent temp files
+handoff.json
+verifier-dispatch.json
+
 # Next.js auto-generated type definitions
 **/next-env.d.ts
 
