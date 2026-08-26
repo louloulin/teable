@@ -43,7 +43,7 @@ export const ConnectButton = (props: IConnectButtonProps) => {
       const authorizeEndpoint = `/api/admin/notion/authorize?spaceId=${encodeURIComponent(spaceId)}`;
       const popup = window.open(authorizeEndpoint, 'notion-oauth', POPUP_FEATURES);
       if (!popup) {
-        toast.error(t('common:actions.popupBlocked'));
+        toast.error(t('common:admin.notion.error.popupBlocked'));
         return;
       }
       const code = await waitForOAuthCode(popup);
@@ -69,11 +69,7 @@ export const ConnectButton = (props: IConnectButtonProps) => {
       className={cn('gap-2', className)}
       type="button"
     >
-      {busy ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : (
-        <FileText className="size-4" />
-      )}
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
       {busy ? t('common:admin.notion.connecting') : t('common:admin.notion.connect')}
     </Button>
   );
