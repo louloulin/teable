@@ -1,14 +1,11 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /**
- * SCIM 2.0 push-provisioning endpoints.
- *
- * Two surfaces:
- *   1. Public `/scim/v2/*` gated by ScimAuthGuard (bearer token from the
- *      SCIM admin panel). Used by IdPs (Okta / Azure AD / OneLogin) to
- *      push users.
- *   2. Admin `/api/admin/scim/*` gated by the `sso` LicenseCapabilityGuard
- *      so SCIM is paid-tier when licensed, falls through to OSS in
- *      self-hosted mode.
+ * SCIM 2.0 push-provisioning endpoints (RFC 7644). Public `/scim/v2/*`
+ * gated by ScimAuthGuard (bearer token from the SCIM admin panel). Used by
+ * IdPs (Okta / Azure AD / OneLogin) to push users and groups into this
+ * instance. Sized to stay under the ~200-line guidance in the Wave 9 build
+ * brief — per-endpoint logic that grows past that should move into
+ * ScimService.
  */
 import {
   Body,
@@ -23,17 +20,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { LicenseCapabilityGuard } from '../license/license-capability.guard';
-import type {
-  IScimConfigVo,
-  IScimConfigWithTokenVo,
-  IScimListGroupsVo,
-  IScimListUsersVo,
-} from '@teable/openapi';
 import { ScimAuthGuard } from './scim-auth.guard';
 import { ScimService } from './scim.service';
-
-const ScimGuard = LicenseCapabilityGuard.for('sso');
 
 interface IScimUserInput {
   userName?: string;
@@ -44,6 +32,18 @@ interface IScimUserInput {
   active?: boolean;
 }
 
+interface IScimGroupInput {
+  displayName?: string;
+  externalId?: string;
+  members?: Array<{ value: string; display?: string }>;
+}
+
+interface IScimGroupPatchInput {
+  // RFC 7644 §3.5.2 mandates the PascalCase `Operations` field.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Operations?: Array<{ op: 'add' | 'remove' | 'replace'; path?: string; value?: unknown }>;
+}
+
 const listsToVo = <T>(rows: T[]) => ({
   totalResults: rows.length,
   itemsPerPage: rows.length,
@@ -51,63 +51,11 @@ const listsToVo = <T>(rows: T[]) => ({
   Resources: rows,
 });
 
-@Controller('api/admin/scim')
-@UseGuards(ScimGuard)
-export class ScimAdminController {
-  constructor(private readonly scim: ScimService) {}
-
-  @Get('config')
-  async getConfig(): Promise<IScimConfigVo> {
-    const cfg = await this.scim.loadConfig();
-    const users = await this.scim.listInstanceUsers();
-    return {
-      enabled: cfg.enabled,
-      endpoint: '/scim/v2',
-      hasToken: Boolean(cfg.tokenHash),
-      createdTime: cfg.createdTime,
-      lastRotatedTime: cfg.lastRotatedTime,
-      userCount: users.length,
-      groupCount: 0,
-    };
-  }
-
-  @Post('config/rotate')
-  async rotate(): Promise<IScimConfigWithTokenVo> {
-    const { token, cfg } = await this.scim.rotateToken();
-    const users = await this.scim.listInstanceUsers();
-    return {
-      enabled: cfg.enabled,
-      endpoint: '/scim/v2',
-      hasToken: true,
-      createdTime: cfg.createdTime,
-      lastRotatedTime: cfg.lastRotatedTime,
-      userCount: users.length,
-      groupCount: 0,
-      token,
-    };
-  }
-
-  @Get('users')
-  async listUsers(): Promise<IScimListUsersVo> {
-    const users = await this.scim.listInstanceUsers();
-    return {
-      total: users.length,
-      users: users.map((u) => ({
-        id: u.id,
-        externalId: u.email,
-        userName: u.email,
-        displayName: u.name,
-        email: u.email,
-        active: !u.deactivatedTime,
-      })),
-    };
-  }
-
-  @Get('groups')
-  async listGroups(): Promise<IScimListGroupsVo> {
-    return { total: 0, groups: [] };
-  }
-}
+const paginate = <T>(rows: T[], startIndex?: string, count?: string) => {
+  const c = count ? Math.min(parseInt(count, 10) || rows.length, rows.length) : rows.length;
+  const sI = startIndex ? Math.max(1, parseInt(startIndex, 10) || 1) : 1;
+  return rows.slice(sI - 1, sI - 1 + c);
+};
 
 @UseGuards(ScimAuthGuard)
 @Controller('scim/v2')
@@ -128,6 +76,7 @@ export class ScimController {
     };
   }
 
+  // ── Users ────────────────────────────────────────────────────────────
   @Get('Users')
   async listUsers(
     @Query('filter') filter?: string,
@@ -139,11 +88,7 @@ export class ScimController {
     const filtered = filter
       ? mapped.filter((u) => u.emails?.[0]?.value?.toLowerCase().includes(filter.toLowerCase()))
       : mapped;
-    const c = count
-      ? Math.min(parseInt(count, 10) || filtered.length, filtered.length)
-      : filtered.length;
-    const sI = startIndex ? Math.max(1, parseInt(startIndex, 10) || 1) : 1;
-    return listsToVo(filtered.slice(sI - 1, sI - 1 + c));
+    return listsToVo(paginate(filtered, startIndex, count));
   }
 
   @Get('Users/:id')
@@ -169,16 +114,16 @@ export class ScimController {
   }
 
   @Put('Users/:id')
-  async replaceUser(@Param('id') id: string, @Body() body: IScimUserInput) {
-    const existing = await this.scim.findInstanceUserById(id);
-    if (!existing) throw new NotFoundException('User not found');
-    const name = body.name?.formatted ?? body.displayName ?? existing.name;
-    const updated = await this.scim.patchUserName(id, name);
-    return this.scim.toScimUser(updated!);
+  replaceUser(@Param('id') id: string, @Body() body: IScimUserInput) {
+    return this.applyUserReplace(id, body);
   }
 
   @Patch('Users/:id')
-  async patchUser(@Param('id') id: string, @Body() body: IScimUserInput) {
+  patchUser(@Param('id') id: string, @Body() body: IScimUserInput) {
+    return this.applyUserReplace(id, body);
+  }
+
+  private async applyUserReplace(id: string, body: IScimUserInput) {
     const existing = await this.scim.findInstanceUserById(id);
     if (!existing) throw new NotFoundException('User not found');
     const name = body.name?.formatted ?? body.displayName ?? existing.name;
@@ -194,8 +139,58 @@ export class ScimController {
     return { status: 204 };
   }
 
+  // ── Groups ───────────────────────────────────────────────────────────
   @Get('Groups')
-  listGroups() {
-    return listsToVo([] as Array<Record<string, unknown>>);
+  async listGroups(
+    @Query('filter') filter?: string,
+    @Query('startIndex') startIndex?: string,
+    @Query('count') count?: string
+  ) {
+    const all = await this.scim.listGroups();
+    const filtered = filter
+      ? all.filter((g) => g.displayName.toLowerCase().includes(filter.toLowerCase()))
+      : all;
+    return listsToVo(paginate(filtered, startIndex, count).map((g) => this.scim.toScimGroup(g)));
+  }
+
+  @Post('Groups')
+  async createGroup(@Body() body: IScimGroupInput) {
+    if (!body.displayName) throw new NotFoundException('displayName is required');
+    const created = await this.scim.createGroup({
+      displayName: body.displayName,
+      externalId: body.externalId,
+      members: body.members,
+    });
+    return this.scim.toScimGroup(created);
+  }
+
+  @Get('Groups/:id')
+  async getGroup(@Param('id') id: string) {
+    const g = await this.scim.findGroupById(id);
+    if (!g) throw new NotFoundException('Group not found');
+    return this.scim.toScimGroup(g);
+  }
+
+  @Put('Groups/:id')
+  async replaceGroup(@Param('id') id: string, @Body() body: IScimGroupInput) {
+    if (!body.displayName) throw new NotFoundException('displayName is required');
+    const updated = await this.scim.replaceGroup(id, {
+      displayName: body.displayName,
+      externalId: body.externalId,
+      members: body.members,
+    });
+    return this.scim.toScimGroup(updated);
+  }
+
+  @Patch('Groups/:id')
+  async patchGroup(@Param('id') id: string, @Body() body: IScimGroupPatchInput) {
+    const updated = await this.scim.patchGroup(id, body.Operations ?? []);
+    return this.scim.toScimGroup(updated);
+  }
+
+  @Delete('Groups/:id')
+  async deleteGroup(@Param('id') id: string) {
+    await this.scim.deleteGroup(id);
+    return { status: 204 };
   }
 }

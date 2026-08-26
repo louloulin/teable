@@ -17,11 +17,11 @@
  * returned once on rotation. Token verification recomputes the hash with the
  * stored salt and compares.
  */
-import { Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { generateUserId } from '@teable/core';
 import type { Prisma } from '@teable/db-main-prisma';
 import { PrismaService } from '@teable/db-main-prisma';
-import { generateUserId } from '@teable/core';
 
 const SCIM_SETTING_ROW_ID = 'scim:instance-config-v1';
 
@@ -32,6 +32,33 @@ interface IScimStoredConfig {
   createdTime: string;
   lastRotatedTime: string;
 }
+
+interface IScimGroupRecord {
+  id: string;
+  displayName: string;
+  externalId?: string;
+  members: Array<{ value: string; display?: string }>;
+  createdTime: string;
+  lastModifiedTime: string;
+}
+
+interface IScimGroupPatchOp {
+  op: 'add' | 'remove' | 'replace';
+  path?: string;
+  value?: unknown;
+}
+
+interface IScimGroupMemberInput {
+  value: string;
+  display?: string;
+}
+
+interface IScimGroupMemberValue {
+  value: string;
+  display?: string;
+}
+
+const SCIM_GROUP_MEMBER_PATH_FILTER = /^members\[value eq "([^"]+)"\]$/;
 
 const emptyConfig = (): IScimStoredConfig => ({
   enabled: false,
@@ -44,9 +71,19 @@ const emptyConfig = (): IScimStoredConfig => ({
 const hashToken = (salt: string, token: string) =>
   createHash('sha256').update(`${salt}:${token}`).digest('hex');
 
+const generateGroupId = () => `grp_${randomBytes(12).toString('hex')}`;
+
+const cloneMembers = (members: IScimGroupMemberValue[]) => members.map((m) => ({ ...m }));
+
 @Injectable()
 export class ScimService {
   private readonly logger = new Logger(ScimService.name);
+
+  // Process-local SCIM Group store. OSS Teable does not yet model SCIM groups
+  // as first-class entities — this in-memory map is the canonical record for
+  // round-tripping between the controller and the SCIM IdP until the group
+  // domain is built out.
+  private readonly groupStore = new Map<string, IScimGroupRecord>();
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -141,6 +178,22 @@ export class ScimService {
     };
   }
 
+  /** Project an in-memory group record into the SCIM 2.0 Group resource shape. */
+  toScimGroup(g: IScimGroupRecord) {
+    return {
+      schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+      id: g.id,
+      externalId: g.externalId,
+      displayName: g.displayName,
+      members: [...g.members],
+      meta: {
+        resourceType: 'Group',
+        created: g.createdTime,
+        lastModified: g.lastModifiedTime,
+      },
+    };
+  }
+
   async listInstanceUsers() {
     return this.prisma.user.findMany({
       where: { deletedTime: null },
@@ -224,5 +277,171 @@ export class ScimService {
       where: { id, deletedTime: null },
       data: { deletedTime: new Date() },
     });
+  }
+
+  // ── SCIM Group CRUD (in-memory) ───────────────────────────────────────
+
+  async listGroups(): Promise<IScimGroupRecord[]> {
+    return Array.from(this.groupStore.values());
+  }
+
+  async findGroupById(id: string): Promise<IScimGroupRecord | null> {
+    return this.groupStore.get(id) ?? null;
+  }
+
+  async createGroup(input: {
+    displayName: string;
+    externalId?: string;
+    members?: IScimGroupMemberInput[];
+  }): Promise<IScimGroupRecord> {
+    if (!input.displayName) {
+      throw new BadRequestException('displayName is required');
+    }
+    const now = new Date().toISOString();
+    const record: IScimGroupRecord = {
+      id: generateGroupId(),
+      displayName: input.displayName,
+      externalId: input.externalId,
+      members: input.members ? cloneMembers(input.members) : [],
+      createdTime: now,
+      lastModifiedTime: now,
+    };
+    this.groupStore.set(record.id, record);
+    return record;
+  }
+
+  async replaceGroup(
+    id: string,
+    input: {
+      displayName: string;
+      externalId?: string;
+      members?: IScimGroupMemberInput[];
+    }
+  ): Promise<IScimGroupRecord> {
+    const existing = this.groupStore.get(id);
+    if (!existing) throw new NotFoundException('Group not found');
+    const updated: IScimGroupRecord = {
+      ...existing,
+      displayName: input.displayName,
+      externalId: input.externalId,
+      members: input.members ? cloneMembers(input.members) : [],
+      lastModifiedTime: new Date().toISOString(),
+    };
+    this.groupStore.set(id, updated);
+    return updated;
+  }
+
+  async patchGroup(id: string, ops: IScimGroupPatchOp[]): Promise<IScimGroupRecord> {
+    const existing = this.groupStore.get(id);
+    if (!existing) throw new NotFoundException('Group not found');
+    let working: IScimGroupRecord = {
+      ...existing,
+      members: cloneMembers(existing.members),
+    };
+    for (const op of ops) {
+      working = this.applyGroupPatchOp(working, op);
+    }
+    working.lastModifiedTime = new Date().toISOString();
+    this.groupStore.set(id, working);
+    return working;
+  }
+
+  async deleteGroup(id: string): Promise<void> {
+    const existing = this.groupStore.get(id);
+    if (!existing) throw new NotFoundException('Group not found');
+    this.groupStore.delete(id);
+  }
+
+  private applyGroupPatchOp(state: IScimGroupRecord, op: IScimGroupPatchOp): IScimGroupRecord {
+    if (!op.path) return this.applyGroupWholeResourceOp(state, op);
+    if (op.path === 'displayName') return this.applyGroupDisplayNameOp(state, op);
+    if (op.path === 'members') return this.applyGroupMembersPathOp(state, op);
+    return this.applyGroupMemberFilterOp(state, op);
+  }
+
+  private applyGroupWholeResourceOp(
+    state: IScimGroupRecord,
+    op: IScimGroupPatchOp
+  ): IScimGroupRecord {
+    if (op.op === 'remove') {
+      return { ...state, displayName: '', members: [] };
+    }
+    if (op.op !== 'replace' && op.op !== 'add') {
+      return state;
+    }
+    const v = (op.value ?? {}) as {
+      displayName?: string;
+      members?: IScimGroupMemberValue[];
+      externalId?: string;
+    };
+    return {
+      ...state,
+      displayName: v.displayName ?? state.displayName,
+      externalId: v.externalId ?? state.externalId,
+      members: v.members ? cloneMembers(v.members) : state.members,
+    };
+  }
+
+  private applyGroupDisplayNameOp(
+    state: IScimGroupRecord,
+    op: IScimGroupPatchOp
+  ): IScimGroupRecord {
+    if (op.op === 'remove') {
+      throw new BadRequestException('displayName cannot be removed');
+    }
+    return { ...state, displayName: String(op.value ?? '') };
+  }
+
+  private applyGroupMembersPathOp(
+    state: IScimGroupRecord,
+    op: IScimGroupPatchOp
+  ): IScimGroupRecord {
+    const incoming = (op.value ?? []) as IScimGroupMemberValue[];
+    if (op.op === 'remove') {
+      const toRemove = new Set(incoming.map((m) => m.value));
+      return {
+        ...state,
+        members: state.members.filter((m) => !toRemove.has(m.value)),
+      };
+    }
+    if (op.op !== 'add' && op.op !== 'replace') return state;
+    const known = new Set(state.members.map((m) => m.value));
+    const merged = [...state.members];
+    for (const m of incoming) {
+      if (!known.has(m.value)) {
+        merged.push({ ...m });
+        known.add(m.value);
+      }
+    }
+    return { ...state, members: merged };
+  }
+
+  private applyGroupMemberFilterOp(
+    state: IScimGroupRecord,
+    op: IScimGroupPatchOp
+  ): IScimGroupRecord {
+    const match = SCIM_GROUP_MEMBER_PATH_FILTER.exec(op.path ?? '');
+    if (!match) return state;
+    const targetId = match[1];
+    if (op.op === 'remove') {
+      return {
+        ...state,
+        members: state.members.filter((m) => m.value !== targetId),
+      };
+    }
+    const idx = state.members.findIndex((m) => m.value === targetId);
+    const incoming = (op.value ?? {}) as { display?: string };
+    if (idx >= 0) {
+      const next = [...state.members];
+      next[idx] = {
+        value: targetId,
+        display: incoming.display ?? state.members[idx].display,
+      };
+      return { ...state, members: next };
+    }
+    return {
+      ...state,
+      members: [...state.members, { value: targetId, display: incoming.display }],
+    };
   }
 }

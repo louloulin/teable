@@ -29,7 +29,8 @@
  * Wave 9 build brief — per-endpoint logic that grows past that should move
  * into ScimService.
  */
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 import { ScimService } from './scim.service';
 
