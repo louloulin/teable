@@ -1,0 +1,516 @@
+schema: comet.native.v4
+name: g2-005-business-enterprise-e2e-smoke
+language: zh-CN
+phase: build
+status: active
+state_version: 2
+brief: brief.md
+spec_changes:
+  - capability: g2-005-business-enterprise-e2e-smoke
+    operation: create
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/g2-005-business-enterprise-e2e-smoke
+  target_branch: agent/chong/df9d120d2105-stage6-audit-log
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**A1** `LicenseCapabilityService.snapshot()` plan=business 时,sso=true /
+      permission_matrix=true / admin_panel=true / automation=true / webhook=true
+      / audit_log_query=true。"
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: "**A2** `LicenseCapabilityService.snapshot()` plan=enterprise 时,所有
+      capability 全部 true。"
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: "**A3** `LicenseCapabilityService.snapshot()` plan=pro 时,sso=false /
+      permission_matrix=false / admin_panel=false / automation=false /
+      webhook=false / audit_log_query=false(严格不允许破线)。"
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: "**A4** `LicenseCapabilityService.snapshot()` plan=free 时,仅
+      ai_chat=true,其余付费 capability 全部 false。"
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: "**A5** `LicenseCapabilityGuard('sso').canActivate()` 在 plan=free /
+      plan=pro 下抛 `HttpErrorCode.LICENSE_REQUIRED`(或对应 402 状态);plan=business /
+      plan=enterprise / plan=self_hosted 下不抛、放行。"
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: "**A6** `LicenseCapabilityGuard('automation').canActivate()` 在
+      plan=business 下放行,在 plan=pro 下抛 402。"
+    result: pending
+    reason: null
+  - id: A7
+    source: brief.md
+    text: "**A7** `LicenseService.resolve({ token: 'plan:business' })` 返回 `{ source:
+      'env', claims: { plan: 'business', expiresAt: 0 }, effectiveLimits:
+      PLAN_LIMITS.business
+      }`,effectiveLimits.rowLimit=1_000_000、attachmentByteLimit=100GB、automatio\
+      nRunLimit=100_000、aiCreditLimit=2_000、apiRequestLimitPerSec=100(具体阈值以
+      quota.constants.ts PLAN_LIMITS.business 为准)。"
+    result: pending
+    reason: null
+  - id: A8
+    source: brief.md
+    text: "**A8** `LicenseService.resolve({ token: 'plan:enterprise' })` 返回
+      effectiveLimits 全字段 null;`QuotaService.consume({ plan: 'enterprise', ...
+      })` 命中 `isUnlimited()`,不抛 QuotaExceededException。"
+    result: pending
+    reason: null
+  - id: A9
+    source: brief.md
+    text: "**A9** `LicenseService.resolve({ token: 'plan:self_hosted' })` 返回
+      effectiveLimits 全字段 null,且 `isUnlimited()` 仍返回 true;CapabilityGuard
+      全放行(OSS 守门不挡)。"
+    result: pending
+    reason: null
+  - id: A10
+    source: brief.md
+    text: "**A10** 5-plan 全集 smoke 跑通:同一个 vitest 测试文件,5 个 describe block × 7 个 smoke
+      检查 = 至少 35 个 `it()`,全部 passed。"
+    result: pending
+    reason: null
+  - id: A11
+    source: brief.md
+    text: "**A11** `git diff agent/chong/df9d120d2105-stage6-audit-log --name-only`
+      显示只新增 source / spec 文件,无既有 handler 主体逻辑改动。"
+    result: pending
+    reason: null
+  - id: A12
+    source: brief.md
+    text: "**A12** `git diff` 显示 0 个 `package.json` / `pnpm-workspace.yaml` 改动。"
+    result: pending
+    reason: null
+  - id: A13
+    source: brief.md
+    text: "**A13** `e2e-business-enterprise-smoke.spec.ts` 至少 35 个 `it` 全绿,无 skipped
+      / todo。"
+    result: pending
+    reason: null
+  - id: A14
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: OSS 自部署用户启用 `TEABLE_LICENSE_KEY=plan:business` / `plan:enterprise` 后,所有
+      business/enterprise 独占 capability 应当真实可用(没有运行时 402 拦截)。本 spec 定义一整套 vitest
+      进程内的端到端 smoke,覆盖 5 个 plan × 全部 capability × PlanLimits 阈值,确保付费档位闭环。
+    result: pending
+    reason: null
+  - id: A15
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 入口:`apps/nestjs-backend/src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts`
+    result: pending
+    reason: null
+  - id: A16
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 共享
+      fixture:`apps/nestjs-backend/src/features/license/__tests__/license-plan-fixture.ts`(可选,把
+      5 个 plan 的 IResolvedLicense 抽出来)
+    result: pending
+    reason: null
+  - id: A17
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 可读文档:`docs/comet/changes/g2-005-business-enterprise-e2e-smoke/capability-matrix.md`
+    result: pending
+    reason: null
+  - id: A18
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| Capability | free | pro | business | enterprise | self_hosted (OSS) |"
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| --- | :-: | :-: | :-: | :-: | :-: |"
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| ai_chat | ✓ | ✓ | ✓ | ✓ | (guard 放行,isEnabled=false 但不抛) |"
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| ai_field | | ✓ | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| ai_app_builder | | ✓ | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| cuppy_claw | | ✓ | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| audit_log | | ✓ | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| sso | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| permission_matrix | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| custom_app_domain | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| custom_domain | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| admin_panel | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| users_read | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| spaces_read | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| templates_read | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| ai | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| quota_view | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| automation | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| webhook | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| audit_log_query | | | ✓ | ✓ | |"
+    result: pending
+    reason: null
+  - id: A38
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "**关键不变量**:"
+    result: pending
+    reason: null
+  - id: A39
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard.canActivate()` 对 `self_hosted` plan 永远返回
+      true(不抛),与 `isEnabled()=false` 共存(OSS 守门不挡)。"
+    result: pending
+    reason: null
+  - id: A40
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`free` / `pro` plan 下的 guard 对 business-only capability 抛
+      `HttpErrorCode.LICENSE_REQUIRED`(对应 HTTP 402 PAYMENT_REQUIRED)。"
+    result: pending
+    reason: null
+  - id: A41
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| Plan | rowLimit | attachmentByteLimit | automationRunLimit |
+      aiCreditLimit | apiRequestLimitPerSec |"
+    result: pending
+    reason: null
+  - id: A42
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| free | 1_000 | 1 GB | 100 | 200 | 10 |"
+    result: pending
+    reason: null
+  - id: A43
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| pro | 250_000 | 10 GB | 25_000 | 1_000 | 50 |"
+    result: pending
+    reason: null
+  - id: A44
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| business | 1_000_000 | 100 GB | 100_000 | 2_000 | 100 |"
+    result: pending
+    reason: null
+  - id: A45
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| enterprise | null | null | null | null | null |"
+    result: pending
+    reason: null
+  - id: A46
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "| self_hosted | null | null | null | null | null |"
+    result: pending
+    reason: null
+  - id: A47
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "> 实现以 `apps/nestjs-backend/src/features/quota/quota.constants.ts`
+      PLAN_LIMITS 的真实值为准;若有调整,本 spec 必须同步更新。"
+    result: pending
+    reason: null
+  - id: A48
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`e2e-business-enterprise-smoke.spec.ts` 必须包含 5 个 `describe` block × 7 个
+      smoke 检查:"
+    result: pending
+    reason: null
+  - id: A49
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: snapshot 包含全部 business-only capability 为 true
+    result: pending
+    reason: null
+  - id: A50
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('sso').canActivate(ctx)` 不抛"
+    result: pending
+    reason: null
+  - id: A51
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('automation').canActivate(ctx)` 不抛"
+    result: pending
+    reason: null
+  - id: A52
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseService.resolve({ token: 'plan:business' }).effectiveLimits` 与
+      PLAN_LIMITS.business 一致"
+    result: pending
+    reason: null
+  - id: A53
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseService.resolve({ token: 'plan:business' }).source === 'env'`"
+    result: pending
+    reason: null
+  - id: A54
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: quota consume 不抛(行数 < 1_000_000)
+    result: pending
+    reason: null
+  - id: A55
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: HTTP 200 模拟:在 in-memory controller 上挂 LicenseCapabilityGuard('sso'),请求应放行
+    result: pending
+    reason: null
+  - id: A56
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: snapshot 全部 capability 为 true
+    result: pending
+    reason: null
+  - id: A57
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 所有 guard 都放行
+    result: pending
+    reason: null
+  - id: A58
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: effectiveLimits 全 null
+    result: pending
+    reason: null
+  - id: A59
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`isUnlimited(enterprise)` 各字段均为 true"
+    result: pending
+    reason: null
+  - id: A60
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: quota consume 不抛(无 cap 限制)
+    result: pending
+    reason: null
+  - id: A61
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 自定义"amount = 10^12 行"也放行(unlimited 路径)
+    result: pending
+    reason: null
+  - id: A62
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: HTTP 200 模拟:全 capability guard 都放行
+    result: pending
+    reason: null
+  - id: A63
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: snapshot 中 sso=false / permission_matrix=false / admin_panel=false /
+      automation=false / webhook=false / audit_log_query=false /
+      users_read=false / spaces_read=false / templates_read=false
+    result: pending
+    reason: null
+  - id: A64
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('sso').canActivate(ctx)` 抛
+      HttpErrorCode.LICENSE_REQUIRED"
+    result: pending
+    reason: null
+  - id: A65
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('automation').canActivate(ctx)` 抛
+      HttpErrorCode.LICENSE_REQUIRED"
+    result: pending
+    reason: null
+  - id: A66
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('webhook').canActivate(ctx)` 抛
+      HttpErrorCode.LICENSE_REQUIRED"
+    result: pending
+    reason: null
+  - id: A67
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('audit_log_query').canActivate(ctx)` 抛
+      HttpErrorCode.LICENSE_REQUIRED"
+    result: pending
+    reason: null
+  - id: A68
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: effectiveLimits 与 PLAN_LIMITS.pro 一致
+    result: pending
+    reason: null
+  - id: A69
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: snapshot 中仅 ai_chat=true
+    result: pending
+    reason: null
+  - id: A70
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 其他付费 capability 全部 false
+    result: pending
+    reason: null
+  - id: A71
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('sso').canActivate(ctx)` 抛 402"
+    result: pending
+    reason: null
+  - id: A72
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: effectiveLimits 与 PLAN_LIMITS.free 一致
+    result: pending
+    reason: null
+  - id: A73
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: snapshot 全部 capability 为 false
+    result: pending
+    reason: null
+  - id: A74
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('sso').canActivate(ctx)` **不抛**(放行)"
+    result: pending
+    reason: null
+  - id: A75
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('automation').canActivate(ctx)` **不抛**(放行)"
+    result: pending
+    reason: null
+  - id: A76
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: "`LicenseCapabilityGuard('webhook').canActivate(ctx)` **不抛**(放行)"
+    result: pending
+    reason: null
+  - id: A77
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: effectiveLimits 全字段 null
+    result: pending
+    reason: null
+  - id: A78
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 关键:这是 self_hosted 与 free 的本质区别 — free 会抛 402,self_hosted 不会
+    result: pending
+    reason: null
+  - id: A79
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: A1 - A13(详见
+      `docs/comet/changes/g2-005-business-enterprise-e2e-smoke/brief.md` 的
+      Acceptance examples)
+    result: pending
+    reason: null
+  - id: A80
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 零既有 handler 主体改动。
+    result: pending
+    reason: null
+  - id: A81
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 零新增 npm 依赖。
+    result: pending
+    reason: null
+  - id: A82
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: AGPL-3.0 合规,全部源码在本仓库。
+    result: pending
+    reason: null
+  - id: A83
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: vitest in-process,不动 Postgres / Redis。
+    result: pending
+    reason: null
+  - id: A84
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: Playwright / 真后端 / curl / live infra 烟测(defer 到 G2-010)。
+    result: pending
+    reason: null
+  - id: A85
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 改 LicenseCapabilityService.PLAN_CAPABILITIES 表(若需要新增 enterprise 独占
+      capability,留独立 change)。
+    result: pending
+    reason: null
+  - id: A86
+    source: specs/g2-005-business-enterprise-e2e-smoke/spec.md
+    text: 写 CapabilityGuard 单元测试(已有 `license-capability.service.spec.ts`)。
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-26T03:26:08.407Z

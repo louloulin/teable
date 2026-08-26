@@ -9,7 +9,7 @@ import { LicenseCapability, LicenseCapabilityService } from './license-capabilit
  */
 @Injectable()
 export class LicenseCapabilityGuard implements CanActivate {
-  private readonly cap: LicenseCapability;
+  private cap: LicenseCapability;
   constructor(private readonly caps: LicenseCapabilityService) {
     // Default capability — overridden by the `for()` factory below.
     this.cap = 'ai_chat';
@@ -26,6 +26,12 @@ export class LicenseCapabilityGuard implements CanActivate {
   }
 
   canActivate(_context: ExecutionContext): boolean {
+    // OSS zero-impact: a self_hosted install (no license configured) never
+    // throws at the route guard — capability gates are advisory in that mode
+    // so the default OSS install works end-to-end without a license key.
+    if (this.caps.currentPlan() === 'self_hosted') {
+      return true;
+    }
     if (!this.caps.isEnabled(this.cap)) {
       // Throw via the same path as require() so the error surface matches.
       this.caps.require(this.cap);
