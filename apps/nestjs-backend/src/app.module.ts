@@ -41,6 +41,7 @@ import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-se
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
+import { NotionModule } from './features/notion/notion.module';
 import { OAuthModule } from './features/oauth/oauth.module';
 import { OAuthServerModule } from './features/oauth-server/oauth-server.module';
 import { OrganizationModule } from './features/organization/organization.module';
@@ -113,6 +114,7 @@ export const appModules = {
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
+    NotionModule,
     ExportOpenApiModule,
     PinModule,
     SettingAdminOpenApiModule,
