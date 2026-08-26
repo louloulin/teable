@@ -175,6 +175,9 @@
     "personal": {
       "title": "Personal"
     },
+    "webhook": {
+      "title": "Webhook delivery"
+    },
     "apiExplorer": {
       "title": "API Explorer",
       "description": "Browse and try out the public Teable REST API in your browser.",
@@ -1121,6 +1124,30 @@
         "headers": {
           "name": "Display name",
           "members": "Members"
+        }
+      }
+    },
+    "webhook": {
+      "title": "Webhook delivery",
+      "description": "Inspect and re-queue webhook deliveries that landed in the dead-letter queue.",
+      "deadLetter": {
+        "title": "Dead-letter deliveries",
+        "loadError": "Could not load dead-letter deliveries. Try refreshing the page.",
+        "empty": "No dead-letter deliveries. Nothing to retry.",
+        "refresh": "Refresh list",
+        "headers": {
+          "id": "Delivery id",
+          "endpoint": "Endpoint",
+          "attempts": "Attempts",
+          "lastError": "Last error",
+          "actions": "Actions"
+        },
+        "retry": {
+          "button": "Retry",
+          "confirmTitle": "Retry delivery?",
+          "confirm": "Re-queue delivery {{id}}? The original dead-letter row is preserved.",
+          "success": "Re-queued. New attempt id: {{attemptId}}",
+          "error": "Retry failed: {{message}}"
         }
       }
     }
