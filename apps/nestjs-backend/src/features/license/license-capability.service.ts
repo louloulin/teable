@@ -39,7 +39,12 @@ export type LicenseCapability =
   // Stage 14 webhook outbound — Business+ only
   | 'webhook'
   // Stage 52 audit log query DSL — Business+ only
-  | 'audit_log_query';
+  | 'audit_log_query'
+  // Wave H (g2-008) — Business+ only
+  | 'byok_llm'
+  | 'byok_kms'
+  | 'kms_encryption'
+  | 'workspace_mirror';
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -69,6 +74,10 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'automation',
     'webhook',
     'audit_log_query',
+    'byok_llm',
+    'byok_kms',
+    'kms_encryption',
+    'workspace_mirror',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -89,6 +98,10 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'automation',
     'webhook',
     'audit_log_query',
+    'byok_llm',
+    'byok_kms',
+    'kms_encryption',
+    'workspace_mirror',
   ]),
   self_hosted: new Set<LicenseCapability>(),
 };
@@ -115,6 +128,11 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'webhook',
   // Stage 52 audit log query DSL — Business+ only
   'audit_log_query',
+  // Wave H (g2-008) — Business+ only
+  'byok_llm',
+  'byok_kms',
+  'kms_encryption',
+  'workspace_mirror',
 ];
 
 @Injectable()
