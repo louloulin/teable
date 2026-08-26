@@ -1120,6 +1120,27 @@
           "members": "成员"
         }
       }
+    },
+    "notion": {
+      "title": "Notion 导入",
+      "connect": "连接 Notion",
+      "connecting": "正在连接…",
+      "connected": "已连接到 {{workspace}}",
+      "disconnected": "尚未连接 Notion",
+      "import": "开始导入",
+      "importing": "正在导入…",
+      "importSuccess": "已导入 {{imported}} 条记录（跳过 {{skipped}} 条）。",
+      "importError": "导入失败",
+      "disconnect": "断开连接",
+      "disconnectConfirm": "确认断开 Notion 连接？随时可以重新连接。",
+      "selectDatabase": "选择一个 Notion 数据库",
+      "targetBase": "目标 base（空间）",
+      "targetTable": "目标表 id",
+      "error": {
+        "invalidCode": "Notion 授权码无效。",
+        "tokenExpired": "Notion 令牌已过期或被撤销，请重新连接。",
+        "popupBlocked": "浏览器拦截了弹窗，请在站点设置中允许弹窗后再启动 Notion OAuth。"
+      }
     }
   },
   "notification": {
