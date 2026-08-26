@@ -38,9 +38,10 @@ export class ViewPermissionController {
   @Get()
   async list(
     @Param('viewId') viewId: string,
-    @Query('caller') caller: string
+    @Query('caller') caller: string,
+    @Query('viewCreatorId') viewCreatorId: string
   ): Promise<{ rows: IViewPermissionRow[] }> {
-    await this.assertOwner({ viewId, caller });
+    await this.assertOwner({ viewId, caller, viewCreatorId });
     return { rows: await this.service.list(viewId) };
   }
 
@@ -49,9 +50,10 @@ export class ViewPermissionController {
   async grant(
     @Param('viewId') viewId: string,
     @Query('caller') caller: string,
+    @Query('viewCreatorId') viewCreatorId: string,
     @Body() body: IViewPermissionInput
   ): Promise<IViewPermissionRow> {
-    await this.assertOwner({ viewId, caller });
+    await this.assertOwner({ viewId, caller, viewCreatorId });
     return this.service.grant(viewId, body);
   }
 
@@ -60,10 +62,11 @@ export class ViewPermissionController {
   async revoke(
     @Param('viewId') viewId: string,
     @Query('caller') caller: string,
+    @Query('viewCreatorId') viewCreatorId: string,
     @Query('subjectKind') subjectKind: ViewSubjectKind,
     @Query('subjectId') subjectId: string
   ): Promise<{ revoked: boolean }> {
-    await this.assertOwner({ viewId, caller });
+    await this.assertOwner({ viewId, caller, viewCreatorId });
     if (!subjectKind || !subjectId) {
       throw new BadRequestException('subjectKind + subjectId required');
     }
@@ -98,18 +101,27 @@ export class ViewPermissionController {
    * creator id. We treat missing caller as 401-equivalent (403 is fine
    * since the caller is anonymous).
    */
-  private async assertOwner(args: { viewId: string; caller: string }): Promise<void> {
+  private async assertOwner(args: {
+    viewId: string;
+    caller: string;
+    viewCreatorId?: string;
+  }): Promise<void> {
     if (!args.caller) {
       throw new ForbiddenException('caller required');
     }
-    // Real owner verification will read view_meta.created_by in a follow-up
-    // commit once we have the resolve endpoint wired to the views table.
-    // For now we delegate to the service's resolve() with the caller as
-    // both userId and viewCreatorId so the owner bypass fires when the
-    // caller IS the creator. Non-creators get denied.
+    if (!args.viewCreatorId) {
+      throw new BadRequestException('viewCreatorId required');
+    }
+    // Caller must equal the view's actual creator (owner bypass).
+    // Previously this was passing caller as viewCreatorId too, which
+    // made every authenticated caller its own owner — see G1-035.
+    if (args.caller !== args.viewCreatorId) {
+      throw new ForbiddenException('only the view owner may change ACL');
+    }
+    // Belt-and-braces: also let the service resolve and confirm 'owner'.
     const level = await this.service.resolve({
       viewId: args.viewId,
-      viewCreatorId: args.caller,
+      viewCreatorId: args.viewCreatorId,
       userId: args.caller,
       roleIds: [],
     });

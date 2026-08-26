@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -96,6 +96,7 @@ export class BackupService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Optional()
     opts?: {
       store?: IBackupStore;
       marshaller?: (baseId: string) => Promise<IBackupManifest>;

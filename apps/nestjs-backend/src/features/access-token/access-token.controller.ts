@@ -15,6 +15,7 @@ import {
   updateAccessTokenRoSchema,
   RefreshAccessTokenRo,
 } from '@teable/openapi';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { AccessTokenService } from './access-token.service';
 
@@ -23,6 +24,7 @@ export class AccessTokenController {
   constructor(private readonly accessTokenService: AccessTokenService) {}
 
   @Post()
+  @Permissions('user|integrations')
   async createAccessToken(
     @Body(new ZodValidationPipe(createAccessTokenRoSchema)) body: CreateAccessTokenRo
   ): Promise<CreateAccessTokenVo> {
@@ -30,6 +32,7 @@ export class AccessTokenController {
   }
 
   @Put(':accessTokenId')
+  @Permissions('user|integrations')
   async updateAccessToken(
     @Param('accessTokenId') accessTokenId: string,
     @Body(new ZodValidationPipe(updateAccessTokenRoSchema)) body: UpdateAccessTokenRo
@@ -38,12 +41,14 @@ export class AccessTokenController {
   }
 
   @Delete(':accessTokenId')
+  @Permissions('user|integrations')
   async deleteAccessToken(@Param('accessTokenId') accessTokenId: string) {
     return await this.accessTokenService.deleteAccessToken(accessTokenId);
   }
 
   @Post('/:accessTokenId/refresh')
   @HttpCode(200)
+  @Permissions('user|integrations')
   async refreshAccessToken(
     @Param('accessTokenId') accessTokenId: string,
     @Body(new ZodValidationPipe(refreshAccessTokenRoSchema)) body: RefreshAccessTokenRo
@@ -52,11 +57,13 @@ export class AccessTokenController {
   }
 
   @Get()
+  @Permissions('user|integrations')
   async getAccessTokens(): Promise<ListAccessTokenVo> {
     return await this.accessTokenService.listAccessToken();
   }
 
   @Get(':accessTokenId')
+  @Permissions('user|integrations')
   async getAccessToken(@Param('accessTokenId') accessTokenId: string): Promise<GetAccessTokenVo> {
     return await this.accessTokenService.getAccessToken(accessTokenId);
   }

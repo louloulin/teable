@@ -156,10 +156,11 @@ export class AccessTokenService {
     }),
     emit: true,
   })
-  async createAccessToken(
-    createAccessToken: CreateAccessTokenRo & { clientId?: string; userId?: string }
-  ) {
-    const userId = createAccessToken.userId ?? this.cls.get('user.id')!;
+  async createAccessToken(createAccessToken: CreateAccessTokenRo & { clientId?: string }) {
+    // G1-036: never accept userId from the request body — always use the
+    // authenticated session identity. Otherwise any logged-in user could
+    // mint an access token bound to another user's account.
+    const userId = this.cls.get('user.id')!;
     const { name, description, scopes, spaceIds, baseIds, expiredTime, clientId, hasFullAccess } =
       createAccessToken;
     const id = generateAccessTokenId();

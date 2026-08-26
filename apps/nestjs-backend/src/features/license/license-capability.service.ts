@@ -34,7 +34,13 @@ export type LicenseCapability =
   | 'spaces_read'
   | 'templates_read'
   | 'ai'
-  | 'quota_view';
+  | 'quota_view'
+  // Stage 13 automation — Business+ only
+  | 'automation'
+  // Stage 14 webhook outbound — Business+ only
+  | 'webhook'
+  // Stage 52 audit log query DSL — Business+ only
+  | 'audit_log_query';
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -61,6 +67,9 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'templates_read',
     'ai',
     'quota_view',
+    'automation',
+    'webhook',
+    'audit_log_query',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -78,6 +87,9 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'templates_read',
     'ai',
     'quota_view',
+    'automation',
+    'webhook',
+    'audit_log_query',
   ]),
   self_hosted: new Set<LicenseCapability>(),
 };

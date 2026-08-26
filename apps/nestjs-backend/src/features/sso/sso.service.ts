@@ -59,26 +59,28 @@ export class SsoService {
     }
     // Validate discovery synchronously so admin gets immediate feedback.
     const discovery = await this.fetchDiscovery(input.issuer, input.discoveryUrl);
-    return this.prisma.ssoIdentityProvider.create({
-      data: {
-        organizationId: input.organizationId,
-        name: input.name,
-        issuer: input.issuer,
-        clientId: input.clientId,
-        clientSecret: input.clientSecret,
-        discoveryUrl: input.discoveryUrl ?? null,
-        emailDomain: input.emailDomain.toLowerCase(),
-        type: 'oidc',
-        status: 'active',
-        lastCheckedAt: new Date(),
-        createdBy: input.createdBy,
-      },
-    }).then(async (row) => {
-      this.logger.log(
-        `registered OIDC provider ${row.id} for ${input.emailDomain} (discovery ok: ${discovery.issuer === input.issuer})`
-      );
-      return row;
-    });
+    return this.prisma.ssoIdentityProvider
+      .create({
+        data: {
+          organizationId: input.organizationId,
+          name: input.name,
+          issuer: input.issuer,
+          clientId: input.clientId,
+          clientSecret: input.clientSecret,
+          discoveryUrl: input.discoveryUrl ?? null,
+          emailDomain: input.emailDomain.toLowerCase(),
+          type: 'oidc',
+          status: 'active',
+          lastCheckedAt: new Date(),
+          createdBy: input.createdBy,
+        },
+      })
+      .then(async (row) => {
+        this.logger.log(
+          `registered OIDC provider ${row.id} for ${input.emailDomain} (discovery ok: ${discovery.issuer === input.issuer})`
+        );
+        return row;
+      });
   }
 
   async listProviders(organizationId: string) {
@@ -103,17 +105,10 @@ export class SsoService {
    * CSRF state token is persisted so the callback can correlate the
    * redirect back to the originating request.
    */
-  async startLogin(input: {
-    emailHint?: string;
-    organizationId?: string;
-    redirectTo?: string;
-  }) {
+  async startLogin(input: { emailHint?: string; organizationId?: string; redirectTo?: string }) {
     const provider = await this.resolveProvider(input.emailHint, input.organizationId);
     if (!provider) {
-      throw new CustomHttpException(
-        'no SSO provider for this domain',
-        HttpErrorCode.NOT_FOUND
-      );
+      throw new CustomHttpException('no SSO provider for this domain', HttpErrorCode.NOT_FOUND);
     }
     const discovery = await this.fetchDiscovery(provider.issuer, provider.discoveryUrl);
     const state = randomBytes(24).toString('hex');
@@ -159,7 +154,7 @@ export class SsoService {
       where: { id: stateRow.providerId },
     });
     if (!provider || provider.status !== SsoConnectionStatus.active) {
-      throw new CustomHttpException('provider inactive', HttpErrorCode.FAILED);
+      throw new CustomHttpException('provider inactive', HttpErrorCode.VALIDATION);
     }
     const discovery = await this.fetchDiscovery(provider.issuer, provider.discoveryUrl);
     const tokens = await this.exchangeCode({
@@ -168,7 +163,11 @@ export class SsoService {
       clientSecret: provider.clientSecret ?? '',
       code: input.code,
     });
-    const claims = await this.verifyIdToken(tokens.id_token, provider.issuer, provider.clientId ?? '');
+    const claims = await this.verifyIdToken(
+      tokens.id_token,
+      provider.issuer,
+      provider.clientId ?? ''
+    );
     // Single-use state is now marked consumed by `SsoAuthService.completeCallback`
     // inside the same transaction as the user resolve — Stage 4.1. Leaving the
     // row unconsumed here means a half-completed callback (id_token ok but user
@@ -243,20 +242,19 @@ export class SsoService {
   async fetchDiscovery(issuer: string, override?: string | null): Promise<ISsoDiscoveryDoc> {
     const cached = this.discoveryCache.get(issuer);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
-    const url =
-      override ?? `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
+    const url = override ?? `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new CustomHttpException(
         `discovery failed: ${res.status}`,
-        HttpErrorCode.FAILED
+        HttpErrorCode.FAILED_DEPENDENCY
       );
     }
     const doc = (await res.json()) as ISsoDiscoveryDoc;
     if (!doc.authorization_endpoint || !doc.token_endpoint || !doc.jwks_uri) {
       throw new CustomHttpException(
         'discovery missing required endpoints',
-        HttpErrorCode.FAILED
+        HttpErrorCode.FAILED_DEPENDENCY
       );
     }
     this.discoveryCache.set(issuer, {
@@ -284,7 +282,9 @@ export class SsoService {
     if (header.alg !== 'RS256') {
       throw new CustomHttpException('unsupported alg', HttpErrorCode.VALIDATION);
     }
-    const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as ISsoIdTokenClaims;
+    const claims = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8')
+    ) as ISsoIdTokenClaims;
     if (claims.iss !== expectedIssuer) {
       throw new CustomHttpException('iss mismatch', HttpErrorCode.VALIDATION);
     }
@@ -318,7 +318,7 @@ export class SsoService {
     if (cached && cached.expiresAt > Date.now()) return cached.value;
     const res = await fetch(uri);
     if (!res.ok) {
-      throw new CustomHttpException(`jwks failed: ${res.status}`, HttpErrorCode.FAILED);
+      throw new CustomHttpException(`jwks failed: ${res.status}`, HttpErrorCode.FAILED_DEPENDENCY);
     }
     const doc = (await res.json()) as { keys: Array<Record<string, string>> };
     const map: Record<string, string> = {};
@@ -368,7 +368,7 @@ export class SsoService {
       const text = await res.text();
       throw new CustomHttpException(
         `token exchange failed: ${res.status} ${text}`,
-        HttpErrorCode.FAILED
+        HttpErrorCode.FAILED_DEPENDENCY
       );
     }
     return (await res.json()) as { id_token: string; access_token: string };

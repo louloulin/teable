@@ -57,7 +57,7 @@ export class CustomDomainController {
   private requireUserId(): string {
     const userId = this.cls.get('user.id');
     if (!userId) {
-      throw new CustomHttpException('user context missing', HttpErrorCode.FORBIDDEN);
+      throw new CustomHttpException('user context missing', HttpErrorCode.RESTRICTED_RESOURCE);
     }
     return userId;
   }

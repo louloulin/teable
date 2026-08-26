@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 
+import { Public } from '../auth/decorators/public.decorator';
 import { LicenseCapabilityService } from './license-capability.service';
 
 /**
@@ -15,11 +16,13 @@ import { LicenseCapabilityService } from './license-capability.service';
 export class LicenseCapabilityController {
   constructor(private readonly caps: LicenseCapabilityService) {}
 
+  @Public()
   @Get('capabilities')
   capabilities() {
     return this.caps.snapshot();
   }
 
+  @Public()
   @Get('plan')
   plan() {
     return { plan: this.caps.currentPlan() };

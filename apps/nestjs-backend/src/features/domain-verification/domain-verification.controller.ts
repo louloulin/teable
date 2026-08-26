@@ -1,17 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { HttpErrorCode } from '@teable/core';
 import { ClsService } from 'nestjs-cls';
 
 import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { DomainVerificationService } from './domain-verification.service';
 
 interface IClaimBody {
@@ -33,12 +26,13 @@ interface IBindAppBody {
  *   - flip the SSO / custom-app binding once verified
  *   - revoke the claim
  *
- * Auth gate intentionally left to the caller's existing role middleware
- * (organization Owner) — wiring that policy into the controller is a
- * single line per route via `@RequireRole(Role.Owner)` once the project's
- * role decorators stabilize.
+ * Capability gate: requires `custom_domain` license capability
+ * (Business+ only — same gate as custom-domain controller).
  */
+const DomainVerificationGuard = LicenseCapabilityGuard.for('custom_domain');
+
 @Controller('api/admin/domain-verification')
+@UseGuards(DomainVerificationGuard)
 export class DomainVerificationController {
   constructor(
     private readonly service: DomainVerificationService,
@@ -77,13 +71,18 @@ export class DomainVerificationController {
 
   private requireOrgId(): string {
     const orgId = this.cls.get('organizationId');
-    if (!orgId) throw new CustomHttpException('organization context missing', HttpErrorCode.FORBIDDEN);
+    if (!orgId)
+      throw new CustomHttpException(
+        'organization context missing',
+        HttpErrorCode.RESTRICTED_RESOURCE
+      );
     return orgId;
   }
 
   private requireUserId(): string {
     const userId = this.cls.get('user.id');
-    if (!userId) throw new CustomHttpException('user context missing', HttpErrorCode.FORBIDDEN);
+    if (!userId)
+      throw new CustomHttpException('user context missing', HttpErrorCode.RESTRICTED_RESOURCE);
     return userId;
   }
 }

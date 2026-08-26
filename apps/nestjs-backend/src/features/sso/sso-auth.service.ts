@@ -61,7 +61,10 @@ export class SsoAuthService {
       avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
     });
     if (!user) {
-      throw new CustomHttpException('failed to resolve user from SSO claims', HttpErrorCode.FAILED);
+      throw new CustomHttpException(
+        'failed to resolve user from SSO claims',
+        HttpErrorCode.UNAUTHORIZED
+      );
     }
     if (user.deactivatedTime) {
       throw new CustomHttpException('account deactivated', HttpErrorCode.RESTRICTED_RESOURCE);
@@ -123,7 +126,10 @@ export class SsoAuthService {
       return resolved;
     });
     if (!user) {
-      throw new CustomHttpException('failed to resolve user from SSO claims', HttpErrorCode.FAILED);
+      throw new CustomHttpException(
+        'failed to resolve user from SSO claims',
+        HttpErrorCode.UNAUTHORIZED
+      );
     }
     if (user.deactivatedTime) {
       throw new CustomHttpException('account deactivated', HttpErrorCode.RESTRICTED_RESOURCE);

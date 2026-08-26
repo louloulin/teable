@@ -1,4 +1,3 @@
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
 
@@ -7,22 +6,12 @@ import { DomainVerificationModule } from '../domain-verification/domain-verifica
 import { LicenseModule } from '../license/license.module';
 import { SsoController } from './sso.controller';
 import { SsoAuthService } from './sso-auth.service';
-import { SsoLoginStateCleanupProcessor } from './sso-login-state-cleanup.processor';
-import {
-  SSO_LOGIN_STATE_CLEANUP_QUEUE,
-} from './sso.constants';
 import { SsoService } from './sso.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    LicenseModule,
-    DomainVerificationModule,
-    UserModule,
-    BullModule.registerQueue({ name: SSO_LOGIN_STATE_CLEANUP_QUEUE }),
-  ],
+  imports: [PrismaModule, LicenseModule, DomainVerificationModule, UserModule],
   controllers: [SsoController],
-  providers: [SsoService, SsoAuthService, SsoLoginStateCleanupProcessor],
+  providers: [SsoService, SsoAuthService],
   exports: [SsoService, SsoAuthService],
 })
 export class SsoModule {}
