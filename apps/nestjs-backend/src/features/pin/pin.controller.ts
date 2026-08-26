@@ -9,11 +9,15 @@ import {
   updatePinOrderRoSchema,
 } from '@teable/openapi';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { PinAuthService } from './pin.auth.service';
 import { PinService } from './pin.service';
 
 @Controller('api/pin')
 export class PinController {
-  constructor(private readonly pinService: PinService) {}
+  constructor(
+    private readonly pinService: PinService,
+    private readonly pinAuthService: PinAuthService
+  ) {}
 
   @Post()
   async add(@Body(new ZodValidationPipe(addPinRoSchema)) query: AddPinRo) {
@@ -33,5 +37,10 @@ export class PinController {
   @Put('order')
   async updateOrder(@Body(new ZodValidationPipe(updatePinOrderRoSchema)) body: UpdatePinOrderRo) {
     return this.pinService.updateOrder(body);
+  }
+
+  @Get('resolve')
+  async resolve(@Query('tableId') tableId: string, @Query('recordId') recordId: string) {
+    return this.pinAuthService.resolvePin(tableId, recordId);
   }
 }

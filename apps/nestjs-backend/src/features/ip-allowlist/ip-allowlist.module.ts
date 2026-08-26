@@ -1,27 +1,20 @@
-import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '@teable/db-main-prisma';
-import { LicenseModule } from '../license/license.module';
+
+import { IpAllowlistAuthService } from './ip-allowlist.auth.service';
 import { IpAllowlistController } from './ip-allowlist.controller';
 import { IpAllowlistMiddleware } from './ip-allowlist.middleware';
 import { IpAllowlistService } from './ip-allowlist.service';
 
 /**
- * The middleware is exported (not just registered as APP_* here) so the global
- * module can attach it via `consumer.apply(...).forRoutes('*')` — keeping the
- * "global middleware" pattern consistent with RequestInfoMiddleware and
- * SessionCsrfMiddleware, which are also wired from GlobalModule.configure.
+ * IP allowlist module — thin-DI wrapper (Stage N).
+ *
+ * Carries the existing controller/middleware/service as-is and adds the
+ * auth-only surface (`IpAllowlistAuthService`) so callers can evaluate an
+ * IP without pulling in the full middleware pipeline.
  */
 @Module({
-  imports: [PrismaModule, LicenseModule],
+  providers: [IpAllowlistService, IpAllowlistMiddleware, IpAllowlistAuthService],
   controllers: [IpAllowlistController],
-  providers: [IpAllowlistService, IpAllowlistMiddleware],
-  exports: [IpAllowlistService, IpAllowlistMiddleware],
+  exports: [IpAllowlistService, IpAllowlistMiddleware, IpAllowlistAuthService],
 })
-export class IpAllowlistModule implements NestModule {
-  // Middleware is mounted from GlobalModule.configure so it runs alongside the
-  // other global middlewares (ClsMiddleware, SessionCsrfMiddleware,
-  // RequestInfoMiddleware). No-op here keeps Nest happy when the module is
-  // imported but not directly mounted.
-  configure(_consumer: MiddlewareConsumer): void {}
-}
+export class IpAllowlistModule {}
