@@ -68,6 +68,7 @@ import { UserModule } from './features/user/user.module';
 import { ViewPermissionModule } from './features/view-permission/view-permission.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
+import { WebhookDeliveryModule } from './features/webhook-delivery/webhook-delivery.module';
 import { GlobalModule } from './global/global.module';
 import { InitBootstrapProvider } from './global/init-bootstrap.provider';
 import { LoggerModule } from './logger/logger.module';
@@ -144,6 +145,7 @@ export const appModules = {
     ObservabilityModule,
     BuiltinAssetsInitModule,
     V2Module,
+    WebhookDeliveryModule,
     ComputedOutboxWakeupConsumerModule.register(),
   ],
   providers: [InitBootstrapProvider],
