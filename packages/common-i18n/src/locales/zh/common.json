@@ -179,6 +179,9 @@
     "personal": {
       "title": "个人"
     },
+    "webhook": {
+      "title": "Webhook 投递"
+    },
     "apiExplorer": {
       "title": "API 浏览器",
       "description": "在浏览器中浏览并试用公开的 Teable REST API。",
@@ -1118,6 +1121,30 @@
         "headers": {
           "name": "显示名",
           "members": "成员"
+        }
+      }
+    },
+    "webhook": {
+      "title": "Webhook 投递",
+      "description": "查看并重新投递已进入死信队列的 Webhook。",
+      "deadLetter": {
+        "title": "死信投递",
+        "loadError": "加载死信投递失败，请刷新页面。",
+        "empty": "暂无死信投递，无需重新投递。",
+        "refresh": "刷新列表",
+        "headers": {
+          "id": "投递 ID",
+          "endpoint": "端点",
+          "attempts": "尝试次数",
+          "lastError": "最近错误",
+          "actions": "操作"
+        },
+        "retry": {
+          "button": "重新投递",
+          "confirmTitle": "确认重新投递？",
+          "confirm": "将投递 {{id}} 重新入队？原死信记录将保留。",
+          "success": "已重新入队，新投递 ID：{{attemptId}}",
+          "error": "重新投递失败：{{message}}"
         }
       }
     }
