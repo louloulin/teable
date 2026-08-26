@@ -2,7 +2,7 @@ import swc from 'unplugin-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { configDefaults, defineConfig } from 'vitest/config';
 
-const testFiles = ['**/src/**/*.{test,spec}.{js,ts}'];
+const testFiles = ['**/src/**/*.{test,spec}.{js,ts}', '**/test/**/*.{test,spec}.{js,ts}'];
 
 export default defineConfig({
   resolve: {
