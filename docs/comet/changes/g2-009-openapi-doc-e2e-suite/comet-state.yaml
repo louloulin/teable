@@ -1,0 +1,302 @@
+schema: comet.native.v4
+name: g2-009-openapi-doc-e2e-suite
+language: zh-CN
+phase: archive
+status: active
+state_version: 8
+brief: brief.md
+spec_changes: []
+workspace:
+  isolation: worktree
+  change_branch: comet/g2-009-openapi-doc-e2e-suite
+  target_branch: agent/chong/df9d120d2105-stage6-audit-log
+  finish: merge
+loop:
+  stage: archive-ready
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: archive
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**GA1
+      文件存在**:`apps/nestjs-backend/src/features/openapi-doc/openapi-doc.controll\
+      er.ts`、`apps/nestjs-backend/src/features/openapi-doc/openapi-doc.module.t\
+      s`、`apps/nestjs-backend/test/openapi-e2e.spec.ts` 三个文件全部存在。"
+    result: passed
+    reason:
+      text: "All three files exist:
+        apps/nestjs-backend/src/features/openapi-doc/openapi-doc.controller.ts
+        (2980 bytes), openapi-doc.module.ts (250 bytes), and
+        test/openapi-e2e.spec.ts (5872 bytes) — confirmed via ls."
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**GA2 模块注册**:`app.module.ts` 的 `imports` 数组中包含 `OpenApiDocModule`,且
+      imports 段有对应 `import { OpenApiDocModule } from
+      './features/openapi-doc/openapi-doc.module'`"
+    result: passed
+    reason:
+      text: apps/nestjs-backend/src/app.module.ts:53 has `import { OpenApiDocModule }
+        from './features/openapi-doc/openapi-doc.module'` and line 113 places
+        `OpenApiDocModule,` inside the `imports` array of `appModules`.
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**GA3 openapi.json 端点行为**:`GET /openapi/openapi.json` 返回
+      200,`Content-Type: application/json`;`body.paths` 至少包含一条 `auth` 路径(含
+      `signin`)与一条 `base` 路径。"
+    result: passed
+    reason:
+      text: test/openapi-e2e.spec.ts:113-123 GET /openapi/openapi.json returns 200,
+        content-type matches application/json, and body.paths contains a
+        `/auth/.*signin` path and a `/base` path — vitest run confirmed the it()
+        passes.
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: '**GA4 docs HTML 端点行为**:`GET /openapi/docs` 返回 200,`Content-Type:
+      text/html; charset=utf-8`;响应体包含 `<div id="app"></div>` 与
+      `Scalar.createApiReference`。'
+    result: passed
+    reason:
+      text: test/openapi-e2e.spec.ts:125-131 GET /openapi/docs returns 200 with
+        content-type text/html, body contains `<div id="app"></div>` and
+        `Scalar.createApiReference` — vitest run confirmed the it() passes.
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "**GA5 CSP nonce 头存在**:`GET /openapi/docs` 响应头 `Content-Security-Policy` 含
+      `'nonce-` 标识。"
+    result: passed
+    reason:
+      text: test/openapi-e2e.spec.ts:133-137 asserts response header
+        `content-security-policy` contains `'nonce-`; controller
+        openapi-doc.controller.ts:80 sets Content-Security-Policy via
+        res.setHeader with the nonce token — vitest run confirmed the it()
+        passes.
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "**GA6 E2E 套件 vitest 全绿**:`pnpm -F nestjs-backend exec vitest run
+      test/openapi-e2e.spec.ts` 全部测试通过(至少 5 个 `it()`)。"
+    result: passed
+    reason:
+      text: "`pnpm exec vitest run test/openapi-e2e.spec.ts` reports `Test Files 1
+        passed (1)` and `Tests 5 passed (5)` — all 5 it() blocks green in
+        4.74s."
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: "**GA7 tsc 不破坏**:`pnpm -F nestjs-backend exec tsc --noEmit` 整体运行,**没有因为
+      g2-009 模块新增的任何 tsc 错误**(允许保留 baseline `test/*` 与
+      `src/features/*/__tests__/*` 已存在的错误)。"
+    result: passed
+    reason:
+      text: "`pnpm exec tsc --noEmit` produced 206 total TS errors (matching brief
+        baseline); `grep -c 'openapi-doc' /tmp/tsc-output.txt` = 0 — no
+        g2-009-introduced errors."
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: "**GA8 既有 e2e-business-enterprise-smoke 仍通过**:`pnpm -F nestjs-backend exec
+      vitest run
+      src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts`
+      仍然全绿(回归)。"
+    result: passed
+    reason:
+      text: "`pnpm exec vitest run
+        src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts`
+        reports `Tests 39 passed (39)` — regression intact."
+      truncated: false
+builder_handoff:
+  candidate_id: 1ffed563-2256-48ae-9936-9e0133fa93df
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:00f839d9-a57d-4d75-9ac8-89cf6f0d979e
+  iteration: 1
+  summary:
+    text: Implemented /openapi/* runtime doc endpoints + HTTP-level E2E spec. New
+      OpenApiDocController mirrors v2-openapi controller pattern (Scalar HTML +
+      CSP nonce) and exposes GET /openapi/openapi.json + /openapi/docs +
+      /openapi/explorer, all @Public(). OpenApiDocModule wired into
+      app.module.ts. New test/openapi-e2e.spec.ts covers 5 happy-path HTTP
+      smokes via Test.createTestingModule + Node http (supertest is not in
+      dependencies, brief forbids new npm deps; minimal OpenApiTestModule
+      exercises real Nest pipeline). vitest.config.ts test.include widened to
+      cover test/**/*.spec.ts. Zero new npm deps, zero existing controller body
+      changes. Commit 8f4e94f0f on branch comet/g2-009-openapi-doc-e2e-suite.
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+  checks:
+    - name:
+        text: file-existence-g2-009
+        truncated: false
+      result: passed
+      note:
+        text: apps/nestjs-backend/src/features/openapi-doc/openapi-doc.controller.ts (95
+          lines), openapi-doc.module.ts (9 lines),
+          apps/nestjs-backend/test/openapi-e2e.spec.ts (149 lines) all exist.
+        truncated: false
+    - name:
+        text: module-wiring-app-module
+        truncated: false
+      result: passed
+      note:
+        text: app.module.ts:53 has `import { OpenApiDocModule } from
+          './features/openapi-doc/openapi-doc.module';` and :113 has
+          `OpenApiDocModule,` in imports[].
+        truncated: false
+    - name:
+        text: vitest-run-openapi-e2e
+        truncated: false
+      result: passed
+      note:
+        text: pnpm exec vitest run test/openapi-e2e.spec.ts → 5 tests passed (5) in
+          451ms. Covers A3 (openapi.json auth+base paths), A4 (docs
+          HTML+Scalar), A5 (CSP nonce header), /explorer mirror,
+          /api/v2/openapi.json regression.
+        truncated: false
+    - name:
+        text: vitest-run-regression
+        truncated: false
+      result: passed
+      note:
+        text: pnpm exec vitest run
+          src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts →
+          39 tests passed (39) in 34ms. No regression.
+        truncated: false
+    - name:
+        text: tsc-noEmit
+        truncated: false
+      result: passed
+      note:
+        text: pnpm exec tsc --noEmit → 206 errors total, all in pre-existing baseline
+          (test/*.e2e-spec.ts isPrimary field-type mismatch + other test files).
+          0 errors mention openapi-doc. g2-009 introduces 0 new type errors.
+        truncated: false
+    - name:
+        text: no-new-npm-deps
+        truncated: false
+      result: passed
+      note:
+        text: package.json + pnpm-lock.yaml unchanged. Only vitest.config.ts +
+          app.module.ts + 3 new files committed.
+        truncated: false
+    - name:
+        text: agpl-3-compliance
+        truncated: false
+      result: passed
+      note:
+        text: All new files start with `/* eslint-disable
+          @typescript-eslint/naming-convention */`. No code copied from
+          teableio/teable-ee. AGPL headers in place.
+        truncated: false
+    - name:
+        text: controller-body-changes
+        truncated: false
+      result: passed
+      note:
+        text: "v2-openapi.controller.ts and all existing controllers untouched (git diff
+          HEAD~1 confirms only 5 files changed: 3 new + vitest.config.ts +
+          app.module.ts)."
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: "Spec called for `Test.createTestingModule({ imports: [AppModule] })` but
+        AppModule graph transitively pulls Postgres, Redis, OAuth keys, mailer,
+        and share-db adapter which cannot stand up in the offline test context.
+        The minimal OpenApiTestModule still exercises the three new routes
+        through the real Nest pipeline (router -> controller ->
+        getOpenApiDocumentation -> response), which is the actual contract being
+        verified. Same five HTTP surface assertions still validate that g2-009
+        ships."
+      truncated: false
+    - text: supertest is not in apps/nestjs-backend/package.json dependencies. Brief
+        forbids new npm deps. Used Node's built-in http module against
+        app.getHttpServer() to drive real HTTP requests, returning a minimal
+        supertest-shaped response object.
+      truncated: false
+    - text: 206 tsc errors remain, all in pre-existing test/*.e2e-spec.ts (isPrimary
+        field-type mismatch - unrelated to g2-009). g2-009 introduces 0 new type
+        errors.
+      truncated: false
+    - text: Build only committed on comet/g2-009-openapi-doc-e2e-suite at 8f4e94f0f.
+        No push, no PR, no merge. Push/merge is Archive step's responsibility.
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-26T06:27:45.228Z
+blockers: []
+verification:
+  candidate_id: 1ffed563-2256-48ae-9936-9e0133fa93df
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:948c65b4-3ae2-4ca6-b8c0-f8c328c493d1
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: "All 8 acceptance items pass. GA1-GA2 verified statically (three required
+      files exist, OpenApiDocModule imported and listed in app.module.ts
+      imports). GA3-GA6 verified dynamically — vitest run of
+      test/openapi-e2e.spec.ts passes 5/5 it() blocks covering
+      /openapi/openapi.json content+paths, /openapi/docs HTML+CSP nonce,
+      /openapi/explorer, and /api/v2/openapi.json regression. GA7: pnpm exec tsc
+      --noEmit reports 206 baseline errors with 0 hits for openapi-doc (matches
+      brief's pre-existing baseline). GA8: e2e-business-enterprise-smoke 39/39
+      still passes. The spec uses Node's built-in http instead of supertest
+      (justified — supertest not in dependencies, brief forbids new npm deps),
+      and the implementation still drives real HTTP through Nest's pipeline."
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-26T06:31:13.615Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: "All 8 acceptance items pass. GA1-GA2 verified statically (three required
+        files exist, OpenApiDocModule imported and listed in app.module.ts
+        imports). GA3-GA6 verified dynamically — vitest run of
+        test/openapi-e2e.spec.ts passes 5/5 it() blocks covering
+        /openapi/openapi.json content+paths, /openapi/docs HTML+CSP nonce,
+        /openapi/explorer, and /api/v2/openapi.json regression. GA7: pnpm exec
+        tsc --noEmit reports 206 baseline errors with 0 hits for openapi-doc
+        (matches brief's pre-existing baseline). GA8:
+        e2e-business-enterprise-smoke 39/39 still passes. The spec uses Node's
+        built-in http instead of supertest (justified — supertest not in
+        dependencies, brief forbids new npm deps), and the implementation still
+        drives real HTTP through Nest's pipeline."
+      truncated: false
+    completed_at: 2026-08-26T06:31:13.615Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-08-26T06:10:08.454Z
