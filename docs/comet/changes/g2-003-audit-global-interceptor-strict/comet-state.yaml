@@ -3,7 +3,7 @@ name: g2-003-audit-global-interceptor-strict
 language: zh-CN
 phase: archive
 status: active
-state_version: 9
+state_version: 10
 brief: brief.md
 spec_changes:
   - capability: g2-003-audit-global-interceptor-strict
