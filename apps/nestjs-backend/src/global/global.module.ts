@@ -30,6 +30,7 @@ import { DataLoaderModule } from '../features/data-loader/data-loader.module';
 import { IpAllowlistMiddleware } from '../features/ip-allowlist/ip-allowlist.middleware';
 import { IpAllowlistModule } from '../features/ip-allowlist/ip-allowlist.module';
 import { ModelModule } from '../features/model/model.module';
+import { QuotaEnforcementInterceptor } from '../features/quota/quota.interceptor';
 import { DataDbMigrationService } from '../features/space/data-db-migration.service';
 import { SpaceDataDbMigrationGuardService } from '../features/space/space-data-db-migration-guard.service';
 import { RequestInfoMiddleware } from '../middleware/request-info.middleware';
@@ -138,6 +139,20 @@ const globalModules = {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
     },
+    // G2-002: env-gated quota enforcement. The provider entry is only
+    // inserted when TEABLE_QUOTA_ENFORCEMENT_ENABLED === 'true'. OSS self-host
+    // (default) sees an empty slot — NestJS instantiates no interceptor,
+    // handler call paths stay zero-cost. When enabled, the interceptor runs
+    // AFTER AuditInterceptor (so 402 responses are still audited) and BEFORE
+    // RouteTracingInterceptor (so trace spans carry the quota decision).
+    ...(process.env.TEABLE_QUOTA_ENFORCEMENT_ENABLED === 'true'
+      ? [
+          {
+            provide: APP_INTERCEPTOR,
+            useClass: QuotaEnforcementInterceptor,
+          },
+        ]
+      : []),
     {
       // G2-001: wire the permission-matrix interceptor as APP_INTERCEPTOR so
       // every response gets hidden-field projection and req.permission.filter is
