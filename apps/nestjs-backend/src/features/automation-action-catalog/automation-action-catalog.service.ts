@@ -88,6 +88,31 @@ export const BUILTIN_ACTION_CATALOG: IActionCatalog = {
       retry: { maxAttempts: 3, backoff: 'exponential', initialDelayMs: 1500 },
       rollback: false,
     },
+    {
+      type: 'send_teams_message',
+      label: 'Send Microsoft Teams message',
+      category: 'integration',
+      description:
+        'Post a MessageCard to a Microsoft Teams channel via Incoming Webhook. ' +
+        'If `webhookUrl` is omitted, the per-space default configured by the ' +
+        'admin is used.',
+      icon: 'send',
+      fields: [
+        { key: 'webhookUrl', label: 'Webhook URL', kind: 'string', required: false },
+        { key: 'spaceId', label: 'Space id', kind: 'string', required: false },
+        { key: 'text', label: 'Text', kind: 'template', required: true },
+        { key: 'title', label: 'Title', kind: 'string', required: false },
+        {
+          key: 'fields',
+          label: 'Fields',
+          kind: 'json',
+          required: false,
+          defaultValue: [],
+        },
+      ],
+      retry: { maxAttempts: 5, backoff: 'exponential', initialDelayMs: 1000 },
+      rollback: false,
+    },
   ],
   defaultType: 'update_record',
 };
