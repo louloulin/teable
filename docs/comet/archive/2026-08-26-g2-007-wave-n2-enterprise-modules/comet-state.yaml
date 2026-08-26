@@ -2,8 +2,8 @@ schema: comet.native.v4
 name: g2-007-wave-n2-enterprise-modules
 language: zh-CN
 phase: archive
-status: active
-state_version: 13
+status: done
+state_version: 14
 brief: brief.md
 spec_changes: []
 workspace:
@@ -12,7 +12,7 @@ workspace:
   target_branch: agent/chong/df9d120d2105-stage6-audit-log
   finish: merge
 loop:
-  stage: archive-ready
+  stage: done
   goal_cycle: 1
   iteration: 1
   attempt: 3
@@ -21,7 +21,7 @@ loop:
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: archive
+  next_action: null
 acceptance:
   - id: A1
     source: brief.md
@@ -228,5 +228,5 @@ history_overflow:
     recovery: 0
 verification_result: pass
 verification_report: verification.md
-archived: false
+archived: true
 created_at: 2026-08-26T04:33:06.223Z
