@@ -19,6 +19,7 @@ import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
+import { ImBridgeModule } from './features/im-bridge/im-bridge.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
 import { BaseShareModule } from './features/base-share/base-share.module';
@@ -123,6 +124,7 @@ export const appModules = {
     CustomDomainModule,
     SsoModule,
     ScimModule,
+    ImBridgeModule,
     PermissionMatrixModule,
     SettingOpenApiModule,
     OAuthModule,
