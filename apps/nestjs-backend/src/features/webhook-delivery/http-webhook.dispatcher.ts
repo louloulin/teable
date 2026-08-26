@@ -1,14 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { safeFetch } from '../../utils/ssrf-http';
 import { DEFAULT_TIMEOUT_MS } from './webhook-delivery.types';
-import type {
-  IWebhookDispatcher,
-  WebhookMethod,
-} from './webhook-delivery.types';
+import type { IWebhookDispatcher, WebhookMethod } from './webhook-delivery.types';
 
 /**
  * Production `IWebhookDispatcher` — POSTs/PUTs the webhook body via the
- * global `fetch` (Node 20+ ships an undici-backed fetch, no new deps).
+ * SSRF-guarded `safeFetch` (so operators can't point an endpoint at
+ * `169.254.169.254` or the local metadata service).
  *
  * The dispatcher:
  *   - treats any network error as `statusCode=0`, which the state
@@ -36,7 +35,7 @@ export class HttpWebhookDispatcher implements IWebhookDispatcher {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(args.url, {
+      const res = await safeFetch(args.url, {
         method: args.method,
         body: args.body,
         headers: args.headers ?? {},

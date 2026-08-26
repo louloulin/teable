@@ -13,19 +13,13 @@
  * `:id` is validated as a UUID via `ZodValidationPipe` so a malformed
  * value never reaches the service layer.
  */
-import {
-  BadRequestException,
-  Controller,
-  NotFoundException,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { BadRequestException, Controller, NotFoundException, Param, Post } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { z } from 'zod';
 
 import type { IClsStore } from '../../types/cls';
-import { Permissions } from '../auth/decorators/permissions.decorator';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { WebhookDeliveryAuthService } from './webhook-delivery.auth.service';
 
 const deliveryIdParamSchema = z.object({
