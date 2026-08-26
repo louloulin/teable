@@ -3,7 +3,7 @@ name: g2-007-wave-n2-enterprise-modules
 language: zh-CN
 phase: archive
 status: active
-state_version: 12
+state_version: 13
 brief: brief.md
 spec_changes: []
 workspace:
