@@ -29,8 +29,10 @@ import { HealthModule } from './features/health/health.module';
 import { ImportOpenApiModule } from './features/import/open-api/import-open-api.module';
 import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
+import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
 import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-sender-open-api.module';
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
+import { MetricsModule } from './features/metrics/metrics.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { OAuthModule } from './features/oauth/oauth.module';
@@ -40,6 +42,8 @@ import { PluginChartModule } from './features/plugin/official/chart/plugin-chart
 import { LicenseModule } from './features/license/license.module';
 import { PermissionMatrixModule } from './features/permission-matrix/permission-matrix.module';
 import { QuotaModule } from './features/quota/quota.module';
+import { RetentionModule } from './features/retention/retention.module';
+import { RiskControlModule } from './features/risk-control/risk-control.module';
 import { SsoModule } from './features/sso/sso.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
@@ -53,7 +57,10 @@ import { ShortLinkModule } from './features/short-link/short-link.module';
 import { SpaceModule } from './features/space/space.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TrashModule } from './features/trash/trash.module';
+import { TurnstileModule } from './features/auth/turnstile/turnstile.module';
 import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
+import { DeleteUserModule } from './features/user/delete-user/delete-user.module';
+import { TrackingModule } from './features/user/tracking/tracking.module';
 import { UserModule } from './features/user/user.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
@@ -122,6 +129,14 @@ export const appModules = {
     BuiltinAssetsInitModule,
     V2Module,
     ComputedOutboxWakeupConsumerModule.register(),
+    // Wave N1 modules (g2-006)
+    IpAllowlistModule,
+    RiskControlModule,
+    TurnstileModule,
+    DeleteUserModule,
+    RetentionModule,
+    TrackingModule.forRoot(),
+    MetricsModule,
   ],
   providers: [InitBootstrapProvider],
 };

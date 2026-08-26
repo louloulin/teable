@@ -24,6 +24,8 @@ import { AuthGuard } from '../features/auth/guard/auth.guard';
 import { PermissionGuard } from '../features/auth/guard/permission.guard';
 import { PermissionModule } from '../features/auth/permission.module';
 import { DataLoaderModule } from '../features/data-loader/data-loader.module';
+import { IpAllowlistMiddleware } from '../features/ip-allowlist/ip-allowlist.middleware';
+import { IpAllowlistModule } from '../features/ip-allowlist/ip-allowlist.module';
 import { ModelModule } from '../features/model/model.module';
 import { DataDbMigrationService } from '../features/space/data-db-migration.service';
 import { SpaceDataDbMigrationGuardService } from '../features/space/space-data-db-migration-guard.service';
@@ -68,6 +70,7 @@ const globalModules = {
     PermissionModule,
     DataLoaderModule,
     PerformanceCacheModule,
+    IpAllowlistModule,
     I18nModule.forRootAsync({
       useFactory: () => {
         const i18nPath = getI18nPath();
@@ -107,6 +110,7 @@ const globalModules = {
     DatabaseRouter,
     RequestInfoMiddleware,
     SessionCsrfMiddleware,
+    IpAllowlistMiddleware,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
@@ -141,6 +145,8 @@ export class GlobalModule implements NestModule {
       .apply(ClsMiddleware)
       .forRoutes('*')
       .apply(SessionCsrfMiddleware)
+      .forRoutes('*')
+      .apply(IpAllowlistMiddleware)
       .forRoutes('*')
       .apply(RequestInfoMiddleware)
       .forRoutes('*');
