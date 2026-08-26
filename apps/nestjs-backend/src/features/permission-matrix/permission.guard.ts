@@ -1,9 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  SetMetadata,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ClsService } from 'nestjs-cls';
 
@@ -43,7 +38,6 @@ export class PermissionGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!action) return true;
 
     const req = context.switchToHttp().getRequest<Record<string, unknown>>();
     const { tableId, baseId } = this.readTableContext(req);
@@ -52,16 +46,35 @@ export class PermissionGuard implements CanActivate {
     const userId = this.cls.get('user')?.id;
     if (!userId) return true;
 
+    // G2-001: even when no @RequirePermission() decorator is on the route,
+    // we still want to enforce hidden-field protection on write methods.
+    // Skip read paths so list endpoints don't pay the per-field access cost.
+    const method = ((req as { method?: string }).method ?? 'GET').toUpperCase();
+    const isWriteMethod =
+      method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE';
+
+    // No opt-in metadata and read path → fall through (existing OSS admin/owner path).
+    if (!action && !isWriteMethod) return true;
+
     const roles = await this.matrix.resolveRolesForUser(baseId, userId);
     if (roles.length === 0) return true;
 
-    if (!this.matrix.allowsAction(roles, tableId, action)) {
+    // @RequirePermission() decorated routes still get the strict action check.
+    if (action && !this.matrix.allowsAction(roles, tableId, action)) {
       throw new CustomHttpException(
         `permission denied: ${action} on ${tableId}`,
         HttpErrorCode.RESTRICTED_RESOURCE,
         { meta: { tableId, baseId, action } }
       );
     }
+
+    // G2-001: hidden-field write protection on POST/PATCH/PUT/DELETE.
+    // Cheap when the role set has no fieldPermissions configured (matrix.fieldAccess
+    // short-circuits to 'unset'), so we always run it on writes.
+    if (isWriteMethod) {
+      await this.assertFieldEditAllowed(req, tableId, baseId);
+    }
+
     return true;
   }
 
