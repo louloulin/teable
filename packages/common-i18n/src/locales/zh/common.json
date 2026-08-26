@@ -256,6 +256,9 @@
       }
     },
     "back": "返回主页",
+    "scim": {
+      "title": "SCIM 配置"
+    },
     "account": {
       "title": "我的档案",
       "tab": "我的帐户",
@@ -1066,6 +1069,57 @@
       "spaceIdsPlaceholder": "spcXXXXXXXXXXX\nspcYYYYYYYYYYY",
       "preview": "预览 ({{count}} 个)",
       "noSpaceIds": "未输入空间站 ID"
+    },
+    "scim": {
+      "title": "SCIM 配置",
+      "description": "配置 SCIM 2.0 推送预配，使 IdP 可以将用户和组同步到此实例。",
+      "endpoint": {
+        "title": "SCIM 端点",
+        "label": "基础 URL",
+        "hint": "将 IdP SCIM 客户端指向此 URL，通过下方的 Bearer token 进行认证。",
+        "copy": "复制 URL"
+      },
+      "connectionTest": {
+        "title": "连接测试",
+        "description": "从任何可访问此实例的主机运行下方 curl，确认 SCIM 端点响应正常。",
+        "noTokenWarning": "请先轮换 Bearer token 再测试 — 当前实例尚无可用 token。"
+      },
+      "token": {
+        "sectionTitle": "Bearer token",
+        "title": "当前 token",
+        "description": "轮换 token 会使旧 token 失效并立即签发新值。新 token 仅显示一次。",
+        "absent": "尚未签发 token。",
+        "copy": "复制 token",
+        "rotate": "轮换",
+        "rotating": "轮换中…",
+        "rotated": "SCIM token 已轮换。",
+        "lastRotated": "上次轮换：{{time}}",
+        "neverRotated": "暂无轮换记录。"
+      },
+      "users": {
+        "title": "同步用户",
+        "total": "实例内 {{count}} 个用户",
+        "empty": "暂无用户。从 IdP 预配后会自动填充。",
+        "loadError": "加载同步用户失败，请刷新页面。",
+        "active": "已启用",
+        "deactivated": "已停用",
+        "headers": {
+          "displayName": "显示名",
+          "email": "邮箱",
+          "externalId": "外部 ID",
+          "status": "状态"
+        }
+      },
+      "groups": {
+        "title": "同步分组",
+        "total": "{{count}} 个分组",
+        "empty": "OSS 版 Teable 尚未将 SCIM 分组作为一等实体建模，分组端点以占位形式暴露以兼容 IdP。",
+        "loadError": "加载同步分组失败，请刷新页面。",
+        "headers": {
+          "name": "显示名",
+          "members": "成员"
+        }
+      }
     }
   },
   "notification": {

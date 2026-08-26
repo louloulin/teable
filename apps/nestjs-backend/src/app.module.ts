@@ -50,6 +50,7 @@ import { LicenseModule } from './features/license/license.module';
 import { PermissionMatrixModule } from './features/permission-matrix/permission-matrix.module';
 import { QuotaModule } from './features/quota/quota.module';
 import { SsoModule } from './features/sso/sso.module';
+import { ScimModule } from './features/scim/scim.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
@@ -121,6 +122,7 @@ export const appModules = {
     DomainVerificationModule,
     CustomDomainModule,
     SsoModule,
+    ScimModule,
     PermissionMatrixModule,
     SettingOpenApiModule,
     OAuthModule,

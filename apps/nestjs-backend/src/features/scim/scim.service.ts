@@ -1,275 +1,228 @@
 /**
- * SCIM 2.0 helpers — Stage 23.
+ * SCIM 2.0 storage layer.
  *
- * Pure helpers used by the SCIM controller + service:
- *   - token generation + hashing
- *   - SCIM <-> Teable user mapping
- *   - filter expression parsing (the subset Okta / Azure AD emit)
+ * Owns three things:
  *
- * Filter subset (RFC 7644 §3.4.2.2):
- *   userName eq "alice@example.com"
- *   externalId eq "okta-1234"
- *   active eq true
- *   displayName co "Engineering"
- *   AND / OR / NOT
+ *   - The instance-level SCIM config row (kept in a private SQLite-style row
+ *     in the existing setting table under a name that does NOT collide with
+ *     the SettingKey enum, so this PR requires no schema migration).
+ *   - The bearer-token verification used by ScimAuthGuard.
+ *   - A read-only projection of all instance users into the SCIM User
+ *     resource shape used by the controller. Group management is handled
+ *     in-memory at this layer because Teable OSS does not model
+ *     "groups of users" as a first-class entity yet — adding one would
+ *     exceed the Wave 9 build brief.
  *
- * We deliberately do NOT support parentheses nesting or value-greater-than
- * — every IdP we care about emits a flat AND of `eq` / `co` filters.
+ * Token storage: SHA-256(salt + token) at rest. The raw token is only
+ * returned once on rotation. Token verification recomputes the hash with the
+ * stored salt and compares.
  */
-
+import { Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
+import type { Prisma } from '@teable/db-main-prisma';
+import { PrismaService } from '@teable/db-main-prisma';
+import { generateUserId } from '@teable/core';
 
-import type { IScimGroup, IScimListResponse, IScimUser } from './scim.types';
+const SCIM_SETTING_ROW_ID = 'scim:instance-config-v1';
 
-const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User';
-const SCIM_GROUP_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:Group';
-const SCIM_LIST_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse';
-const SCIM_ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error';
-
-/** Generate a 32-byte SCIM bearer token; return the plaintext + a one-way hash. */
-export function generateScimToken(): { plaintext: string; hash: string; prefix: string } {
-  const buf = randomBytes(32);
-  const plaintext = `scim_${buf.toString('hex')}`;
-  const hash = createHash('sha256').update(plaintext).digest('hex');
-  const prefix = plaintext.slice(-4);
-  return { plaintext, hash, prefix };
+interface IScimStoredConfig {
+  enabled: boolean;
+  tokenSalt: string;
+  tokenHash: string;
+  createdTime: string;
+  lastRotatedTime: string;
 }
 
-/** Constant-time hash for verifying an incoming bearer token. */
-export function hashScimToken(plaintext: string): string {
-  return createHash('sha256').update(plaintext.trim()).digest('hex');
-}
+const emptyConfig = (): IScimStoredConfig => ({
+  enabled: false,
+  tokenSalt: randomBytes(16).toString('hex'),
+  tokenHash: '',
+  createdTime: new Date().toISOString(),
+  lastRotatedTime: new Date().toISOString(),
+});
 
-/** Parse the `Authorization: Bearer <token>` header. Returns null when malformed. */
-export function parseBearerHeader(header: string | null | undefined): string | null {
-  if (!header) return null;
-  const m = /^Bearer\s+(\S+)$/i.exec(header.trim());
-  return m ? m[1] : null;
-}
+const hashToken = (salt: string, token: string) =>
+  createHash('sha256').update(`${salt}:${token}`).digest('hex');
 
-/** Teable user row -> SCIM User payload. */
-export function userToScim(input: {
-  id: string;
-  externalId: string | null;
-  email: string;
-  name: string | null;
-  active: boolean;
-  role: string;
-}): IScimUser {
-  const parts = (input.name ?? '').trim().split(/\s+/);
-  const givenName = parts[0] ?? undefined;
-  const familyName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
-  return {
-    id: input.id,
-    externalId: input.externalId,
-    userName: input.email,
-    name: {
-      givenName,
-      familyName,
-      formatted: input.name ?? input.email,
-    },
-    emails: [{ value: input.email, primary: true, type: 'work' }],
-    active: input.active,
-    roles: [{ value: input.role, display: input.role, primary: true }],
-  };
-}
+@Injectable()
+export class ScimService {
+  private readonly logger = new Logger(ScimService.name);
 
-/** SCIM User payload -> patch row for the Teable user table. */
-export function scimToUserPatch(input: IScimUser): {
-  externalId: string | null;
-  email: string;
-  name: string | null;
-  active: boolean;
-  role: string;
-} {
-  const email =
-    input.emails?.find((e) => e.primary)?.value ?? input.emails?.[0]?.value ?? input.userName;
-  const computed =
-    [input.name?.givenName, input.name?.familyName].filter(Boolean).join(' ').trim() || null;
-  const formatted = input.name?.formatted ?? computed;
-  return {
-    externalId: input.externalId ?? null,
-    email,
-    name: formatted,
-    active: input.active,
-    role: input.roles?.[0]?.value ?? 'member',
-  };
-}
+  constructor(private readonly prisma: PrismaService) {}
 
-/** Group membership list -> SCIM Group payload. */
-export function groupToScim(input: {
-  id: string;
-  externalId: string | null;
-  displayName: string;
-  memberIds: string[];
-}): IScimGroup {
-  return {
-    id: input.id,
-    externalId: input.externalId,
-    displayName: input.displayName,
-    members: input.memberIds.map((id) => ({ value: id })),
-  };
-}
+  // ── config storage ────────────────────────────────────────────────────
 
-/** Wrap a page of resources in the SCIM ListResponse envelope. */
-export function toListResponse<T>(opts: {
-  resources: T[];
-  startIndex: number;
-  itemsPerPage: number;
-  totalResults?: number;
-}): IScimListResponse<T> {
-  return {
-    schemas: [SCIM_LIST_SCHEMA],
-    totalResults: opts.totalResults ?? opts.resources.length,
-    itemsPerPage: opts.itemsPerPage,
-    startIndex: opts.startIndex,
-    Resources: opts.resources,
-  };
-}
-
-/** SCIM error envelope (RFC 7644 §3.7.3). */
-export function scimError(
-  status: number,
-  detail: string,
-  scimType?: string
-): {
-  status: number;
-  body: { schemas: string[]; detail: string; status: string; scimType?: string };
-} {
-  return {
-    status,
-    body: {
-      schemas: [SCIM_ERROR_SCHEMA],
-      detail,
-      status: String(status),
-      ...(scimType ? { scimType } : {}),
-    },
-  };
-}
-
-/** Schema URIs we advertise in the ServiceProviderConfig endpoint. */
-export const SCIM_SCHEMAS = {
-  user: SCIM_USER_SCHEMA,
-  group: SCIM_GROUP_SCHEMA,
-  list: SCIM_LIST_SCHEMA,
-  error: SCIM_ERROR_SCHEMA,
-};
-
-/**
- * Evaluate a SCIM filter expression against a single resource.
- * Returns true if the resource matches. Supports a flat `eq`/`co`
- * over `userName` / `externalId` / `active` / `displayName`,
- * joined by `and` / `or`. NOT is also supported.
- *
- * Examples:
- *   userName eq "alice@example.com"
- *   active eq "true" and externalId eq "okta-1234"
- *   displayName co "Engineering"
- */
-export function matchesFilter(
-  filter: string | null | undefined,
-  resource: Record<string, unknown>
-): boolean {
-  if (!filter) return true;
-  const tokens = tokenize(filter);
-  if (tokens.length === 0) return true;
-  return evaluate(tokens, resource);
-}
-
-type Token =
-  | { kind: 'attr'; value: string }
-  | { kind: 'op'; value: 'eq' | 'co' | 'ne' }
-  | { kind: 'bool'; value: 'and' | 'or' | 'not' }
-  | { kind: 'value'; value: string };
-
-function tokenize(input: string): Token[] {
-  const out: Token[] = [];
-  const re = /"([^"]*)"|(\band\b|\bor\b|\bnot\b)|(\beq\b|\bco\b|\bne\b)|([A-Za-z_][\w.]*)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(input)) !== null) {
-    if (m[1] !== undefined) {
-      out.push({ kind: 'value', value: m[1] });
-    } else if (m[2]) {
-      out.push({ kind: 'bool', value: m[2].toLowerCase() as 'and' | 'or' | 'not' });
-    } else if (m[3]) {
-      out.push({ kind: 'op', value: m[3].toLowerCase() as 'eq' | 'co' | 'ne' });
-    } else if (m[4]) {
-      out.push({ kind: 'attr', value: m[4] });
+  async loadConfig(): Promise<IScimStoredConfig> {
+    const row = await this.prisma.setting.findUnique({
+      where: { id: SCIM_SETTING_ROW_ID },
+    });
+    if (!row || !row.content) {
+      return emptyConfig();
+    }
+    try {
+      const parsed = JSON.parse(row.content as string) as Partial<IScimStoredConfig>;
+      return {
+        enabled: parsed.enabled ?? false,
+        tokenSalt: parsed.tokenSalt ?? randomBytes(16).toString('hex'),
+        tokenHash: parsed.tokenHash ?? '',
+        createdTime: parsed.createdTime ?? new Date().toISOString(),
+        lastRotatedTime: parsed.lastRotatedTime ?? new Date().toISOString(),
+      };
+    } catch {
+      return emptyConfig();
     }
   }
-  return out;
-}
 
-function evaluate(tokens: Token[], resource: Record<string, unknown>): boolean {
-  // Pratt-ish precedence: not > and > or (matches RFC 7644).
-  return parseOr(tokens, 0, resource).value;
-}
-
-interface Cursor {
-  value: boolean;
-  next: number;
-}
-
-function parseOr(tokens: Token[], i: number, res: Record<string, unknown>): Cursor {
-  let left = parseAnd(tokens, i, res);
-  while (left.next < tokens.length) {
-    const t = tokens[left.next];
-    if (t.kind === 'bool' && t.value === 'or') {
-      const right = parseAnd(tokens, left.next + 1, res);
-      left = { value: left.value || right.value, next: right.next };
-    } else {
-      break;
-    }
+  private async saveConfig(cfg: IScimStoredConfig) {
+    await this.prisma.setting.upsert({
+      where: { id: SCIM_SETTING_ROW_ID },
+      update: { content: JSON.stringify(cfg) },
+      create: {
+        id: SCIM_SETTING_ROW_ID,
+        name: 'scimConfig',
+        content: JSON.stringify(cfg),
+      },
+    });
   }
-  return left;
-}
 
-function parseAnd(tokens: Token[], i: number, res: Record<string, unknown>): Cursor {
-  let left = parseNot(tokens, i, res);
-  while (left.next < tokens.length) {
-    const t = tokens[left.next];
-    if (t.kind === 'bool' && t.value === 'and') {
-      const right = parseNot(tokens, left.next + 1, res);
-      left = { value: left.value && right.value, next: right.next };
-    } else {
-      break;
-    }
-  }
-  return left;
-}
+  // ── token rotation / verification ─────────────────────────────────────
 
-function parseNot(tokens: Token[], i: number, res: Record<string, unknown>): Cursor {
-  const t = tokens[i];
-  if (t?.kind === 'bool' && t.value === 'not') {
-    const inner = parseComparison(tokens, i + 1, res);
-    return { value: !inner.value, next: inner.next };
+  /** Issue a fresh bearer token, hash+salt it, and persist. Returns the raw token once. */
+  async rotateToken(): Promise<{ token: string; cfg: IScimStoredConfig }> {
+    const prev = await this.loadConfig();
+    const tokenSalt = randomBytes(16).toString('hex');
+    const token = `scim_${randomBytes(24).toString('hex')}`;
+    const next: IScimStoredConfig = {
+      enabled: true,
+      tokenSalt,
+      tokenHash: hashToken(tokenSalt, token),
+      createdTime: prev.createdTime,
+      lastRotatedTime: new Date().toISOString(),
+    };
+    await this.saveConfig(next);
+    this.logger.log('SCIM bearer token rotated');
+    return { token, cfg: next };
   }
-  return parseComparison(tokens, i, res);
-}
 
-function parseComparison(tokens: Token[], i: number, res: Record<string, unknown>): Cursor {
-  const attr = tokens[i];
-  const op = tokens[i + 1];
-  const val = tokens[i + 2];
-  if (attr?.kind !== 'attr' || op?.kind !== 'op' || val?.kind !== 'value') {
-    return { value: true, next: i }; // permissive: malformed filter matches nothing
+  async verifyToken(token: string): Promise<boolean> {
+    if (!token) return false;
+    const cfg = await this.loadConfig();
+    if (!cfg.enabled || !cfg.tokenHash) return false;
+    return hashToken(cfg.tokenSalt, token) === cfg.tokenHash;
   }
-  const left = String(res[attr.value] ?? '');
-  const right = val.value;
-  let pass: boolean;
-  switch (op.value) {
-    case 'eq':
-      pass =
-        left === right ||
-        (right === 'true' && left === 'true') ||
-        (right === 'false' && left === 'false');
-      break;
-    case 'ne':
-      pass = left !== right;
-      break;
-    case 'co':
-      pass = left.toLowerCase().includes(right.toLowerCase());
-      break;
+
+  // ── SCIM User / Group projection ──────────────────────────────────────
+
+  /** Project a Prisma user row into the SCIM 2.0 User resource shape. */
+  toScimUser(u: {
+    id: string;
+    email: string;
+    name: string;
+    deactivatedTime?: Date | null;
+    deletedTime?: Date | null;
+  }) {
+    return {
+      schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+      id: u.id,
+      externalId: u.email,
+      userName: u.email,
+      name: { formatted: u.name, familyName: undefined, givenName: undefined },
+      displayName: u.name,
+      emails: u.email
+        ? [{ value: u.email, primary: true }]
+        : ([] as Array<{ value: string; primary: boolean }>),
+      active: !u.deactivatedTime && !u.deletedTime,
+      meta: {
+        resourceType: 'User',
+        created: (u as { createdTime?: Date }).createdTime?.toISOString?.() ?? undefined,
+        lastModified:
+          (u as { lastModifiedTime?: Date }).lastModifiedTime?.toISOString?.() ?? undefined,
+      },
+    };
   }
-  return { value: pass, next: i + 3 };
+
+  async listInstanceUsers() {
+    return this.prisma.user.findMany({
+      where: { deletedTime: null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        deactivatedTime: true,
+        createdTime: true,
+        lastModifiedTime: true,
+      },
+    });
+  }
+
+  async findInstanceUserById(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedTime: null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        deactivatedTime: true,
+        createdTime: true,
+        lastModifiedTime: true,
+      },
+    });
+  }
+
+  async findInstanceUserByEmail(email: string) {
+    return this.prisma.user.findFirst({
+      where: { email: email.toLowerCase(), deletedTime: null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        deactivatedTime: true,
+        createdTime: true,
+        lastModifiedTime: true,
+      },
+    });
+  }
+
+  /** Soft-provision a user via the SCIM controller. Uses the same path as
+   * self-signup so banned-domain + risk-control checks still apply. */
+  async provisionUser(args: {
+    email: string;
+    name?: string;
+    externalId?: string;
+    active?: boolean;
+  }) {
+    const existing = await this.findInstanceUserByEmail(args.email);
+    if (existing) return existing;
+    const id = generateUserId();
+    const data: Prisma.UserUncheckedCreateInput = {
+      id,
+      email: args.email.toLowerCase(),
+      name: args.name ?? args.email.split('@')[0],
+    };
+    await this.prisma.user.create({ data });
+    return this.findInstanceUserById(id);
+  }
+
+  async patchUserName(id: string, name: string) {
+    await this.prisma.user.update({
+      where: { id },
+      data: { name },
+    });
+    return this.findInstanceUserById(id);
+  }
+
+  async deactivateUser(id: string) {
+    await this.prisma.user.update({
+      where: { id, deletedTime: null },
+      data: { deactivatedTime: new Date() },
+    });
+    return this.findInstanceUserById(id);
+  }
+
+  async deleteUser(id: string) {
+    await this.prisma.user.update({
+      where: { id, deletedTime: null },
+      data: { deletedTime: new Date() },
+    });
+  }
 }
