@@ -3,7 +3,7 @@ name: g2-004-http-error-code-static-validation
 language: zh-CN
 phase: archive
 status: active
-state_version: 8
+state_version: 9
 brief: brief.md
 spec_changes:
   - capability: g2-004-http-error-code-static-validation
@@ -13,7 +13,7 @@ workspace:
   isolation: worktree
   change_branch: comet/g2-004-http-error-code-static-validation
   target_branch: agent/chong/df9d120d2105-stage6-audit-log
-  finish: null
+  finish: merge
 loop:
   stage: archive-ready
   goal_cycle: 1
