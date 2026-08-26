@@ -3,7 +3,7 @@ name: g2-009-openapi-doc-e2e-suite
 language: zh-CN
 phase: archive
 status: active
-state_version: 8
+state_version: 11
 brief: brief.md
 spec_changes: []
 workspace:
