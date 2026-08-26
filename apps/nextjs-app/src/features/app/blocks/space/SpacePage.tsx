@@ -10,6 +10,7 @@ import { useIsCloud } from '../../hooks/useIsCloud';
 import { useSetting } from '../../hooks/useSetting';
 import { useTemplateMonitor } from '../base/duplicate/useTemplateMonitor';
 import { useSpaceSubscriptionMonitor } from '../billing/useSpaceSubscriptionMonitor';
+import { WorkspaceSwitcherDropdown } from '../workspace-switcher/WorkspaceSwitcherDropdown';
 import { FreshSettingGuideDialog } from './FreshSettingGuideDialog';
 import { NoBasesPlaceholder } from './NoBasesPlaceholder';
 import { NoSpacesPlaceholder } from './NoSpacesPlaceholder';
@@ -85,6 +86,7 @@ export const SpacePage: FC = () => {
     <div ref={ref} className="flex h-screen flex-1 flex-col overflow-hidden py-8">
       <div className="flex items-center justify-between px-12">
         <h1 className="text-2xl font-semibold">{t('space:allSpaces')}</h1>
+        <WorkspaceSwitcherDropdown />
       </div>
       <div className="flex-1 space-y-8 overflow-y-auto px-8 pt-8 sm:px-12">
         <RecentlyBase />
