@@ -19,6 +19,7 @@ import { ConfigModule } from '../configs/config.module';
 import { X_REQUEST_ID } from '../const';
 import { DbProvider } from '../db-provider/db.provider';
 import { EventEmitterModule } from '../event-emitter/event-emitter.module';
+import { AuditInterceptor } from '../features/audit/audit.interceptor';
 import { AuditSourceModule } from '../features/audit/audit.module';
 import { AuthGuard } from '../features/auth/guard/auth.guard';
 import { PermissionGuard } from '../features/auth/guard/permission.guard';
@@ -114,6 +115,13 @@ const globalModules = {
     {
       provide: APP_GUARD,
       useClass: PermissionGuard,
+    },
+    {
+      // Register before RouteTracingInterceptor so the audit row carries the
+      // raw request/response state; tracing span attributes only influence
+      // observability output and have no effect on what gets persisted.
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

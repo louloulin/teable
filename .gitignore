@@ -79,3 +79,8 @@ pnpm-debug.log*
 # LocalStorage assets
 
 **/.assets
+.comet/
+builder-handoff.json
+dispatch-verifier.json
+.comet-builder-handoff.json
+.comet-dispatch-verifier.json
