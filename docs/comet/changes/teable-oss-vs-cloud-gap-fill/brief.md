@@ -199,41 +199,6 @@
 > 拆分 = Supervisor + children 已由 Agent 决定(实现选择),不需用户确认。
 > 当前 shape 已确认,Supervisor 进入 Build。
 
-## Round 28 接线加固(用户授权 2026-08-26T01:06Z 全量实现)
-
-Round 27 权限矩阵审计识别出三类"运行时 0 效果"缺口:
-- **装饰品**:Permission Matrix Guard/Interceptor 写好了但没挂载,管理员能配矩阵但运行时零效果
-- **死代码**:Quota Enforce Interceptor 同上;Audit 只在显式 @Audit() 调用,其它 controller 漏
-- **未接线**:`app.module.ts` 未引用 36 个 module 文件,商业版独占能力(IP allowlist、risk-control、turnstil、webhook、BYOK、KMS、DR 复制等)对 OSS 用户完全不可见
-
-加上类型系统漏洞(`HttpErrorCode.FORBIDDEN` / `HttpErrorCode.FAILED` 这种字符串索引访问绕过 TypeScript 检查,运行时变 undefined → RangeError),共 10 个独立修复,全部纳入本 Supervisor 扩展 Scope,作为新一批 child 派发。
-
-### 新增 Scope(纳入 A1-A11 之外的 G2A1-G2A10 验收项)
-
-- **G2-001** 全局权限矩阵 Guard/Interceptor 接入 — `PermissionMatrixGuard` / `PermissionMatrixInterceptor` 注册为 APP_GUARD / APP_INTERCEPTOR,或在 admin/non-admin 路由上 `@UseGuards` 显式挂载。任意 `/api/space/*`、`/api/base/*`、`/api/table/*` 写操作命中矩阵行/列/字段规则
-- **G2-002** Quota 全局 Interceptor + Plan-aware 阈值 — `QuotaEnforcementInterceptor` 作为 APP_INTERCEPTOR,默认 `TEABLE_QUOTA_ENFORCEMENT_ENABLED=false`,打开后对所有写端点按 plan 配额(行数/附件/API 调用)生效,超额返回 429
-- **G2-003** Audit 全局 Interceptor — 加 `AuditInterceptor` 作为 APP_INTERCEPTOR,与现有 `@Audit()` 双轨并存;漏 service 补齐后端到端审计无残留
-- **G2-004** HttpErrorCode 静态校验 + 枚举加固 — `packages/core/src/errors/http/` 加 `enum-guard.test.ts` 静态校验所有 `HttpErrorCode.*` 必须命中现有枚举键,失配即 build fail;或用 `getHttpErrorCode(name: keyof typeof HttpErrorCode)` 函数包装所有引用
-- **G2-005** Business/enterprise plan 端到端冒烟 — `TEABLE_LICENSE_KEY=plan:business` 注入后,`/api/admin/permission-matrix/*`、`/api/admin/sso/providers`、`/api/admin/audit-log` 全套端点闸门放行后业务路径不崩
-- **G2-006** Wave N1 模块接线(8 module,安全/合规) — `ip-allowlist` / `risk-control` / `turnstile` / `delete-user` / `retention` / `tracking` / `metrics` / `session` 全部在 `app.module.ts` 激活
-- **G2-007** Wave N2 模块接线(20+ module,企业能力) — `github` / `google` / `social` / `chart` / `dashboard` / `database-view` / `graph` / `stack` / `view` / `model` / `computed` / `field-calculate` / `field-duplicate` / `record-modify` / `table-domain` / `record` / `table` / `folder` / `data-loader` / `query-builder` / `plugins` / `calculation` / `last-visit`
-- **G2-008** Webhook / BYOK / KMS / DR 复制(Wave H 漏接) — `webhook-bridge` / `webhook-delivery` / `byok-kms` / `byok-llm` / `kms-encrypt` / `dr-replication` / `tenant-isolation` / `datalink` 等
-- **G2-009** OpenAPI 文档站 + E2E 测试 — Stage 103-106 文档站可访问;E2E 测试集覆盖 G2A1~G2A8 主要端点
-- **G2-010** 全局回归 + 文档同步 — `pnpm test` 全绿;G2A1~G2A9 全部独立验证;最终 Supervisor Verifier 在集成分支一次过 A1-A11 + G2A1-G2A10
-
-### 新增约束(G2 阶段)
-
-- **零现有热路径改动**:G2-001/002/003 全部通过 interceptor/guard 注入,已有 handler 主体逻辑不变
-- **能力闸优先**:任何 Business-only 路由挂在 `LicenseCapabilityGuard.for('<cap>')` 顶层;能力位缺位 → 统一 402 LICENSE_REQUIRED
-- **OpenSpec 强约束**:`HttpErrorCode.FOO` 写法在 G2-004 后必须命中 enum key,任何 strings 索引访问都要走 `getHttpErrorCode()` 包装
-- **Module 接线一律声明式**:`app.module.ts` 中追加 `@Module({ imports: [...], exports: [...] })` 块时,要求每个新 module 都有 `controllers` 字段才能算"激活";纯 service 提供者(transitive 引入)允许
-
-### Round 28 用户授权
-
-- **Q5 解决 (2026-08-26T01:06Z)**:用户原文 "全量实现" = 同意 G2-001~010 全部纳入本 supervisor change,作为新 child 派发
-- **节奏**:按"先堵漏、再扩展、最后打磨"—— G2-001~004 一组(2 周内),G2-005 一组(1 周),G2-006~008 一组(2 周),G2-009~010 收尾(1 周)
-- **验证**:每个 child 跑 Shape→Build→Verify→Archive→merge 全套;Supervisor 全部 child done 后启动最终 Verifier 一次性验收 A1-A11 + G2A1-G2A10
-
 # Verification expectations
 
 - 每个 child 在独立 worktree 中构建,完成后 merge 回 Supervisor 分支。
