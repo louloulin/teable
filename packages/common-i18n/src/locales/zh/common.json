@@ -179,6 +179,11 @@
     "personal": {
       "title": "个人"
     },
+    "apiExplorer": {
+      "title": "API 浏览器",
+      "description": "在浏览器中浏览并试用公开的 Teable REST API。",
+      "openInNewTab": "在新标签页打开"
+    },
     "templateAdmin": {
       "title": "模板管理",
       "noData": "暂无数据",

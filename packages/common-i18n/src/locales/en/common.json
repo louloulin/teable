@@ -175,6 +175,11 @@
     "personal": {
       "title": "Personal"
     },
+    "apiExplorer": {
+      "title": "API Explorer",
+      "description": "Browse and try out the public Teable REST API in your browser.",
+      "openInNewTab": "Open in new tab"
+    },
     "templateAdmin": {
       "title": "Template admin",
       "noData": "No data",
