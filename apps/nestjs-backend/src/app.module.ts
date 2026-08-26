@@ -17,12 +17,15 @@ import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
 import { BaseShareModule } from './features/base-share/base-share.module';
 import { BuiltinAssetsInitModule } from './features/builtin-assets-init';
+import { ByokKmsModule } from './features/byok-kms/byok-kms.module';
+import { ByokLlmModule } from './features/byok-llm/byok-llm.module';
 import { CanaryModule } from './features/canary';
 import { ChatModule } from './features/chat/chat.module';
 import { CollaboratorModule } from './features/collaborator/collaborator.module';
 import { CommentOpenApiModule } from './features/comment/comment-open-api.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
+import { DrCanvasModule } from './features/dr-canvas/dr-canvas.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
 import { HealthModule } from './features/health/health.module';
@@ -39,6 +42,7 @@ import { FieldModule } from './features/field/field.module';
 import { FieldCalculateModule } from './features/field/field-calculate/field-calculate.module';
 import { FieldDuplicateModule } from './features/field/field-duplicate/field-duplicate.module';
 import { GraphModule } from './features/graph/graph.module';
+import { KmsEncryptionModule } from './features/kms-encryption/kms-encryption.module';
 import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-sender-open-api.module';
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
 import { MetricsModule } from './features/metrics/metrics.module';
@@ -86,6 +90,10 @@ import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbo
 import { V2Module } from './features/v2/v2.module';
 import { ViewModule } from './features/view/view.module';
 import { ViewOpenApiModule } from './features/view/open-api/view-open-api.module';
+import { WebhookBridgeModule } from './features/webhook-bridge/webhook-bridge.module';
+import { WebhookCanvasModule } from './features/webhook-canvas/webhook-canvas.module';
+import { WebhookDeliveryModule } from './features/webhook-delivery/webhook-delivery.module';
+import { WorkspaceMirrorModule } from './features/workspace-mirror/workspace-mirror.module';
 import { GlobalModule } from './global/global.module';
 import { InitBootstrapProvider } from './global/init-bootstrap.provider';
 import { LoggerModule } from './logger/logger.module';
@@ -159,7 +167,7 @@ export const appModules = {
     RetentionModule,
     TrackingModule.forRoot(),
     MetricsModule,
-    // Wave N2 modules (g2-007) — enterprise capability modules registered
+// Wave N2 modules (g2-007) — enterprise capability modules registered
     // here for the first time. Order is dependency-correct so the DI graph
     // can resolve transitively without forwardRef gymnastics.
     FieldModule,
@@ -184,6 +192,15 @@ export const appModules = {
     ViewOpenApiModule,
     RecordOpenApiModule,
     TableOpenApiModule,
+    // Wave H modules (g2-008): webhook / BYOK / KMS / DR
+    WebhookDeliveryModule,
+    WebhookBridgeModule,
+    WebhookCanvasModule,
+    ByokLlmModule,
+    ByokKmsModule,
+    KmsEncryptionModule,
+    WorkspaceMirrorModule,
+    DrCanvasModule,
   ],
   providers: [InitBootstrapProvider],
 };
