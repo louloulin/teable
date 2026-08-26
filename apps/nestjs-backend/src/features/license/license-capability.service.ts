@@ -26,11 +26,20 @@ export type LicenseCapability =
   | 'sso'
   | 'permission_matrix'
   | 'custom_app_domain'
+  | 'custom_domain'
   | 'audit_log'
   | 'admin_panel'
-  | 'ip_allowlist'
-  | 'delete_user'
-  | 'metrics';
+  | 'users_read'
+  | 'spaces_read'
+  | 'templates_read'
+  | 'ai'
+  | 'quota_view'
+  // Stage 13 automation — Business+ only
+  | 'automation'
+  // Stage 14 webhook outbound — Business+ only
+  | 'webhook'
+  // Stage 52 audit log query DSL — Business+ only
+  | 'audit_log_query';
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -49,11 +58,17 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'sso',
     'permission_matrix',
     'custom_app_domain',
+    'custom_domain',
     'audit_log',
     'admin_panel',
-    'ip_allowlist',
-    'delete_user',
-    'metrics',
+    'users_read',
+    'spaces_read',
+    'templates_read',
+    'ai',
+    'quota_view',
+    'automation',
+    'webhook',
+    'audit_log_query',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -63,14 +78,44 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'sso',
     'permission_matrix',
     'custom_app_domain',
+    'custom_domain',
     'audit_log',
     'admin_panel',
-    'ip_allowlist',
-    'delete_user',
-    'metrics',
+    'users_read',
+    'spaces_read',
+    'templates_read',
+    'ai',
+    'quota_view',
+    'automation',
+    'webhook',
+    'audit_log_query',
   ]),
   self_hosted: new Set<LicenseCapability>(),
 };
+
+const ALL_CAPABILITIES: readonly LicenseCapability[] = [
+  'ai_field',
+  'ai_chat',
+  'ai_app_builder',
+  'cuppy_claw',
+  'sso',
+  'permission_matrix',
+  'custom_app_domain',
+  'custom_domain',
+  'audit_log',
+  'admin_panel',
+  'users_read',
+  'spaces_read',
+  'templates_read',
+  'ai',
+  'quota_view',
+  // Stage 13 automation — Business+ only
+  'automation',
+  // Stage 14 webhook outbound — Business+ only
+  'webhook',
+  // Stage 52 audit log query DSL — Business+ only
+  'audit_log_query',
+];
 
 @Injectable()
 export class LicenseCapabilityService implements OnApplicationBootstrap {
@@ -99,7 +144,7 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
     }
     this.plan = next;
     this.cache = new Map();
-    for (const cap of Object.keys(PLAN_CAPABILITIES) as LicenseCapability[]) {
+    for (const cap of ALL_CAPABILITIES) {
       this.cache.set(cap, PLAN_CAPABILITIES[this.plan].has(cap));
     }
   }
@@ -122,7 +167,7 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
   /** Convenience for the frontend: full feature flag map. */
   snapshot(): Record<LicenseCapability, boolean> & { plan: PlanLevel } {
     const out = { plan: this.plan } as Record<LicenseCapability, boolean> & { plan: PlanLevel };
-    for (const cap of Object.keys(PLAN_CAPABILITIES) as LicenseCapability[]) {
+    for (const cap of ALL_CAPABILITIES) {
       out[cap] = this.cache.get(cap) ?? false;
     }
     return out;
