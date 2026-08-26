@@ -30,9 +30,19 @@ import { ImportOpenApiModule } from './features/import/open-api/import-open-api.
 import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
 import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
+import { AggregationModule } from './features/aggregation/aggregation.module';
+import { AttachmentsStorageModule } from './features/attachments/attachments-storage.module';
+import { CalculationModule } from './features/calculation/calculation.module';
+import { DataLoaderModule } from './features/data-loader/data-loader.module';
+import { DatabaseViewModule } from './features/database-view/database-view.module';
+import { FieldModule } from './features/field/field.module';
+import { FieldCalculateModule } from './features/field/field-calculate/field-calculate.module';
+import { FieldDuplicateModule } from './features/field/field-duplicate/field-duplicate.module';
+import { GraphModule } from './features/graph/graph.module';
 import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-sender-open-api.module';
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
 import { MetricsModule } from './features/metrics/metrics.module';
+import { ModelModule } from './features/model/model.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { OAuthModule } from './features/oauth/oauth.module';
@@ -48,13 +58,23 @@ import { SsoModule } from './features/sso/sso.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
+import { ComputedModule } from './features/record/computed/computed.module';
+import { RecordModifyModule } from './features/record/record-modify/record-modify.module';
+import { RecordOpenApiModule } from './features/record/open-api/record-open-api.module';
+import { RecordQueryBuilderModule } from './features/record/query-builder';
+import { RecordModule } from './features/record/record.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
 import { SelectionModule } from './features/selection/selection.module';
 import { AdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
+import { ShareDbModule } from './share-db/share-db.module';
 import { ShareModule } from './features/share/share.module';
 import { ShortLinkModule } from './features/short-link/short-link.module';
+import { SpaceDataDbMigrationGuardModule } from './features/space/space-data-db-migration-guard.module';
 import { SpaceModule } from './features/space/space.module';
+import { TableDomainQueryModule } from './features/table-domain';
+import { TableOpenApiModule } from './features/table/open-api/table-open-api.module';
+import { TableModule } from './features/table/table.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TrashModule } from './features/trash/trash.module';
 import { TurnstileModule } from './features/auth/turnstile/turnstile.module';
@@ -64,6 +84,8 @@ import { TrackingModule } from './features/user/tracking/tracking.module';
 import { UserModule } from './features/user/user.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
+import { ViewModule } from './features/view/view.module';
+import { ViewOpenApiModule } from './features/view/open-api/view-open-api.module';
 import { GlobalModule } from './global/global.module';
 import { InitBootstrapProvider } from './global/init-bootstrap.provider';
 import { LoggerModule } from './logger/logger.module';
@@ -137,6 +159,31 @@ export const appModules = {
     RetentionModule,
     TrackingModule.forRoot(),
     MetricsModule,
+    // Wave N2 modules (g2-007) — enterprise capability modules registered
+    // here for the first time. Order is dependency-correct so the DI graph
+    // can resolve transitively without forwardRef gymnastics.
+    FieldModule,
+    FieldCalculateModule,
+    FieldDuplicateModule,
+    AttachmentsStorageModule,
+    ShareDbModule,
+    AggregationModule,
+    SpaceDataDbMigrationGuardModule,
+    TableDomainQueryModule,
+    RecordQueryBuilderModule,
+    CalculationModule,
+    ModelModule,
+    DataLoaderModule,
+    ViewModule,
+    RecordModule,
+    ComputedModule,
+    GraphModule,
+    DatabaseViewModule,
+    TableModule,
+    RecordModifyModule,
+    ViewOpenApiModule,
+    RecordOpenApiModule,
+    TableOpenApiModule,
   ],
   providers: [InitBootstrapProvider],
 };
