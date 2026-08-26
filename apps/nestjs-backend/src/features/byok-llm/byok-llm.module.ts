@@ -13,31 +13,25 @@ import {
   suggestAlias,
   validateProviderKey,
 } from './byok-llm.service';
-import { ByokLlmAuthService } from './byok-llm.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `byok-llm.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for BYOK LLM — no Nest DI surface, consumed directly
+ * by callers. Wave 6 surfaces that the previous thin-DI wrapper class was
+ * never @Injectable() and could not be wired; we removed it.
  */
-export class ByokLlmService {
-  fingerprintKey = fingerprintKey;
-  suggestAlias = suggestAlias;
-  validateProviderKey = validateProviderKey;
-  normalizeProviderKey = normalizeProviderKey;
-  canRegisterMore = canRegisterMore;
-  buildUsageRow = buildUsageRow;
-  aggregateOrgUsage = aggregateOrgUsage;
-  computeHealth = computeHealth;
-  routeRequest = routeRequest;
-  hashAttempt = hashAttempt;
-  shouldMarkExhausted = shouldMarkExhausted;
-}
+export const ByokLlmService = {
+  fingerprintKey,
+  suggestAlias,
+  validateProviderKey,
+  normalizeProviderKey,
+  canRegisterMore,
+  buildUsageRow,
+  aggregateOrgUsage,
+  computeHealth,
+  routeRequest,
+  hashAttempt,
+  shouldMarkExhausted,
+};
 
-@Module({
-  providers: [ByokLlmService, ByokLlmAuthService],
-  exports: [ByokLlmService, ByokLlmAuthService],
-})
+@Module({})
 export class ByokLlmModule {}

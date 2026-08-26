@@ -13,31 +13,25 @@ import {
   topoSortWebhook,
   validateWebhookCanvas,
 } from './webhook-canvas.service';
-import { WebhookCanvasAuthService } from './webhook-canvas.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `webhook-canvas.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for webhook canvas — no Nest DI surface, consumed
+ * directly by callers. Wave 6 surfaces that the previous thin-DI wrapper
+ * class was never @Injectable() and could not be wired; we removed it.
  */
-export class WebhookCanvasService {
-  validateWebhookCanvas = validateWebhookCanvas;
-  topoSortWebhook = topoSortWebhook;
-  planWebhookExecution = planWebhookExecution;
-  addWebhookNode = addWebhookNode;
-  removeWebhookNode = removeWebhookNode;
-  addWebhookEdge = addWebhookEdge;
-  removeWebhookEdge = removeWebhookEdge;
-  moveWebhookNode = moveWebhookNode;
-  serializeWebhookCanvas = serializeWebhookCanvas;
-  summarizeWebhookCanvas = summarizeWebhookCanvas;
-  groupWebhookNodesByKind = groupWebhookNodesByKind;
-}
+export const WebhookCanvasService = {
+  validateWebhookCanvas,
+  topoSortWebhook,
+  planWebhookExecution,
+  addWebhookNode,
+  removeWebhookNode,
+  addWebhookEdge,
+  removeWebhookEdge,
+  moveWebhookNode,
+  serializeWebhookCanvas,
+  summarizeWebhookCanvas,
+  groupWebhookNodesByKind,
+};
 
-@Module({
-  providers: [WebhookCanvasService, WebhookCanvasAuthService],
-  exports: [WebhookCanvasService, WebhookCanvasAuthService],
-})
+@Module({})
 export class WebhookCanvasModule {}

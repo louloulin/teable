@@ -14,32 +14,26 @@ import {
   topoSortDr,
   validateDrCanvas,
 } from './dr-canvas.service';
-import { DrCanvasAuthService } from './dr-canvas.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `dr-canvas.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for DR canvas — no Nest DI surface, consumed directly
+ * by callers. Wave 6 surfaces that the previous thin-DI wrapper class was
+ * never @Injectable() and could not be wired; we removed it.
  */
-export class DrCanvasService {
-  validateDrCanvas = validateDrCanvas;
-  topoSortDr = topoSortDr;
-  planDrExecution = planDrExecution;
-  addDrNode = addDrNode;
-  removeDrNode = removeDrNode;
-  addDrEdge = addDrEdge;
-  removeDrEdge = removeDrEdge;
-  moveDrNode = moveDrNode;
-  findDrNodeByCheckpoint = findDrNodeByCheckpoint;
-  listDrCheckpoints = listDrCheckpoints;
-  serializeDrCanvas = serializeDrCanvas;
-  summarizeDrCanvas = summarizeDrCanvas;
-}
+export const DrCanvasService = {
+  validateDrCanvas,
+  topoSortDr,
+  planDrExecution,
+  addDrNode,
+  removeDrNode,
+  addDrEdge,
+  removeDrEdge,
+  moveDrNode,
+  findDrNodeByCheckpoint,
+  listDrCheckpoints,
+  serializeDrCanvas,
+  summarizeDrCanvas,
+};
 
-@Module({
-  providers: [DrCanvasService, DrCanvasAuthService],
-  exports: [DrCanvasService, DrCanvasAuthService],
-})
+@Module({})
 export class DrCanvasModule {}

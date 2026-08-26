@@ -16,34 +16,29 @@ import {
   unwrapDek,
   wrapDek,
 } from './byok-kms.service';
-import { ByokKmsAuthService, LocalMasterKeyProvider } from './byok-kms.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `byok-kms.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for BYOK KMS — no Nest DI surface, consumed directly
+ * by callers. Wave 6 surfaces that the previous thin-DI wrapper class was
+ * never @Injectable() and could not be wired; we removed it. The AuthService
+ * surface is also pure (no Nest DI needed).
  */
-export class ByokKmsService {
-  generateAlias = generateAlias;
-  isValidAlias = isValidAlias;
-  generateDek = generateDek;
-  encryptWithDek = encryptWithDek;
-  decryptWithDek = decryptWithDek;
-  wrapDek = wrapDek;
-  unwrapDek = unwrapDek;
-  envelopeHash = envelopeHash;
-  isRotationDue = isRotationDue;
-  daysUntilRotation = daysUntilRotation;
-  parseRotationPolicy = parseRotationPolicy;
-  stringifyRotationPolicy = stringifyRotationPolicy;
-  buildKeyRow = buildKeyRow;
-  normalizeMasterKey = normalizeMasterKey;
-}
+export const ByokKmsService = {
+  generateAlias,
+  isValidAlias,
+  generateDek,
+  encryptWithDek,
+  decryptWithDek,
+  wrapDek,
+  unwrapDek,
+  envelopeHash,
+  isRotationDue,
+  daysUntilRotation,
+  parseRotationPolicy,
+  stringifyRotationPolicy,
+  buildKeyRow,
+  normalizeMasterKey,
+};
 
-@Module({
-  providers: [ByokKmsService, ByokKmsAuthService, LocalMasterKeyProvider],
-  exports: [ByokKmsService, ByokKmsAuthService, LocalMasterKeyProvider],
-})
+@Module({})
 export class ByokKmsModule {}

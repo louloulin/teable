@@ -26,6 +26,7 @@ import { PermissionGuard } from '../features/auth/guard/permission.guard';
 import { PermissionModule } from '../features/auth/permission.module';
 import { PermissionGuard as PermissionMatrixGuard } from '../features/permission-matrix/permission.guard';
 import { PermissionInterceptor as PermissionMatrixInterceptor } from '../features/permission-matrix/permission.interceptor';
+import { PermissionMatrixModule } from '../features/permission-matrix/permission-matrix.module';
 import { DataLoaderModule } from '../features/data-loader/data-loader.module';
 import { IpAllowlistMiddleware } from '../features/ip-allowlist/ip-allowlist.middleware';
 import { IpAllowlistModule } from '../features/ip-allowlist/ip-allowlist.module';
@@ -72,6 +73,7 @@ const globalModules = {
     PrismaModule,
     DataPrismaModule,
     PermissionModule,
+    PermissionMatrixModule,
     DataLoaderModule,
     PerformanceCacheModule,
     IpAllowlistModule,

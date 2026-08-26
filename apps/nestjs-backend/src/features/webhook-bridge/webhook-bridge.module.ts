@@ -10,28 +10,22 @@ import {
   validateBridge,
   verifyInboundAuth,
 } from './webhook-bridge.service';
-import { WebhookBridgeAuthService } from './webhook-bridge.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `webhook-bridge.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for webhook bridge — no Nest DI surface, consumed
+ * directly by callers. Wave 6 surfaces that the previous thin-DI wrapper
+ * class was never @Injectable() and could not be wired; we removed it.
  */
-export class WebhookBridgeService {
-  computeHmacSignature = computeHmacSignature;
-  safeEqualHex = safeEqualHex;
-  verifyInboundAuth = verifyInboundAuth;
-  detectEventType = detectEventType;
-  matchesEventFilter = matchesEventFilter;
-  validateBridge = validateBridge;
-  buildRoutedEvent = buildRoutedEvent;
-  buildDispatch = buildDispatch;
-}
+export const WebhookBridgeService = {
+  computeHmacSignature,
+  safeEqualHex,
+  verifyInboundAuth,
+  detectEventType,
+  matchesEventFilter,
+  validateBridge,
+  buildRoutedEvent,
+  buildDispatch,
+};
 
-@Module({
-  providers: [WebhookBridgeService, WebhookBridgeAuthService],
-  exports: [WebhookBridgeService, WebhookBridgeAuthService],
-})
+@Module({})
 export class WebhookBridgeModule {}

@@ -15,33 +15,27 @@ import {
   signBody,
   toRow,
 } from './webhook-delivery.service';
-import { WebhookDeliveryAuthService } from './webhook-delivery.auth.service';
 
 /**
- * NestJS-injectable wrapper around the pure helper functions exported
- * from `webhook-delivery.service.ts`. The underlying helpers are
- * copied verbatim from the supervisor branch — this class only adds a
- * thin DI surface so downstream modules can inject a single service
- * reference.
+ * Pure-function helpers for webhook delivery — no Nest DI surface, consumed
+ * directly by callers. Wave 6 surfaces that the previous thin-DI wrapper
+ * class was never @Injectable() and could not be wired; we removed it.
  */
-export class WebhookDeliveryService {
-  isWebhookStatus = isWebhookStatus;
-  isTerminalStatus = isTerminalStatus;
-  computeBackoff = computeBackoff;
-  signBody = signBody;
-  buildRequestHeaders = buildRequestHeaders;
-  isValidUrl = isValidUrl;
-  endpointAcceptsEvent = endpointAcceptsEvent;
-  decideNextStatus = decideNextStatus;
-  advanceDelivery = advanceDelivery;
-  toRow = toRow;
-  pickDueDeliveries = pickDueDeliveries;
-  newDeliveryId = newDeliveryId;
-  buildPayload = buildPayload;
-}
+export const WebhookDeliveryService = {
+  isWebhookStatus,
+  isTerminalStatus,
+  computeBackoff,
+  signBody,
+  buildRequestHeaders,
+  isValidUrl,
+  endpointAcceptsEvent,
+  decideNextStatus,
+  advanceDelivery,
+  toRow,
+  pickDueDeliveries,
+  newDeliveryId,
+  buildPayload,
+};
 
-@Module({
-  providers: [WebhookDeliveryService, WebhookDeliveryAuthService],
-  exports: [WebhookDeliveryService, WebhookDeliveryAuthService],
-})
+@Module({})
 export class WebhookDeliveryModule {}
