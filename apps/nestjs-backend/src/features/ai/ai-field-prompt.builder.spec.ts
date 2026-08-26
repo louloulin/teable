@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import type { IFieldAIConfig } from '@teable/core';
 import { FieldAIActionType } from '@teable/core';
 import { describe, expect, it } from 'vitest';
 import {
@@ -99,7 +100,7 @@ describe('ai-field-prompt.builder', () => {
           config: {
             type: FieldAIActionType.ImageGeneration,
             modelKey: 'openai@gpt-4o@custom',
-          },
+          } as IFieldAIConfig,
           fieldValueById: {},
         })
       ).toBeNull();
@@ -122,7 +123,7 @@ describe('ai-field-prompt.builder', () => {
         modelKey: 'm',
         prompt: 'Combine {fldA} with {fldB} — {fldA}',
       });
-      expect(ids.sort()).toEqual(['fldA', 'fldB']);
+      expect([...ids].sort()).toEqual(['fldA', 'fldB']);
     });
 
     it('returns [] when no source is referenced', () => {
