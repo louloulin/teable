@@ -2,8 +2,8 @@ schema: comet.native.v4
 name: g2-009-openapi-doc-e2e-suite
 language: zh-CN
 phase: archive
-status: active
-state_version: 11
+status: done
+state_version: 12
 brief: brief.md
 spec_changes: []
 workspace:
@@ -12,7 +12,7 @@ workspace:
   target_branch: agent/chong/df9d120d2105-stage6-audit-log
   finish: merge
 loop:
-  stage: archive-ready
+  stage: done
   goal_cycle: 1
   iteration: 1
   attempt: 1
@@ -21,7 +21,7 @@ loop:
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: archive
+  next_action: null
 acceptance:
   - id: A1
     source: brief.md
@@ -298,5 +298,5 @@ history_overflow:
     recovery: 0
 verification_result: pass
 verification_report: verification.md
-archived: false
+archived: true
 created_at: 2026-08-26T06:10:08.454Z
