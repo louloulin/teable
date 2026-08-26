@@ -3,10 +3,18 @@ import { DbProvider } from '../../db-provider/db.provider';
 import { CalculationModule } from '../calculation/calculation.module';
 import { RecordQueryBuilderModule } from '../record/query-builder';
 import { TableDomainQueryModule } from '../table-domain';
+import { DatabaseViewAuthService } from './database-view.auth.service';
 import { DatabaseViewService } from './database-view.service';
 
+/**
+ * Database-view — module (Stage 130).
+ *
+ * `DatabaseViewAuthService` is the thin-DI wrapper façade added
+ * alongside the existing service without touching its logic.
+ */
 @Module({
   imports: [RecordQueryBuilderModule, TableDomainQueryModule, CalculationModule],
-  providers: [DbProvider, DatabaseViewService],
+  providers: [DbProvider, DatabaseViewService, DatabaseViewAuthService],
+  exports: [DatabaseViewAuthService],
 })
 export class DatabaseViewModule {}

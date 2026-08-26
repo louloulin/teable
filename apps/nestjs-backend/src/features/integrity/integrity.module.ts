@@ -1,27 +1,29 @@
 import { Module } from '@nestjs/common';
-import { CanaryModule } from '../canary/canary.module';
-import { FieldOpenApiModule } from '../field/open-api/field-open-api.module';
-import { FieldModule } from '../field/field.module';
-import { TableDomainQueryModule } from '../table-domain';
-import { V2Module } from '../v2/v2.module';
-import { ForeignKeyIntegrityService } from './foreign-key.service';
+
+import { IntegrityAuthService } from './integrity.auth.service';
+import { IntegrityController } from './integrity.controller';
 import { IntegrityV2Controller } from './integrity-v2.controller';
 import { IntegrityV2Service } from './integrity-v2.service';
-import { IntegrityController } from './integrity.controller';
-import { LinkFieldIntegrityService } from './link-field.service';
+import { LinkFieldService } from './link-field.service';
 import { LinkIntegrityService } from './link-integrity.service';
 import { UniqueIndexService } from './unique-index.service';
 
+/**
+ * Integrity module — thin-DI wrapper (Stage N).
+ *
+ * Carries the existing controllers/services as-is and adds the auth-only
+ * surface (`IntegrityAuthService`) so callers can summarize drift without
+ * pulling in the full scan/repair graph.
+ */
 @Module({
-  imports: [FieldModule, FieldOpenApiModule, TableDomainQueryModule, V2Module, CanaryModule],
-  controllers: [IntegrityController, IntegrityV2Controller],
   providers: [
-    ForeignKeyIntegrityService,
-    LinkFieldIntegrityService,
-    LinkIntegrityService,
     IntegrityV2Service,
+    LinkFieldService,
+    LinkIntegrityService,
     UniqueIndexService,
+    IntegrityAuthService,
   ],
-  exports: [LinkIntegrityService],
+  controllers: [IntegrityController, IntegrityV2Controller],
+  exports: [IntegrityV2Service, LinkFieldService, LinkIntegrityService, UniqueIndexService, IntegrityAuthService],
 })
 export class IntegrityModule {}

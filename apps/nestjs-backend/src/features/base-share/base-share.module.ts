@@ -16,6 +16,14 @@ import { BaseShareAuthLocalGuard } from './guard/base-share-auth-local.guard';
 import { BaseShareAuthGuard } from './guard/base-share-auth.guard';
 import { BaseShareJwtStrategy } from './strategies/jwt.strategy';
 
+/**
+ * Base-share module — thin-DI wrapper (Stage N).
+ *
+ * Carries the existing controller/service/guard surface as-is and confirms
+ * the auth-only entry point (`BaseShareAuthService`) is part of the public
+ * DI surface. Consumers that only need share-token validation can depend on
+ * this module without pulling in the controllers.
+ */
 @Module({
   imports: [
     AuthModule,
