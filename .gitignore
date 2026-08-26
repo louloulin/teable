@@ -5,6 +5,8 @@
 
 .env.local
 .env.*.local
+# Wave 6 real-integration env (localhost-only, contains dev secret key)
+apps/nestjs-backend/.env.wave6
 
 # security: atlassian/changeset
 
@@ -28,6 +30,9 @@ node_modules
 /out/
 /build
 /dist/
+
+# OpenAPI spec generated at runtime by apps/nestjs-backend/src/swagger.ts
+apps/nestjs-backend/src/openapi.json
 
 # v2 packages build output
 packages/v2/**/dist/
