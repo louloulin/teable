@@ -252,6 +252,9 @@
       }
     },
     "back": "Back to home",
+    "scim": {
+      "title": "SCIM provisioning"
+    },
     "account": {
       "title": "Profile",
       "tab": "Profile",
@@ -1069,6 +1072,57 @@
       "spaceIdsPlaceholder": "spcXXXXXXXXXXX\nspcYYYYYYYYYYY",
       "preview": "Preview ({{count}} IDs)",
       "noSpaceIds": "No space IDs entered"
+    },
+    "scim": {
+      "title": "SCIM provisioning",
+      "description": "Configure SCIM 2.0 push provisioning so your IdP can sync users and groups into this instance.",
+      "endpoint": {
+        "title": "SCIM endpoint",
+        "label": "Base URL",
+        "hint": "Point your IdP SCIM client at this URL. Authentication is via the bearer token below.",
+        "copy": "Copy URL"
+      },
+      "connectionTest": {
+        "title": "Connection test",
+        "description": "Run the curl below from any host that can reach this instance to confirm the SCIM endpoint responds.",
+        "noTokenWarning": "Rotate a bearer token before testing — the instance has no active token yet."
+      },
+      "token": {
+        "sectionTitle": "Bearer token",
+        "title": "Active token",
+        "description": "Rotating a token invalidates the previous one and immediately issues a new value. The new token is shown only once.",
+        "absent": "No token has been issued yet.",
+        "copy": "Copy token",
+        "rotate": "Rotate",
+        "rotating": "Rotating…",
+        "rotated": "SCIM token rotated.",
+        "lastRotated": "Last rotated: {{time}}",
+        "neverRotated": "No rotation recorded yet."
+      },
+      "users": {
+        "title": "Synced users",
+        "total": "{{count}} users in instance",
+        "empty": "No users yet. Provisioning from the IdP will populate this list.",
+        "loadError": "Could not load synced users. Try refreshing the page.",
+        "active": "Active",
+        "deactivated": "Deactivated",
+        "headers": {
+          "displayName": "Display name",
+          "email": "Email",
+          "externalId": "External ID",
+          "status": "Status"
+        }
+      },
+      "groups": {
+        "title": "Synced groups",
+        "total": "{{count}} groups",
+        "empty": "OSS Teable does not yet model SCIM groups as first-class entities. Group endpoints are exposed as stubs for IdP compatibility.",
+        "loadError": "Could not load synced groups. Try refreshing the page.",
+        "headers": {
+          "name": "Display name",
+          "members": "Members"
+        }
+      }
     }
   },
   "notification": {

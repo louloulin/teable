@@ -1,5 +1,9 @@
 import type { DehydratedState } from '@tanstack/react-query';
+<<<<<<< HEAD
 import { Code, Settings, LayoutTemplate as TemplateIcon, ShieldUser } from '@teable/icons';
+=======
+import { Key, LayoutTemplate as TemplateIcon, Settings, ShieldUser } from '@teable/icons';
+>>>>>>> 05e95d1a0 (feat(admin): scim push provisioning UI)
 import type { IUser } from '@teable/sdk';
 import { SessionProvider } from '@teable/sdk';
 import { AppProvider } from '@teable/sdk/context';
@@ -45,6 +49,12 @@ export const AdminLayout: React.FC<{
       label: t('settings.apiExplorer.title'),
       route: '/admin/api-explorer',
       pathTo: '/admin/api-explorer',
+    },
+    {
+      Icon: Key,
+      label: t('settings.scim.title'),
+      route: '/admin/scim',
+      pathTo: '/admin/scim',
     },
   ];
 
