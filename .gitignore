@@ -91,3 +91,11 @@ dispatch-verifier.json
 .comet-dispatch-verifier.json
 builder-handoff.json
 dispatch-verifier.json
+
+# g2-008 comet temp files
+handoff.json
+verifier-dispatch.json
+
+# Wave H prisma + i18n generated client
+packages/db-data-prisma/dist/
+packages/i18n-keys/dist/
