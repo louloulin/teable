@@ -12,6 +12,7 @@ import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { AiModule } from './features/ai/ai.module';
+import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
@@ -129,6 +130,7 @@ export const appModules = {
     CommentOpenApiModule,
     OrganizationModule,
     AiModule,
+    AiFieldRecordListenerModule,
     PluginModule,
     PluginPanelModule,
     // the ONLY mount of the cold queue CONSUMER: feature modules import
