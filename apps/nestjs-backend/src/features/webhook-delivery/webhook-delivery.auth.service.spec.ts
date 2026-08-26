@@ -234,6 +234,43 @@ describe('WebhookDeliveryAuthService', () => {
     });
   });
 
+  describe('retry (fresh-attempt re-queue)', () => {
+    it('creates a new delivery with attemptId + retried=true', async () => {
+      const { prisma, mocks } = mkPrismaMock();
+      mocks.deliveryFindUnique.mockResolvedValue(mkDelivery({ status: 'dead', attempt: 5 }));
+      mocks.deliveryCreate.mockResolvedValue(mkDelivery({ id: 'dlv_new', status: 'pending' }));
+      const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher());
+      const out = await svc.retry('dlv_1', 'user_admin');
+      expect(out.retried).toBe(true);
+      expect(out.attemptId).toMatch(/^dlv_/);
+      // The original dead-letter row was NOT mutated.
+      expect(mocks.deliveryUpdate).not.toHaveBeenCalled();
+      // A fresh row was created with attempt=0 and status='pending'.
+      const createdArgs = mocks.deliveryCreate.mock.calls[0]?.[0];
+      expect(createdArgs?.data?.status).toBe('pending');
+      expect(createdArgs?.data?.attempt).toBe(0);
+      expect(createdArgs?.data?.id).toBe(out.attemptId);
+      expect(createdArgs?.data?.payloadId).toBe('pld_1');
+      expect(createdArgs?.data?.endpointId).toBe('ep_1');
+    });
+
+    it('rejects when delivery not found', async () => {
+      const { prisma, mocks } = mkPrismaMock();
+      mocks.deliveryFindUnique.mockResolvedValue(null);
+      const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher());
+      await expect(svc.retry('missing', 'user_admin')).rejects.toThrow(/not found/);
+    });
+
+    it('rejects when delivery is not in dead-letter', async () => {
+      const { prisma, mocks } = mkPrismaMock();
+      mocks.deliveryFindUnique.mockResolvedValue(mkDelivery({ status: 'pending' }));
+      const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher());
+      await expect(svc.retry('dlv_1', 'user_admin')).rejects.toThrow(/dead-letter/);
+      // Must NOT create a new row when the source isn't dead.
+      expect(mocks.deliveryCreate).not.toHaveBeenCalled();
+    });
+  });
+
   describe('exposed helpers', () => {
     it('isValidUrl exposed', () => {
       const { prisma } = mkPrismaMock();

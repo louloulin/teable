@@ -123,6 +123,46 @@ export class WebhookDeliveryAuthService {
     return next;
   }
 
+  /**
+   * Re-queue a dead-letter delivery by creating a fresh attempt row.
+   *
+   * Returns `{ retried, attemptId }` where `attemptId` is the id of the
+   * newly-created delivery. The original dead-letter row is preserved
+   * (status remains `dead`) so admins retain the audit trail of the
+   * failed attempts. The new delivery inherits the same payload and
+   * endpoint but starts with `attempt=0` so the dispatcher treats it as
+   * a brand-new run.
+   *
+   * `requesterId` is accepted for downstream auditing — current Prisma
+   * schema doesn't have a column to persist it on, but accepting it
+   * here lets a future `audit_event` decorator record who triggered the
+   * retry without changing this method's signature.
+   */
+  async retry(
+    deliveryId: string,
+    requesterId: string
+  ): Promise<{ retried: boolean; attemptId: string }> {
+    const row = await this.prisma.webhookDelivery.findUnique({ where: { id: deliveryId } });
+    if (!row) throw new Error('not found');
+    if (row.status !== 'dead') throw new Error('not in dead-letter');
+    // requesterId is intentionally unused for now; reserved for audit
+    // hooks that will read it via CLS once that work lands.
+    void requesterId;
+    const attemptId = newDeliveryId();
+    const next: IWebhookDelivery = {
+      id: attemptId,
+      endpointId: row.endpointId,
+      payloadId: row.payloadId,
+      status: 'pending',
+      attempt: 0,
+      maxAttempts: row.maxAttempts,
+      nextAttemptAt: new Date(),
+      createdTime: new Date(),
+    };
+    await this.prisma.webhookDelivery.create({ data: toRow(next) });
+    return { retried: true, attemptId };
+  }
+
   async deleteDelivery(deliveryId: string): Promise<void> {
     await this.prisma.webhookDelivery.delete({ where: { id: deliveryId } });
   }
