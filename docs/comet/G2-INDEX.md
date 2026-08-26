@@ -37,9 +37,7 @@
 | G2-007 — Wave N2 enterprise modules | 5 | A1-A7 (7) | pass | `04d0a80e0` | `docs/comet/archive/2026-08-26-g2-007-wave-n2-enterprise-modules/` | `brief.md` | `verification.md` |
 | G2-008 — webhook / BYOK / KMS / DR | 6 | A1-A8 (8) | pass | `41d8183ae` | `docs/comet/archive/2026-08-26-g2-008-webhook-byok-kms-dr/` | `brief.md` | `verification.md` |
 | G2-009 — OpenAPI doc runtime + E2E suite | 7 | A1-A8 (8) | pass | `b81de6e5e` | `docs/comet/archive/2026-08-26-g2-009-openapi-doc-e2e-suite/` | `brief.md` | `verification.md` |
-| G2-010 — global regression + docs sync | 8 | GA1-GA8 (8) | pass | `<filled by Archive>` | `docs/comet/archive/2026-08-26-g2-010-global-regression-docs-sync/` | `brief.md` | `verification.md` |
-
-> 注: G2-010 的 `merge_sha` 由 Archive 步骤在 merge 到目标分支后填入;commit SHA 在 Build 阶段即可定。
+| G2-010 — global regression + docs sync | 8 | GA1-GA8 (8) | pass | `2c9d52eb9` | `docs/comet/archive/2026-08-26-g2-010-global-regression-docs-sync/` | `brief.md` | `verification.md` |
 
 ## 索引字段定义
 
@@ -94,4 +92,4 @@
 | 2026-08-26 | G2-007 | initial merge (commit `04d0a80e0`)|
 | 2026-08-26 | G2-008 | initial merge (commit `41d8183ae`)|
 | 2026-08-26 | G2-009 | initial merge (commit `b81de6e5e`)|
-| 2026-08-26 | G2-010 | index + integrity script + global regression spec (本文件)|
+| 2026-08-26 | G2-010 | initial merge (commit `2c9d52eb9`)|
