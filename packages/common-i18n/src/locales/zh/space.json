@@ -325,6 +325,9 @@
     "done": "导入完成",
     "failed": "导入失败",
     "openBase": "打开 base",
+    "continue": "继续",
+    "tablesHeading": "将导入的表格",
+    "tableMeta": "{{fieldCount}} 个字段",
     "issuesSummary": "导入过程中有 {{count}} 项做了调整：",
     "issuesMore": "还有 {{count}} 项…",
     "issue": {
@@ -348,6 +351,16 @@
     "connectWithAirtable": "连接 Airtable 账号",
     "waitingOAuth": "请在弹窗中完成授权…",
     "connectedAs": "已连接：{{account}}",
+    "connectMode": {
+      "oauth": "连接 Airtable 账号",
+      "pat": "使用 Personal Access Token"
+    },
+    "pat": {
+      "label": "Airtable Personal Access Token",
+      "placeholder": "patXXXXXXXXXXXXXX.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "help": "Token 仅发送到服务端，不会被持久化。",
+      "helpTooltip": "前往 airtable.com/create/tokens 创建；在目标 base 上授予 data.records:read 与 schema.bases:read 权限。"
+    },
     "permission": {
       "create": "创建者",
       "edit": "可编辑",
@@ -365,6 +378,24 @@
       "mismatch": "这个共享链接指向的 base 与所选的不一致。",
       "disableReminder": "完成——现在可以回 Airtable 关闭刚才的共享链接了。"
     }
+  },
+  "adminImport": {
+    "navTitle": "外部导入",
+    "title": "外部导入",
+    "description": "从其他工具把数据搬到一个新的 Teable base。",
+    "airtableDescription": "支持 OAuth 或 Personal Access Token，保留表结构、关联与视图设置。",
+    "airtableStepConnect": "三步向导：连接 → 选择 base → 导入。",
+    "open": "打开 Airtable 导入向导",
+    "noSpace": "至少需要一个 space 才能进行外部导入。"
+  },
+  "sheetsImport": {
+    "title": "从 Google Sheets 导入",
+    "description": "仅支持 OAuth —— 即将推出。当前仅会接收链接，不会执行导入。",
+    "urlLabel": "Google Sheets 链接",
+    "urlPlaceholder": "https://docs.google.com/spreadsheets/d/…",
+    "urlHelp": "首先支持公开只读表格；私有表格需要 Google 登录授权。",
+    "continue": "继续",
+    "notImplemented": "Google Sheets 导入尚未实现。"
   },
   "createBaseDialog": {
     "title": "你想如何开始？"

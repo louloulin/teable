@@ -325,6 +325,9 @@
     "done": "Import completed",
     "failed": "Import failed",
     "openBase": "Open base",
+    "continue": "Continue",
+    "tablesHeading": "Tables that will be imported",
+    "tableMeta": "{{fieldCount}} fields",
     "issuesSummary": "{{count}} items were adjusted during import:",
     "issuesMore": "+{{count}} more",
     "issue": {
@@ -348,6 +351,16 @@
     "connectWithAirtable": "Connect Airtable account",
     "waitingOAuth": "Finish authorizing in the popup…",
     "connectedAs": "Connected: {{account}}",
+    "connectMode": {
+      "oauth": "Connect Airtable account",
+      "pat": "Use a personal access token"
+    },
+    "pat": {
+      "label": "Airtable personal access token",
+      "placeholder": "patXXXXXXXXXXXXXX.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "help": "Token is sent to the server and never persisted.",
+      "helpTooltip": "Create one at airtable.com/create/tokens with data.records:read and schema.bases:read scopes on the bases you want to import."
+    },
     "permission": {
       "create": "Creator",
       "edit": "Editor",
@@ -365,6 +378,24 @@
       "mismatch": "This shared link points to a different base than the one selected.",
       "disableReminder": "Done — you can now turn off the shared-base link in Airtable."
     }
+  },
+  "adminImport": {
+    "navTitle": "External imports",
+    "title": "External imports",
+    "description": "Bring data from another tool into a new Teable base.",
+    "airtableDescription": "OAuth or personal access token; preserves schemas, links and view configuration.",
+    "airtableStepConnect": "Three-step wizard: connect, pick base, import.",
+    "open": "Open Airtable import wizard",
+    "noSpace": "You need at least one space before you can import externally."
+  },
+  "sheetsImport": {
+    "title": "Import from Google Sheets",
+    "description": "OAuth-only — coming soon. The sheet URL is captured but no import runs yet.",
+    "urlLabel": "Google Sheets URL",
+    "urlPlaceholder": "https://docs.google.com/spreadsheets/d/…",
+    "urlHelp": "Public read-only sheets will be supported first; private sheets require Google sign-in.",
+    "continue": "Continue",
+    "notImplemented": "Google Sheets import is not implemented yet."
   },
   "createBaseDialog": {
     "title": "How do you want to start?"
