@@ -37,9 +37,40 @@ acceptance_index:
   A11:
     source: brief.md
     text: "**A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。"
+  # Round 28 G2 接线加固验收(用户授权 2026-08-26T01:06Z 全量实现)
+  G2A1:
+    source: brief.md
+    text: "**G2A1** 全局权限矩阵 Guard/Interceptor 接线:任意 /api/space/* /api/base/* /api/table/* 写操作命中矩阵行/列/字段规则,hidden 字段在 PATCH 时返回 403 RESTRICTED_RESOURCE,row filter 真实缩小查询结果。"
+  G2A2:
+    source: brief.md
+    text: "**G2A2** Quota 全局 Interceptor + Plan-aware 阈值:TEABLE_QUOTA_ENFORCEMENT_ENABLED=true 时,所有写请求按 plan 配额(行数/附件/API 调用)生效,超额返回 429 QUOTA_EXCEEDED。"
+  G2A3:
+    source: brief.md
+    text: "**G2A3** Audit 全局 Interceptor:APP_INTERCEPTOR 自动审计所有 controller 调用,与 @Audit() 双轨并存,漏 service 补齐后端到端审计无残留。"
+  G2A4:
+    source: brief.md
+    text: "**G2A4** HttpErrorCode 静态校验:build-time 检查所有 HttpErrorCode.* 引用命中现有枚举键,失配即 build fail;运行时不再抛 RangeError。"
+  G2A5:
+    source: brief.md
+    text: "**G2A5** business/enterprise plan 端到端冒烟:TEABLE_LICENSE_KEY=plan:business 启动后,/api/admin/permission-matrix/* /api/admin/sso/providers /api/admin/audit-log 全套端点通过闸门后业务路径不崩。"
+  G2A6:
+    source: brief.md
+    text: "**G2A6** Wave N1 模块接线:ip-allowlist / risk-control / turnstile / delete-user / retention / tracking / metrics / session 全部在 app.module.ts 激活,各 module controller 暴露端点 smoke 测试通过。"
+  G2A7:
+    source: brief.md
+    text: "**G2A7** Wave N2 模块接线:github / google / social / chart / dashboard / database-view / graph / stack / view / model / computed / field-calculate / field-duplicate / record-modify / table-domain / record / table / folder / data-loader / query-builder / plugins / calculation / last-visit 共 20+ module 接线,各模块 controller 可达。"
+  G2A8:
+    source: brief.md
+    text: "**G2A8** Webhook / BYOK / KMS / DR 复制(Wave H 漏接):webhook-bridge / webhook-delivery / byok-kms / byok-llm / kms-encrypt / dr-replication 等 module 接线,端到端 smoke 命中。"
+  G2A9:
+    source: brief.md
+    text: "**G2A9** OpenAPI 文档站 + E2E 测试覆盖:Stage 103-106 输出文档站可访问,E2E 测试集覆盖 G2A1~G2A8 主要端点。"
+  G2A10:
+    source: brief.md
+    text: "**G2A10** 全局回归 + 文档同步:pnpm test 全绿,G2A1~G2A9 全部独立验证,最终 Supervisor Verifier 在集成分支一次过 A1-A11 + G2A1-G2A10。"
 
 # Children — 每个 child 是普通 Native change,在独立 worktree 中创建。
-# covers 引用 acceptance_index 的 key (A1-A19 = brief-derived IDs)。
+# covers 引用 acceptance_index 的 key (A1-A19 = brief-derived IDs, G2A1-G2A10 = Round 28 接线加固)。
 children:
   - name: stage-4-1-sso-callback
     depends_on: []
@@ -80,3 +111,46 @@ children:
   - name: stage-12-api-rate-limit-by-plan
     depends_on: []
     covers: [A7, A10, A11]
+
+# Round 28 接线加固(用户授权 2026-08-26T01:06Z 全量实现)
+# G2-001~010 修复 Round 27 权限矩阵审计识别的"装饰品 + 死代码 + 模块未接线"三类缺口。
+# 每个 child 是普通 Native change,在独立 worktree 中创建。
+  - name: g2-001-permission-matrix-global-wiring
+    depends_on: [stage-5b-permission-hot-path]
+    covers: [A3, A10, A11]
+
+  - name: g2-002-quota-global-interceptor-plan-aware
+    depends_on: [g2-001-permission-matrix-global-wiring]
+    covers: [A6, A7, A10, A11]
+
+  - name: g2-003-audit-global-interceptor-strict
+    depends_on: []
+    covers: [A2, A10, A11]
+
+  - name: g2-004-http-error-code-static-validation
+    depends_on: []
+    covers: [A11]
+
+  - name: g2-005-business-enterprise-plan-e2e-smoke
+    depends_on: [g2-004-http-error-code-static-validation]
+    covers: [A4, A8, A10, A11]
+
+  - name: g2-006-wave-n1-security-compliance-modules
+    depends_on: []
+    covers: [A2, A10, A11]
+
+  - name: g2-007-wave-n2-enterprise-modules
+    depends_on: [g2-006-wave-n1-security-compliance-modules]
+    covers: [A10, A11]
+
+  - name: g2-008-webhook-byok-kms-dr-remediation
+    depends_on: [g2-006-wave-n1-security-compliance-modules]
+    covers: [A10, A11]
+
+  - name: g2-009-openapi-e2e-coverage
+    depends_on: [g2-006-wave-n1-security-compliance-modules, g2-007-wave-n2-enterprise-modules]
+    covers: [A11]
+
+  - name: g2-010-regression-and-docs
+    depends_on: [g2-001-permission-matrix-global-wiring, g2-002-quota-global-interceptor-plan-aware, g2-003-audit-global-interceptor-strict, g2-004-http-error-code-static-validation, g2-005-business-enterprise-plan-e2e-smoke, g2-006-wave-n1-security-compliance-modules, g2-007-wave-n2-enterprise-modules, g2-008-webhook-byok-kms-dr-remediation, g2-009-openapi-e2E-coverage]
+    covers: [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11]
