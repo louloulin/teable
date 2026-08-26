@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { HttpErrorCode } from '@teable/core';
 import { ClsService } from 'nestjs-cls';
 
@@ -77,13 +69,18 @@ export class DomainVerificationController {
 
   private requireOrgId(): string {
     const orgId = this.cls.get('organizationId');
-    if (!orgId) throw new CustomHttpException('organization context missing', HttpErrorCode.FORBIDDEN);
+    if (!orgId)
+      throw new CustomHttpException(
+        'organization context missing',
+        HttpErrorCode.RESTRICTED_RESOURCE
+      );
     return orgId;
   }
 
   private requireUserId(): string {
     const userId = this.cls.get('user.id');
-    if (!userId) throw new CustomHttpException('user context missing', HttpErrorCode.FORBIDDEN);
+    if (!userId)
+      throw new CustomHttpException('user context missing', HttpErrorCode.RESTRICTED_RESOURCE);
     return userId;
   }
 }

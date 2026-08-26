@@ -35,15 +35,12 @@ export class SsoAuthService {
   ): Promise<Awaited<ReturnType<UserService['findOrCreateUser']>>> {
     const email = claims.email;
     if (!email) {
-      throw new CustomHttpException(
-        'id_token missing email claim',
-        HttpErrorCode.VALIDATION
-      );
+      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION_ERROR);
     }
     if (claims.email_verified === false) {
       throw new CustomHttpException(
         'id_token email is not verified',
-        HttpErrorCode.VALIDATION
+        HttpErrorCode.VALIDATION_ERROR
       );
     }
     // domain-claim guard — recheck here so a config drift between SSO
@@ -51,7 +48,7 @@ export class SsoAuthService {
     if (!email.toLowerCase().endsWith(`@${provider.emailDomain.toLowerCase()}`)) {
       throw new CustomHttpException(
         'email does not match IdP emailDomain',
-        HttpErrorCode.VALIDATION
+        HttpErrorCode.VALIDATION_ERROR
       );
     }
     const user = await this.usersService.findOrCreateUser({
@@ -65,14 +62,11 @@ export class SsoAuthService {
     if (!user) {
       throw new CustomHttpException(
         'failed to resolve user from SSO claims',
-        HttpErrorCode.FAILED
+        HttpErrorCode.INTERNAL_SERVER_ERROR
       );
     }
     if (user.deactivatedTime) {
-      throw new CustomHttpException(
-        'account deactivated',
-        HttpErrorCode.RESTRICTED_RESOURCE
-      );
+      throw new CustomHttpException('account deactivated', HttpErrorCode.RESTRICTED_RESOURCE);
     }
     await this.usersService.refreshLastSignTime(user.id);
     this.logger.log(`SSO login: provider=${provider.id} user=${user.id}`);

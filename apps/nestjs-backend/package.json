@@ -31,6 +31,7 @@
     ]
   },
   "scripts": {
+    "prebuild": "vitest run --root ../.. ../../packages/core/src/errors/http/enum-guard.test.ts",
     "build": "nest build",
     "clean": "rimraf ./out ./coverage ./main ./dist ./tsconfig.tsbuildinfo ./node_modules/.cache .webpack-cache",
     "dev": "nest start --webpackPath ./webpack.dev.js -w",
@@ -39,7 +40,8 @@
     "check-dist": "es-check -v",
     "start-debug": "nest start --webpackPath ./webpack.dev.js --debug -w",
     "check-size": "size-limit --highlight-less",
-    "test": "run-s test-unit test-e2e",
+    "test": "run-s enum-guard test-unit test-e2e",
+    "enum-guard": "vitest run --root ../.. ../../packages/core/src/errors/http/enum-guard.test.ts",
     "test-unit:watch": "vitest --watch",
     "test-unit": "vitest run --silent --bail 1",
     "test-unit-shard": "pnpm test-unit ${VITEST_SHARD:+--shard=$VITEST_SHARD}",

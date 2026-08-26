@@ -54,31 +54,33 @@ export class SsoService {
     if (!verified) {
       throw new CustomHttpException(
         'email domain must be verified first',
-        HttpErrorCode.PRECONDITION_FAILED
+        HttpErrorCode.FAILED_DEPENDENCY
       );
     }
     // Validate discovery synchronously so admin gets immediate feedback.
     const discovery = await this.fetchDiscovery(input.issuer, input.discoveryUrl);
-    return this.prisma.ssoIdentityProvider.create({
-      data: {
-        organizationId: input.organizationId,
-        name: input.name,
-        issuer: input.issuer,
-        clientId: input.clientId,
-        clientSecret: input.clientSecret,
-        discoveryUrl: input.discoveryUrl ?? null,
-        emailDomain: input.emailDomain.toLowerCase(),
-        type: 'oidc',
-        status: 'active',
-        lastCheckedAt: new Date(),
-        createdBy: input.createdBy,
-      },
-    }).then(async (row) => {
-      this.logger.log(
-        `registered OIDC provider ${row.id} for ${input.emailDomain} (discovery ok: ${discovery.issuer === input.issuer})`
-      );
-      return row;
-    });
+    return this.prisma.ssoIdentityProvider
+      .create({
+        data: {
+          organizationId: input.organizationId,
+          name: input.name,
+          issuer: input.issuer,
+          clientId: input.clientId,
+          clientSecret: input.clientSecret,
+          discoveryUrl: input.discoveryUrl ?? null,
+          emailDomain: input.emailDomain.toLowerCase(),
+          type: 'oidc',
+          status: 'active',
+          lastCheckedAt: new Date(),
+          createdBy: input.createdBy,
+        },
+      })
+      .then(async (row) => {
+        this.logger.log(
+          `registered OIDC provider ${row.id} for ${input.emailDomain} (discovery ok: ${discovery.issuer === input.issuer})`
+        );
+        return row;
+      });
   }
 
   async listProviders(organizationId: string) {
@@ -103,17 +105,10 @@ export class SsoService {
    * CSRF state token is persisted so the callback can correlate the
    * redirect back to the originating request.
    */
-  async startLogin(input: {
-    emailHint?: string;
-    organizationId?: string;
-    redirectTo?: string;
-  }) {
+  async startLogin(input: { emailHint?: string; organizationId?: string; redirectTo?: string }) {
     const provider = await this.resolveProvider(input.emailHint, input.organizationId);
     if (!provider) {
-      throw new CustomHttpException(
-        'no SSO provider for this domain',
-        HttpErrorCode.NOT_FOUND
-      );
+      throw new CustomHttpException('no SSO provider for this domain', HttpErrorCode.NOT_FOUND);
     }
     const discovery = await this.fetchDiscovery(provider.issuer, provider.discoveryUrl);
     const state = randomBytes(24).toString('hex');
@@ -150,16 +145,16 @@ export class SsoService {
   }> {
     const stateRow = await this.prisma.ssoLoginState.findUnique({ where: { state: input.state } });
     if (!stateRow) {
-      throw new CustomHttpException('invalid state', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('invalid state', HttpErrorCode.VALIDATION_ERROR);
     }
     if (stateRow.consumed || stateRow.expiresAt.getTime() < Date.now()) {
-      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION_ERROR);
     }
     const provider = await this.prisma.ssoIdentityProvider.findUnique({
       where: { id: stateRow.providerId },
     });
     if (!provider || provider.status !== SsoConnectionStatus.active) {
-      throw new CustomHttpException('provider inactive', HttpErrorCode.FAILED);
+      throw new CustomHttpException('provider inactive', HttpErrorCode.INTERNAL_SERVER_ERROR);
     }
     const discovery = await this.fetchDiscovery(provider.issuer, provider.discoveryUrl);
     const tokens = await this.exchangeCode({
@@ -168,7 +163,11 @@ export class SsoService {
       clientSecret: provider.clientSecret ?? '',
       code: input.code,
     });
-    const claims = await this.verifyIdToken(tokens.id_token, provider.issuer, provider.clientId ?? '');
+    const claims = await this.verifyIdToken(
+      tokens.id_token,
+      provider.issuer,
+      provider.clientId ?? ''
+    );
     // Single-use state: prevents replay if the callback URL leaks.
     await this.prisma.ssoLoginState.update({
       where: { id: stateRow.id },
@@ -238,20 +237,19 @@ export class SsoService {
   async fetchDiscovery(issuer: string, override?: string | null): Promise<ISsoDiscoveryDoc> {
     const cached = this.discoveryCache.get(issuer);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
-    const url =
-      override ?? `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
+    const url = override ?? `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new CustomHttpException(
         `discovery failed: ${res.status}`,
-        HttpErrorCode.FAILED
+        HttpErrorCode.INTERNAL_SERVER_ERROR
       );
     }
     const doc = (await res.json()) as ISsoDiscoveryDoc;
     if (!doc.authorization_endpoint || !doc.token_endpoint || !doc.jwks_uri) {
       throw new CustomHttpException(
         'discovery missing required endpoints',
-        HttpErrorCode.FAILED
+        HttpErrorCode.INTERNAL_SERVER_ERROR
       );
     }
     this.discoveryCache.set(issuer, {
@@ -268,7 +266,7 @@ export class SsoService {
   async verifyIdToken(jwt: string, expectedIssuer: string, expectedAudience: string) {
     const parts = jwt.split('.');
     if (parts.length !== 3) {
-      throw new CustomHttpException('malformed id_token', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('malformed id_token', HttpErrorCode.VALIDATION_ERROR);
     }
     const [headerB64, payloadB64, signatureB64] = parts;
     const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8')) as {
@@ -277,32 +275,34 @@ export class SsoService {
       typ?: string;
     };
     if (header.alg !== 'RS256') {
-      throw new CustomHttpException('unsupported alg', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('unsupported alg', HttpErrorCode.VALIDATION_ERROR);
     }
-    const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as ISsoIdTokenClaims;
+    const claims = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8')
+    ) as ISsoIdTokenClaims;
     if (claims.iss !== expectedIssuer) {
-      throw new CustomHttpException('iss mismatch', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('iss mismatch', HttpErrorCode.VALIDATION_ERROR);
     }
     const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
     if (!aud.includes(expectedAudience)) {
-      throw new CustomHttpException('aud mismatch', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('aud mismatch', HttpErrorCode.VALIDATION_ERROR);
     }
     if (claims.exp * 1000 < Date.now()) {
-      throw new CustomHttpException('id_token expired', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token expired', HttpErrorCode.VALIDATION_ERROR);
     }
     // Resolve JWKS lazily; key set keyed by issuer so multiple providers don't collide.
     const discovery = await this.fetchDiscovery(expectedIssuer);
     const jwks = await this.fetchJwks(discovery.jwks_uri);
     const jwk = header.kid ? jwks[header.kid] : undefined;
     if (!jwk) {
-      throw new CustomHttpException('kid not found', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('kid not found', HttpErrorCode.VALIDATION_ERROR);
     }
     const verifier = createVerify('RSA-SHA256');
     verifier.update(`${headerB64}.${payloadB64}`);
     verifier.end();
     const ok = verifier.verify(jwk, Buffer.from(signatureB64, 'base64url'));
     if (!ok) {
-      throw new CustomHttpException('bad signature', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('bad signature', HttpErrorCode.VALIDATION_ERROR);
     }
     return claims;
   }
@@ -313,7 +313,10 @@ export class SsoService {
     if (cached && cached.expiresAt > Date.now()) return cached.value;
     const res = await fetch(uri);
     if (!res.ok) {
-      throw new CustomHttpException(`jwks failed: ${res.status}`, HttpErrorCode.FAILED);
+      throw new CustomHttpException(
+        `jwks failed: ${res.status}`,
+        HttpErrorCode.INTERNAL_SERVER_ERROR
+      );
     }
     const doc = (await res.json()) as { keys: Array<Record<string, string>> };
     const map: Record<string, string> = {};
@@ -363,7 +366,7 @@ export class SsoService {
       const text = await res.text();
       throw new CustomHttpException(
         `token exchange failed: ${res.status} ${text}`,
-        HttpErrorCode.FAILED
+        HttpErrorCode.INTERNAL_SERVER_ERROR
       );
     }
     return (await res.json()) as { id_token: string; access_token: string };
