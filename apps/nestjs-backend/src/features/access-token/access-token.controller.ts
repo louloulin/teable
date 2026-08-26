@@ -16,11 +16,15 @@ import {
   RefreshAccessTokenRo,
 } from '@teable/openapi';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { AccessTokenAuthService } from './access-token.auth.service';
 import { AccessTokenService } from './access-token.service';
 
 @Controller('api/access-token')
 export class AccessTokenController {
-  constructor(private readonly accessTokenService: AccessTokenService) {}
+  constructor(
+    private readonly accessTokenService: AccessTokenService,
+    private readonly accessTokenAuthService: AccessTokenAuthService
+  ) {}
 
   @Post()
   async createAccessToken(
@@ -59,5 +63,18 @@ export class AccessTokenController {
   @Get(':accessTokenId')
   async getAccessToken(@Param('accessTokenId') accessTokenId: string): Promise<GetAccessTokenVo> {
     return await this.accessTokenService.getAccessToken(accessTokenId);
+  }
+
+  @Post('/:accessTokenId/validate')
+  @HttpCode(200)
+  async validateAccessToken(
+    @Param('accessTokenId') accessTokenId: string
+  ): Promise<{ userId: string; accessTokenId: string; expiredTime: string | null }> {
+    const out = await this.accessTokenAuthService.validate(accessTokenId);
+    return {
+      userId: out.userId,
+      accessTokenId: out.accessTokenId,
+      expiredTime: out.expiredTime ?? null,
+    };
   }
 }

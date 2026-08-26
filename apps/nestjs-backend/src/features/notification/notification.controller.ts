@@ -9,12 +9,14 @@ import {
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { NotificationAuthService } from './notification.auth.service';
 import { NotificationService } from './notification.service';
 
 @Controller('api/notifications')
 export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
+    private readonly notificationAuthService: NotificationAuthService,
     private readonly cls: ClsService<IClsStore>
   ) {}
 
@@ -50,5 +52,12 @@ export class NotificationController {
   async markAllAsRead(): Promise<void> {
     const currentUserId = this.cls.get('user.id');
     return this.notificationService.markAllAsRead(currentUserId);
+  }
+
+  @Get('/recent')
+  async recent(): Promise<{ count: number; truncated: boolean }> {
+    const currentUserId = this.cls.get('user.id');
+    const out = await this.notificationAuthService.listRecent({ userId: currentUserId });
+    return { count: out.items.length, truncated: out.truncated };
   }
 }
