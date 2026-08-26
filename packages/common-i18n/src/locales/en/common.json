@@ -1123,6 +1123,27 @@
           "members": "Members"
         }
       }
+    },
+    "notion": {
+      "title": "Notion import",
+      "connect": "Connect Notion",
+      "connecting": "Connecting…",
+      "connected": "Connected to {{workspace}}",
+      "disconnected": "Notion is not connected",
+      "import": "Run import",
+      "importing": "Importing…",
+      "importSuccess": "Imported {{imported}} records (skipped {{skipped}}).",
+      "importError": "Import failed",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect Notion? You can reconnect at any time.",
+      "selectDatabase": "Choose a Notion database",
+      "targetBase": "Target base (space)",
+      "targetTable": "Target table id",
+      "error": {
+        "invalidCode": "Invalid Notion authorization code.",
+        "tokenExpired": "The Notion token has expired or been revoked. Reconnect to continue.",
+        "popupBlocked": "Popup blocked. Allow popups for this site to start Notion OAuth."
+      }
     }
   },
   "notification": {
