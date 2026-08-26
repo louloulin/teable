@@ -31,7 +31,7 @@
     ]
   },
   "scripts": {
-    "prebuild": "vitest run --root ../.. ../../packages/core/src/errors/http/enum-guard.test.ts",
+    "prebuild": "pnpm -w build:v2 && vitest run --root ../.. ../../packages/core/src/errors/http/enum-guard.test.ts",
     "build": "nest build",
     "clean": "rimraf ./out ./coverage ./main ./dist ./tsconfig.tsbuildinfo ./node_modules/.cache .webpack-cache",
     "dev": "nest start --webpackPath ./webpack.dev.js -w",
