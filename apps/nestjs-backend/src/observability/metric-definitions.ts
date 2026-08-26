@@ -405,7 +405,7 @@ interface IHistogramSpec {
 const counterCache = new Map<string, { spec: ICounterSpec; instance: ICounterLike }>();
 const histogramCache = new Map<string, { spec: IHistogramSpec; instance: IHistogramLike }>();
 
-function getOrCreateCounter(spec: ICounterSpec): ICounterLike | undefined {
+export function getOrCreateCounter(spec: ICounterSpec): ICounterLike | undefined {
   const reg = requireRegistry();
   if (!reg) return undefined;
   const cached = counterCache.get(spec.name);
@@ -415,7 +415,7 @@ function getOrCreateCounter(spec: ICounterSpec): ICounterLike | undefined {
   return instance;
 }
 
-function getOrCreateHistogram(spec: IHistogramSpec): IHistogramLike | undefined {
+export function getOrCreateHistogram(spec: IHistogramSpec): IHistogramLike | undefined {
   const reg = requireRegistry();
   if (!reg) return undefined;
   const cached = histogramCache.get(spec.name);
