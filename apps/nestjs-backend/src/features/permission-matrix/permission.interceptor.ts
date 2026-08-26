@@ -7,14 +7,15 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
-import { Reflector } from '@nestjs/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { from, Observable } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 
 import type { IClsStore } from '../../types/cls';
 import { PermissionMatrixService } from './permission-matrix.service';
 import { IPermissionRoleVo, PermissionFilter } from './permission-matrix.constants';
 
+// Legacy opt-in helper kept around for any out-of-tree callers; the global
+// APP_INTERCEPTOR no longer requires this metadata to fire.
 export const PERMISSION_INTERCEPTOR_META = 'permission:intercept';
 export const RequirePermissionFilter = () => SetMetadata(PERMISSION_INTERCEPTOR_META, true);
 
@@ -24,21 +25,21 @@ interface ITableContext {
 }
 
 /**
- * Additive interceptor. When a route is annotated with
- * `@RequirePermissionFilter()`, it:
+ * Global APP_INTERCEPTOR (wired in `apps/nestjs-backend/src/global/global.module.ts`).
  *
- *   1. Resolves the user's role set via PermissionMatrixService.
- *   2. If any role declares a record filter for this table, AND-merges
- *      them and stashes it on `req.permission.filter` so a downstream
- *      query-builder decorator (or this same interceptor's response
- *      projection) can read it.
+ *   1. Resolves the user's role set via PermissionMatrixService for every
+ *      request that carries `tableId` + `baseId` context.
+ *   2. Stashes the AND-merged record filter on `req.permission.filter` (with
+ *      any `$current_user` placeholders substituted from `cls.user.id`) so
+ *      downstream query-builder code or Prisma `where` composition can
+ *      AND-merge it without re-running the merge.
  *   3. Projects hidden / readonly fields out of the response body.
  *
- * Routes that don't declare the metadata are untouched — the existing
- * permission.service.ts path keeps running. Zero changes to controllers
- * are required for the read path; controllers that want server-side
- * filter injection opt in by adding `@UseInterceptors(...)` next to the
- * metadata.
+ * Routes without table/base context, routes for unauthenticated users, and
+ * routes for users with no role assignments on the base fall through
+ * untouched (the existing admin / owner / explicit perms path keeps
+ * running). This keeps the change purely additive — no existing handler
+ * body logic is altered.
  */
 @Injectable()
 export class PermissionInterceptor implements NestInterceptor {
@@ -46,17 +47,10 @@ export class PermissionInterceptor implements NestInterceptor {
 
   constructor(
     private readonly matrix: PermissionMatrixService,
-    private readonly cls: ClsService<IClsStore>,
-    private readonly reflector: Reflector
+    private readonly cls: ClsService<IClsStore>
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const enabled = this.reflector.getAllAndOverride<boolean>(PERMISSION_INTERCEPTOR_META, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!enabled) return next.handle();
-
     const req = context.switchToHttp().getRequest<Record<string, unknown>>();
     const { tableId, baseId } = this.readTableContext(req);
     if (!tableId || !baseId) return next.handle();
@@ -64,14 +58,60 @@ export class PermissionInterceptor implements NestInterceptor {
     const userId = this.cls.get('user')?.id;
     if (!userId) return next.handle();
 
-    return next.handle().pipe(
-      map(async (body) => {
-        const roles = await this.matrix.resolveRolesForUser(baseId, userId);
-        if (roles.length === 0) return body;
-        return this.projectResponse(body, roles, tableId);
-      }),
-      map(async (maybePromise) => maybePromise)
+    return from(this.prepareRequest(req, tableId, baseId, userId)).pipe(
+      // After the (potentially no-op) prepare step, forward to the next handler.
+      mergeMap(() => next.handle()),
+      // Run projection on the response; null filter still projects any roles.
+      mergeMap((body) => from(this.projectResponseForUser(body, req, tableId, baseId, userId)))
     );
+  }
+
+  /**
+   * Resolve roles once per request, stash the merged filter on `req.permission`,
+   * substitute `$current_user` placeholders, and return. No-op when the user
+   * has no roles on the base.
+   */
+  private async prepareRequest(
+    req: Record<string, unknown>,
+    tableId: string,
+    baseId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      const roles = await this.matrix.resolveRolesForUser(baseId, userId);
+      if (roles.length === 0) {
+        PermissionInterceptor.stashFilterOnReq(req, null);
+        return;
+      }
+      const rawFilter = this.matrix.mergeRecordFilters(roles, tableId);
+      const appliedFilter = rawFilter ? this.matrix.applyCurrentUser(rawFilter, userId) : null;
+      PermissionInterceptor.stashFilterOnReq(req, appliedFilter);
+    } catch (err) {
+      // Don't let a permission-service outage break unrelated reads.
+      this.logger.warn(
+        `PermissionInterceptor.prepareRequest failed; falling through: ${(err as Error)?.message ?? err}`
+      );
+      PermissionInterceptor.stashFilterOnReq(req, null);
+    }
+  }
+
+  private async projectResponseForUser(
+    body: unknown,
+    req: Record<string, unknown>,
+    tableId: string,
+    baseId: string,
+    userId: string
+  ): Promise<unknown> {
+    try {
+      const roles = await this.matrix.resolveRolesForUser(baseId, userId);
+      if (roles.length === 0) return body;
+      return this.projectResponse(body, roles, tableId);
+    } catch (err) {
+      this.logger.warn(
+        `PermissionInterceptor projection failed; returning un-projected body: ${(err as Error)?.message ?? err}`
+      );
+      return body;
+    }
   }
 
   /**
@@ -79,11 +119,7 @@ export class PermissionInterceptor implements NestInterceptor {
    * to read. Hidden → null + (recursively) drop key. Readonly → keep
    * value but the write-path guard will refuse edits.
    */
-  private projectResponse(
-    body: unknown,
-    roles: IPermissionRoleVo[],
-    tableId: string
-  ): unknown {
+  private projectResponse(body: unknown, roles: IPermissionRoleVo[], tableId: string): unknown {
     if (body === null || body === undefined) return body;
     if (Array.isArray(body)) return body.map((row) => this.projectRow(row, roles, tableId));
     if (typeof body === 'object') {
@@ -103,9 +139,9 @@ export class PermissionInterceptor implements NestInterceptor {
   private projectRow(row: unknown, roles: IPermissionRoleVo[], tableId: string): unknown {
     if (!row || typeof row !== 'object') return row;
     const obj = row as Record<string, unknown>;
-    const fields = (obj.fields && typeof obj.fields === 'object'
-      ? (obj.fields as Record<string, unknown>)
-      : obj) as Record<string, unknown>;
+    const fields = (
+      obj.fields && typeof obj.fields === 'object' ? (obj.fields as Record<string, unknown>) : obj
+    ) as Record<string, unknown>;
     const projected: Record<string, unknown> = {};
     for (const [fieldId, value] of Object.entries(fields)) {
       const access = this.matrix.fieldAccess(roles, tableId, fieldId);
@@ -135,10 +171,7 @@ export class PermissionInterceptor implements NestInterceptor {
    * on `req.permission.filter` so the read handler can append it to the
    * Prisma `where` clause without re-running the merge.
    */
-  static stashFilterOnReq(
-    req: Record<string, unknown>,
-    filter: PermissionFilter | null
-  ): void {
+  static stashFilterOnReq(req: Record<string, unknown>, filter: PermissionFilter | null): void {
     (req as Record<string, unknown>).permission = { filter };
   }
 }

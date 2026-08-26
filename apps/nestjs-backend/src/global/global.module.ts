@@ -24,6 +24,8 @@ import { AuditSourceModule } from '../features/audit/audit.module';
 import { AuthGuard } from '../features/auth/guard/auth.guard';
 import { PermissionGuard } from '../features/auth/guard/permission.guard';
 import { PermissionModule } from '../features/auth/permission.module';
+import { PermissionGuard as PermissionMatrixGuard } from '../features/permission-matrix/permission.guard';
+import { PermissionInterceptor as PermissionMatrixInterceptor } from '../features/permission-matrix/permission.interceptor';
 import { DataLoaderModule } from '../features/data-loader/data-loader.module';
 import { IpAllowlistMiddleware } from '../features/ip-allowlist/ip-allowlist.middleware';
 import { IpAllowlistModule } from '../features/ip-allowlist/ip-allowlist.module';
@@ -121,11 +123,29 @@ const globalModules = {
       useClass: PermissionGuard,
     },
     {
+      // G2-001: wire the permission-matrix guard as APP_GUARD so the hidden-field
+      // write protection runs on every /api/space/* /api/base/* /api/table/* write.
+      // Order: after AuthGuard (anonymous → 401 first) and after the auth
+      // permission guard (existing row/col checks still apply); the matrix gate
+      // fires last and only when the user has role assignments on the base.
+      provide: APP_GUARD,
+      useClass: PermissionMatrixGuard,
+    },
+    {
       // Register before RouteTracingInterceptor so the audit row carries the
       // raw request/response state; tracing span attributes only influence
       // observability output and have no effect on what gets persisted.
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    {
+      // G2-001: wire the permission-matrix interceptor as APP_INTERCEPTOR so
+      // every response gets hidden-field projection and req.permission.filter is
+      // AND-merged for downstream Prisma `where` composition. Order: after
+      // AuditInterceptor (rejected requests are still audited), before
+      // RouteTracingInterceptor.
+      provide: APP_INTERCEPTOR,
+      useClass: PermissionMatrixInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

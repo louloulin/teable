@@ -1,0 +1,259 @@
+schema: comet.native.v4
+name: g2-001-permission-matrix-global-app-guard
+language: zh-CN
+phase: build
+status: active
+state_version: 2
+brief: brief.md
+spec_changes:
+  - capability: g2-001-permission-matrix-global-app-guard
+    operation: create
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/g2-001-permission-matrix-global-app-guard
+  target_branch: agent/chong/df9d120d2105-stage6-audit-log
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**GA1 全局 Guard 生效**:任意 `/api/space/*` / `/api/base/*` / `/api/table/*`
+      写操作命中矩阵行/列/字段规则,hidden 字段在 PATCH 时返回 403 `RESTRICTED_RESOURCE`。"
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: "**GA2 行/列/字段规则真实缩小**:row filter 实际注入 Prisma `where`
+      查询(`req.permission.filter` 被 stash,handler 调用 prisma 时 AND-merge)。"
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: "**GA3 单测覆盖**:hidden field / row filter / allow / deny 4 个决策点都有单测。"
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: "**GA4 tsc --noEmit 通过**:仅 g2-001 触及的 4 个文件无新增 TS 错误。"
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: "**GA5 build 不破坏**:只通过 guard/interceptor 注入,已有 handler 主体逻辑不变。"
+    result: pending
+    reason: null
+  - id: A6
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 将已有的 `PermissionGuard` + `PermissionInterceptor` 从"装饰品"提升为"运行时门控":挂载到
+      NestJS 全局 `APP_GUARD` / `APP_INTERCEPTOR`,确保所有 controller
+      调用自动受权限矩阵约束。Hidden field 在 PATCH 时返回 403 `RESTRICTED_RESOURCE`,行 filter
+      实际注入 Prisma `where` 查询真实缩小结果集。
+    result: pending
+    reason: null
+  - id: A7
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "修改 `apps/nestjs-backend/src/global/global.module.ts:104-134`,在现有
+      providers 列表(已有 AuthGuard + auth/guard/permission.guard 之后)追加:"
+    result: pending
+    reason: null
+  - id: A8
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 顺序:在 `AuthGuard` 之后(未鉴权先被拒),在 auth 的 `PermissionGuard` 之后(矩阵 gate 在最后一道关卡)
+    result: pending
+    reason: null
+  - id: A9
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionGuard` 已有的 opt-in `@RequirePermission()` 装饰器机制保留"
+    result: pending
+    reason: null
+  - id: A10
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionGuard.canActivate()` 在 GET 请求上继续
+      fall-through(只读路径不在此层拦截),**新增**:写操作方法(POST/PATCH/PUT/DELETE)自动调用
+      `assertFieldEditAllowed()`"
+    result: pending
+    reason: null
+  - id: A11
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "同一 `global.module.ts` providers 块追加:"
+    result: pending
+    reason: null
+  - id: A12
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 顺序:在 `AuditInterceptor` 之后(权限拒绝也写 audit),在 `RouteTracingInterceptor` 之前
+    result: pending
+    reason: null
+  - id: A13
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionInterceptor` 移除 `@RequirePermissionFilter()` 元数据门控——现在所有响应自动投影"
+    result: pending
+    reason: null
+  - id: A14
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionInterceptor.stashFilterOnReq(req, filter)` 在响应投影之前被调用,把
+      AND-merged filter 挂到 `req.permission.filter`"
+    result: pending
+    reason: null
+  - id: A15
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionGuard` 在 `canActivate()` 末尾(对 POST/PATCH/PUT/DELETE 方法)自动调用
+      `assertFieldEditAllowed(req, tableId, baseId)`:"
+    result: pending
+    reason: null
+  - id: A16
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 触发条件:从 `req.body.fields`(或 `req.body` 当 fields 缺失时)遍历所有 fieldId
+    result: pending
+    reason: null
+  - id: A17
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 对每个 fieldId 调 `matrix.fieldAccess(roles, tableId, fieldId)`
+    result: pending
+    reason: null
+  - id: A18
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "当 access === 'hidden' → 抛 `CustomHttpException('field hidden by
+      permission: ${fieldId}', HttpErrorCode.RESTRICTED_RESOURCE, { meta: {
+      fieldId, tableId } })`"
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`HttpErrorCode.RESTRICTED_RESOURCE` 映射到 HTTP
+      403(`packages/core/src/errors/http/constant.ts:12`)"
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`PermissionInterceptor.intercept()` 在响应投影之前,先 stash filter:"
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "`req.permission.filter = AND-merged filter`(用户角色集中所有 tableId 匹配的
+      recordFilter 的合取)"
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: Handler 调用 prisma 时,内部 helper
+      `applyPermissionFilterToPrismaWhere(prismaArgs, req)` 可读取
+      `req.permission.filter` 并 AND-merge 到 `prismaArgs.where`
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 即使 handler 没有显式调用 helper,NestJS 在请求作用域内暴露 `req.permission.filter` 供任意中间件读取
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "新增
+      `apps/nestjs-backend/src/features/permission-matrix/permission-matrix.gua\
+      rd-interceptor.spec.ts`,覆盖 4 个决策点:"
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**allow**:用户角色允许 update + body 无 hidden field → `canActivate` 返回 true"
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**deny**:用户角色不允许 update → 抛 `CustomHttpException` with
+      `HttpErrorCode.RESTRICTED_RESOURCE`"
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**hidden field**:用户角色允许 update,但 body 含 hidden field → 抛
+      `CustomHttpException` with `HttpErrorCode.RESTRICTED_RESOURCE`
+      (RESTRICTED_RESOURCE)"
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**row filter**:用户有 view 角色 + recordFilter 配置 → `req.permission.filter`
+      被正确 stash 为 AND-merged 表达式"
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**AC-GA1 全局 Guard 生效**:任意 `/api/space/*` / `/api/base/*` / `/api/table/*`
+      写操作命中矩阵行/列/字段规则,hidden 字段在 PATCH 时返回 403 `RESTRICTED_RESOURCE`。"
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**AC-GA2 行/列/字段规则真实缩小**:row filter 实际注入 Prisma `where`
+      查询(`req.permission.filter` 被 stash,handler 调用 prisma 时 AND-merge)。"
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**AC-GA3 单测覆盖**:hidden field / row filter / allow / deny 4 个决策点都有单测。"
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**AC-GA4 tsc --noEmit 通过**:仅 g2-001 触及的 4 个文件无新增 TS 错误。"
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: "**AC-GA5 build 不破坏**:只通过 guard/interceptor 注入,已有 handler 主体逻辑不变。"
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 修改:`apps/nestjs-backend/src/global/global.module.ts`(providers 追加 1 个
+      APP_GUARD + 1 个 APP_INTERCEPTOR)
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 修改:`apps/nestjs-backend/src/features/permission-matrix/permission.guard.ts`(`canActivate`
+      末尾在写方法上调 `assertFieldEditAllowed`)
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 修改:`apps/nestjs-backend/src/features/permission-matrix/permission.interceptor.ts`(移除
+      `PERMISSION_INTERCEPTOR_META` 门控,响应投影前自动 stash)
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/g2-001-permission-matrix-global-app-guard/spec.md
+    text: 新增:`apps/nestjs-backend/src/features/permission-matrix/permission-matrix.guard-interceptor.spec.ts`(4
+      个决策点单测)
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-26T02:36:43.486Z
