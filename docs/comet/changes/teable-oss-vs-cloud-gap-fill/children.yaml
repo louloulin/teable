@@ -152,5 +152,5 @@ children:
     covers: [A11]
 
   - name: g2-010-regression-and-docs
-    depends_on: [g2-001-permission-matrix-global-wiring, g2-002-quota-global-interceptor-plan-aware, g2-003-audit-global-interceptor-strict, g2-004-http-error-code-static-validation, g2-005-business-enterprise-plan-e2e-smoke, g2-006-wave-n1-security-compliance-modules, g2-007-wave-n2-enterprise-modules, g2-008-webhook-byok-kms-dr-remediation, g2-009-openapi-e2E-coverage]
+    depends_on: [g2-001-permission-matrix-global-wiring, g2-002-quota-global-interceptor-plan-aware, g2-003-audit-global-interceptor-strict, g2-004-http-error-code-static-validation, g2-005-business-enterprise-plan-e2e-smoke, g2-006-wave-n1-security-compliance-modules, g2-007-wave-n2-enterprise-modules, g2-008-webhook-byok-kms-dr-remediation, g2-009-openapi-e2e-coverage]
     covers: [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11]
