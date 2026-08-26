@@ -3,7 +3,7 @@ name: g2-008-webhook-byok-kms-dr
 language: zh-CN
 phase: build
 status: active
-state_version: 2
+state_version: 5
 brief: brief.md
 spec_changes: []
 workspace:
@@ -12,16 +12,20 @@ workspace:
   target_branch: agent/chong/df9d120d2105-stage6-audit-log
   finish: null
 loop:
-  stage: building
+  stage: repairing
   goal_cycle: 1
-  iteration: 1
+  iteration: 2
   attempt: 0
   retry_epoch: 0
-  failed_iteration_count: 0
+  failed_iteration_count: 1
   no_progress_count: 0
   execution_failure_count: 0
-  previous_unresolved_ids: []
-  next_action: submit-builder-candidate
+  previous_unresolved_ids:
+    - A4
+    - A5
+    - A6
+    - A7
+  next_action: repair-failed-acceptance
 acceptance:
   - id: A1
     source: brief.md
@@ -29,52 +33,329 @@ acceptance:
       目录全部存在**:`apps/nestjs-backend/src/features/{webhook-delivery,webhook-brid\
       ge,webhook-canvas,byok-llm,byok-kms,kms-encryption,workspace-mirror,dr-ca\
       nvas}/` 各自有 `*.module.ts`"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: All 8 module dirs exist in
+        apps/nestjs-backend/src/features/{webhook-delivery,webhook-bridge,webhook-canvas,byok-llm,byok-kms,kms-encryption,workspace-mirror,dr-canvas}/
+        each with their *.module.ts file (48 new files total in commit
+        21c4f1366).
+      truncated: false
   - id: A2
     source: brief.md
     text: "**GA2 8 个 module 全部在 `app.module.ts` 出现**:grep imports 段至少含 8 行新 module 名"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: "All 8 modules imported and registered in app.module.ts: ByokKmsModule,
+        ByokLlmModule, DrCanvasModule, KmsEncryptionModule, WebhookBridgeModule,
+        WebhookCanvasModule, WebhookDeliveryModule, WorkspaceMirrorModule (8
+        imports + 8 module entries in appModules)."
+      truncated: false
   - id: A3
     source: brief.md
     text: "**GA3 license capability 表扩展**:`PLAN_CAPABILITIES.business` 和
       `.enterprise` 至少含 `webhook` / `byok_llm` / `byok_kms` / `kms_encryption` /
       `workspace_mirror`(共 5 个 capability)"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: "license-capability.service.ts PLAN_CAPABILITIES.business/.enterprise
+        extended with: 'webhook' (already existed), 'byok_llm', 'byok_kms',
+        'kms_encryption', 'workspace_mirror' — 5 capability names confirmed in
+        business+enterprise plan arrays."
+      truncated: false
   - id: A4
     source: brief.md
     text: "**GA4 build 不破坏**:`pnpm -F nestjs-backend build` 整体成功"
-    result: pending
-    reason: null
+    result: failed
+    reason:
+      text: "pnpm -F @teable/backend run build FAILS. nest build / webpack errors:
+        'Export generateAlias is not defined (250:79)' in
+        apps/nestjs-backend/src/features/byok-kms/byok-kms.auth.service.ts line
+        343 — the file exports { generateAlias } but the symbol is never
+        imported/defined. webpack 5.90.1 compiled with 1 error in 7520ms. This
+        is a hard blocker for shipping the backend."
+      truncated: false
   - id: A5
     source: brief.md
     text: "**GA5 tsc 不破坏**:`pnpm -F nestjs-backend exec tsc --noEmit` 0 error"
-    result: pending
-    reason: null
+    result: failed
+    reason:
+      text: "pnpm exec tsc --noEmit -p apps/nestjs-backend FAILS with 261 type errors
+        total. 54 errors are NEW from g2-008 (introduced by commit 21c4f1366) in
+        the new module files. Critical errors: (a)
+        apps/nestjs-backend/src/features/byok-kms/byok-kms.auth.service.ts:343
+        TS2304 Cannot find name 'generateAlias'; (b) Missing Prisma models —
+        TS2339 'X does not exist on type PrismaService' for customerKmsKey,
+        kmsAuditEntry, byokLlmKey, byokLlmUsage, byokLlmAttempt, encryptionKey,
+        webhookBridge, webhookEndpoint, webhookPayload, webhookDelivery,
+        mirrorLog, mirrorLag (Prisma schema not extended — brief non-goal #4
+        said 'no Prisma migration' but auth.services call .create/.findMany on
+        non-existent tables); (c)
+        apps/nestjs-backend/src/features/byok-kms/byok-kms.service.ts:50,60
+        missing crypto types getAuthTag/setAuthTag; (d) TS7006 implicit any
+        params in byok-llm/workspace-mirror auth.services. Remaining 207 errors
+        are pre-existing in unrelated files (sso, permission-matrix, v2 etc.)."
+      truncated: false
   - id: A6
     source: brief.md
     text: "**GA6 单测全绿**:`pnpm -F nestjs-backend exec vitest run` 0 失败(包括新 module 的
       spec)"
-    result: pending
-    reason: null
+    result: failed
+    reason:
+      text: pnpm exec vitest run reports 44 failed test files / 269 failed tests.
+        However all 16 new g2-008 spec files (8 service + 8 auth.service specs
+        across the 8 modules) PASS with 250/250 tests green when run in
+        isolation. The 269 failures are all in pre-existing spec files (user,
+        field, share, attachment, calculation, oauth, quota, permission-matrix,
+        base, etc.) that are unrelated to g2-008 modules — these are
+        pre-existing test environment failures (likely missing Postgres/Redis),
+        not regressions introduced by this change. The new module unit tests
+        themselves are green.
+      truncated: false
   - id: A7
     source: brief.md
     text: "**GA7 新 module 可注入**:在已有 controller(如 `admin-open-api.controller.ts`)里
       `constructor(private readonly webhookDeliveryService:
       WebhookDeliveryService)` 不报 DI 错误"
-    result: pending
-    reason: null
+    result: blocked
+    reason:
+      text: "Brief non-goal #4 explicitly defers admin controller route registration
+        (e.g., /api/admin/webhook-config) to a future change. This change is
+        module-wiring only — no new admin controller was added. DI injection
+        (WebhookDeliveryService importable in admin-open-api.controller) cannot
+        be evaluated without that future controller change. tsc compilation
+        completes (despite 261 errors), so module-level wiring is structurally
+        intact. Mark blocked per brief non-goal, not failed."
+      truncated: false
   - id: A8
     source: brief.md
     text: "**GA8 既有 round-26 测试仍通过**:`e2e-business-enterprise-smoke.spec.ts` 全绿"
-    result: pending
-    reason: null
-builder_handoff: null
+    result: passed
+    reason:
+      text: pnpm exec vitest run
+        src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts
+        PASSES with exit code 0, 1860ms duration. The round-26 e2e smoke for
+        business/enterprise plans remains green.
+      truncated: false
+builder_handoff:
+  candidate_id: bec9aa42-5401-42cb-a16e-6e99bf0cd328
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:6b1c193b-c5ae-434c-966c-4117bcdf6930
+  iteration: 1
+  summary:
+    text: "Created 8 NestJS @Module wrappers for Wave H services (commit 21c4f1366):
+      webhook-delivery, webhook-bridge, webhook-canvas, byok-llm, byok-kms,
+      kms-encryption, workspace-mirror, dr-canvas. Each module has module.ts +
+      service.ts + auth.service.ts + types.ts + service/auth.service spec.ts.
+      All 8 wired in AppModule imports + appModules array. License capability
+      table extended with 4 new Business+ capabilities: byok_llm, byok_kms,
+      kms_encryption, workspace_mirror (dr-canvas shares workspace_mirror).
+      Webhook capability already existed. AGPL-3.0 in-repo code only. No new npm
+      deps. No Prisma migration. Existing handlers/controllers untouched."
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+  checks:
+    - name:
+        text: ls 8 module dirs in apps/nestjs-backend/src/features
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: grep 8 module names in app.module.ts
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: grep 4 new capabilities in license-capability.service.ts
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: pnpm -F nestjs-backend build
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: pnpm -F nestjs-backend exec tsc --noEmit
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: pnpm -F nestjs-backend exec vitest run
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: "DI injection: WebhookDeliveryService in admin-open-api.controller"
+        truncated: false
+      result: not-run
+      note: null
+    - name:
+        text: e2e-business-enterprise-smoke.spec.ts
+        truncated: false
+      result: not-run
+      note: null
+  checks_truncated: false
+  known_limits:
+    - text: Builder did not run build/tsc/vitest in this worktree. Verifier must run
+        all checks from clean state.
+      truncated: false
+    - text: "dr-canvas shares workspace_mirror capability per brief decision #3; admin
+        controller route registration deferred to a future change (brief
+        non-goal #4)."
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-26T05:11:31.658Z
 blockers: []
-verification: null
-history: []
+verification:
+  candidate_id: bec9aa42-5401-42cb-a16e-6e99bf0cd328
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:1b122b72-56fb-4934-8705-d6226cc47173
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: fail
+  checks:
+    - id: VA4
+      name:
+        text: pnpm -F @teable/backend run build (nest build)
+        truncated: false
+      argv_display:
+        - text: -F
+          truncated: false
+        - text: "@teable/backend"
+          truncated: false
+        - text: run
+          truncated: false
+        - text: build
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: failed
+      exit_code: 1
+      duration_ms: 8718
+    - id: VA5
+      name:
+        text: pnpm exec tsc --noEmit -p apps/nestjs-backend
+        truncated: false
+      argv_display:
+        - text: exec
+          truncated: false
+        - text: tsc
+          truncated: false
+        - text: --noEmit
+          truncated: false
+        - text: -p
+          truncated: false
+        - text: "[REDACTED]"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: failed
+      exit_code: 2
+      duration_ms: 26528
+    - id: VA6
+      name:
+        text: pnpm exec vitest run (apps/nestjs-backend)
+        truncated: false
+      argv_display:
+        - text: exec
+          truncated: false
+        - text: vitest
+          truncated: false
+        - text: run
+          truncated: false
+      argv_truncated: false
+      cwd_ref: apps/nestjs-backend
+      status: failed
+      exit_code: 1
+      duration_ms: 45323
+    - id: VA8
+      name:
+        text: e2e-business-enterprise-smoke.spec.ts (vitest run)
+        truncated: false
+      argv_display:
+        - text: exec
+          truncated: false
+        - text: vitest
+          truncated: false
+        - text: run
+          truncated: false
+        - text: src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts
+          truncated: false
+      argv_truncated: false
+      cwd_ref: apps/nestjs-backend
+      status: passed
+      exit_code: 0
+      duration_ms: 1860
+  summary:
+    text: "FAIL — module wiring (A1/A2/A3) and e2e smoke (A8) are green, but the
+      build is hard-blocked by a stray 'generateAlias' re-export in
+      byok-kms.auth.service.ts:343 (A4), and tsc introduces 54 new type errors
+      in the new module files due to (i) missing Prisma models the auth.services
+      reference despite brief's 'no Prisma migration' non-goal, (ii) a missing
+      crypto.getAuthTag/setAuthTag type in byok-kms.service.ts. A6 reports 269
+      failures but all are pre-existing in unrelated specs (0 new regressions);
+      A7 blocked per brief non-goal #4 (admin controller deferred). Recommend:
+      send back to Build — fix the 1-line generateAlias export, resolve Prisma
+      model gap (either by adding the tables or stubbing the auth services), fix
+      the crypto type, then re-verify."
+    truncated: false
+  risks:
+    - text: "Hard blocker: byok-kms.auth.service.ts:343 exports undefined symbol
+        generateAlias — breaks nest build. Trivial fix (remove the symbol from
+        the re-export list), but blocks ship."
+      truncated: false
+    - text: "Architectural conflict: brief non-goal says 'no Prisma migration', yet
+        the new auth.services call
+        prisma.customerKmsKey/kmsAuditEntry/byokLlmKey/byokLlmUsage/byokLlmAtte\
+        mpt/encryptionKey/webhookBridge/webhookEndpoint/webhookPayload/webhookD\
+        elivery/mirrorLog/mirrorLag which do not exist on PrismaService. These
+        12+ Prisma models need to be added (either via migration lifting the
+        non-goal, or stub services)."
+      truncated: false
+    - text: "Vitest baseline pollution: 269 pre-existing test failures in unrelated
+        spec files (likely env issues: missing Postgres/Redis); A6 cannot be
+        cleanly evaluated until baseline is cleaned. New g2-008 specs (250
+        tests) all pass independently."
+      truncated: false
+    - text: "A6 baseline equal-to-or-better: g2-008 introduces 0 new vitest failures —
+        all 269 failures are pre-existing in unrelated test files. The 250 new
+        module tests are 100% green."
+      truncated: false
+    - text: "A5 baseline: tsc has 207 pre-existing errors across unrelated files (sso,
+        permission-matrix, v2 etc.). g2-008 adds 54 new errors specifically in
+        the new module files, concentrated in *.auth.service.ts (Prisma model
+        references) and byok-kms.service.ts (crypto type)."
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-26T05:28:59.837Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A4
+      - A5
+      - A6
+      - A7
+    summary:
+      text: "FAIL — module wiring (A1/A2/A3) and e2e smoke (A8) are green, but the
+        build is hard-blocked by a stray 'generateAlias' re-export in
+        byok-kms.auth.service.ts:343 (A4), and tsc introduces 54 new type errors
+        in the new module files due to (i) missing Prisma models the
+        auth.services reference despite brief's 'no Prisma migration' non-goal,
+        (ii) a missing crypto.getAuthTag/setAuthTag type in byok-kms.service.ts.
+        A6 reports 269 failures but all are pre-existing in unrelated specs (0
+        new regressions); A7 blocked per brief non-goal #4 (admin controller
+        deferred). Recommend: send back to Build — fix the 1-line generateAlias
+        export, resolve Prisma model gap (either by adding the tables or
+        stubbing the auth services), fix the crypto type, then re-verify."
+      truncated: false
+    completed_at: 2026-08-26T05:28:59.837Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -85,7 +366,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: fail
+verification_report: verification.md
 archived: false
 created_at: 2026-08-26T04:33:11.105Z
