@@ -50,6 +50,7 @@ import { ModelModule } from './features/model/model.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { OAuthModule } from './features/oauth/oauth.module';
+import { OpenApiDocModule } from './features/openapi-doc/openapi-doc.module';
 import { OrganizationModule } from './features/organization/organization.module';
 import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
@@ -109,6 +110,7 @@ export const appModules = {
     HealthModule,
     NextModule,
     FieldOpenApiModule,
+    OpenApiDocModule,
     TemplateOpenApiModule,
     BaseModule,
     BaseNodeModule,
@@ -167,7 +169,7 @@ export const appModules = {
     RetentionModule,
     TrackingModule.forRoot(),
     MetricsModule,
-// Wave N2 modules (g2-007) — enterprise capability modules registered
+    // Wave N2 modules (g2-007) — enterprise capability modules registered
     // here for the first time. Order is dependency-correct so the DI graph
     // can resolve transitively without forwardRef gymnastics.
     FieldModule,

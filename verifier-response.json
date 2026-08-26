@@ -3,57 +3,53 @@
   "response": {
     "kind": "final-result",
     "result": {
-      "iteration": 2,
-      "attempt": 2,
+      "iteration": 1,
+      "attempt": 1,
       "verdict": "pass",
       "acceptance": [
         {
           "id": "A1",
           "result": "passed",
-          "reason": "All 8 module dirs exist under apps/nestjs-backend/src/features/ with *.module.ts: webhook-delivery, webhook-bridge, webhook-canvas, byok-llm, byok-kms, kms-encryption, workspace-mirror, dr-canvas. Each contains *.module.ts + *.service.ts + *.auth.service.ts + *.types.ts + spec files."
+          "reason": "All three files exist: apps/nestjs-backend/src/features/openapi-doc/openapi-doc.controller.ts (2980 bytes), openapi-doc.module.ts (250 bytes), and test/openapi-e2e.spec.ts (5872 bytes) — confirmed via ls."
         },
         {
           "id": "A2",
           "result": "passed",
-          "reason": "app.module.ts contains 16 mentions of the 8 module names (8 import statements at lines 20-74 + 8 imports array entries at lines 149-156)."
+          "reason": "apps/nestjs-backend/src/app.module.ts:53 has `import { OpenApiDocModule } from './features/openapi-doc/openapi-doc.module'` and line 113 places `OpenApiDocModule,` inside the `imports` array of `appModules`."
         },
         {
           "id": "A3",
           "result": "passed",
-          "reason": "license-capability.service.ts contains all 5 capability names (webhook, byok_llm, byok_kms, kms_encryption, workspace_mirror) at lines 39-47 (union type), 75-80 (PLAN_CAPABILITIES.business), 99-104 (PLAN_CAPABILITIES.enterprise), and 127-135 (CapObject mapping)."
+          "reason": "test/openapi-e2e.spec.ts:113-123 GET /openapi/openapi.json returns 200, content-type matches application/json, and body.paths contains a `/auth/.*signin` path and a `/base` path — vitest run confirmed the it() passes."
         },
         {
           "id": "A4",
           "result": "passed",
-          "reason": "tsc --noEmit produces 0 errors mentioning g2-008 modules (byok-kms/byok-llm/kms-encryption/workspace-mirror/dr-canvas/webhook-delivery/webhook-bridge/webhook-canvas/prisma-wave-h-augment). 249 total errors remain, all in pre-existing test files (e2e-spec, db-provider tests, domain-verification tests, field-open-api tests, import-open-api tests, integrity tests)."
+          "reason": "test/openapi-e2e.spec.ts:125-131 GET /openapi/docs returns 200 with content-type text/html, body contains `<div id=\"app\"></div>` and `Scalar.createApiReference` — vitest run confirmed the it() passes."
         },
         {
           "id": "A5",
           "result": "passed",
-          "reason": "Same as A4: 0 errors in g2-008 module code (the 249 baseline errors are pre-existing in test/*.e2e-spec.ts, src/db-provider/__tests__/, src/features/domain-verification/, src/features/field/, src/features/import/, src/features/integrity/ — not introduced by this change)."
+          "reason": "test/openapi-e2e.spec.ts:133-137 asserts response header `content-security-policy` contains `'nonce-`; controller openapi-doc.controller.ts:80 sets Content-Security-Policy via res.setHeader with the nonce token — vitest run confirmed the it() passes."
         },
         {
           "id": "A6",
           "result": "passed",
-          "reason": "vitest run on all 8 g2-008 module dirs: 16 spec files passed, 250/250 tests passed (workspace-mirror 20, byok-kms 14, dr-canvas 17, webhook-bridge 28, webhook-delivery 27, kms-encryption 32, webhook-canvas 14, byok-llm 26, plus auth.service.spec.ts: dr-canvas 6, workspace-mirror 5, webhook-canvas 6, kms-encryption 14, webhook-bridge 8, byok-kms 12, byok-llm 9, webhook-delivery 12). Duration 386ms."
+          "reason": "`pnpm exec vitest run test/openapi-e2e.spec.ts` reports `Test Files 1 passed (1)` and `Tests 5 passed (5)` — all 5 it() blocks green in 4.74s."
         },
         {
           "id": "A7",
           "result": "passed",
-          "reason": "Structural verification only — admin controller route registration is deferred per brief non-goal #4. byok-kms.module.ts line 45-49 declares class ByokKmsModule with @Module({providers:[ByokKmsService, ByokKmsAuthService, LocalMasterKeyProvider], exports:[ByokKmsService, ByokKmsAuthService]}). webhook-delivery.module.ts line 43-47 declares class WebhookDeliveryModule with @Module({providers:[WebhookDeliveryService, WebhookDeliveryAuthService], exports:[WebhookDeliveryService, WebhookDeliveryAuthService]}). Both modules are valid NestJS @Module() declarations and can be constructor-injected once admin controller exists in a future change. Treating DI injection acceptance as passed at module-wiring level (which is g2-008's scope)."
+          "reason": "`pnpm exec tsc --noEmit` produced 206 total TS errors (matching brief baseline); `grep -c 'openapi-doc' /tmp/tsc-output.txt` = 0 — no g2-009-introduced errors."
         },
         {
           "id": "A8",
           "result": "passed",
-          "reason": "vitest run src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts: 1 file passed, 39/39 tests passed in 1.35s. LicenseCapabilityService logged self_hosted → business capability plan as expected."
+          "reason": "`pnpm exec vitest run src/features/license/__tests__/e2e-business-enterprise-smoke.spec.ts` reports `Tests 39 passed (39)` — regression intact."
         }
       ],
-      "risks": [
-        "Pre-existing tsc errors (249 total) in test files (e2e-spec, db-provider, domain-verification, field, import, integrity) — not introduced by g2-008, but they mean tsc --noEmit overall is non-zero. This was already true before this change.",
-        "specs/ directory under docs/comet/changes/g2-008-webhook-byok-kms-dr/ is empty — no design specs written; however brief.md serves as the spec and all acceptance criteria are checkable from it.",
-        "vitest 4.0.17 no longer ships a 'basic' reporter (--reporter=basic fails with ERR_LOAD_URL); verification ran without reporter. Test results are still valid and complete."
-      ],
-      "summary": "PASS. All 7 checkable acceptance items pass. A1 (8 dirs), A2 (16 module mentions), A3 (5 capabilities), A4/A5 (0 g2-008 tsc errors), A6 (250/250 vitest tests across 8 module dirs), A8 (39/39 e2e smoke tests) all green. A7 (DI injection) passed via @Module() structural verification (admin controller deferred per brief non-goal #4). Pre-existing tsc errors in test files are baseline and not caused by this change."
+      "risks": [],
+      "summary": "All 8 acceptance items pass. GA1-GA2 verified statically (three required files exist, OpenApiDocModule imported and listed in app.module.ts imports). GA3-GA6 verified dynamically — vitest run of test/openapi-e2e.spec.ts passes 5/5 it() blocks covering /openapi/openapi.json content+paths, /openapi/docs HTML+CSP nonce, /openapi/explorer, and /api/v2/openapi.json regression. GA7: pnpm exec tsc --noEmit reports 206 baseline errors with 0 hits for openapi-doc (matches brief's pre-existing baseline). GA8: e2e-business-enterprise-smoke 39/39 still passes. The spec uses Node's built-in http instead of supertest (justified — supertest not in dependencies, brief forbids new npm deps), and the implementation still drives real HTTP through Nest's pipeline."
     }
   }
 }
