@@ -389,6 +389,22 @@ export const SettingPage = (props: ISettingPageProps) => {
           )}
 
           <CopyInstance instanceId={instanceId} infraVersion={infraVersion} />
+
+          {/* R1-T03 — admin audit log bridge */}
+          <div className="mt-2 flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+            <div className="space-y-1">
+              <Label>{t('admin.auditLog.title', 'Audit Log')}</Label>
+              <div className="text-xs text-muted-foreground">
+                {t(
+                  'admin.auditLog.settingLink',
+                  'Browse the read-only audit log of HTTP requests and @Audit() events.'
+                )}
+              </div>
+            </div>
+            <Button variant="outline" asChild>
+              <a href="/admin/audit-log">{t('admin.auditLog.open', 'Open audit log')}</a>
+            </Button>
+          </div>
         </div>
         {finalList.length > 0 && (
           <ConfigurationList
