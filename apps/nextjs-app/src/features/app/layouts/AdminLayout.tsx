@@ -6,6 +6,7 @@ import {
   LayoutTemplate as TemplateIcon,
   Settings,
   ShieldUser,
+  Webhook as WebhookIcon,
 } from '@teable/icons';
 import type { IUser } from '@teable/sdk';
 import { SessionProvider } from '@teable/sdk';
@@ -65,6 +66,12 @@ export const AdminLayout: React.FC<{
       label: tSpace('adminImport.navTitle'),
       route: '/admin/import',
       pathTo: '/admin/import',
+    },
+    {
+      Icon: WebhookIcon,
+      label: tCommon('settings.webhook.title'),
+      route: '/admin/webhook-delivery',
+      pathTo: '/admin/webhook-delivery',
     },
   ];
 
