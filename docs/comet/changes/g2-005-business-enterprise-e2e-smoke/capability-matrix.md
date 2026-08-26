@@ -1,7 +1,7 @@
 # G2-005 Capability Matrix
 
 **Source of truth**: `apps/nestjs-backend/src/features/license/license-capability.service.ts` (`PLAN_CAPABILITIES` + `ALL_CAPABILITIES`, 2026-08-26)
-**Plan limits source**: `apps/nestjs-backend/src/features/license/quota/quota.constants.ts` (`PLAN_LIMITS`, 2026-08-26)
+**Plan limits source**: `apps/nestjs-backend/src/features/quota/quota.constants.ts` (`IPlanLimits` + `PLAN_LIMITS`, 2026-08-26)
 **Change**: `comet/g2-005-business-enterprise-e2e-smoke` (target `agent/chong/df9d120d2105-stage6-audit-log`)
 **Generated**: 2026-08-26 — G2-005 Build deliverable (brief scope item #9, "可观察" constraint)
 
@@ -13,6 +13,9 @@ without also patching `license-capability.service.ts` / `quota.constants.ts`.
 ---
 
 ## Capability × plan matrix
+
+`LicenseCapability` from `license-capability.service.ts` (`ALL_CAPABILITIES`,
+18 entries).
 
 | Capability               | free | pro | business | enterprise | self_hosted (OSS)            |
 | ------------------------ | :--: | :-: | :------: | :--------: | :--------------------------- |
@@ -46,17 +49,23 @@ without also patching `license-capability.service.ts` / `quota.constants.ts`.
 
 ## Plan limits matrix
 
-`PLAN_LIMITS` from `quota.constants.ts` (canonical values; if these move, update both source and this doc in the same change).
+All 8 `IPlanLimits` fields from `quota.constants.ts:16-25`, verbatim from
+`PLAN_LIMITS` lines 27-80. `null` ⇒ unlimited (`isUnlimited()` returns `true`).
 
-| Plan         | rowLimit   | attachmentByteLimit | automationRunLimit | aiCreditLimit | apiRequestLimitPerSec |
-| ------------ | ---------: | ------------------: | -----------------: | ------------: | --------------------: |
-| `free`       |    `1_000` |              `1 GB` |              `100` |        `200` |                  `10` |
-| `pro`        |  `250_000` |             `10 GB` |           `25_000` |      `1_000` |                  `50` |
-| `business`   |`1_000_000` |            `100 GB` |          `100_000` |      `2_000` |                 `100` |
-| `enterprise` |     `null` |               null |               null |         null |                  null |
-| `self_hosted`|     `null` |               null |               null |         null |                  null |
+| Plan         | rowLimit   | attachmentByteLimit | automationRunLimit | aiCreditLimit | apiRequestLimitPerSec | recordHistoryDays | automationHistoryDays | seatLimit |
+| ------------ | ---------: | ------------------: | -----------------: | ------------: | --------------------: | ----------------: | --------------------: | --------: |
+| `free`       |    `1_000` |              `1 GB` |              `100` |        `200` |                  `10` |              `14` |                  `14` |       `1` |
+| `pro`        |  `250_000` |             `10 GB` |           `25_000` |      `1_000` |                  `10` |             `365` |                 `365` |      `10` |
+| `business`   |`1_000_000` |            `100 GB` |          `100_000` |      `2_000` |                  `10` |          `365*3` |                 `365` |     `100` |
+| `enterprise` |     `null` |               null |               null |         null |                  null |             `null` |                  null |     `null` |
+| `self_hosted`|     `null` |               null |               null |         null |                  null |             `null` |                  null |     `null` |
 
-`null` ⇒ unlimited (`isUnlimited()` returns `true`).
+> **Note on `apiRequestLimitPerSec`**: source `quota.constants.ts:33/43/53`
+> has `free=10`, `pro=10`, `business=10`. Brief A7 prose mentions
+> `apiRequestLimitPerSec=100` for business — that prose is **stale**; the
+> authoritative source value (and what the smoke asserts at
+> `e2e-business-enterprise-smoke.spec.ts:185`) is `10`. If a future change
+> bumps the per-plan rate limit, this doc and the test must move together.
 
 ---
 
@@ -70,8 +79,8 @@ without also patching `license-capability.service.ts` / `quota.constants.ts`.
 | A4        | free snapshot: only `ai_chat=true`                                             | `license-capability.service.ts:45`       |
 | A5        | guard(`sso`): throws 402 on free/pro, passes business/enterprise/self_hosted | `license-capability.guard.ts:32-39`      |
 | A6        | guard(`automation`): passes business, throws 402 on pro                       | `license-capability.guard.ts:35-38`      |
-| A7        | `resolve('plan:business:seats=42')` returns PLAN_LIMITS.business + seat override | `license.service.ts` + `quota.constants.ts:49-53` |
-| A8        | `resolve('plan:enterprise')` returns all-null effectiveLimits + `isUnlimited` true | `quota.constants.ts:60-64`                |
+| A7        | `resolve('plan:business:seats=42')` returns PLAN_LIMITS.business + seat override | `license.service.ts` + `quota.constants.ts:48-57` |
+| A8        | `resolve('plan:enterprise')` returns all-null effectiveLimits + `isUnlimited` true | `quota.constants.ts:58-68`                |
 | A9        | self_hosted: snapshot all false, guard passes (OSS zero-impact)               | `license-capability.guard.ts:32-34`      |
 | A10/A13   | ≥35 `it()` in `e2e-business-enterprise-smoke.spec.ts`, 39 today               | `__tests__/e2e-business-enterprise-smoke.spec.ts` |
 | A11       | diff against target branch is source + spec + docs only (no handler LOGIC)    | git diff `agent/chong/df9d120d2105-stage6-audit-log --name-only` |
