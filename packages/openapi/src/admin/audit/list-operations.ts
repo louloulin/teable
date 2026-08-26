@@ -32,11 +32,26 @@ export const auditListVoSchema = z.object({
 
 export type IAuditListVo = z.infer<typeof auditListVoSchema>;
 
-/** Query schema shared by both list + summary. */
+/** Query schema shared by both list + summary.
+ *
+ * R1-T10 adds three **optional** fields. They are *backward compatible*
+ * with the T-03 server:
+ *
+ *   - `from` ISO datetime — UI-side only in this stage. The server
+ *     currently ignores it; the value is preserved across `Load more`
+ *     so the cursor + filter pair stays consistent.
+ *   - `to`   ISO datetime — same semantics as `from`.
+ *   - `cursor` opaque string — opaque cursor returned by the server
+ *     for `Load more`. When present, the request treats `cursor` as
+ *     authoritative for paging and ignores `from` / `to`.
+ */
 export const auditListQuerySchema = z.object({
   action: z.string().min(1).max(128).optional(),
   resourceId: z.string().min(1).max(128).optional(),
   limit: z.coerce.number().int().min(1).max(1000).optional(),
+  from: z.string().min(1).max(64).optional(),
+  to: z.string().min(1).max(64).optional(),
+  cursor: z.string().min(1).max(256).optional(),
 });
 
 export type IAuditListQuery = z.infer<typeof auditListQuerySchema>;
