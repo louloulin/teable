@@ -1,9 +1,12 @@
 import type { DehydratedState } from '@tanstack/react-query';
-<<<<<<< HEAD
-import { Code, Settings, LayoutTemplate as TemplateIcon, ShieldUser } from '@teable/icons';
-=======
-import { Key, LayoutTemplate as TemplateIcon, Settings, ShieldUser } from '@teable/icons';
->>>>>>> 05e95d1a0 (feat(admin): scim push provisioning UI)
+import {
+  Code,
+  Download as ImportIcon,
+  Key,
+  LayoutTemplate as TemplateIcon,
+  Settings,
+  ShieldUser,
+} from '@teable/icons';
 import type { IUser } from '@teable/sdk';
 import { SessionProvider } from '@teable/sdk';
 import { AppProvider } from '@teable/sdk/context';
@@ -24,7 +27,8 @@ export const AdminLayout: React.FC<{
 }> = ({ children, user, dehydratedState }) => {
   const sdkLocale = useSdkLocale();
   const { i18n } = useTranslation();
-  const { t } = useTranslation('common');
+  const { t: tCommon } = useTranslation('common');
+  const { t: tSpace } = useTranslation('space');
   const router = useRouter();
 
   const onBack = () => {
@@ -34,34 +38,40 @@ export const AdminLayout: React.FC<{
   const routes = [
     {
       Icon: Settings,
-      label: t('settings.title'),
+      label: tCommon('settings.title'),
       route: '/admin/setting',
       pathTo: '/admin/setting',
     },
     {
       Icon: TemplateIcon,
-      label: t('settings.templateAdmin.title'),
+      label: tCommon('settings.templateAdmin.title'),
       route: '/admin/template',
       pathTo: '/admin/template',
     },
     {
       Icon: Code,
-      label: t('settings.apiExplorer.title'),
+      label: tCommon('settings.apiExplorer.title'),
       route: '/admin/api-explorer',
       pathTo: '/admin/api-explorer',
     },
     {
       Icon: Key,
-      label: t('settings.scim.title'),
+      label: tCommon('settings.scim.title'),
       route: '/admin/scim',
       pathTo: '/admin/scim',
+    },
+    {
+      Icon: ImportIcon,
+      label: tSpace('adminImport.navTitle'),
+      route: '/admin/import',
+      pathTo: '/admin/import',
     },
   ];
 
   return (
     <AppLayout>
       <Head>
-        <title>{t('noun.adminPanel')}</title>
+        <title>{tCommon('noun.adminPanel')}</title>
       </Head>
       <AppProvider locale={sdkLocale} lang={i18n.language} dehydratedState={dehydratedState}>
         <SessionProvider user={user}>
@@ -69,7 +79,7 @@ export const AdminLayout: React.FC<{
             <Sidebar
               headerLeft={
                 <SidebarHeaderLeft
-                  title={t('noun.adminPanel')}
+                  title={tCommon('noun.adminPanel')}
                   icon={<ShieldUser className="size-5 shrink-0" />}
                   onBack={onBack}
                 />
