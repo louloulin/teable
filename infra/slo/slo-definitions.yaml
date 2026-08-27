@@ -1,0 +1,240 @@
+# Teable OSS — SLO definitions
+#
+# Each entry maps a Prometheus metric family to:
+#   - target         — the SLO value (availability / latency / throughput)
+#   - window         — the rolling evaluation window (Google SRE standard: 30d)
+#   - slo_ratio      — the fraction of "good" events the SLO promises
+#   - error_budget   — the inverse of slo_ratio, expressed as a fraction and a
+#                      monthly allowance of bad events
+#   - alerting_burn  — multi-window, multi-burn-rate thresholds (1h/6h/24h/3d
+#                      fast/slow pairs) following the Google SRE workbook
+#                      chapter 5. Two alerts: page on 14.4x burn (1h), and
+#                      ticket on 1x burn (24h) so on-call gets woken up only
+#                      when the budget is being consumed at an unsustainable
+#                      rate.
+#   - implementation — the PromQL the promtool/sloth/cinc-sli-server would use
+#                      to compute the SLI in production. Kept as a literal so
+#                      reviewers can paste it straight into Grafana's Explore
+#                      panel and reproduce the number without re-deriving it.
+#
+# These are intended to be loaded by whichever SLO tooling the operator
+# prefers — sloth (https://sloth.dev/), pyrra, or home-grown. The TS error-
+# budget calculator at apps/nestjs-backend/src/observability/slo-calculator.ts
+# reads the same shape so dashboards and code stay in sync.
+
+apiVersion: v1
+kind: SLODefinitions
+metadata:
+  name: teable-oss
+  version: "12.5.0"
+  owner: platform@teable.io
+  description: |
+    Production SLOs for Teable OSS self-hosted deployments. Targets match the
+    upstream SaaS defaults so cloud and self-hosted share a single error-budget
+    posture; per-tenant overrides belong in `slo-overrides.yaml` next to this
+    file, not here.
+
+# ---------------------------------------------------------------------- API
+- id: api-availability
+  service: teable-backend
+  description: HTTP API 5xx-free availability, all routes.
+  sli:
+    type: availability
+    implementation: |
+      sum(rate(teable_http_request_duration_seconds_count{
+        job="teable-backend", code!~"5.."
+      }[5m]))
+      /
+      clamp_min(sum(rate(teable_http_request_duration_seconds_count{
+        job="teable-backend"
+      }[5m])), 1)
+  target: 0.999                # 99.9% — three-nines
+  window: 30d
+  slo_ratio: 0.999
+  error_budget:
+    fraction: 0.001            # 0.1% of requests may 5xx over 30d
+    monthly_allowance_requests_per_100k: 100
+  alerting_burn:
+    # (long_window, short_window, burn_rate_threshold)
+    # pages after ~1h at 14.4x burn (consumes 1% of budget per hour)
+    fast:
+      - window: 1h
+        burn: 14.4
+        severity: page
+      - window: 5m
+        burn: 14.4
+        severity: page
+    # tickets after 24h at 6x burn (~consumes full budget over 4d)
+    slow:
+      - window: 24h
+        burn: 1
+        severity: ticket
+      - window: 3d
+        burn: 1
+        severity: ticket
+
+- id: api-latency-p95
+  service: teable-backend
+  description: HTTP API P95 latency below 500ms across all v1 routes.
+  sli:
+    type: latency
+    threshold_ms: 500
+    implementation: |
+      1 - (
+        sum(rate(teable_http_request_duration_seconds_bucket{
+          job="teable-backend", le="0.5"
+        }[5m]))
+        /
+        clamp_min(sum(rate(teable_http_request_duration_seconds_count{
+          job="teable-backend"
+        }[5m])), 1)
+      )
+  target: 0.99                 # 99% of requests faster than 500ms
+  window: 30d
+  slo_ratio: 0.99
+  error_budget:
+    fraction: 0.01
+    monthly_allowance_requests_per_100k: 1000
+  alerting_burn:
+    fast:
+      - window: 1h
+        burn: 14.4
+        severity: page
+      - window: 5m
+        burn: 14.4
+        severity: page
+    slow:
+      - window: 24h
+        burn: 1
+        severity: ticket
+      - window: 3d
+        burn: 1
+        severity: ticket
+
+# ------------------------------------------------------------- Automation
+- id: automation-run-latency-p95
+  service: teable-automation-runner
+  description: P95 of end-to-end automation run duration below 2s.
+  sli:
+    type: latency
+    threshold_ms: 2000
+    implementation: |
+      1 - (
+        sum(rate(teable_automation_run_duration_seconds_bucket{
+          job="teable-backend", le="2"
+        }[5m]))
+        /
+        clamp_min(sum(rate(teable_automation_run_duration_seconds_count{
+          job="teable-backend"
+        }[5m])), 1)
+      )
+  target: 0.95
+  window: 30d
+  slo_ratio: 0.95
+  error_budget:
+    fraction: 0.05
+    monthly_allowance_runs_per_100k: 5000
+  alerting_burn:
+    fast:
+      - window: 30m
+        burn: 14.4
+        severity: page
+      - window: 5m
+        burn: 14.4
+        severity: page
+    slow:
+      - window: 6h
+        burn: 1
+        severity: ticket
+      - window: 1d
+        burn: 1
+        severity: ticket
+
+- id: automation-run-success
+  service: teable-automation-runner
+  description: Automation runs that finish in status="success" (no exception).
+  sli:
+    type: availability
+    implementation: |
+      sum(rate(teable_automation_runs_total{
+        job="teable-backend", status="success"
+      }[5m]))
+      /
+      clamp_min(sum(rate(teable_automation_runs_total{
+        job="teable-backend"
+      }[5m])), 1)
+  target: 0.995
+  window: 30d
+  slo_ratio: 0.995
+  error_budget:
+    fraction: 0.005
+    monthly_allowance_runs_per_100k: 500
+  alerting_burn:
+    fast:
+      - window: 1h
+        burn: 14.4
+        severity: page
+    slow:
+      - window: 24h
+        burn: 1
+        severity: ticket
+
+# --------------------------------------------------------------- Webhooks
+- id: webhook-delivery-success
+  service: teable-webhook-delivery
+  description: Outbound webhook deliveries that return 2xx within the 5s budget.
+  sli:
+    type: availability
+    implementation: |
+      sum(rate(teable_webhook_delivery_total{
+        job="teable-backend", outcome="success"
+      }[5m]))
+      /
+      clamp_min(sum(rate(teable_webhook_delivery_total{
+        job="teable-backend"
+      }[5m])), 1)
+  target: 0.995
+  window: 30d
+  slo_ratio: 0.995
+  error_budget:
+    fraction: 0.005
+    monthly_allowance_deliveries_per_100k: 500
+  alerting_burn:
+    fast:
+      - window: 1h
+        burn: 14.4
+        severity: page
+    slow:
+      - window: 24h
+        burn: 1
+        severity: ticket
+
+# ---------------------------------------------------------------- AI calls
+- id: ai-call-success
+  service: teable-ai-gateway
+  description: AI provider calls (non-stream) that complete without retryable error.
+  sli:
+    type: availability
+    implementation: |
+      sum(rate(teable_ai_calls_total{
+        job="teable-backend", outcome="success"
+      }[5m]))
+      /
+      clamp_min(sum(rate(teable_ai_calls_total{
+        job="teable-backend"
+      }[5m])), 1)
+  target: 0.99
+  window: 30d
+  slo_ratio: 0.99
+  error_budget:
+    fraction: 0.01
+    monthly_allowance_calls_per_100k: 1000
+  alerting_burn:
+    fast:
+      - window: 1h
+        burn: 14.4
+        severity: page
+    slow:
+      - window: 24h
+        burn: 1
+        severity: ticket
