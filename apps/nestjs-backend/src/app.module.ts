@@ -11,9 +11,14 @@ import { AccessTokenModule } from './features/access-token/access-token.module';
 import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
+import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orchestrator.module';
 import { AiModule } from './features/ai/ai.module';
+import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
+import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-prompt-router.module';
+import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
+import { ModelFinetunePipelineModule } from './features/model-finetune-pipeline/model-finetune-pipeline.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
@@ -66,6 +71,7 @@ import { TrashModule } from './features/trash/trash.module';
 import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
 import { UserModule } from './features/user/user.module';
 import { ViewPermissionModule } from './features/view-permission/view-permission.module';
+import { WorkspaceMirrorModule } from './features/workspace-mirror/workspace-mirror.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
 import { GlobalModule } from './global/global.module';
@@ -145,6 +151,12 @@ export const appModules = {
     BuiltinAssetsInitModule,
     V2Module,
     ComputedOutboxWakeupConsumerModule.register(),
+    AgentOrchestratorModule,
+    AiCostForecasterModule,
+    CuppyPromptRouterModule,
+    ModelFinetunePipelineModule,
+    EvalHarnessModule,
+    WorkspaceMirrorModule,
   ],
   providers: [InitBootstrapProvider],
 };
