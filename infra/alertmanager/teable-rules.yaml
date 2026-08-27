@@ -1,0 +1,256 @@
+# Prometheus alert rules for Teable OSS self-hosted deployments.
+#
+# Seven rules — the canonical set for a minimal-but-real SRE posture.  Each
+# rule maps to a documented runbook entry in `docs/runbooks/<alert>.md` (out
+# of scope here, but the labels point to where the operator expects them).
+#
+# Severity labels follow Prometheus AlertManager conventions:
+#   - severity=page       wakes on-call (Slack + PagerDuty)
+#   - severity=ticket     files a low-urgency ticket, no pager
+#
+# The burn-rate rules (api-burn-fast / api-burn-slow / automation-burn-fast
+# ...) are derived directly from `infra/slo/slo-definitions.yaml`.  When you
+# change the SLO targets, regenerate this file from the same source — there
+# is no automatic sync today, but the `computeBurn()` helper in the NestJS
+# `slo-calculator.ts` uses the same math so reviewers can copy/paste.
+#
+# Load with:  promtool check rules infra/alertmanager/teable-rules.yaml
+
+groups:
+  # ------------------------------------------------------------------ 5xx
+  - name: teable.api.errors
+    interval: 30s
+    rules:
+      - alert: TeableApiErrorRateSpike
+        expr: |
+          (
+            sum(rate(teable_http_request_duration_seconds_count{
+              job="teable-backend", code=~"5.."
+            }[5m]))
+            /
+            clamp_min(sum(rate(teable_http_request_duration_seconds_count{
+              job="teable-backend"
+            }[5m])), 1)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: page
+          team: platform
+          slo: api-availability
+          runbook: docs/runbooks/api-error-rate-spike.md
+        annotations:
+          summary: "5xx rate > 5% for 2m on {{ $labels.instance }}"
+          description: |
+            The teable backend is returning 5xx for more than 5% of requests
+            over the last 5 minutes.  Investigate the upstream cause (DB,
+            downstream service, recent deploy) before paging users.
+          dashboard: https://grafana.example.com/d/teable-overview
+
+  # ------------------------------------------------------ burn-rate alerts
+  - name: teable.slo.burn
+    interval: 30s
+    rules:
+      # Fast burn — 1h window, 14.4x (Google SRE workbook 5.x). Page on-call.
+      - alert: TeableApiAvailabilityBurnFast
+        expr: |
+          (
+            1 - (
+              sum(rate(teable_http_request_duration_seconds_count{
+                job="teable-backend", code!~"5.."
+              }[5m]))
+              /
+              clamp_min(sum(rate(teable_http_request_duration_seconds_count{
+                job="teable-backend"
+              }[5m])), 1)
+            )
+          ) > (14.4 * 0.001)
+        for: 1m
+        labels:
+          severity: page
+          team: platform
+          slo: api-availability
+          runbook: docs/runbooks/api-burn-fast.md
+        annotations:
+          summary: "API burning 30-day budget at 14.4x rate (1h window)"
+          description: |
+            The error rate is high enough to exhaust the entire 99.9% SLO budget
+            in under 4 hours.  Page on-call, then look at the request-rate and
+            DB-pool panels on the overview dashboard.
+
+      # Slow burn — 24h window, 1x. Files a ticket, does not page.
+      - alert: TeableApiAvailabilityBurnSlow
+        expr: |
+          (
+            1 - (
+              sum(rate(teable_http_request_duration_seconds_count{
+                job="teable-backend", code!~"5.."
+              }[5m]))
+              /
+              clamp_min(sum(rate(teable_http_request_duration_seconds_count{
+                job="teable-backend"
+              }[5m])), 1)
+            )
+          ) > (1 * 0.001)
+        for: 5m
+        labels:
+          severity: ticket
+          team: platform
+          slo: api-availability
+          runbook: docs/runbooks/api-burn-slow.md
+        annotations:
+          summary: "API consuming 99.9% SLO budget faster than sustainable (24h)"
+          description: |
+            Slow burn — the API is on track to exhaust its monthly 99.9% budget
+            within 30 days at the current rate.  Schedule a postmortem and look
+            at the top failing routes in the SLO dashboard.
+
+      # Automation P95 burn — 30m window, 14.4x.
+      - alert: TeableAutomationRunP95BurnFast
+        expr: |
+          (
+            1 - (
+              sum(rate(teable_automation_run_duration_seconds_bucket{
+                job="teable-backend", le="2"
+              }[5m]))
+              /
+              clamp_min(sum(rate(teable_automation_run_duration_seconds_count{
+                job="teable-backend"
+              }[5m])), 1)
+            )
+          ) > (14.4 * 0.05)
+        for: 2m
+        labels:
+          severity: page
+          team: platform
+          slo: automation-run-latency-p95
+          runbook: docs/runbooks/automation-burn-fast.md
+        annotations:
+          summary: "Automation runs slower than 2s at 14.4x burn (30m)"
+          description: |
+            P95 of automation run latency exceeds the SLO at a burn rate that
+            would exhaust the budget within hours.  Page on-call and check the
+            automation queue + DB pool panels.
+
+  # ---------------------------------------------------- automation backlog
+  - name: teable.automation
+    interval: 30s
+    rules:
+      - alert: TeableAutomationBacklog
+        expr: teable_automation_queue_size{job="teable-backend"} > 1000
+        for: 5m
+        labels:
+          severity: page
+          team: platform
+          runbook: docs/runbooks/automation-backlog.md
+        annotations:
+          summary: "Automation queue > 1000 for 5m"
+          description: |
+            Backlog is growing — automation runners are not draining the queue
+            at the rate work is arriving.  Check the runner Pod status and
+            recent deploys; restart the deployment if it is wedged.
+
+      - alert: TeableAutomationRunnerDeath
+        expr: |
+          absent(teable_automation_runner_up{job="teable-backend"}) == 1
+          or
+          teable_automation_runner_up{job="teable-backend"} == 0
+        for: 2m
+        labels:
+          severity: page
+          team: platform
+          runbook: docs/runbooks/automation-runner-death.md
+        annotations:
+          summary: "No teable-automation-runner heartbeat for 2m"
+          description: |
+            The automation runner has stopped reporting its heartbeat.  Page
+            on-call — automations will silently stop firing until it restarts.
+
+  # -------------------------------------------------------- webhook failure
+  - name: teable.webhooks
+    interval: 30s
+    rules:
+      - alert: TeableWebhookFailureSurge
+        expr: |
+          (
+            sum(rate(teable_webhook_delivery_total{
+              job="teable-backend", outcome=~"failed|dead_letter"
+            }[5m]))
+            /
+            clamp_min(sum(rate(teable_webhook_delivery_total{
+              job="teable-backend"
+            }[5m])), 1)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: page
+          team: platform
+          slo: webhook-delivery-success
+          runbook: docs/runbooks/webhook-failure-surge.md
+        annotations:
+          summary: "Webhook failure rate > 5% for 5m"
+          description: |
+            More than 5% of outbound webhook deliveries are failing or hitting
+            the DLQ.  Check the webhook target allow-list and the DLQ table
+            for the latest batch of failed deliveries.
+
+  # -------------------------------------------------------- saturation/IO
+  - name: teable.resources
+    interval: 30s
+    rules:
+      - alert: TeableDiskWatermarkHigh
+        expr: |
+          teable_disk_used_ratio{job="teable-backend"} > 0.85
+        for: 10m
+        labels:
+          severity: ticket
+          team: platform
+          runbook: docs/runbooks/disk-watermark.md
+        annotations:
+          summary: "Disk > 85% full for 10m on {{ $labels.instance }}"
+          description: |
+            Storage is approaching the high-watermark threshold.  Schedule a
+            cleanup of old backup artifacts or expand the volume within the
+            next 24h to avoid a hard failure.
+
+      - alert: TeableDbConnectionExhaustion
+        expr: |
+          teable_db_pool_waiting{job="teable-backend"} > 5
+        for: 5m
+        labels:
+          severity: page
+          team: platform
+          runbook: docs/runbooks/db-connection-exhaustion.md
+        annotations:
+          summary: "DB pool has > 5 waiting connections for 5m"
+          description: |
+            Requests are stacking up waiting for a DB connection.  Page
+            on-call — this is the classic precursor to a full outage.
+
+  # -------------------------------------------------------- AI provider
+  - name: teable.ai
+    interval: 30s
+    rules:
+      - alert: TeableAiProviderOutage
+        expr: |
+          (
+            sum(rate(teable_ai_calls_total{
+              job="teable-backend", outcome="failed"
+            }[5m]))
+            /
+            clamp_min(sum(rate(teable_ai_calls_total{
+              job="teable-backend"
+            }[5m])), 1)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: ticket
+          team: platform
+          slo: ai-call-success
+          runbook: docs/runbooks/ai-provider-outage.md
+        annotations:
+          summary: "AI provider success rate < 50% for 10m"
+          description: |
+            The configured AI provider is failing most calls.  This is a
+            ticket rather than a page because end-users see graceful
+            degradation — record-only rows still work.  Switch the provider
+            in the operator settings when convenient.
