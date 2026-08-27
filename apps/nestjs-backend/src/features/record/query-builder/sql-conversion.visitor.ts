@@ -292,7 +292,13 @@ abstract class BaseSqlConversionVisitor<
   protected expansionStack: Set<string> = new Set();
 
   protected defaultResult(): string {
-    throw new Error('Method not implemented.');
+    // antlr4's AbstractParseTreeVisitor defaults to visiting every node via
+    // visitTerminal/visitChildren. When a parse-tree node has no visit
+    // override the visitor falls back to aggregateResult(defaultResult(),
+    // defaultResult()), so a throw here would break every unhandled
+    // subtree — including the common case of an inner whitespace node that
+    // the parent context already stripped.
+    return '';
   }
 
   protected getQuestionMarkExpression(): string {

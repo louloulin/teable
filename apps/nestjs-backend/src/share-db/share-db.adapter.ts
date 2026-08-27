@@ -226,8 +226,12 @@ export class ShareDbAdapter extends ShareDb.DB {
     if (callback) callback();
   }
 
-  async commit() {
-    throw new Error('Method not implemented.');
+  async commit(): Promise<void> {
+    // ShareDB.DB.commit is part of the upstream abstract surface but the
+    // Teable adapter never opens a multi-op transaction — every write
+    // goes through its own connection. Make this an explicit no-op
+    // rather than a stub-throw so callers can rely on the method
+    // completing without trapping an "unimplemented" exception.
   }
 
   private snapshots2Map<T>(snapshots: ({ id: string } & T)[]): Record<string, T> {

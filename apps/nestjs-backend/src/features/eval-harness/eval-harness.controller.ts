@@ -2,9 +2,8 @@
  * HTTP wrapper for the eval harness.
  *
  * `POST /api/admin/eval/run` — runs the seeded eval cases against the
- * supplied prompt runner (a function the body describes by name; real
- * implementations would point at the live AI Builder).  Returns the
- * summary + per-case scores.
+ * real AI Builder pipeline (`OfflineBuilderProvider` →
+ * `parseAndValidateProposal`) and returns the summary + per-case scores.
  *
  * For CI we expose the seed cases at `GET /api/admin/eval/cases` so a
  * reviewer can see what's being tested without having to clone the repo.
@@ -15,10 +14,11 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { HarnessSummary, runHarness, SchemaDoc } from './eval-harness';
 import { SEED_EVAL_CASES } from './eval-fixtures';
+import { runRealEvaluator } from './eval-runner';
 
 interface RunRequest {
-  /** Only used by smoke tests; production wires a real pipeline. */
-  stub_responses?: Record<string, SchemaDoc>;
+  /** Optional case-id → schema override (used only by smoke tests). */
+  overrides?: Record<string, SchemaDoc>;
 }
 
 @Controller('api/admin/eval')
@@ -30,12 +30,15 @@ export class EvalHarnessController {
 
   @Post('run')
   async run(@Body() req: RunRequest): Promise<{ summary: HarnessSummary }> {
-    const stub = req.stub_responses ?? {};
+    const overrides = req.overrides ?? {};
+    const realPrompt = await runRealEvaluator(SEED_EVAL_CASES);
     const { summary } = await runHarness({
       cases: SEED_EVAL_CASES,
       runPrompt: async (prompt: string): Promise<SchemaDoc> => {
         const c = SEED_EVAL_CASES.find((x) => x.prompt === prompt);
-        return stub[c?.id ?? ''] ?? c?.gold ?? { fields: [] };
+        const override = c ? overrides[c.id] : undefined;
+        if (override) return override;
+        return realPrompt(prompt);
       },
     });
     return { summary };
