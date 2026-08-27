@@ -11,7 +11,8 @@
  * License: AGPL-3.0
  */
 
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { HarnessSummary, runHarness, SchemaDoc } from './eval-harness';
 import { SEED_EVAL_CASES } from './eval-fixtures';
 import { runRealEvaluator } from './eval-runner';
@@ -21,7 +22,14 @@ interface RunRequest {
   overrides?: Record<string, SchemaDoc>;
 }
 
+// AI admin-panel capability gate — matches the pattern used by
+// `admin-open-api.controller.ts` for `/api/admin/ai-settings`. Running the
+// eval harness invokes the real AI Builder pipeline; gate it behind the
+// `ai` license cap.
+const AiAdminGuard = LicenseCapabilityGuard.for('ai');
+
 @Controller('api/admin/eval')
+@UseGuards(AiAdminGuard)
 export class EvalHarnessController {
   @Get('cases')
   cases(): { id: string; tags: string[] }[] {

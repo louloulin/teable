@@ -12,7 +12,8 @@
  * License: AGPL-3.0
  */
 
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Inject, Post, UseGuards } from '@nestjs/common';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import {
   buildFineTuneFile,
   defaultOutputPath,
@@ -33,7 +34,14 @@ interface BuildRequest {
   output_path?: string;
 }
 
+// AI admin-panel capability gate — matches the pattern used by
+// `admin-open-api.controller.ts` for `/api/admin/ai-settings`. Building the
+// fine-tune artifact exposes AI-Builder feedback and training provenance;
+// gate it behind the `ai` license cap.
+const AiAdminGuard = LicenseCapabilityGuard.for('ai');
+
 @Controller('api/admin/finetune')
+@UseGuards(AiAdminGuard)
 export class ModelFinetunePipelineController {
   constructor(@Inject('FEEDBACK_LOADER') private readonly loader: FeedbackLoader) {}
 

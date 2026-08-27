@@ -13,14 +13,21 @@
  * License: AGPL-3.0
  */
 
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { forecastCredits, ForecastOutput, UsageRow } from './ai-cost-forecaster';
 
 export interface UsageLoader {
   loadRecent(days: number): Promise<UsageRow[]>;
 }
 
+// AI admin-panel capability gate — matches the pattern used by
+// `admin-open-api.controller.ts` for `/api/admin/ai-settings`. Cost forecast
+// data exposes per-tenant AI usage; gate behind the same `ai` license cap.
+const AiAdminGuard = LicenseCapabilityGuard.for('ai');
+
 @Controller('api/admin/ai-cost')
+@UseGuards(AiAdminGuard)
 export class AiCostForecasterController {
   constructor(@Inject('USAGE_LOADER') private readonly loader: UsageLoader) {}
 

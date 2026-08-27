@@ -15,10 +15,18 @@
  * License: AGPL-3.0
  */
 
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 
+// AI admin-panel capability gate — matches the pattern used by
+// `admin-open-api.controller.ts` for `/api/admin/ai-settings`. Without this
+// guard any authenticated user could inspect / reset agent conversations on
+// a self-host instance even when the license forbids the AI admin panel.
+const AiAdminGuard = LicenseCapabilityGuard.for('ai');
+
 @Controller('api/admin/agent')
+@UseGuards(AiAdminGuard)
 export class AgentOrchestratorController {
   constructor(private readonly orchestrator: AgentOrchestratorService) {}
 
