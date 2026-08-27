@@ -13,11 +13,21 @@ import { AppModule } from './app.module';
 import type { IBaseConfig } from './configs/base.config';
 import type { ISecurityWebConfig, IApiDocConfig } from './configs/bootstrap.config';
 import { GlobalExceptionFilter } from './filter/global-exception.filter';
+import { initMetrics } from './observability/metrics';
+import { initTracing } from './observability/tracing';
 import { setupSwagger } from './swagger';
 import type { IClsStore } from './types/cls';
 import { relaxOAuthPopupCoop } from './utils/oauth-popup-coop';
 
 const host = 'localhost';
+
+// Wave 12 — R12-T01 observability. Both initializers are idempotent and
+// safe to call before NestFactory.create. Metrics must be initialized before
+// any controller instantiates (so domain helpers that emit counters find a
+// registry). Tracing only starts when OTEL_EXPORTER_OTLP_ENDPOINT is set; in
+// dev / CI without an OTLP collector this is a fast no-op.
+initMetrics();
+const tracingHandle = initTracing();
 
 export async function setUpAppMiddleware(app: INestApplication, configService: ConfigService) {
   app.useGlobalFilters(
@@ -60,6 +70,16 @@ export async function bootstrap() {
   app.flushLogs();
 
   app.enableShutdownHooks();
+
+  const flushTracing = async () => {
+    await tracingHandle.shutdown();
+  };
+  process.once('SIGTERM', () => {
+    void flushTracing();
+  });
+  process.once('SIGINT', () => {
+    void flushTracing();
+  });
 
   await setUpAppMiddleware(app, configService);
 
