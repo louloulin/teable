@@ -6,7 +6,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext", "dom"],
     "esModuleInterop": true,
@@ -17,7 +17,7 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-adapter-db-postgres-pg": ["../adapter-db-postgres-pg/src"],
@@ -28,11 +28,41 @@
       "@teable/v2-adapter-repository-postgres": ["../adapter-repository-postgres/src"],
       "@teable/v2-adapter-table-repository-postgres": ["../adapter-table-repository-postgres/src"],
       "@teable/v2-core": ["../core/src"],
-      "@teable/v2-di": ["../di/src"]
+      "@teable/v2-di": ["../di/src"],
+      "@teable/core": ["../../core/src"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
+    "../adapter-db-postgres-pg/src/**/*.spec.ts",
+    "../adapter-db-postgres-pg/src/**/*.test.ts",
+    "../adapter-db-postgres-pg/src/**/__tests__/**",
+    "../adapter-db-postgres-pglite/src/**/*.spec.ts",
+    "../adapter-db-postgres-pglite/src/**/*.test.ts",
+    "../adapter-db-postgres-pglite/src/**/__tests__/**",
+    "../adapter-record-repository-postgres/src/**/*.spec.ts",
+    "../adapter-record-repository-postgres/src/**/*.test.ts",
+    "../adapter-record-repository-postgres/src/**/__tests__/**",
+    "../adapter-repository-postgres/src/**/*.spec.ts",
+    "../adapter-repository-postgres/src/**/*.test.ts",
+    "../adapter-repository-postgres/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts",
+    "../adapter-table-repository-postgres/src/**/*.test.ts",
+    "../adapter-table-repository-postgres/src/**/__tests__/**"
+  ],
   "include": [
     "src",
     "../adapter-db-postgres-pg/src",
@@ -41,6 +71,7 @@
     "../adapter-repository-postgres/src",
     "../adapter-table-repository-postgres/src",
     "../core/src",
-    "../di/src"
+    "../di/src",
+    "../../core/src"
   ]
 }

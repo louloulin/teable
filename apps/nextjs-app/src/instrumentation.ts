@@ -22,7 +22,7 @@ export async function register(): Promise<void> {
     //    installed still typecheck and start cleanly.
     try {
       // eslint-disable-next-line import/no-unresolved
-      await import('../../instrumentation');
+      await import('../instrumentation');
     } catch {
       // The root file imports `@sentry/nextjs`; if Sentry is not installed,
       // swallow the error here (the root file's logic is duplicated below

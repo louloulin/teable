@@ -14,28 +14,33 @@ import {
   Get,
   Logger,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { z } from 'zod';
-import { ZodValidationPipe } from '../../zod.validation.pipe';
-import { LicenseCapabilityGuard } from '../license/license-capability.guard';
-import { NotionImportService, type INotionImportResult } from './notion-import.service';
-import { NotionOAuthService } from './notion-oauth.service';
 import {
   notionConnectRoSchema,
   notionDatabasesQuerySchema,
   notionDisconnectRoSchema,
   notionImportRoSchema,
-  type INotionConnectRo,
   type INotionConnectVo,
-  type INotionDatabasesQuery,
   type INotionDatabasesVo,
   type INotionDatabaseSummary,
-  type INotionDisconnectRo,
   type INotionDisconnectVo,
-  type INotionImportRo,
   type INotionImportVo,
 } from '@teable/openapi';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import {
+  createOAuthPopupState,
+  oauthPopupHtml,
+  verifyOAuthPopupState,
+} from '../../utils/oauth-popup-state';
+import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { Public } from '../auth/decorators/public.decorator';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
+import { NotionImportService, type INotionImportResult } from './notion-import.service';
+import { NotionOAuthService } from './notion-oauth.service';
 
 const guardFor = (cap: 'admin_panel') => LicenseCapabilityGuard.for(cap);
 
@@ -50,7 +55,6 @@ type IDatabasesQuery = z.infer<typeof databasesQuerySchema>;
 type IImportBody = z.infer<typeof importBodySchema>;
 
 @Controller('api/admin/notion')
-@UseGuards(guardFor('admin_panel'))
 export class NotionController {
   private readonly logger = new Logger(NotionController.name);
 
@@ -59,15 +63,49 @@ export class NotionController {
     private readonly importService: NotionImportService
   ) {}
 
+  @Get('authorize')
+  @Public()
+  authorize(@Query('spaceId') spaceId: string, @Res() res: Response): void {
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+    res.redirect(this.oauthService.getAuthorizeUrl(createOAuthPopupState('notion', spaceId)));
+  }
+
+  @Get('oauth/callback')
+  @Public()
+  oauthCallback(
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response
+  ): void {
+    const verified = verifyOAuthPopupState(state, 'notion');
+    const targetOrigin = process.env.PUBLIC_ORIGIN ?? `${req.protocol}://${req.get('host')}`;
+    res.type('html').send(
+      oauthPopupHtml({
+        type: error || !code || !verified ? 'notion-oauth-error' : 'notion-oauth-code',
+        targetOrigin,
+        code: code && verified ? code : undefined,
+        state: verified ? state : undefined,
+        error: error ?? (!code || !verified ? 'Invalid or expired OAuth state' : undefined),
+      })
+    );
+  }
+
   /**
    * Step 1 of the wizard — exchange the OAuth code for a token and persist
    * the resulting grant for the requested space. Returns the workspace
    * metadata so the wizard can show "Connected to {workspaceName}".
    */
   @Post('connect')
+  @UseGuards(guardFor('admin_panel'))
   async connect(
     @Body(new ZodValidationPipe(connectBodySchema)) body: IConnectBody
   ): Promise<INotionConnectVo> {
+    const verified = verifyOAuthPopupState(body.state, 'notion');
+    if (!verified || verified.spaceId !== body.spaceId) {
+      throw new BadRequestException('Invalid or expired Notion OAuth state');
+    }
     const tokens = await this.oauthService.exchangeCode(body.code);
     await this.oauthService.storeTokens(body.spaceId, tokens);
     return {
@@ -85,6 +123,7 @@ export class NotionController {
    * field-mapping preview without a second round-trip.
    */
   @Get('databases')
+  @UseGuards(guardFor('admin_panel'))
   async databases(
     @Query(new ZodValidationPipe(databasesQuerySchema)) query: IDatabasesQuery
   ): Promise<INotionDatabasesVo> {
@@ -104,6 +143,7 @@ export class NotionController {
    * schema was built by the wizard from the step-2 mapping preview.
    */
   @Post('import')
+  @UseGuards(guardFor('admin_panel'))
   async import(
     @Body(new ZodValidationPipe(importBodySchema)) body: IImportBody
   ): Promise<INotionImportVo> {
@@ -136,6 +176,7 @@ export class NotionController {
   }
 
   @Post('disconnect')
+  @UseGuards(guardFor('admin_panel'))
   async disconnect(
     @Body(new ZodValidationPipe(disconnectBodySchema)) _body: IDisconnectBody
   ): Promise<INotionDisconnectVo> {

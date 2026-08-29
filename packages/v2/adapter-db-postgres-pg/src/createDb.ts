@@ -71,11 +71,15 @@ export const createV2PostgresDb = async <DB = unknown>(
 type PgDefaultExport = { Pool: typeof import('pg').Pool };
 
 const hasPgDefault = (
-  value: typeof import('pg')
+  value: unknown
 ): value is typeof import('pg') & {
   default: PgDefaultExport;
 } => {
-  return 'default' in value && !!value.default && 'Pool' in value.default;
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const defaultExport = Reflect.get(value, 'default');
+  return typeof defaultExport === 'object' && defaultExport !== null && 'Pool' in defaultExport;
 };
 
 type PgPoolOptions = {

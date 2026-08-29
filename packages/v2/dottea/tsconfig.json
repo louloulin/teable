@@ -17,11 +17,13 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
+    "baseUrl": ".",
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-core": ["../core/src"],
-      "@teable/v2-di": ["../di/src"]
+      "@teable/v2-di": ["../di/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["node"]
   },
@@ -31,7 +33,14 @@
     "./dist",
     "./coverage",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**"
   ],
-  "include": ["src", "scripts", "../core/src", "../di/src"]
+  "include": ["src", "scripts", "../core/src", "../../core/src", "../di/src"]
 }

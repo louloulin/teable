@@ -12,6 +12,7 @@ const OAUTH_MESSAGE_TYPE = 'teable:google-sheets-oauth';
 interface IOAuthMessage {
   type: string;
   code?: string;
+  state?: string;
   error?: string;
 }
 
@@ -37,15 +38,17 @@ export const ConnectButton = ({ spaceId }: { spaceId: string }) => {
   const queryClient = useQueryClient();
   const onMessage = (event: MessageEvent<IOAuthMessage>) => {
     if (!event.data || event.data.type !== OAUTH_MESSAGE_TYPE) return;
+    if (event.origin !== window.location.origin || event.source !== popupRef.current) return;
     if (event.data.error) {
       toast.error(event.data.error);
       popupRef.current?.close();
       return;
     }
     const code = event.data.code;
-    if (!code) return;
+    const state = event.data.state;
+    if (!code || !state) return;
     popupRef.current?.close();
-    mutateAsync({ code, spaceId })
+    mutateAsync({ code, state, spaceId })
       .then(() => {
         toast.success(t('admin.googleSheets.connected'));
         void queryClient.invalidateQueries({ queryKey: ['admin', 'google-sheets', 'status'] });
@@ -63,7 +66,7 @@ export const ConnectButton = ({ spaceId }: { spaceId: string }) => {
 
   const onClick = async () => {
     try {
-      const { data } = await getGoogleSheetsAuthorizeUrl();
+      const { data } = await getGoogleSheetsAuthorizeUrl(spaceId);
       if (!data.configured) {
         toast.error(t('admin.googleSheets.error.invalidCode'));
         return;

@@ -13,9 +13,20 @@ export const META_KNEX = 'META_KNEX';
 export const DATA_KNEX = 'DATA_KNEX';
 export const CUSTOM_KNEX = 'CUSTOM_KNEX';
 
-export const createRegistryBackedKnex = (poolLease: IPgPoolLease): Knex => {
+const getDatabaseSchema = (databaseUrl: string): string | undefined =>
+  new URL(databaseUrl).searchParams.get('schema') ?? undefined;
+
+const quoteIdentifier = (identifier: string): string => `"${identifier.replaceAll('"', '""')}"`;
+
+export const createRegistryBackedKnex = (poolLease: IPgPoolLease, schema?: string): Knex => {
   const knex = createKnex({ client: 'postgresql', useNullAsDefault: true });
-  knex.client.acquireConnection = () => poolLease.pool.connect();
+  knex.client.acquireConnection = async () => {
+    const connection = await poolLease.pool.connect();
+    if (schema) {
+      await connection.query(`SET search_path TO ${quoteIdentifier(schema)}, public`);
+    }
+    return connection;
+  };
   knex.client.releaseConnection = async (connection: PoolClient) => connection.release();
   return knex;
 };
@@ -30,7 +41,10 @@ export class KnexModule {
         {
           provide: META_KNEX,
           useFactory: (poolRegistry: PgPoolRegistry) =>
-            createRegistryBackedKnex(poolRegistry.acquire(getDatabaseUrl('meta'))),
+            createRegistryBackedKnex(
+              poolRegistry.acquire(getDatabaseUrl('meta')),
+              getDatabaseSchema(getDatabaseUrl('meta'))
+            ),
           inject: [PgPoolRegistry],
         },
         {

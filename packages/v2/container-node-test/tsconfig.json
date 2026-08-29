@@ -17,7 +17,8 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "baseUrl": ".",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-adapter-logger-console": ["../adapter-logger-console/src"],
@@ -29,11 +30,20 @@
       "@teable/v2-core": ["../core/src"],
       "@teable/v2-adapter-db-postgres-pg": ["../adapter-db-postgres-pg/src"],
       "@teable/v2-di": ["../di/src"],
-      "@teable/v2-postgres-schema": ["../postgres-schema/src"]
+      "@teable/v2-postgres-schema": ["../postgres-schema/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "../**/*.spec.ts",
+    "../**/*.test.ts",
+    "../**/__tests__/**"
+  ],
   "include": [
     "src",
     "../adapter-logger-console/src",
@@ -43,6 +53,7 @@
     "../core/src",
     "../adapter-db-postgres-pg/src",
     "../di/src",
-    "../postgres-schema/src"
+    "../postgres-schema/src",
+    "../../core/src"
   ]
 }

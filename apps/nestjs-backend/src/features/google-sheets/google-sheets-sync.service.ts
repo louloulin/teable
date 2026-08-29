@@ -17,12 +17,7 @@ import { createHash } from 'node:crypto';
 
 export type GoogleSheetsCellType = 'string' | 'number' | 'bool' | 'date' | 'empty';
 
-export type TeableColumnType =
-  | 'singleLineText'
-  | 'longText'
-  | 'number'
-  | 'checkbox'
-  | 'date';
+export type TeableColumnType = 'singleLineText' | 'longText' | 'number' | 'checkbox' | 'date';
 
 /** Sheets API `cellFormat.userEnteredFormat` subset we care about. */
 export interface IGoogleSheetsEffectiveFormat {
@@ -88,6 +83,10 @@ export interface IReconcileDiff {
   updates: Array<{ key: string; from: Record<string, unknown>; to: Record<string, unknown> }>;
   deletes: Array<{ key: string }>;
   unchanged: number;
+}
+
+export interface ITeableRecordLike {
+  fields: Record<string, unknown>;
 }
 
 const HEADER_SAMPLE_LIMIT = 32;
@@ -166,7 +165,9 @@ const colId = (): string =>
  *   - else if any cell has a multi-line string → longText
  *   - else → singleLineText
  */
-export const inferColumnType = (cells: ReadonlyArray<IGoogleSheetsCell | undefined>): {
+export const inferColumnType = (
+  cells: ReadonlyArray<IGoogleSheetsCell | undefined>
+): {
   type: TeableColumnType;
   inference: string;
 } => {
@@ -206,7 +207,10 @@ export const inferColumnType = (cells: ReadonlyArray<IGoogleSheetsCell | undefin
  * The first non-empty row of the chosen sheet is treated as the
  * header; subsequent rows are projected into the typed field plan.
  */
-export const planImport = (spreadsheet: IGoogleSheetsSpreadsheet, sheetTitle: string): IImportPlan => {
+export const planImport = (
+  spreadsheet: IGoogleSheetsSpreadsheet,
+  sheetTitle: string
+): IImportPlan => {
   const sheet = spreadsheet.sheets.find((s) => s.properties.title === sheetTitle);
   if (!sheet) {
     throw new Error(`sheet not found: ${sheetTitle}`);
@@ -214,12 +218,16 @@ export const planImport = (spreadsheet: IGoogleSheetsSpreadsheet, sheetTitle: st
   const grid = sheet.data?.[0];
   const rows = grid?.rowData ?? [];
   // Find first non-empty row → header.
-  const headerRowIdx = rows.findIndex((r) => (r.values ?? []).some((c) => inferCellType(c) !== 'empty'));
+  const headerRowIdx = rows.findIndex((r) =>
+    (r.values ?? []).some((c) => inferCellType(c) !== 'empty')
+  );
   if (headerRowIdx === -1) {
     return { tableName: sheetTitle, sheetId: sheet.properties.sheetId, fields: [], rows: [] };
   }
   const headerCells = rows[headerRowIdx]?.values ?? [];
-  const headers = headerCells.map((c, i) => c.userEnteredValue?.stringValue ?? c.formattedValue ?? `Column ${i + 1}`);
+  const headers = headerCells.map(
+    (c, i) => c.userEnteredValue?.stringValue ?? c.formattedValue ?? `Column ${i + 1}`
+  );
 
   // Column buckets for type inference.
   const buckets: Array<Array<IGoogleSheetsCell | undefined>> = headers.map(() => []);
@@ -293,6 +301,47 @@ export const planExport = (input: {
     range: startCell,
     values: [headerRow, ...dataRows],
   };
+};
+
+export const importPlanToRecordFields = (
+  plan: IImportPlan
+): Array<Record<string, string | number | boolean | null>> =>
+  plan.rows.map((row) =>
+    plan.fields.reduce<Record<string, string | number | boolean | null>>((fields, field) => {
+      fields[field.name] = row[field.id] ?? null;
+      return fields;
+    }, {})
+  );
+
+export const recordsToExportInput = (
+  records: ITeableRecordLike[]
+): { headers: string[]; rows: Array<Record<string, string | number | boolean | null>> } => {
+  const headers: string[] = [];
+  const headerSet = new Set<string>();
+  for (const record of records) {
+    for (const key of Object.keys(record.fields)) {
+      if (!headerSet.has(key)) {
+        headerSet.add(key);
+        headers.push(key);
+      }
+    }
+  }
+  const rows = records.map((record) => {
+    const row: Record<string, string | number | boolean | null> = {};
+    for (const header of headers) {
+      const value = record.fields[header];
+      row[header] =
+        value === null ||
+        value === undefined ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+          ? (value as string | number | boolean | null | undefined) ?? null
+          : JSON.stringify(value);
+    }
+    return row;
+  });
+  return { headers, rows };
 };
 
 /**

@@ -1,19 +1,20 @@
-import { Test } from '@nestjs/testing';
-
 import { HttpErrorCode } from '@teable/core';
 import { CustomHttpException } from '../../custom.exception';
 import { LicenseCapabilityService } from './license-capability.service';
-import { LicenseService } from './license.service';
+import type { LicenseService } from './license.service';
 
 describe('LicenseCapabilityService', () => {
-  it('disables every capability under the OSS default (no license)', () => {
+  it('enables every capability under self-hosted OSS without a license', () => {
     const license = { resolveFromEnv: () => ({ source: 'none' }) } as unknown as LicenseService;
     const svc = new LicenseCapabilityService(license);
     svc.refresh();
     expect(svc.currentPlan()).toBe('self_hosted');
-    expect(svc.isEnabled('ai_chat')).toBe(false);
-    expect(svc.isEnabled('permission_matrix')).toBe(false);
-    expect(() => svc.require('sso')).toThrow(CustomHttpException);
+    expect(svc.isEnabled('ai_chat')).toBe(true);
+    expect(svc.isEnabled('permission_matrix')).toBe(true);
+    expect(svc.isEnabled('automation')).toBe(true);
+    expect(svc.isEnabled('webhook')).toBe(true);
+    expect(svc.isEnabled('audit_log_query')).toBe(true);
+    expect(() => svc.require('sso')).not.toThrow();
   });
 
   it('enables ai_chat under free plan', () => {

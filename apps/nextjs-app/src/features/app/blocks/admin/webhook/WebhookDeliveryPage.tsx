@@ -16,16 +16,12 @@ export const WebhookDeliveryPage = () => {
     <div className="flex h-screen flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-8">
       <div className="pb-6">
         <h1 className="text-2xl font-semibold">{t('admin.webhook.title')}</h1>
-        <div className="mt-2 text-sm text-muted-foreground">
-          {t('admin.webhook.description')}
-        </div>
+        <div className="mt-2 text-sm text-muted-foreground">{t('admin.webhook.description')}</div>
       </div>
 
       <div className="space-y-6">
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">
-            {t('admin.webhook.deadLetter.title')}
-          </h2>
+          <h2 className="text-lg font-medium">{t('admin.webhook.deadLetter.title')}</h2>
           <DeadLetterPanel />
         </section>
       </div>

@@ -1,8 +1,8 @@
 import { FileText } from '@teable/icons';
-import { Unlink } from 'lucide-react';
 import { notionDisconnect } from '@teable/openapi';
 import { Button, cn } from '@teable/ui-lib/shadcn';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
+import { Unlink } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import React from 'react';
 import { spaceConfig } from '@/features/i18n/space.config';
@@ -105,12 +105,7 @@ export const NotionPanel = (props: INotionPanelProps) => {
 
       {state.connected && (
         <div className="flex flex-col gap-4">
-          <DatabasePicker
-            spaceId={spaceId}
-            value={state.databaseId}
-            onChange={onPickDatabase}
-            disabled={!state.databaseId && false}
-          />
+          <DatabasePicker spaceId={spaceId} value={state.databaseId} onChange={onPickDatabase} />
           <ImportButton
             spaceId={spaceId}
             databaseId={state.databaseId ?? ''}

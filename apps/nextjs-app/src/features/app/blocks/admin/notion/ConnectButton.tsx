@@ -46,8 +46,8 @@ export const ConnectButton = (props: IConnectButtonProps) => {
         toast.error(t('common:admin.notion.error.popupBlocked'));
         return;
       }
-      const code = await waitForOAuthCode(popup);
-      const { data } = await notionConnect({ code, spaceId });
+      const { code, state } = await waitForOAuthCode(popup);
+      const { data } = await notionConnect({ code, state, spaceId });
       onConnected?.(data.workspaceName);
       toast.success(t('common:admin.notion.connected'));
     } catch (error) {
@@ -84,7 +84,7 @@ export const ConnectButton = (props: IConnectButtonProps) => {
  * user dismisses the popup without delivering a message (e.g. closes it
  * before the redirect completes).
  */
-const waitForOAuthCode = (popup: Window): Promise<string> => {
+const waitForOAuthCode = (popup: Window): Promise<{ code: string; state: string }> => {
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => {
       cleanup();
@@ -92,13 +92,23 @@ const waitForOAuthCode = (popup: Window): Promise<string> => {
     }, POPUP_TIMEOUT_MS);
 
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { type?: string; code?: string; message?: string } | null;
+      const data = event.data as {
+        type?: string;
+        code?: string;
+        state?: string;
+        message?: string;
+      } | null;
       if (!data || typeof data.type !== 'string') {
         return;
       }
-      if (data.type === 'notion-oauth-code' && typeof data.code === 'string') {
+      if (event.origin !== window.location.origin || event.source !== popup) return;
+      if (
+        data.type === 'notion-oauth-code' &&
+        typeof data.code === 'string' &&
+        typeof data.state === 'string'
+      ) {
         cleanup();
-        resolve(data.code);
+        resolve({ code: data.code, state: data.state });
       } else if (data.type === 'notion-oauth-error') {
         cleanup();
         reject(new Error(data.message ?? 'Notion OAuth failed'));

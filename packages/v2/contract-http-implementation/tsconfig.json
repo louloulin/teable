@@ -6,9 +6,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": false,
@@ -30,7 +30,8 @@
       "@teable/v2-adapter-db-postgres-shared": ["../adapter-db-postgres-shared/src"],
       "@teable/v2-adapter-logger-console": ["../adapter-logger-console/src"],
       "@teable/v2-di": ["../di/src"],
-      "@teable/formula": ["../../formula/src"]
+      "@teable/formula": ["../../formula/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals", "node"]
   },
@@ -39,20 +40,31 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
     "../core/src/**/*.spec.ts",
     "../core/src/**/*.test.ts",
     "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
     "../adapter-table-repository-postgres/src/**/*.spec.ts",
     "../adapter-table-repository-postgres/src/**/*.test.ts",
     "../adapter-table-repository-postgres/src/**/__tests__/**",
     "../adapter-repository-postgres/src/**/*.spec.ts",
     "../adapter-repository-postgres/src/**/*.test.ts",
     "../adapter-repository-postgres/src/**/__tests__/**",
+    "../adapter-db-postgres-pg/src/**/*.spec.ts",
+    "../adapter-db-postgres-pg/src/**/*.test.ts",
+    "../adapter-db-postgres-pg/src/**/__tests__/**",
     "../formula-sql-pg/src/**/*.spec.ts",
     "../formula-sql-pg/src/**/*.test.ts",
     "../formula-sql-pg/src/**/__tests__/**",
     "../formula-sql-pg/src/testkit/**",
-    "../../formula/src/**/*.spec.ts"
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts",
+    "../../formula/src/**/__tests__/**"
   ],
   "include": [
     "src",
@@ -66,6 +78,7 @@
     "../adapter-db-postgres-shared/src",
     "../adapter-logger-console/src",
     "../di/src",
+    "../../core/src",
     "../../formula/src"
   ]
 }

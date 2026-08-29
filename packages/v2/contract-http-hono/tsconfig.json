@@ -6,9 +6,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": false,
@@ -17,7 +17,7 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-contract-http-openapi": ["../contract-http-openapi/src"],
@@ -28,11 +28,23 @@
       "@teable/v2-adapter-repository-postgres": ["../adapter-repository-postgres/src"],
       "@teable/v2-core": ["../core/src"],
       "@teable/v2-adapter-db-postgres-pg": ["../adapter-db-postgres-pg/src"],
-      "@teable/v2-di": ["../di/src"]
+      "@teable/v2-di": ["../di/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
+  "exclude": [
+    "**/node_modules", "**/.*/", "./dist", "./coverage",
+    "./src/**/*.spec.ts", "./src/**/*.test.ts", "./src/**/__tests__/**",
+    "../core/src/**/*.spec.ts", "../core/src/**/*.test.ts", "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts", "../../core/src/**/*.test.ts", "../../core/src/**/__tests__/**",
+    "../contract-http-openapi/src/**/*.spec.ts", "../contract-http-openapi/src/**/*.test.ts", "../contract-http-openapi/src/**/__tests__/**",
+    "../contract-http-implementation/src/**/*.spec.ts", "../contract-http-implementation/src/**/*.test.ts", "../contract-http-implementation/src/**/__tests__/**",
+    "../container-node/src/**/*.spec.ts", "../container-node/src/**/*.test.ts", "../container-node/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts", "../adapter-table-repository-postgres/src/**/*.test.ts", "../adapter-table-repository-postgres/src/**/__tests__/**",
+    "../adapter-repository-postgres/src/**/*.spec.ts", "../adapter-repository-postgres/src/**/*.test.ts", "../adapter-repository-postgres/src/**/__tests__/**",
+    "../adapter-db-postgres-pg/src/**/*.spec.ts", "../adapter-db-postgres-pg/src/**/*.test.ts", "../adapter-db-postgres-pg/src/**/__tests__/**"
+  ],
   "include": [
     "src",
     "../contract-http-openapi/src",
@@ -43,6 +55,7 @@
     "../adapter-repository-postgres/src",
     "../core/src",
     "../adapter-db-postgres-pg/src",
-    "../di/src"
+    "../di/src",
+    "../../core/src"
   ]
 }

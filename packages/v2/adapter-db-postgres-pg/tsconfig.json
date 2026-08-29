@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext"],
     "esModuleInterop": true,
@@ -17,14 +17,35 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-adapter-db-postgres-shared": ["../adapter-db-postgres-shared/src"],
       "@teable/v2-core": ["../core/src"],
-      "@teable/v2-di": ["../di/src"]
+      "@teable/v2-di": ["../di/src"],
+      "@teable/core": ["../../core/src"]
     }
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
-  "include": ["src", "../adapter-db-postgres-shared/src", "../core/src", "../di/src"]
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**"
+  ],
+  "include": [
+    "src",
+    "../adapter-db-postgres-shared/src",
+    "../core/src",
+    "../di/src",
+    "../../core/src"
+  ]
 }

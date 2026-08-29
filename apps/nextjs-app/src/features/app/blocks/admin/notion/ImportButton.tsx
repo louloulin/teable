@@ -91,12 +91,7 @@ export const ImportButton = (props: IImportButtonProps) => {
         </div>
       </div>
       <div className="flex justify-end">
-        <Button
-          type="button"
-          onClick={onClick}
-          disabled={!canSubmit}
-          className="gap-2"
-        >
+        <Button type="button" onClick={onClick} disabled={!canSubmit} className="gap-2">
           {state.busy ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

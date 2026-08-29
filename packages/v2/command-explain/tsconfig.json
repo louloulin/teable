@@ -28,7 +28,8 @@
       ],
       "@teable/v2-postgres-schema": ["../postgres-schema/src"],
       "@teable/v2-formula-sql-pg": ["../formula-sql-pg/src"],
-      "@teable/formula": ["../../formula/src"]
+      "@teable/formula": ["../../formula/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals", "node"]
   },
@@ -37,8 +38,28 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../adapter-record-repository-postgres/src/**/*.spec.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
+    "../adapter-record-repository-postgres/src/**/*.spec.ts",
+    "../adapter-record-repository-postgres/src/**/*.test.ts",
+    "../adapter-record-repository-postgres/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts",
+    "../adapter-table-repository-postgres/src/**/*.test.ts",
+    "../adapter-table-repository-postgres/src/**/__tests__/**",
+    "../formula-sql-pg/src/**/*.spec.ts",
+    "../formula-sql-pg/src/**/*.test.ts",
+    "../formula-sql-pg/src/**/__tests__/**",
+    "../formula-sql-pg/src/testkit/**",
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts",
+    "../../formula/src/**/__tests__/**"
   ],
   "include": [
     "src",
@@ -48,6 +69,7 @@
     "../adapter-record-repository-postgres/src",
     "../postgres-schema/src",
     "../formula-sql-pg/src",
+    "../../core/src",
     "../../formula/src"
   ]
 }

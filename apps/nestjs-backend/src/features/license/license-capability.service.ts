@@ -1,15 +1,16 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { PlanLevel } from '@teable/db-main-prisma';
+import { Injectable, Logger } from '@nestjs/common';
+import type { OnApplicationBootstrap } from '@nestjs/common';
+import { HttpErrorCode } from '@teable/core';
+import type { PlanLevel } from '@teable/db-main-prisma';
 
 import { CustomHttpException } from '../../custom.exception';
-import { HttpErrorCode } from '@teable/core';
 
 import { LicenseService } from './license.service';
 
 /**
  * Single source of truth for "is feature X enabled under the current license?".
  *
- *   - Self-host OSS / Standalone (no license): everything OFF.
+ *   - Self-host OSS / Standalone (no license): all local capabilities ON.
  *   - `free`: only entry-level AI (cuppy chat, basic field).
  *   - `pro`: all AI capabilities ON.
  *   - `business` / `enterprise`: all AI + enterprise capabilities ON.
@@ -41,6 +42,29 @@ export type LicenseCapability =
   | 'webhook'
   // Stage 52 audit log query DSL — Business+ only
   | 'audit_log_query';
+
+const ALL_CAPABILITIES: readonly LicenseCapability[] = [
+  'ai_field',
+  'ai_chat',
+  'ai_app_builder',
+  'cuppy_claw',
+  'sso',
+  'permission_matrix',
+  'custom_app_domain',
+  'custom_domain',
+  'audit_log',
+  'admin_panel',
+  'users_read',
+  'spaces_read',
+  'templates_read',
+  'ai',
+  'quota_view',
+  'automation',
+  'webhook',
+  'audit_log_query',
+];
+
+const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
   free: new Set<LicenseCapability>(['ai_chat']),
@@ -91,26 +115,9 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'webhook',
     'audit_log_query',
   ]),
-  self_hosted: new Set<LicenseCapability>(),
+  // Self-hosted OSS does not require a cloud license for local operation.
+  self_hosted: ALL_CAPABILITIES_SET,
 };
-
-const ALL_CAPABILITIES: readonly LicenseCapability[] = [
-  'ai_field',
-  'ai_chat',
-  'ai_app_builder',
-  'cuppy_claw',
-  'sso',
-  'permission_matrix',
-  'custom_app_domain',
-  'custom_domain',
-  'audit_log',
-  'admin_panel',
-  'users_read',
-  'spaces_read',
-  'templates_read',
-  'ai',
-  'quota_view',
-];
 
 @Injectable()
 export class LicenseCapabilityService implements OnApplicationBootstrap {

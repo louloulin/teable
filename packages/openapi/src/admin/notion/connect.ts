@@ -12,6 +12,7 @@ import { registerRoute } from '../../utils';
 
 export const notionConnectRoSchema = z.object({
   code: z.string().min(1).max(2048),
+  state: z.string().min(1),
   spaceId: z.string().min(1),
 });
 

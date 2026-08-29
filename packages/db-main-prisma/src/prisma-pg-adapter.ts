@@ -25,8 +25,17 @@ const normalizeQueryResult = <T extends QueryResult | QueryResult[]>(result: T):
   } as T;
 };
 
-const wrapQueryable = <T extends Pool | PoolClient>(queryable: T): T =>
-  new Proxy(queryable, {
+const quoteIdentifier = (identifier: string): string => `"${identifier.replaceAll('"', '""')}"`;
+
+const wrapQueryable = async <T extends Pool | PoolClient>(
+  queryable: T,
+  schema?: string
+): Promise<T> => {
+  if (schema) {
+    await queryable.query(`SET search_path TO ${quoteIdentifier(schema)}, public`);
+  }
+
+  return new Proxy(queryable, {
     get(target, property, receiver) {
       if (property === 'query') {
         return async (...args: unknown[]) => {
@@ -39,6 +48,7 @@ const wrapQueryable = <T extends Pool | PoolClient>(queryable: T): T =>
       return typeof value === 'function' ? value.bind(target) : value;
     },
   });
+};
 
 /**
  * Prisma 6.2's pg adapter rejects PostgreSQL's textual `name` OID before its
@@ -49,7 +59,7 @@ export const createPrismaPgAdapter = (pool: Pool, schema?: string): PrismaPg => 
   const prismaPool = new Proxy(pool, {
     get(target, property, receiver) {
       if (property === 'connect') {
-        return async () => wrapQueryable(await target.connect());
+        return async () => wrapQueryable(await target.connect(), schema);
       }
       if (property === 'query') {
         return async (...args: unknown[]) => {

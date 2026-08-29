@@ -29,7 +29,7 @@ export const GetAuthorizeUrlRoute: RouteConfig = registerRoute({
   description: 'Build a Google consent URL for the Google Sheets OAuth flow',
   request: {
     query: z.object({
-      state: z.string().optional(),
+      spaceId: z.string().min(1),
     }),
   },
   responses: {
@@ -45,8 +45,8 @@ export const GetAuthorizeUrlRoute: RouteConfig = registerRoute({
   tags: ['admin'],
 });
 
-export const getGoogleSheetsAuthorizeUrl = async (state?: string) => {
+export const getGoogleSheetsAuthorizeUrl = async (spaceId: string) => {
   return axios.get<IAuthorizeUrlResponseVo>(AUTHORIZE_GOOGLE_SHEETS_URL, {
-    params: state ? { state } : undefined,
+    params: { spaceId },
   });
 };

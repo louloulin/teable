@@ -16,6 +16,7 @@ export const CONNECT_GOOGLE_SHEETS = '/admin/google-sheets/connect';
 
 export const googleSheetsConnectRoSchema = z.object({
   code: z.string().min(1),
+  state: z.string().min(1),
   spaceId: z.string().min(1),
 });
 

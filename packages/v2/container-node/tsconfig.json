@@ -6,7 +6,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext"],
     "esModuleInterop": true,
@@ -17,7 +17,7 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-adapter-table-repository-postgres": ["../adapter-table-repository-postgres/src"],
@@ -26,11 +26,41 @@
       "@teable/v2-adapter-db-postgres-pg": ["../adapter-db-postgres-pg/src"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-adapter-csv-parser-papaparse": ["../adapter-csv-parser-papaparse/src"],
-      "@teable/v2-adapter-record-repository-postgres": ["../adapter-record-repository-postgres/src"]
+      "@teable/v2-adapter-record-repository-postgres": ["../adapter-record-repository-postgres/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts",
+    "../adapter-table-repository-postgres/src/**/*.test.ts",
+    "../adapter-table-repository-postgres/src/**/__tests__/**",
+    "../adapter-repository-postgres/src/**/*.spec.ts",
+    "../adapter-repository-postgres/src/**/*.test.ts",
+    "../adapter-repository-postgres/src/**/__tests__/**",
+    "../adapter-db-postgres-pg/src/**/*.spec.ts",
+    "../adapter-db-postgres-pg/src/**/*.test.ts",
+    "../adapter-db-postgres-pg/src/**/__tests__/**",
+    "../adapter-record-repository-postgres/src/**/*.spec.ts",
+    "../adapter-record-repository-postgres/src/**/*.test.ts",
+    "../adapter-record-repository-postgres/src/**/__tests__/**",
+    "../adapter-csv-parser-papaparse/src/**/*.spec.ts",
+    "../adapter-csv-parser-papaparse/src/**/*.test.ts",
+    "../adapter-csv-parser-papaparse/src/**/__tests__/**"
+  ],
   "include": [
     "src",
     "../adapter-table-repository-postgres/src",
@@ -39,6 +69,7 @@
     "../adapter-db-postgres-pg/src",
     "../di/src",
     "../adapter-record-repository-postgres/src",
-    "../adapter-csv-parser-papaparse/src"
+    "../adapter-csv-parser-papaparse/src",
+    "../../core/src"
   ]
 }

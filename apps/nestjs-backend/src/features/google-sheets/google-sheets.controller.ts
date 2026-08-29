@@ -27,7 +27,10 @@ import {
   Param,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import { FieldKeyType } from '@teable/core';
 import {
   googleSheetsConnectRoSchema,
   googleSheetsSyncRoSchema,
@@ -36,13 +39,23 @@ import {
   type IGoogleSheetsSyncRo,
   type IGoogleSheetsSyncVo,
 } from '@teable/openapi';
+import type { Request, Response } from 'express';
+import {
+  createOAuthPopupState,
+  oauthPopupHtml,
+  verifyOAuthPopupState,
+} from '../../utils/oauth-popup-state';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { RecordOpenApiV2Service } from '../record/open-api/record-open-api-v2.service';
 import { GoogleSheetsOAuthService } from './google-sheets-oauth.service';
 import {
+  importPlanToRecordFields,
   planExport,
   planImport,
   reconcile,
+  recordsToExportInput,
   toValuesBatchUpdate,
   type IGoogleSheetsSpreadsheet,
   type IReconcileDiff,
@@ -62,7 +75,10 @@ const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 export class GoogleSheetsController {
   private readonly logger = new Logger(GoogleSheetsController.name);
 
-  constructor(private readonly oauth: GoogleSheetsOAuthService) {}
+  constructor(
+    private readonly oauth: GoogleSheetsOAuthService,
+    private readonly recordOpenApiV2Service: RecordOpenApiV2Service
+  ) {}
 
   /**
    * Returns a Google consent URL the front end can open in a
@@ -71,15 +87,52 @@ export class GoogleSheetsController {
    * front end owns state for now).
    */
   @Get('authorize-url')
-  async getAuthorizeUrl(@Query('state') state?: string): Promise<{ url: string; configured: boolean }> {
+  async getAuthorizeUrl(
+    @Query('spaceId') spaceId: string
+  ): Promise<{ url: string; configured: boolean }> {
     if (!this.oauth.hasCredentials()) {
       return {
         url: '',
         configured: false,
       };
     }
-    const nonce = state ?? `gs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    return { url: this.oauth.getAuthorizeUrl(nonce), configured: true };
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+    return {
+      url: this.oauth.getAuthorizeUrl(createOAuthPopupState('google-sheets', spaceId)),
+      configured: true,
+    };
+  }
+
+  @Get('oauth/callback')
+  @Public()
+  async oauthCallback(
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response
+  ): Promise<void> {
+    const verified = verifyOAuthPopupState(state, 'google-sheets');
+    const targetOrigin = process.env.PUBLIC_ORIGIN ?? `${req.protocol}://${req.get('host')}`;
+    if (error || !code || !verified) {
+      res.type('html').send(
+        oauthPopupHtml({
+          type: 'teable:google-sheets-oauth',
+          targetOrigin,
+          state,
+          error: error ?? 'Invalid or expired OAuth state',
+        })
+      );
+      return;
+    }
+    res.type('html').send(
+      oauthPopupHtml({
+        type: 'teable:google-sheets-oauth',
+        targetOrigin,
+        code,
+        state,
+      })
+    );
   }
 
   @Post('connect')
@@ -87,6 +140,10 @@ export class GoogleSheetsController {
   async connect(
     @Body(new ZodValidationPipe(googleSheetsConnectRoSchema)) body: IGoogleSheetsConnectRo
   ): Promise<{ connected: true; spaceId: string; expiresAt: number }> {
+    const verified = verifyOAuthPopupState(body.state, 'google-sheets');
+    if (!verified || verified.spaceId !== body.spaceId) {
+      throw new BadRequestException('Invalid or expired Google Sheets OAuth state');
+    }
     if (!this.oauth.hasCredentials()) {
       throw new BadRequestException(
         'Google Sheets OAuth is not configured. Set GOOGLE_SHEETS_CLIENT_ID and GOOGLE_SHEETS_CLIENT_SECRET.'
@@ -137,46 +194,76 @@ export class GoogleSheetsController {
 
     if (direction === 'import' || direction === 'both') {
       const plan = planImport(spreadsheet, body.sheetName);
-      counts.inserted = plan.rows.length;
+      const records = importPlanToRecordFields(plan);
+      if (records.length > 0) {
+        const created = await this.recordOpenApiV2Service.createRecords(body.tableId, {
+          fieldKeyType: FieldKeyType.Name,
+          typecast: true,
+          records: records.map((fields) => ({ fields })),
+        });
+        counts.inserted = created.records.length;
+      }
       diff = reconcile({
         snapshot: {},
-        current: Object.fromEntries(plan.rows.map((r, i) => [`row-${i}`, r as Record<string, unknown>])),
+        current: Object.fromEntries(
+          records.map((record, i) => [`row-${i}`, record as Record<string, unknown>])
+        ),
         keyField: 'rowKey',
       });
     }
     if (direction === 'export' || direction === 'both') {
-      exportRows = planExport({
-        sheetId: spreadsheet.sheets.find((s) => s.properties.title === body.sheetName)?.properties
-          .sheetId ?? 0,
-        headers: ['id', 'name'],
-        rows: [],
+      const { records } = await this.recordOpenApiV2Service.getRecords(body.tableId, {
+        fieldKeyType: FieldKeyType.Name,
+        take: 1000,
       });
-      await runValuesBatchUpdate({
-        spreadsheetId: body.spreadsheetId,
-        accessToken,
-        plan: exportRows,
-      });
+      const { headers, rows } = recordsToExportInput(records);
+      if (headers.length > 0) {
+        exportRows = planExport({
+          sheetId:
+            spreadsheet.sheets.find((s) => s.properties.title === body.sheetName)?.properties
+              .sheetId ?? 0,
+          headers,
+          rows,
+        });
+        await runValuesBatchUpdate({
+          spreadsheetId: body.spreadsheetId,
+          accessToken,
+          plan: exportRows,
+        });
+      }
+      counts.updated = records.length;
     }
     // Persist the bound sheet so a later status call can show it.
-    await this.oauth.storeTokens(body.spaceId, {
-      accessToken,
-      refreshToken: null,
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      scope: '',
-      tokenType: 'Bearer',
-    }, { spreadsheetId: body.spreadsheetId, sheetName: body.sheetName });
+    await this.oauth.storeTokens(
+      body.spaceId,
+      {
+        accessToken,
+        refreshToken: null,
+        expiresAt: Date.now() + 60 * 60 * 1000,
+        scope: '',
+        tokenType: 'Bearer',
+      },
+      { spreadsheetId: body.spreadsheetId, sheetName: body.sheetName }
+    );
     return {
       direction,
       spreadsheetId: body.spreadsheetId,
       sheetName: body.sheetName,
       counts,
-      diff: { inserts: diff.inserts.length, updates: diff.updates.length, deletes: diff.deletes.length, unchanged: diff.unchanged },
+      diff: {
+        inserts: diff.inserts.length,
+        updates: diff.updates.length,
+        deletes: diff.deletes.length,
+        unchanged: diff.unchanged,
+      },
     };
   }
 
   @Post('disconnect/:spaceId')
   @HttpCode(200)
-  async disconnect(@Param('spaceId') spaceId: string): Promise<{ disconnected: true; spaceId: string }> {
+  async disconnect(
+    @Param('spaceId') spaceId: string
+  ): Promise<{ disconnected: true; spaceId: string }> {
     await this.oauth.clearTokens(spaceId);
     return { disconnected: true, spaceId };
   }
@@ -209,7 +296,9 @@ const fetchSpreadsheet = async ({
   });
   if (!res.ok) {
     const errText = await res.text();
-    throw new BadRequestException(`Google Sheets API error ${res.status}: ${errText.slice(0, 200)}`);
+    throw new BadRequestException(
+      `Google Sheets API error ${res.status}: ${errText.slice(0, 200)}`
+    );
   }
   return (await res.json()) as IGoogleSheetsSpreadsheet;
 };
@@ -235,13 +324,16 @@ const runValuesBatchUpdate = async ({
       method: 'POST',
       headers: {
         authorization: `Bearer ${accessToken}`,
-        'content-type': 'application/json',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload.body),
     }
   );
   if (!res.ok) {
     const errText = await res.text();
-    throw new BadRequestException(`Google Sheets batchUpdate error ${res.status}: ${errText.slice(0, 200)}`);
+    throw new BadRequestException(
+      `Google Sheets batchUpdate error ${res.status}: ${errText.slice(0, 200)}`
+    );
   }
 };

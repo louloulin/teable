@@ -1,6 +1,6 @@
 import { Command, Options } from '@effect/cli';
-import { Effect, Option } from 'effect';
 import type { PasteSort, RangeType, RecordFilter, SourceFieldMeta } from '@teable/v2-core';
+import { Effect, Option } from 'effect';
 import { ValidationError } from '../../errors/CliError';
 import { CommandExplain } from '../../services/CommandExplain';
 import { Output } from '../../services/Output';
@@ -104,19 +104,25 @@ const handler = (args: {
       'projection'
     );
     const sort = yield* parseOptionalJson<ReadonlyArray<PasteSort>>(args.sort, 'sort');
+    const pasteContent =
+      typeof content === 'string'
+        ? content
+        : Array.isArray(content)
+          ? content.map((row) => (Array.isArray(row) ? [...row] : [row]))
+          : [];
     const type = Option.getOrUndefined(args.type);
 
     const input = {
       tableId: args.tableId,
       viewId: args.viewId,
-      ranges,
-      content,
+      ranges: ranges.map(([start, end]) => [start, end] as [number, number]),
+      content: pasteContent,
       type,
       filter,
       updateFilter,
-      sourceFields,
-      projection,
-      sort,
+      sourceFields: sourceFields?.map((field) => ({ ...field })),
+      projection: projection ? [...projection] : undefined,
+      sort: sort?.map((item) => ({ ...item })),
       typecast: args.typecast,
       analyze: args.analyze,
     };
@@ -125,14 +131,14 @@ const handler = (args: {
       .explainPaste({
         tableId: args.tableId,
         viewId: args.viewId,
-        ranges,
-        content,
+        ranges: ranges.map(([start, end]) => [start, end] as [number, number]),
+        content: pasteContent,
         type,
         filter,
         updateFilter,
-        sourceFields,
-        projection,
-        sort,
+        sourceFields: sourceFields?.map((field) => ({ ...field })),
+        projection: projection ? [...projection] : undefined,
+        sort: sort?.map((item) => ({ ...item })),
         typecast: args.typecast,
         analyze: args.analyze,
       })

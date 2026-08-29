@@ -5,6 +5,7 @@ import type { CliError } from '../errors';
 
 export interface SchemaRepairOptions {
   readonly dryRun?: boolean;
+  readonly manualRepairValues?: Readonly<Record<string, string | boolean>>;
 }
 
 export interface SchemaRepairSummary {

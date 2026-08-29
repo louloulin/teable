@@ -22,7 +22,8 @@
     "paths": {
       "@teable/v2-core": ["../core/src"],
       "@teable/v2-di": ["../di/src"],
-      "@teable/v2-container-node": ["../container-node/src"]
+      "@teable/v2-container-node": ["../container-node/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["node"]
   },
@@ -31,8 +32,18 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
+    "../container-node/src/**/*.spec.ts",
+    "../container-node/src/**/*.test.ts",
+    "../container-node/src/**/__tests__/**"
   ],
-  "include": ["src", "scripts", "../core/src", "../di/src", "../container-node/src"]
+  "include": ["src", "scripts", "../core/src", "../di/src", "../container-node/src", "../../core/src"]
 }

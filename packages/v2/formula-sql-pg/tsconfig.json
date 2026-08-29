@@ -22,7 +22,8 @@
     "paths": {
       "@teable/v2-core": ["../core/src"],
       "@teable/v2-di": ["../di/src"],
-      "@teable/formula": ["../../formula/src"]
+      "@teable/formula": ["../../formula/src"],
+      "@teable/core": ["../../core/src"]
     },
     "types": ["vitest/globals", "node"]
   },
@@ -32,9 +33,18 @@
     "./dist",
     "./coverage",
     "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
     "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
     "src/testkit/**",
-    "../../formula/src/**/*.spec.ts"
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts",
+    "../../formula/src/**/__tests__/**"
   ],
-  "include": ["src", "../core/src", "../di/src", "../../formula/src"]
+  "include": ["src", "../core/src", "../di/src", "../../core/src", "../../formula/src"]
 }

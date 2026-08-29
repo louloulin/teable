@@ -7,7 +7,7 @@ import { CUSTOM_KNEX, DATA_KNEX, KnexModule, META_KNEX } from './knex.module';
 describe('KnexModule', () => {
   it('delegates legacy Knex queries to the shared PostgreSQL pool', async () => {
     vi.stubEnv('PRISMA_DATABASE_URL', 'postgresql://user:pass@localhost:5432/teable');
-    const connection = { release: vi.fn() };
+    const connection = { query: vi.fn(), release: vi.fn() };
     const pool = { connect: vi.fn().mockResolvedValue(connection) };
     const poolRegistry = {
       acquire: vi.fn().mockReturnValue({ pool, release: vi.fn() }),
@@ -28,8 +28,34 @@ describe('KnexModule', () => {
     const acquired = await metaKnex.client.acquireConnection();
     await metaKnex.client.releaseConnection(acquired);
     expect(pool.connect).toHaveBeenCalledOnce();
+    expect(connection.query).not.toHaveBeenCalled();
     expect(connection.release).toHaveBeenCalledOnce();
 
+    await module.close();
+    vi.unstubAllEnvs();
+  });
+
+  it('sets the configured PostgreSQL schema on each acquired connection', async () => {
+    vi.stubEnv(
+      'PRISMA_META_DATABASE_URL',
+      'postgresql://user:pass@localhost:5432/teable?schema=meta'
+    );
+    const connection = { query: vi.fn(), release: vi.fn() };
+    const pool = { connect: vi.fn().mockResolvedValue(connection) };
+    const poolRegistry = {
+      acquire: vi.fn().mockReturnValue({ pool, release: vi.fn() }),
+    };
+    const module = await Test.createTestingModule({ imports: [KnexModule.register()] })
+      .overrideProvider(MetaPrismaService)
+      .useValue({})
+      .overrideProvider(PgPoolRegistry)
+      .useValue(poolRegistry)
+      .compile();
+
+    const metaKnex = module.get<Knex>(META_KNEX);
+    await metaKnex.client.acquireConnection();
+
+    expect(connection.query).toHaveBeenCalledWith('SET search_path TO "meta", public');
     await module.close();
     vi.unstubAllEnvs();
   });

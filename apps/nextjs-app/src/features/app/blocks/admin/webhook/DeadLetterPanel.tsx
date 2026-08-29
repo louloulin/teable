@@ -5,8 +5,8 @@ import type {
   IRetryWebhookDeliveryVo,
 } from '@teable/openapi';
 import { listDeadLetterWebhookDeliveries, retryWebhookDelivery } from '@teable/openapi';
-import { Button, Skeleton } from '@teable/ui-lib/shadcn';
 import { ConfirmDialog } from '@teable/ui-lib/base';
+import { Button, Skeleton } from '@teable/ui-lib/shadcn';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 import { RotateCw } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
@@ -40,9 +40,7 @@ export const DeadLetterPanel = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin', 'webhook', 'dead-letter'],
     queryFn: () =>
-      listDeadLetterWebhookDeliveries().then(
-        (r) => r.data as IListDeadLetterWebhookDeliveriesVo
-      ),
+      listDeadLetterWebhookDeliveries().then((r) => r.data as IListDeadLetterWebhookDeliveriesVo),
   });
 
   const { mutateAsync: retry, isPending } = useMutation({
@@ -51,9 +49,7 @@ export const DeadLetterPanel = () => {
       return res.data as IRetryWebhookDeliveryVo;
     },
     onSuccess: (data) => {
-      toast.success(
-        t('admin.webhook.deadLetter.retry.success', { attemptId: data.attemptId })
-      );
+      toast.success(t('admin.webhook.deadLetter.retry.success', { attemptId: data.attemptId }));
       void queryClient.invalidateQueries({
         queryKey: ['admin', 'webhook', 'dead-letter'],
       });
@@ -156,9 +152,7 @@ export const DeadLetterPanel = () => {
         }}
         title={t('admin.webhook.deadLetter.retry.confirmTitle')}
         description={
-          confirmRow
-            ? t('admin.webhook.deadLetter.retry.confirm', { id: confirmRow.id })
-            : ''
+          confirmRow ? t('admin.webhook.deadLetter.retry.confirm', { id: confirmRow.id }) : ''
         }
         cancelText={t('actions.cancel')}
         confirmText={t('admin.webhook.deadLetter.retry.button')}

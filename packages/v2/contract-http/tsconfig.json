@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext", "dom"],
     "esModuleInterop": true,
@@ -17,14 +17,26 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-core": ["../core/src"],
-      "@teable/v2-di": ["../di/src"]
+      "@teable/v2-di": ["../di/src"],
+      "@teable/core": ["../../core/src"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage", "../core/src/**/*.spec.ts"],
-  "include": ["src", "../core/src", "../di/src"]
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**"
+  ],
+  "include": ["src", "../core/src", "../../core/src", "../di/src"]
 }
