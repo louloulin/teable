@@ -534,6 +534,25 @@ export class AiService {
     result.pipeTextStreamToResponse(response);
   }
 
+  async *generateTextStream(
+    baseId: string,
+    aiGenerateRo: IAiGenerateRo,
+    abortSignal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; done: boolean; value?: string }> {
+    const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
+    const result = streamText({
+      model: modelInstance,
+      prompt: aiGenerateRo.prompt,
+      abortSignal,
+    });
+    let value = '';
+    for await (const delta of result.textStream) {
+      value += delta;
+      yield { delta, done: false };
+    }
+    yield { delta: '', done: true, value };
+  }
+
   async generateText(baseId: string, aiGenerateRo: IAiGenerateRo) {
     const { prompt } = aiGenerateRo;
     const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bcrypt from 'bcrypt';
-import type { Prisma } from '../../';
+import type { Prisma } from '@prisma/client';
 import { AbstractSeed } from '../seed.abstract';
 
 export const CREATE_USER_NUM = 1;

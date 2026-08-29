@@ -2,10 +2,13 @@ import type { DehydratedState } from '@tanstack/react-query';
 import {
   Code,
   Download as ImportIcon,
+  FileSpreadsheet,
+  FileText,
   Key,
   LayoutTemplate as TemplateIcon,
   Settings,
   ShieldUser,
+  Webhook as WebhookIcon,
 } from '@teable/icons';
 import type { IUser } from '@teable/sdk';
 import { SessionProvider } from '@teable/sdk';
@@ -65,6 +68,24 @@ export const AdminLayout: React.FC<{
       label: tSpace('adminImport.navTitle'),
       route: '/admin/import',
       pathTo: '/admin/import',
+    },
+    {
+      Icon: FileText,
+      label: tCommon('admin.notion.title'),
+      route: '/admin/notion',
+      pathTo: '/admin/notion',
+    },
+    {
+      Icon: FileSpreadsheet,
+      label: tCommon('admin.googleSheets.title'),
+      route: '/admin/google-sheets',
+      pathTo: '/admin/google-sheets',
+    },
+    {
+      Icon: WebhookIcon,
+      label: tCommon('settings.webhook.title'),
+      route: '/admin/webhook-delivery',
+      pathTo: '/admin/webhook-delivery',
     },
   ];
 

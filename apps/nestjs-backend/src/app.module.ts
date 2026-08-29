@@ -9,16 +9,12 @@ import type { ICacheConfig } from './configs/cache.config';
 import { ConfigModule } from './configs/config.module';
 import { AccessTokenModule } from './features/access-token/access-token.module';
 import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
-import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
-import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orchestrator.module';
+import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
+import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
-import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
-import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-prompt-router.module';
-import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
-import { ModelFinetunePipelineModule } from './features/model-finetune-pipeline/model-finetune-pipeline.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
@@ -33,49 +29,58 @@ import { ChatModule } from './features/chat/chat.module';
 import { CollaboratorModule } from './features/collaborator/collaborator.module';
 import { CommentOpenApiModule } from './features/comment/comment-open-api.module';
 import { ConditionalFormatModule } from './features/conditional-format/conditional-format.module';
-import { DashboardModule } from './features/dashboard/dashboard.module';
+import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-prompt-router.module';
 import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
+import { DashboardModule } from './features/dashboard/dashboard.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
+import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
+import { GoogleSheetsModule } from './features/google-sheets/google-sheets.module';
 import { HealthModule } from './features/health/health.module';
+import { ImBridgeModule } from './features/im-bridge/im-bridge.module';
 import { ImportOpenApiModule } from './features/import/open-api/import-open-api.module';
 import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
+import { LicenseModule } from './features/license/license.module';
 import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-sender-open-api.module';
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
+import { ModelFinetunePipelineModule } from './features/model-finetune-pipeline/model-finetune-pipeline.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
+import { NotionModule } from './features/notion/notion.module';
 import { OAuthModule } from './features/oauth/oauth.module';
 import { OAuthServerModule } from './features/oauth-server/oauth-server.module';
 import { OrganizationModule } from './features/organization/organization.module';
+import { PermissionMatrixModule } from './features/permission-matrix/permission-matrix.module';
 import { PinModule } from './features/pin/pin.module';
 import { PluginChartModule } from './features/plugin/official/chart/plugin-chart.module';
-import { LicenseModule } from './features/license/license.module';
-import { PermissionMatrixModule } from './features/permission-matrix/permission-matrix.module';
-import { QuotaModule } from './features/quota/quota.module';
-import { SsoModule } from './features/sso/sso.module';
-import { ScimModule } from './features/scim/scim.module';
 import { PluginModule } from './features/plugin/plugin.module';
 import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-context-menu.module';
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
+import { QuotaModule } from './features/quota/quota.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
+import { ScimModule } from './features/scim/scim.module';
 import { SelectionModule } from './features/selection/selection.module';
+import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
-import { SmtpModule } from './features/smtp/smtp.module';
 import { ShareModule } from './features/share/share.module';
 import { ShortLinkModule } from './features/short-link/short-link.module';
+import { SmtpModule } from './features/smtp/smtp.module';
 import { SpaceModule } from './features/space/space.module';
+import { SsoModule } from './features/sso/sso.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TrashModule } from './features/trash/trash.module';
 import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
 import { UserModule } from './features/user/user.module';
-import { ViewPermissionModule } from './features/view-permission/view-permission.module';
-import { WorkspaceMirrorModule } from './features/workspace-mirror/workspace-mirror.module';
 import { ComputedOutboxWakeupConsumerModule } from './features/v2/computed-outbox-trigger/computed-outbox-wakeup-consumer.module';
 import { V2Module } from './features/v2/v2.module';
+import { ViewPermissionModule } from './features/view-permission/view-permission.module';
+import { WebhookDeliveryModule } from './features/webhook-delivery/webhook-delivery.module';
+import { WorkspaceMirrorModule } from './features/workspace-mirror/workspace-mirror.module';
 import { GlobalModule } from './global/global.module';
 import { InitBootstrapProvider } from './global/init-bootstrap.provider';
+import { HealthModule as HealthProbeModule } from './health/health.module';
 import { LoggerModule } from './logger/logger.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { WsModule } from './ws/ws.module';
@@ -87,11 +92,13 @@ export const appModules = {
     MailSenderOpenApiModule,
     MailSenderMergeModule,
     HealthModule,
+    HealthProbeModule,
     NextModule,
     FieldOpenApiModule,
     TemplateOpenApiModule,
     BaseModule,
     BackupModule,
+    GoogleSheetsModule,
     BaseNodeModule,
     IntegrityModule,
     ChatModule,
@@ -99,6 +106,7 @@ export const appModules = {
     WsModule,
     SelectionModule,
     SmtpModule,
+    ImBridgeModule,
     UndoRedoModule,
     AggregationOpenApiModule,
     UserModule,
@@ -114,6 +122,7 @@ export const appModules = {
     ShortLinkModule,
     BaseShareModule,
     NotificationModule,
+    NotionModule,
     AccessTokenModule,
     AdminOpenApiModule,
     SettingAdminOpenApiModule,
@@ -150,6 +159,7 @@ export const appModules = {
     ObservabilityModule,
     BuiltinAssetsInitModule,
     V2Module,
+    WebhookDeliveryModule,
     ComputedOutboxWakeupConsumerModule.register(),
     AgentOrchestratorModule,
     AiCostForecasterModule,

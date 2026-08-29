@@ -19,8 +19,8 @@ import {
 import { IActionCatalog, IActionRetrySpec } from './automation-action-catalog.types';
 
 describe('automation-action-catalog.builtins', () => {
-  it('has 5 builtin types', () => {
-    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(5);
+  it('has 6 builtin types', () => {
+    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(6);
   });
   it('default is update_record', () => {
     expect(BUILTIN_ACTION_CATALOG.defaultType).toBe('update_record');
@@ -128,7 +128,7 @@ describe('automation-action-catalog.merge / cap / serialize / summarize', () => 
   });
   it('summarize', () => {
     const s = summarizeActionCatalog(BUILTIN_ACTION_CATALOG);
-    expect(s.count).toBe(5);
+    expect(s.count).toBe(6);
     expect(s.rollbackable).toBe(1);
   });
 });

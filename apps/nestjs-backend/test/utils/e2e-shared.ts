@@ -43,6 +43,7 @@ interface ISharedState {
   resolved: Map<string, ISharedEntry>;
   baselineEnv?: Record<string, string | undefined>;
   originalDbUrl?: string;
+  originalMetaDbUrl?: string;
   originalCacheRedisUri?: string;
   originalPerfCacheUri?: string;
   /** First shared app to finish booting — the worker's canonical axios target. */
@@ -361,6 +362,11 @@ export function applyWorkerDatabaseEnv(): void {
     process.env.PRISMA_DATABASE_URL = workerDatabaseUrl(url, poolId);
   }
 
+  const metaUrl = (state().originalMetaDbUrl ??= process.env.PRISMA_META_DATABASE_URL);
+  if (metaUrl && url && sameDatabaseTarget(metaUrl, url)) {
+    process.env.PRISMA_META_DATABASE_URL = workerDatabaseUrl(metaUrl, poolId);
+  }
+
   // The redis cache holds sessions and permission caches keyed by the shared seed
   // user; concurrent workers on one redis db would clobber each other (e.g. the
   // auth specs invalidating every worker's session). One redis db per worker.
@@ -380,6 +386,17 @@ export function applyWorkerDatabaseEnv(): void {
     parsed.pathname = `/${poolId}`;
     process.env.BACKEND_PERFORMANCE_CACHE = parsed.toString();
   }
+}
+
+function sameDatabaseTarget(left: string, right: string): boolean {
+  const leftUrl = new URL(left);
+  const rightUrl = new URL(right);
+  return (
+    leftUrl.protocol === rightUrl.protocol &&
+    leftUrl.hostname === rightUrl.hostname &&
+    leftUrl.port === rightUrl.port &&
+    leftUrl.pathname === rightUrl.pathname
+  );
 }
 
 /**

@@ -11,12 +11,18 @@
  */
 
 import { Controller, Get, HttpCode } from '@nestjs/common';
+import { Public } from '../features/auth/decorators/public.decorator';
 
 @Controller()
+@Public()
 export class HealthController {
   @Get('healthz')
   @HttpCode(200)
-  live(): { status: 'ok'; uptime_s: number } {
+  live(): {
+    status: 'ok';
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    uptime_s: number;
+  } {
     return {
       status: 'ok',
       uptime_s: Math.round(process.uptime()),

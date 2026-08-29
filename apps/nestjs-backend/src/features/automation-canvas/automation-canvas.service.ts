@@ -34,6 +34,7 @@ const KNOWN_ACTION_REFS = new Set([
   'call_webhook',
   'notify_user',
   'ai_prompt',
+  'send_teams_message',
 ]);
 
 const KNOWN_CONDITION_REFS = new Set([

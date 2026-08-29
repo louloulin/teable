@@ -179,6 +179,9 @@
     "personal": {
       "title": "个人"
     },
+    "webhook": {
+      "title": "Webhook 投递"
+    },
     "apiExplorer": {
       "title": "API 浏览器",
       "description": "在浏览器中浏览并试用公开的 Teable REST API。",
@@ -1120,7 +1123,54 @@
           "members": "成员"
         }
       }
-    }
+    },
+    "notion": {
+        "title": "Notion 导入",
+        "connect": "连接 Notion",
+        "connecting": "连接中...",
+        "connected": "已连接 {{workspace}}",
+        "disconnected": "未连接",
+        "disconnect": "断开连接",
+        "disconnectConfirm": "确定断开此 Notion 工作区吗？",
+        "selectDatabase": "选择 Notion 数据库",
+        "targetBase": "目标数据库",
+        "targetTable": "目标数据表",
+        "import": "导入数据库",
+        "importing": "导入中...",
+        "importSuccess": "已导入 {{imported}} 条记录",
+        "importError": "Notion 导入失败",
+        "error": { "invalidCode": "Notion 授权码无效", "popupBlocked": "请允许弹窗以连接 Notion", "tokenExpired": "Notion 连接已过期" }
+      },
+      "googleSheets": {
+        "title": "Google Sheets",
+        "connect": "连接 Google Sheets",
+        "connecting": "连接中...",
+        "connected": "已连接",
+        "disconnected": "未连接",
+        "disconnect": "断开连接",
+        "disconnectConfirm": "确定断开此空间的 Google Sheets 吗？",
+        "spreadsheetId": "电子表格 ID",
+        "tableId": "数据表 ID",
+        "sync": "同步",
+        "importLabel": "导入",
+        "exportLabel": "导出",
+        "syncInProgress": "同步中...",
+        "syncSuccess": "同步完成（{{counts}}）",
+        "syncError": "Google Sheets 同步失败",
+        "error": { "invalidCode": "Google 授权码无效", "tokenExpired": "Google Sheets 连接已过期" }
+      },
+      "webhook": {
+        "title": "Webhook 投递",
+        "description": "查看并重试失败的出站 Webhook 投递。",
+        "deadLetter": {
+          "title": "死信投递",
+          "empty": "暂无死信投递。",
+          "loadError": "加载死信投递失败",
+          "refresh": "刷新",
+          "headers": { "id": "投递", "endpoint": "端点", "attempts": "尝试次数", "lastError": "最后错误", "actions": "操作" },
+          "retry": { "button": "重试", "confirmTitle": "重试投递", "confirm": "确定重试此死信投递吗？", "success": "投递已重新排队", "error": "重试投递失败" }
+        }
+      }
   },
   "notification": {
     "title": "通知",

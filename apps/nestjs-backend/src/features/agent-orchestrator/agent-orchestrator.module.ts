@@ -10,10 +10,12 @@
  */
 
 import { Module } from '@nestjs/common';
-import { AgentOrchestratorService } from './agent-orchestrator.service';
+import { LicenseModule } from '../license/license.module';
 import { AgentOrchestratorController } from './agent-orchestrator.controller';
+import { AgentOrchestratorService } from './agent-orchestrator.service';
 
 @Module({
+  imports: [LicenseModule],
   controllers: [AgentOrchestratorController],
   providers: [AgentOrchestratorService],
   exports: [AgentOrchestratorService],

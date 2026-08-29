@@ -14,8 +14,10 @@
 
 import { Module } from '@nestjs/common';
 import { PrismaModule, PrismaService } from '@teable/db-main-prisma';
-import { AiCostForecasterController, UsageLoader } from './ai-cost-forecaster.controller';
+import { LicenseModule } from '../license/license.module';
 import type { UsageRow } from './ai-cost-forecaster';
+import { AiCostForecasterController } from './ai-cost-forecaster.controller';
+import type { UsageLoader } from './ai-cost-forecaster.controller';
 
 const USAGE_LOADER = 'USAGE_LOADER';
 
@@ -74,7 +76,7 @@ export const AiCostForecasterUsageLoaderProvider = {
 };
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, LicenseModule],
   controllers: [AiCostForecasterController],
   providers: [AiCostForecasterUsageLoaderProvider],
 })

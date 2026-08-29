@@ -102,9 +102,10 @@ export function normaliseUrlToRoute(url: string): string {
       // 20+ char alphanumeric (nanoids)
       .replace(/\/[a-z0-9]{20,}/gi, '/:id')
       // Cuid-like record ids
-      .replace(/\/rec[a-zA-Z0-9]+/g, '/:recordId')
+      .replace(/\/rec(?!ord(?:\/|$))[a-zA-Z0-9]+(?=\/|$)/g, '/:recordId')
       .replace(/\/tbl[a-zA-Z0-9]+/g, '/:tableId')
       .replace(/\/fld[a-zA-Z0-9]+/g, '/:fieldId')
+      .replace(/\/vw\//g, '/view/')
       .replace(/\/vw[a-zA-Z0-9]+/g, '/:viewId')
       .replace(/\/bs[a-zA-Z0-9]+/g, '/:baseId')
       .replace(/\/spc[a-zA-Z0-9]+/g, '/:spaceId')

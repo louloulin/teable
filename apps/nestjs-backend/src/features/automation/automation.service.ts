@@ -231,7 +231,7 @@ export class AutomationService {
   async finishRun(
     runId: string,
     patch: {
-      status: 'succeeded' | 'failed';
+      status: 'succeeded' | 'failed' | 'skipped';
       output?: Record<string, unknown>;
       error?: string;
     }

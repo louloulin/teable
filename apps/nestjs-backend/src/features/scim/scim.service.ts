@@ -23,6 +23,8 @@ import { generateUserId } from '@teable/core';
 import type { Prisma } from '@teable/db-main-prisma';
 import { PrismaService } from '@teable/db-main-prisma';
 
+import type { IScimGroup, IScimListResponse, IScimUser } from './scim.types';
+
 const SCIM_SETTING_ROW_ID = 'scim:instance-config-v1';
 
 interface IScimStoredConfig {
@@ -70,6 +72,205 @@ const emptyConfig = (): IScimStoredConfig => ({
 
 const hashToken = (salt: string, token: string) =>
   createHash('sha256').update(`${salt}:${token}`).digest('hex');
+
+export function generateScimToken(): { plaintext: string; hash: string; prefix: string } {
+  const plaintext = `scim_${randomBytes(32).toString('hex')}`;
+  return {
+    plaintext,
+    hash: hashScimToken(plaintext),
+    prefix: plaintext.slice(-4),
+  };
+}
+
+export function hashScimToken(plaintext: string): string {
+  return createHash('sha256').update(plaintext.trim()).digest('hex');
+}
+
+export function parseBearerHeader(header: string | null | undefined): string | null {
+  if (!header) return null;
+  const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
+  return match?.[1] ?? null;
+}
+
+export function userToScim(input: {
+  id: string;
+  externalId: string | null;
+  email: string;
+  name: string | null;
+  active: boolean;
+  role: string;
+}): IScimUser {
+  const parts = (input.name ?? '').trim().split(/\s+/);
+  return {
+    id: input.id,
+    externalId: input.externalId,
+    userName: input.email,
+    name: {
+      givenName: parts[0] || undefined,
+      familyName: parts.length > 1 ? parts.slice(1).join(' ') : undefined,
+      formatted: input.name ?? input.email,
+    },
+    emails: [{ value: input.email, primary: true, type: 'work' }],
+    active: input.active,
+    roles: [{ value: input.role, display: input.role, primary: true }],
+  };
+}
+
+export function scimToUserPatch(input: IScimUser) {
+  const email =
+    input.emails?.find((entry) => entry.primary)?.value ??
+    input.emails?.[0]?.value ??
+    input.userName;
+  const computedName = [input.name?.givenName, input.name?.familyName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  return {
+    externalId: input.externalId ?? null,
+    email,
+    name: input.name?.formatted ?? (computedName || null),
+    active: input.active,
+    role: input.roles?.[0]?.value ?? 'member',
+  };
+}
+
+export function groupToScim(input: {
+  id: string;
+  externalId: string | null;
+  displayName: string;
+  memberIds: string[];
+}): IScimGroup {
+  return {
+    id: input.id,
+    externalId: input.externalId,
+    displayName: input.displayName,
+    members: input.memberIds.map((id) => ({ value: id })),
+  };
+}
+
+export function toListResponse<T>(opts: {
+  resources: T[];
+  startIndex: number;
+  itemsPerPage: number;
+  totalResults?: number;
+}): IScimListResponse<T> {
+  return {
+    schemas: ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
+    totalResults: opts.totalResults ?? opts.resources.length,
+    itemsPerPage: opts.itemsPerPage,
+    startIndex: opts.startIndex,
+    Resources: opts.resources,
+  };
+}
+
+export function matchesFilter(
+  filter: string | null | undefined,
+  resource: Record<string, unknown>
+): boolean {
+  if (!filter) return true;
+  const tokens = tokenizeFilter(filter);
+  return tokens.length === 0 ? true : parseFilterOr(tokens, 0, resource).value;
+}
+
+type FilterToken =
+  | { kind: 'attr'; value: string }
+  | { kind: 'op'; value: 'eq' | 'co' | 'ne' }
+  | { kind: 'bool'; value: 'and' | 'or' | 'not' }
+  | { kind: 'value'; value: string };
+
+interface IFilterCursor {
+  value: boolean;
+  next: number;
+}
+
+function tokenizeFilter(input: string): FilterToken[] {
+  const tokens: FilterToken[] = [];
+  const pattern = /"([^"]*)"|(\b(?:and|or|not)\b)|(\b(?:eq|co|ne)\b)|([a-z_][\w.]*)/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(input)) !== null) {
+    if (match[1] !== undefined) {
+      tokens.push({ kind: 'value', value: match[1] });
+    } else if (match[2]) {
+      tokens.push({
+        kind: 'bool',
+        value: match[2].toLowerCase() as 'and' | 'or' | 'not',
+      });
+    } else if (match[3]) {
+      tokens.push({ kind: 'op', value: match[3].toLowerCase() as 'eq' | 'co' | 'ne' });
+    } else if (match[4]) {
+      tokens.push({ kind: 'attr', value: match[4] });
+    }
+  }
+  return tokens;
+}
+
+function parseFilterOr(
+  tokens: FilterToken[],
+  index: number,
+  resource: Record<string, unknown>
+): IFilterCursor {
+  let left = parseFilterAnd(tokens, index, resource);
+  while (
+    left.next < tokens.length &&
+    tokens[left.next]?.kind === 'bool' &&
+    tokens[left.next]?.value === 'or'
+  ) {
+    const right = parseFilterAnd(tokens, left.next + 1, resource);
+    left = { value: left.value || right.value, next: right.next };
+  }
+  return left;
+}
+
+function parseFilterAnd(
+  tokens: FilterToken[],
+  index: number,
+  resource: Record<string, unknown>
+): IFilterCursor {
+  let left = parseFilterNot(tokens, index, resource);
+  while (
+    left.next < tokens.length &&
+    tokens[left.next]?.kind === 'bool' &&
+    tokens[left.next]?.value === 'and'
+  ) {
+    const right = parseFilterNot(tokens, left.next + 1, resource);
+    left = { value: left.value && right.value, next: right.next };
+  }
+  return left;
+}
+
+function parseFilterNot(
+  tokens: FilterToken[],
+  index: number,
+  resource: Record<string, unknown>
+): IFilterCursor {
+  if (tokens[index]?.kind === 'bool' && tokens[index]?.value === 'not') {
+    const inner = parseFilterComparison(tokens, index + 1, resource);
+    return { value: !inner.value, next: inner.next };
+  }
+  return parseFilterComparison(tokens, index, resource);
+}
+
+function parseFilterComparison(
+  tokens: FilterToken[],
+  index: number,
+  resource: Record<string, unknown>
+): IFilterCursor {
+  const attr = tokens[index];
+  const op = tokens[index + 1];
+  const value = tokens[index + 2];
+  if (attr?.kind !== 'attr' || op?.kind !== 'op' || value?.kind !== 'value') {
+    return { value: true, next: index };
+  }
+  const left = String(resource[attr.value] ?? '');
+  const right = value.value;
+  const result =
+    op.value === 'co'
+      ? left.toLowerCase().includes(right.toLowerCase())
+      : op.value === 'eq'
+        ? left === right
+        : left !== right;
+  return { value: result, next: index + 3 };
+}
 
 const generateGroupId = () => `grp_${randomBytes(12).toString('hex')}`;
 

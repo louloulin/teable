@@ -126,21 +126,30 @@ class NamedPrismaService
       ...(options?.isolationLevel && { isolationLevel: options.isolationLevel }),
     };
 
+    const runTransaction = super.$transaction.bind(this) as unknown as <T>(
+      callback: (prisma: Prisma.TransactionClient) => Promise<T>,
+      options: typeof txOptions
+    ) => Promise<T>;
+    const setClsValue = (key: string, value: unknown) => {
+      (this.cls.set as unknown as (key: string, value: unknown) => void)(key, value);
+    };
+
     await this.cls.runWith(this.cls.get(), async () => {
-      result = await super.$transaction<R>(async (prisma) => {
-        prisma = proxyClient(prisma);
-        this.cls.set(`${this.txStoreKey}.client`, prisma);
-        this.cls.set(`${this.txStoreKey}.id`, nanoid());
-        this.cls.set(`${this.txStoreKey}.timeStr`, new Date().toISOString());
+      const transactionResult: unknown = await runTransaction(async (prisma) => {
+        const proxiedPrisma = proxyClient(prisma) as Prisma.TransactionClient;
+        setClsValue(`${this.txStoreKey}.client`, proxiedPrisma);
+        setClsValue(`${this.txStoreKey}.id`, nanoid());
+        setClsValue(`${this.txStoreKey}.timeStr`, new Date().toISOString());
         try {
           // can not delete await here
-          return await fn(prisma);
+          return await fn(proxiedPrisma);
         } finally {
-          this.cls.set(`${this.txStoreKey}.client`, undefined);
-          this.cls.set(`${this.txStoreKey}.id`, undefined);
-          this.cls.set(`${this.txStoreKey}.timeStr`, undefined);
+          setClsValue(`${this.txStoreKey}.client`, undefined);
+          setClsValue(`${this.txStoreKey}.id`, undefined);
+          setClsValue(`${this.txStoreKey}.timeStr`, undefined);
         }
       }, txOptions);
+      result = transactionResult as R;
       this.afterTxCb?.();
     });
 

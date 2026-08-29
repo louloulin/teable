@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { __resetErrorReporterForTests, installErrorReporter } from './error-reporter';

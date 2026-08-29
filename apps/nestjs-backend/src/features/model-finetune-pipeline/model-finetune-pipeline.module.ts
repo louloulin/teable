@@ -24,12 +24,13 @@
 
 import { Module } from '@nestjs/common';
 import { PrismaModule, PrismaService } from '@teable/db-main-prisma';
+import { LicenseModule } from '../license/license.module';
 import type { FeedbackRow } from './model-finetune-pipeline';
 import { ModelFinetunePipelineController } from './model-finetune-pipeline.controller';
 
 const FEEDBACK_LOADER = 'FEEDBACK_LOADER';
 
-export interface FeedbackLoader {
+export interface IFeedbackLoader {
   loadFeedbackSince(sinceIso: string | undefined): Promise<FeedbackRow[]>;
 }
 
@@ -41,7 +42,7 @@ function statusToRating(status: string): 'up' | 'down' | null {
 
 export const ModelFinetunePipelineFeedbackLoaderProvider = {
   provide: FEEDBACK_LOADER,
-  useFactory: (prisma: PrismaService): FeedbackLoader => ({
+  useFactory: (prisma: PrismaService): IFeedbackLoader => ({
     async loadFeedbackSince(sinceIso: string | undefined): Promise<FeedbackRow[]> {
       const where: { createdTime?: { gte: Date } } = {};
       if (sinceIso) {
@@ -73,7 +74,7 @@ export const ModelFinetunePipelineFeedbackLoaderProvider = {
 };
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, LicenseModule],
   controllers: [ModelFinetunePipelineController],
   providers: [ModelFinetunePipelineFeedbackLoaderProvider],
 })

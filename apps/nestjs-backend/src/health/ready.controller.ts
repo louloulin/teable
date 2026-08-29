@@ -5,33 +5,36 @@
  * reachable:
  *   - Postgres  (SELECT 1)
  *   - Redis     (PING)
- *   - Queue     (BullMQ client status; healthy when not closed)
+ *   - Redis     (PING; this is also the BullMQ backing service)
  *
  * Each dependency check is wrapped in its own try/catch so one slow check
  * cannot hold the response — they all run in parallel via `Promise.all`. A
  * failing dep returns 503 with a per-dep breakdown so an operator looking at
  * `kubectl describe pod` immediately sees which dep is misbehaving.
  *
- * The DB/Redis/queue clients are looked up from the NestJS DI container at
- * request time. The shape is intentionally loose (`unknown`) — we only call
- * a single, idempotent method on each, and the dependency-injected types are
- * not part of the hot path's contract.
+ * The DB/Redis clients are looked up from the NestJS DI container at request
+ * time using their real provider classes. Missing required providers are
+ * reported as unavailable rather than producing a false healthy response.
  *
  * License: AGPL-3.0
  */
 
-import { Controller, Get, HttpCode, HttpException, Inject } from '@nestjs/common';
+import { Controller, Get, Res, type Type } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
+import { PrismaHealthIndicator } from '@nestjs/terminus';
+import { PrismaService } from '@teable/db-main-prisma';
+import type { Response } from 'express';
+import { RedisNativeService } from '../cache/redis-native.service';
+import type { ICacheConfig } from '../configs/cache.config';
+import { Public } from '../features/auth/decorators/public.decorator';
 
-type DepResult = { ok: boolean; latency_ms: number; error?: string };
-
-interface CheckedClient {
-  alive(): Promise<void>;
-}
-
-interface CheckableClient {
-  ping(): Promise<unknown>;
-}
+type DepResult = {
+  ok: boolean;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  latency_ms: number;
+  error?: string;
+};
 
 const DI_TIMEOUT_MS = 1500;
 
@@ -47,16 +50,13 @@ async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise
   }
 }
 
-async function checkDb(client: unknown): Promise<DepResult> {
+async function checkDb(
+  indicator: PrismaHealthIndicator,
+  client: PrismaService
+): Promise<DepResult> {
   const start = Date.now();
   try {
-    // `pg` and `mysql2` both expose `.query()`; the result shape differs at
-    // the edges (rows vs [rows, fields]) so we accept whatever comes back.
-    await withTimeout(
-      (client as { query: (q: string) => Promise<unknown> }).query('SELECT 1'),
-      DI_TIMEOUT_MS,
-      'db'
-    );
+    await withTimeout(indicator.pingCheck('database', client), DI_TIMEOUT_MS, 'db');
     return { ok: true, latency_ms: Date.now() - start };
   } catch (err) {
     return {
@@ -70,29 +70,7 @@ async function checkDb(client: unknown): Promise<DepResult> {
 async function checkRedis(client: unknown): Promise<DepResult> {
   const start = Date.now();
   try {
-    await withTimeout((client as CheckableClient).ping(), DI_TIMEOUT_MS, 'redis');
-    return { ok: true, latency_ms: Date.now() - start };
-  } catch (err) {
-    return {
-      ok: false,
-      latency_ms: Date.now() - start,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
-async function checkQueue(client: unknown): Promise<DepResult> {
-  const start = Date.now();
-  try {
-    // BullMQ's Queue has no `alive()`, so we treat a missing `client.status`
-    // of 'closed' as unhealthy and otherwise accept the call.
-    const status = (client as { status?: string }).status;
-    if (status === 'closed') {
-      return { ok: false, latency_ms: 0, error: 'queue client is closed' };
-    }
-    await withTimeout((client as CheckedClient).alive(), DI_TIMEOUT_MS, 'queue').catch(
-      () => undefined
-    ); // best-effort: `alive()` may not exist on every adapter
+    await withTimeout((client as RedisNativeService).ping(), DI_TIMEOUT_MS, 'redis');
     return { ok: true, latency_ms: Date.now() - start };
   } catch (err) {
     return {
@@ -104,49 +82,59 @@ async function checkQueue(client: unknown): Promise<DepResult> {
 }
 
 @Controller()
+@Public()
 export class ReadyController {
-  constructor(private readonly moduleRef: ModuleRef) {}
+  constructor(
+    private readonly moduleRef: ModuleRef,
+    private readonly prismaHealthIndicator: PrismaHealthIndicator,
+    private readonly configService: ConfigService
+  ) {}
 
   @Get('readyz')
-  async ready(): Promise<{
-    status: 'ok';
+  async ready(@Res({ passthrough: true }) response: Response): Promise<{
+    status: 'ok' | 'unavailable';
     checks: Record<string, DepResult>;
   }> {
-    // Lazy lookup — operators that do not use one of these (e.g. local dev
-    // without Redis) get a free pass for the missing dep rather than a 503.
-    const db = this.tryResolve('DATABASE_CONNECTION');
-    const redis = this.tryResolve('REDIS_CONNECTION');
-    const queue = this.tryResolve('QUEUE_CONNECTION');
+    const db = this.tryResolve(PrismaService);
+    const redis = this.tryResolve(RedisNativeService);
+    const cache = this.configService.get<ICacheConfig>('cache');
+    const cacheProvider = cache?.provider ?? 'sqlite';
 
-    const [dbR, redisR, queueR] = await Promise.all([
-      db ? checkDb(db) : Promise.resolve(undefined),
-      redis ? checkRedis(redis) : Promise.resolve(undefined),
-      queue ? checkQueue(queue) : Promise.resolve(undefined),
+    const [dbR, redisR] = await Promise.all([
+      db
+        ? checkDb(this.prismaHealthIndicator, db as PrismaService)
+        : Promise.resolve(this.missingDependency('db')),
+      cacheProvider === 'redis'
+        ? redis
+          ? checkRedis(redis)
+          : Promise.resolve(this.missingDependency('redis'))
+        : Promise.resolve({ ok: true, latency_ms: 0 }),
     ]);
 
     const checks: Record<string, DepResult> = {};
-    if (dbR) checks.db = dbR;
-    if (redisR) checks.redis = redisR;
-    if (queueR) checks.queue = queueR;
+    checks.db = dbR;
+    checks.redis = redisR;
 
     const allOk = Object.values(checks).every((c) => c.ok);
     if (!allOk) {
-      throw new HttpException({ status: 'unavailable', checks }, 503);
+      response.status(503);
+      return { status: 'unavailable', checks };
     }
     return { status: 'ok', checks };
   }
 
   /**
-   * Resolves a DI token by string name, returning undefined when the token is
-   * not registered.  NestJS does not let you do this with the typed API
-   * without each caller knowing every token — `ModuleRef.get` throws, so we
-   * wrap and swallow.
+   * Resolves a DI token, returning undefined when it is not registered.
    */
-  private tryResolve(token: string): unknown {
+  private tryResolve(token: Type<unknown>): unknown {
     try {
       return this.moduleRef.get(token, { strict: false });
     } catch {
       return undefined;
     }
+  }
+
+  private missingDependency(name: string): DepResult {
+    return { ok: false, latency_ms: 0, error: `${name} dependency is not registered` };
   }
 }

@@ -10,13 +10,14 @@ const command = process.argv[2];
 const requiresDatabaseUrl = command !== 'generate';
 
 const dataDatabaseUrl =
-  process.env.PRISMA_META_DATABASE_URL ??
+  process.env.PRISMA_DATA_DATABASE_URL ??
   process.env.PRISMA_DATABASE_URL ??
-  process.env.DATABASE_URL;
+  process.env.DATABASE_URL ??
+  process.env.PRISMA_META_DATABASE_URL;
 
 if (requiresDatabaseUrl && !dataDatabaseUrl) {
   console.error(
-    'Missing data database url (PRISMA_META_DATABASE_URL, PRISMA_DATABASE_URL, DATABASE_URL)'
+    'Missing data database url (PRISMA_DATA_DATABASE_URL, PRISMA_DATABASE_URL, DATABASE_URL, PRISMA_META_DATABASE_URL)'
   );
   process.exit(1);
 }

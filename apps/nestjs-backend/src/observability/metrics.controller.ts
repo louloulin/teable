@@ -8,9 +8,11 @@
  */
 
 import { Controller, Get, Header } from '@nestjs/common';
+import { Public } from '../features/auth/decorators/public.decorator';
 import { initMetrics } from './metrics';
 
 @Controller('metrics')
+@Public()
 export class MetricsController {
   @Get()
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')

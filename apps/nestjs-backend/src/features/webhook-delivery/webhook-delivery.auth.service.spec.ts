@@ -180,7 +180,7 @@ describe('WebhookDeliveryAuthService', () => {
       });
       mocks.deliveryUpdate.mockResolvedValue(mkDelivery({ status: 'delivered' }));
       const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher(200));
-      const r = await svc.dispatchOne({ delivery: mkDelivery() });
+      const r = await svc.dispatchOne({ delivery: mkDelivery() as never });
       expect(r.status).toBe('delivered');
     });
 
@@ -195,7 +195,7 @@ describe('WebhookDeliveryAuthService', () => {
       });
       mocks.deliveryUpdate.mockResolvedValue(mkDelivery({ status: 'dead', attempt: 5 }));
       const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher(500));
-      const r = await svc.dispatchOne({ delivery: mkDelivery({ attempt: 4 }) });
+      const r = await svc.dispatchOne({ delivery: mkDelivery({ attempt: 4 }) as never });
       expect(r.status).toBe('dead');
     });
   });

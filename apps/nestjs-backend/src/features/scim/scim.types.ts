@@ -45,6 +45,7 @@ export interface IScimListResponse<T> {
   totalResults: number;
   itemsPerPage: number;
   startIndex: number;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   Resources: T[];
 }
 

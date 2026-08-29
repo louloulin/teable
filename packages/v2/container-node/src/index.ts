@@ -105,6 +105,14 @@ const canShareMetaAndDataDb = (
   dataSchema: string | undefined
 ) => metaConnectionString === dataConnectionString && !dataSchema;
 
+const getConnectionSchema = (connectionString: string): string | undefined => {
+  try {
+    return new URL(connectionString).searchParams.get('schema') ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export const registerV2NodePgDependencies = async (
   c: DependencyContainer = container,
   options: IV2NodePgContainerOptions
@@ -121,8 +129,10 @@ export const registerV2NodePgDependencies = async (
     );
   }
   const dataConnectionString = options.dataConnectionString ?? metaConnectionString;
+  const metaSchema = getConnectionSchema(metaConnectionString);
+  const dataSchema = options.dataSchema ?? getConnectionSchema(dataConnectionString);
 
-  if (canShareMetaAndDataDb(metaConnectionString, dataConnectionString, options.dataSchema)) {
+  if (canShareMetaAndDataDb(metaConnectionString, dataConnectionString, dataSchema)) {
     const metaPool = options.metaDbDependencies?.pool;
     const dataPool = options.dataDbDependencies?.pool;
     if (metaPool && dataPool && metaPool !== dataPool) {
@@ -130,24 +140,24 @@ export const registerV2NodePgDependencies = async (
     }
     await registerV2PostgresDb(
       c,
-      { pg: { connectionString: metaConnectionString } },
+      { pg: { connectionString: metaConnectionString, schema: metaSchema } },
       options.metaDbDependencies ?? options.dataDbDependencies
     );
   } else {
     await registerV2PostgresMetaDb(
       c,
-      { pg: { connectionString: metaConnectionString } },
+      { pg: { connectionString: metaConnectionString, schema: metaSchema } },
       options.metaDbDependencies
     );
     await registerV2PostgresDataDb(
       c,
-      { pg: { connectionString: dataConnectionString, schema: options.dataSchema } },
+      { pg: { connectionString: dataConnectionString, schema: dataSchema } },
       options.dataDbDependencies
     );
     const metaDb = c.resolve(v2MetaDbTokens.db);
     c.registerInstance(v2PostgresDbTokens.db, metaDb);
     c.registerInstance(v2PostgresDbTokens.config, {
-      pg: { connectionString: metaConnectionString },
+      pg: { connectionString: metaConnectionString, schema: metaSchema },
     });
   }
   const metaDb = c.resolve(v2MetaDbTokens.db) as IV2PostgresStateAdapterConfig['db'];

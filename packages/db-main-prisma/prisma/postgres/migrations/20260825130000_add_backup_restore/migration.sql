@@ -11,7 +11,12 @@
 
 DO $do$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BackupStatus') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'BackupStatus' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "BackupStatus" AS ENUM ('pending', 'complete', 'failed');
   END IF;
 END
@@ -19,7 +24,12 @@ $do$;
 
 DO $do$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RestoreStatus') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'RestoreStatus' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "RestoreStatus" AS ENUM ('queued', 'running', 'complete', 'failed');
   END IF;
 END

@@ -614,6 +614,17 @@ export type I18nTranslations = {
                     "abnormalBase": string;
                 };
             };
+            "webhook": {
+                "title": string;
+            };
+            "apiExplorer": {
+                "title": string;
+                "description": string;
+                "openInNewTab": string;
+            };
+            "scim": {
+                "title": string;
+            };
         };
         "noun": {
             "table": string;
@@ -1273,6 +1284,123 @@ export type I18nTranslations = {
                 "spaceIdsPlaceholder": string;
                 "preview": string;
                 "noSpaceIds": string;
+            };
+            "scim": {
+                "title": string;
+                "description": string;
+                "endpoint": {
+                    "title": string;
+                    "label": string;
+                    "hint": string;
+                    "copy": string;
+                };
+                "connectionTest": {
+                    "title": string;
+                    "description": string;
+                    "noTokenWarning": string;
+                };
+                "token": {
+                    "sectionTitle": string;
+                    "title": string;
+                    "description": string;
+                    "absent": string;
+                    "copy": string;
+                    "rotate": string;
+                    "rotating": string;
+                    "rotated": string;
+                    "lastRotated": string;
+                    "neverRotated": string;
+                };
+                "users": {
+                    "title": string;
+                    "total": string;
+                    "empty": string;
+                    "loadError": string;
+                    "active": string;
+                    "deactivated": string;
+                    "headers": {
+                        "displayName": string;
+                        "email": string;
+                        "externalId": string;
+                        "status": string;
+                    };
+                };
+                "groups": {
+                    "title": string;
+                    "total": string;
+                    "empty": string;
+                    "loadError": string;
+                    "headers": {
+                        "name": string;
+                        "members": string;
+                    };
+                };
+            };
+            "notion": {
+                "title": string;
+                "connect": string;
+                "connecting": string;
+                "connected": string;
+                "disconnected": string;
+                "disconnect": string;
+                "disconnectConfirm": string;
+                "selectDatabase": string;
+                "targetBase": string;
+                "targetTable": string;
+                "import": string;
+                "importing": string;
+                "importSuccess": string;
+                "importError": string;
+                "error": {
+                    "invalidCode": string;
+                    "popupBlocked": string;
+                    "tokenExpired": string;
+                };
+            };
+            "googleSheets": {
+                "title": string;
+                "connect": string;
+                "connecting": string;
+                "connected": string;
+                "disconnected": string;
+                "disconnect": string;
+                "disconnectConfirm": string;
+                "spreadsheetId": string;
+                "tableId": string;
+                "sync": string;
+                "importLabel": string;
+                "exportLabel": string;
+                "syncInProgress": string;
+                "syncSuccess": string;
+                "syncError": string;
+                "error": {
+                    "invalidCode": string;
+                    "tokenExpired": string;
+                };
+            };
+            "webhook": {
+                "title": string;
+                "description": string;
+                "deadLetter": {
+                    "title": string;
+                    "empty": string;
+                    "loadError": string;
+                    "refresh": string;
+                    "headers": {
+                        "id": string;
+                        "endpoint": string;
+                        "attempts": string;
+                        "lastError": string;
+                        "actions": string;
+                    };
+                    "retry": {
+                        "button": string;
+                        "confirmTitle": string;
+                        "confirm": string;
+                        "success": string;
+                        "error": string;
+                    };
+                };
             };
         };
         "notification": {
@@ -3979,6 +4107,19 @@ export type I18nTranslations = {
                 "mismatch": string;
                 "disableReminder": string;
             };
+            "continue": string;
+            "tablesHeading": string;
+            "tableMeta": string;
+            "connectMode": {
+                "oauth": string;
+                "pat": string;
+            };
+            "pat": {
+                "label": string;
+                "placeholder": string;
+                "help": string;
+                "helpTooltip": string;
+            };
         };
         "createBaseDialog": {
             "title": string;
@@ -4073,6 +4214,24 @@ export type I18nTranslations = {
                 "label": string;
                 "tooltip": string;
             };
+        };
+        "adminImport": {
+            "navTitle": string;
+            "title": string;
+            "description": string;
+            "airtableDescription": string;
+            "airtableStepConnect": string;
+            "open": string;
+            "noSpace": string;
+        };
+        "sheetsImport": {
+            "title": string;
+            "description": string;
+            "urlLabel": string;
+            "urlPlaceholder": string;
+            "urlHelp": string;
+            "continue": string;
+            "notImplemented": string;
         };
     };
     "table": {

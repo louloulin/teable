@@ -210,25 +210,16 @@ export class TableService implements IReadonlyAdapterService {
   async getTableDefaultViewId(tableIds: string[]) {
     if (!tableIds.length) return [];
 
-    const nativeSql = this.knex
-      .select({
-        tableId: 'id',
-        viewId: this.knex
-          .select('id')
-          .from('view')
-          .whereRaw('view.table_id = table_meta.id')
-          .whereRaw('view.deleted_time is null')
-          .orderBy('order')
-          .limit(1),
-      })
-      .from('table_meta')
-      .whereIn('id', tableIds)
-      .toSQL()
-      .toNative();
+    const views = await this.prismaService.txClient().view.findMany({
+      where: {
+        tableId: { in: tableIds },
+        deletedTime: null,
+      },
+      orderBy: { order: 'asc' },
+      select: { id: true, tableId: true },
+    });
 
-    const results = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ tableId: string; viewId: string }[]>(nativeSql.sql, ...nativeSql.bindings);
+    const results = views.map(({ id: viewId, tableId }) => ({ tableId, viewId }));
 
     return tableIds.map((tableId) => {
       const item = results.find((result) => result.tableId === tableId);

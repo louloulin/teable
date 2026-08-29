@@ -175,6 +175,9 @@
     "personal": {
       "title": "Personal"
     },
+    "webhook": {
+      "title": "Webhook deliveries"
+    },
     "apiExplorer": {
       "title": "API Explorer",
       "description": "Browse and try out the public Teable REST API in your browser.",
@@ -1122,6 +1125,53 @@
           "name": "Display name",
           "members": "Members"
         }
+      }
+    },
+    "notion": {
+      "title": "Notion import",
+      "connect": "Connect Notion",
+      "connecting": "Connecting...",
+      "connected": "Connected to {{workspace}}",
+      "disconnected": "Not connected",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect this Notion workspace?",
+      "selectDatabase": "Select a Notion database",
+      "targetBase": "Target base",
+      "targetTable": "Target table",
+      "import": "Import database",
+      "importing": "Importing...",
+      "importSuccess": "Imported {{imported}} records",
+      "importError": "Notion import failed",
+      "error": { "invalidCode": "Invalid Notion authorization code", "popupBlocked": "Allow popups to connect Notion", "tokenExpired": "Notion connection expired" }
+    },
+    "googleSheets": {
+      "title": "Google Sheets",
+      "connect": "Connect Google Sheets",
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect Google Sheets from this space?",
+      "spreadsheetId": "Spreadsheet ID",
+      "tableId": "Table ID",
+      "sync": "Sync",
+      "importLabel": "Import",
+      "exportLabel": "Export",
+      "syncInProgress": "Syncing...",
+      "syncSuccess": "Sync complete ({{counts}})",
+      "syncError": "Google Sheets sync failed",
+      "error": { "invalidCode": "Invalid Google authorization code", "tokenExpired": "Google Sheets connection expired" }
+    },
+    "webhook": {
+      "title": "Webhook deliveries",
+      "description": "Inspect and retry failed outbound webhook deliveries.",
+      "deadLetter": {
+        "title": "Dead-letter deliveries",
+        "empty": "No dead-letter deliveries.",
+        "loadError": "Failed to load dead-letter deliveries",
+        "refresh": "Refresh",
+        "headers": { "id": "Delivery", "endpoint": "Endpoint", "attempts": "Attempts", "lastError": "Last error", "actions": "Actions" },
+        "retry": { "button": "Retry", "confirmTitle": "Retry delivery", "confirm": "Retry this dead-letter delivery?", "success": "Delivery re-queued", "error": "Failed to retry delivery" }
       }
     }
   },

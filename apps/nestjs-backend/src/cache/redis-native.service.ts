@@ -38,6 +38,10 @@ export class RedisNativeService {
     return this.redis;
   }
 
+  async ping(): Promise<string> {
+    return this.client.ping();
+  }
+
   /**
    * Get the value of a string key.
    * @param key - Redis key

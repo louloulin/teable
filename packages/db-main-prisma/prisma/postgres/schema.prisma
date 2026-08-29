@@ -1486,6 +1486,7 @@ enum AutomationActionType {
   slack
   discord
   telegram
+  teams
 
   @@map("AutomationActionType")
 }
@@ -2034,6 +2035,55 @@ model WebhookEvent {
   processingError String?   @map("processing_error")
 
   @@map("webhook_event")
+}
+
+model WebhookEndpoint {
+  id           String   @id
+  url          String
+  secret       String
+  headers      Json?
+  events       Json     @default("[]")
+  maxAttempts  Int      @default(5) @map("max_attempts")
+  enabled      Boolean  @default(true)
+  createdTime  DateTime @default(now()) @map("created_time")
+
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_endpoint")
+}
+
+model WebhookPayload {
+  id          String   @id
+  event       String
+  body        String
+  createdTime DateTime @default(now()) @map("created_time")
+
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_payload")
+}
+
+model WebhookDelivery {
+  id              String           @id
+  endpointId      String           @map("endpoint_id")
+  payloadId       String           @map("payload_id")
+  status          String           @default("pending")
+  attempt         Int              @default(0)
+  maxAttempts     Int              @default(5) @map("max_attempts")
+  nextAttemptAt   DateTime         @default(now()) @map("next_attempt_at")
+  lastStatusCode  Int?             @map("last_status_code")
+  lastError       String?          @map("last_error")
+  lastAttemptAt   DateTime?        @map("last_attempt_at")
+  finalizedAt     DateTime?        @map("finalized_at")
+  deliveredAt    DateTime?        @map("delivered_at")
+  createdTime     DateTime         @default(now()) @map("created_time")
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  payload  WebhookPayload  @relation(fields: [payloadId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([status])
+  @@map("webhook_delivery")
 }
 
 model Region {

@@ -4,7 +4,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypt
 
 import { AutomationService } from './automation.service';
 
-export type IMProvider = 'slack' | 'discord' | 'telegram';
+export type IMProvider = 'slack' | 'discord' | 'telegram' | 'teams';
 
 /**
  * Config shape stored on `automation_action.config` when
@@ -206,6 +206,19 @@ export class IMBridgeService {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ chat_id: integration.externalRef, text: config.text }),
+          };
+          break;
+        case 'teams':
+          url = integration.externalRef;
+          init = {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              '@type': 'MessageCard',
+              '@context': 'https://schema.org/extensions',
+              summary: config.text,
+              text: config.text,
+            }),
           };
           break;
       }

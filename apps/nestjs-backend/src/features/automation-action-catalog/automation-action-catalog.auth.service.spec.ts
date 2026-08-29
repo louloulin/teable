@@ -18,11 +18,11 @@ function setup() {
 describe('AutomationActionCatalogAuthService.get / list / group / index', () => {
   it('get / list / group / index', () => {
     const svc = setup();
-    expect(svc.getCatalog().types.length).toBe(5);
+    expect(svc.getCatalog().types.length).toBe(6);
     expect(svc.get('send_email')?.label).toBe('Send email');
     expect(svc.listByCategory('notification').length).toBe(2);
     expect(svc.groupByCategory()['notification'].length).toBe(2);
-    expect(svc.index().size).toBe(5);
+    expect(svc.index().size).toBe(6);
   });
 });
 
@@ -57,7 +57,7 @@ describe('AutomationActionCatalogAuthService.extend / serialize / summarize / pi
   });
   it('summarize', () => {
     const svc = setup();
-    expect(svc.summarize().count).toBe(5);
+    expect(svc.summarize().count).toBe(6);
   });
   it('ping', async () => {
     const svc = setup();

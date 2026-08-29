@@ -5,7 +5,12 @@
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'IntegrationProvider') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'IntegrationProvider' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "IntegrationProvider" AS ENUM ('slack', 'discord', 'telegram');
   END IF;
 END

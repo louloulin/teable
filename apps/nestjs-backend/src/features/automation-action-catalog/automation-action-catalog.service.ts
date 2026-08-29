@@ -88,6 +88,21 @@ export const BUILTIN_ACTION_CATALOG: IActionCatalog = {
       retry: { maxAttempts: 3, backoff: 'exponential', initialDelayMs: 1500 },
       rollback: false,
     },
+    {
+      type: 'send_teams_message',
+      label: 'Send Teams message',
+      category: 'integration',
+      description: 'Send a message to a Microsoft Teams incoming webhook.',
+      icon: 'message-square',
+      fields: [
+        { key: 'webhookUrl', label: 'Webhook URL', kind: 'string', required: true },
+        { key: 'text', label: 'Message', kind: 'template', required: true },
+        { key: 'title', label: 'Title', kind: 'template', required: false },
+        { key: 'fields', label: 'Facts', kind: 'json', required: false, defaultValue: [] },
+      ],
+      retry: { maxAttempts: 5, backoff: 'exponential', initialDelayMs: 1000 },
+      rollback: false,
+    },
   ],
   defaultType: 'update_record',
 };

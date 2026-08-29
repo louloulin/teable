@@ -19,7 +19,8 @@ export type AutomationActionType =
   | 'email'
   | 'slack'
   | 'discord'
-  | 'telegram';
+  | 'telegram'
+  | 'teams';
 
 export type AutomationRunStatus =
   | 'pending'
@@ -42,6 +43,7 @@ export const AUTOMATION_ACTION_TYPES: readonly AutomationActionType[] = [
   'slack',
   'discord',
   'telegram',
+  'teams',
 ] as const;
 
 /**

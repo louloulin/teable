@@ -4,13 +4,28 @@
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AutomationTriggerType') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'AutomationTriggerType' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "AutomationTriggerType" AS ENUM ('record_created', 'record_updated', 'record_deleted', 'schedule');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AutomationActionType') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'AutomationActionType' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "AutomationActionType" AS ENUM ('update_record', 'webhook', 'email', 'slack', 'discord', 'telegram');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AutomationRunStatus') THEN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'AutomationRunStatus' AND n.nspname = current_schema()
+  ) THEN
     CREATE TYPE "AutomationRunStatus" AS ENUM ('pending', 'running', 'succeeded', 'failed', 'skipped');
   END IF;
 END
