@@ -1,6 +1,8 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '@teable/db-main-prisma';
 import type { Job } from 'bullmq';
+import { Queue } from 'bullmq';
 
 import { LicenseCapabilityService } from '../license/license-capability.service';
 
@@ -13,68 +15,154 @@ export const AUTOMATION_RUN_CLEANUP_QUEUE = 'automation-run-cleanup-queue';
  *  BullMQ's "Custom Id cannot contain :" rule the way the cold-flush
  *  chain once did (see record-history-cold.processor). */
 export const AUTOMATION_RUN_CLEANUP_TICK_JOB = 'automation-run-cleanup-tick';
+export const AUTOMATION_RUN_CLEANUP_REPEAT_MS = 60 * 60 * 1000;
 
 export interface IAutomationRunCleanupTickResult {
   plan: string;
   kind: 'automation';
-  /** retention TTL resolved from the current plan, in days */
+  /** retention TTL used for the fallback path, in days */
   days: number;
-  /** ISO timestamp of the cleanup cutoff that a real worker would use */
+  /** ISO timestamp used by the fallback path */
   cutoff: string;
+  deleted: number;
+  spaces: number;
 }
 
-/**
- * Stage 11 STUB.
- *
- * The OSS tree does not ship an `automation_run` table, so there is no
- * existing cleanup body to rewire — the spec (§3.3) is satisfied by
- * registering the queue and resolving the TTL from `getRetentionDaysForPlan`.
- *
- * Wiring a real cleanup service is intentionally NOT done here:
- *   - `teableio/teable-ee` owns the production automation_run path; copying
- *     it would violate supervisor Non-goals ("不复制 teableio/teable-ee 任何源代码").
- *   - inventing a fresh delete path without a table or call-site is just
- *     dead code with no test surface.
- *
- * When the OSS gets an automation_run table, swap `process()` for a service
- * call that uses the same `days` value to drive a DELETE WHERE created_at
- * < cutoff — the queue, job name, and module surface stay stable.
- */
+interface ISpaceQuotaRow {
+  spaceId: string;
+  plan: string;
+  automationHistoryDays: number | null;
+}
+
+interface IAutomationRunDelegate {
+  deleteMany(args: { where: Record<string, unknown> }): Promise<{ count: number }>;
+}
+
+interface ISpaceQuotaDelegate {
+  findMany(args: { select: Record<string, boolean> }): Promise<ISpaceQuotaRow[]>;
+}
+
+interface IBaseDelegate {
+  findMany(args: {
+    where: { spaceId: { in: string[] } };
+    select: { id: boolean };
+  }): Promise<Array<{ id: string }>>;
+}
+
+interface IAutomationDelegate {
+  findMany(args: {
+    where: { baseId: { in: string[] } };
+    select: { id: boolean };
+  }): Promise<Array<{ id: string }>>;
+}
+
+interface IPrismaRetentionClient {
+  automationRun: IAutomationRunDelegate;
+  spaceQuota: ISpaceQuotaDelegate;
+  base: IBaseDelegate;
+  automation: IAutomationDelegate;
+}
+
 @Injectable()
 @Processor(AUTOMATION_RUN_CLEANUP_QUEUE)
 export class AutomationRunCleanupProcessor extends WorkerHost {
   private readonly logger = new Logger(AutomationRunCleanupProcessor.name);
+  private started = false;
 
-  constructor(private readonly caps: LicenseCapabilityService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly caps: LicenseCapabilityService,
+    @InjectQueue(AUTOMATION_RUN_CLEANUP_QUEUE) private readonly queue: Queue
+  ) {
     super();
   }
 
+  async onModuleInit(): Promise<void> {
+    if (this.started) return;
+    this.started = true;
+    await this.queue.add(
+      AUTOMATION_RUN_CLEANUP_TICK_JOB,
+      {},
+      {
+        jobId: AUTOMATION_RUN_CLEANUP_TICK_JOB,
+        repeat: { every: AUTOMATION_RUN_CLEANUP_REPEAT_MS },
+        removeOnComplete: 50,
+        removeOnFail: 100,
+      }
+    );
+    this.logger.log(`scheduled automation-run cleanup every ${AUTOMATION_RUN_CLEANUP_REPEAT_MS}ms`);
+  }
+
   async process(job: Job): Promise<IAutomationRunCleanupTickResult> {
+    const plan = this.caps.currentPlan();
+    const days = getRetentionDaysForPlan(plan, 'automation');
+    const fallbackCutoff = new Date(Date.now() - days * MS_PER_DAY);
     if (job.name !== AUTOMATION_RUN_CLEANUP_TICK_JOB) {
-      // ignore jobs not addressed at us; bullmq routes by queue name but a
-      // misconfigured producer could still enqueue a different name here.
       this.logger.warn(
         `automation-run cleanup: ignoring unknown job name "${job.name}" (id=${job.id ?? 'n/a'})`
       );
-      const plan = this.caps.currentPlan();
       return {
         plan,
         kind: 'automation',
-        days: getRetentionDaysForPlan(plan, 'automation'),
-        cutoff: new Date().toISOString(),
+        days,
+        cutoff: fallbackCutoff.toISOString(),
+        deleted: 0,
+        spaces: 0,
       };
     }
-    const plan = this.caps.currentPlan();
-    const days = getRetentionDaysForPlan(plan, 'automation');
-    const cutoff = new Date(Date.now() - days * MS_PER_DAY);
+
+    const prisma = this.prisma as unknown as IPrismaRetentionClient;
+    const quotas = await prisma.spaceQuota.findMany({
+      select: { spaceId: true, plan: true, automationHistoryDays: true },
+    });
+    const fallback =
+      quotas.length === 0
+        ? await prisma.automationRun.deleteMany({
+            where: { createdTime: { lt: fallbackCutoff } },
+          })
+        : { count: 0 };
+    let deleted = fallback.count;
+    const spaces = quotas.length === 0 ? 0 : quotas.length;
+
+    const grouped = new Map<number, { cutoff: Date; spaceIds: string[] }>();
+    for (const quota of quotas) {
+      if (quota.automationHistoryDays === null) continue;
+      const cutoff = new Date(Date.now() - quota.automationHistoryDays * MS_PER_DAY);
+      const key = quota.automationHistoryDays;
+      const group = grouped.get(key) ?? { cutoff, spaceIds: [] };
+      group.spaceIds.push(quota.spaceId);
+      grouped.set(key, group);
+    }
+    for (const group of grouped.values()) {
+      const bases = await prisma.base.findMany({
+        where: { spaceId: { in: group.spaceIds } },
+        select: { id: true },
+      });
+      if (bases.length === 0) continue;
+      const automations = await prisma.automation.findMany({
+        where: { baseId: { in: bases.map((base) => base.id) } },
+        select: { id: true },
+      });
+      if (automations.length === 0) continue;
+      const result = await prisma.automationRun.deleteMany({
+        where: {
+          createdTime: { lt: group.cutoff },
+          automationId: { in: automations.map((automation) => automation.id) },
+        },
+      });
+      deleted += result.count;
+    }
+
     const result: IAutomationRunCleanupTickResult = {
       plan,
       kind: 'automation',
       days,
-      cutoff: cutoff.toISOString(),
+      cutoff: fallbackCutoff.toISOString(),
+      deleted,
+      spaces,
     };
     this.logger.log(
-      `automation-run cleanup tick: plan=${plan} days=${days} cutoff=${result.cutoff}`
+      `automation-run cleanup tick: plan=${plan} days=${days} deleted=${deleted} spaces=${spaces}`
     );
     return result;
   }

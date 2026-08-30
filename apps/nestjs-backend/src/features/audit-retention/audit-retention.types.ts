@@ -66,6 +66,8 @@ export interface IRetentionJob {
 export interface IAuditRetentionOptions {
   /** Default hot days when policy missing. */
   defaultHotDays?: number;
+  /** Default cold days when policy missing. */
+  defaultColdDays?: number;
   /** Maximum cold days (hard ceiling). */
   maxColdDays?: number;
   /** Override "now". */

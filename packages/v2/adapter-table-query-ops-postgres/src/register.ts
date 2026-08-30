@@ -32,10 +32,10 @@ import {
   PostgresTableQueryRemediationTaskRepository,
 } from './repositories';
 import { ensureTableQueryOpsSchema, type TableQueryOpsDatabase } from './schema';
+import { PostgresTableSearchAccessPathCapabilityReader } from './searchAccessPathCapability';
 import { PostgresTableSearchVectorReconciler } from './searchVector';
 import { PostgresTableSearchVectorSchemaMaintenanceScheduler } from './searchVectorMaintenance';
 import { PostgresTableSearchVectorStatusReader } from './searchVectorStatus';
-import { PostgresTableSearchAccessPathCapabilityReader } from './searchAccessPathCapability';
 import { v2TableOpsPostgresTokens } from './tokens';
 import type { UnknownPostgresDatabase } from './types';
 

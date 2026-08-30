@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { axios } from '../../axios';
 import { registerRoute } from '../../utils';
 import { auditListQuerySchema } from './list-operations';
+import type { IAuditListQuery } from './list-operations';
 
 export const auditListSummaryPerActionSchema = z.object({
   action: z.string(),

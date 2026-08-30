@@ -7,6 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
+import { DatabaseRouter } from '../../global/database-router.service';
 
 import {
   defaultPosition,
@@ -35,7 +36,7 @@ interface IWidgetRow {
 
 @Injectable()
 export class WidgetMarketAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly databaseRouter?: DatabaseRouter) {}
 
   async listWidgets(): Promise<{ kind: string; title: string; description: string }[]> {
     return WIDGET_DEFINITIONS.map((w) => ({
@@ -47,14 +48,16 @@ export class WidgetMarketAuthService {
 
   async listDashboards(spaceId: string): Promise<IDashboardRow[]> {
     const rows = await this.prisma.dashboard.findMany({
-      where: { spaceId },
-      orderBy: { createdAt: 'asc' },
+      where: { baseId: spaceId },
+      orderBy: { createdTime: 'asc' },
     });
     return rows.map((r) => ({ id: r.id, name: r.name }));
   }
 
   async createDashboard(spaceId: string, name: string): Promise<IDashboardRow> {
-    const row = await this.prisma.dashboard.create({ data: { spaceId, name } });
+    const row = await this.prisma.dashboard.create({
+      data: { baseId: spaceId, name, createdBy: 'system' },
+    });
     return { id: row.id, name: row.name };
   }
 
@@ -102,10 +105,7 @@ export class WidgetMarketAuthService {
     const row = await this.prisma.widgetInstance.findUnique({ where: { id: instanceId } });
     if (!row) throw new Error(`widget not found: ${instanceId}`);
     const instance = decodeWidgetRow(row);
-    const records = await this.prisma.record.findMany({
-      where: { tableId: instance.binding.tableId },
-      take: limit,
-    });
+    const records = await this.loadRows(instance.binding.tableId, limit);
     const rows: IRowLike[] = records.map((r) => ({ cells: r.data as Record<string, unknown> }));
     return renderWidget(instance, rows);
   }
@@ -120,14 +120,23 @@ export class WidgetMarketAuthService {
     const instances = await this.listInstances(dashboardId);
     const out: { instance: IWidgetInstance; result: IWidgetRenderResult }[] = [];
     for (const inst of instances) {
-      const records = await this.prisma.record.findMany({
-        where: { tableId: inst.binding.tableId },
-        take: limit,
-      });
+      const records = await this.loadRows(inst.binding.tableId, limit);
       const rows: IRowLike[] = records.map((r) => ({ cells: r.data as Record<string, unknown> }));
       out.push({ instance: inst, result: renderWidget(inst, rows) });
     }
     return { dashboardId, widgets: out };
+  }
+
+  private async loadRows(tableId: string, limit: number): Promise<Array<{ data: unknown }>> {
+    if (!this.databaseRouter) {
+      return (await (this.prisma as unknown as { record?: { findMany: Function } }).record?.findMany({
+        where: { tableId }, take: limit,
+      })) ?? [];
+    }
+    const rows = await this.databaseRouter.queryDataPrismaForTable<Array<Record<string, unknown>>>(
+      tableId, `SELECT * FROM "${tableId}" LIMIT ${Math.max(0, Math.floor(limit))}`
+    );
+    return rows.map((data) => ({ data }));
   }
 }
 

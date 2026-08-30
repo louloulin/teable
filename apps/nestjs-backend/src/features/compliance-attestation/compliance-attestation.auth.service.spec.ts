@@ -8,7 +8,7 @@ import { Attestation, AttestationPolicy } from './compliance-attestation.types';
 interface IPrismaMock { $queryRaw: (template: TemplateStringsArray) => Promise<unknown>; }
 function makePrisma(): IPrismaMock { return { $queryRaw: vi.fn(async () => [{ '?column?': 1 }]) }; }
 function setup() { return new ComplianceAttestationAuthService(makePrisma() as never); }
-function a(over: Partial = {}): Attestation {
+function a(over: Partial<Attestation> = {}): Attestation {
   return { id: 'att_abcdef12', kind: 'sub_process', refId: 'sp_1', submittedAt: '2026-01-01', expiresAt: '2027-01-01', state: 'verified', statement: 'We comply with controls.', submittedBy: 'u_1', verifiedBy: 'auto', statementHash: 'h', ...over };
 }
 

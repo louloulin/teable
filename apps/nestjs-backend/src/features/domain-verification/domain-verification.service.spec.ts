@@ -1,6 +1,5 @@
 import type { TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
-import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { promises as dns } from 'dns';
 import { PrismaService } from '@teable/db-main-prisma';

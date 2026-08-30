@@ -1,4 +1,4 @@
-import { CellValueType, DbFieldType, FieldType, TableDomain } from '@teable/core';
+import { CellValueType, DbFieldType, FieldType, TableDomain, type IFieldVo } from '@teable/core';
 import knex from 'knex';
 import { describe, expect, it } from 'vitest';
 import { createFieldInstanceByVo } from '../features/field/model/factory';
@@ -47,9 +47,10 @@ describe('convertFormulaToGeneratedColumn blank numeric comparisons', () => {
       dbFieldName: 'weight',
       name: 'Weight',
       type: FieldType.Number,
+      options: { formatting: { precision: 2, type: 'decimal' } } as IFieldVo['options'],
       cellValueType: CellValueType.Number,
       dbFieldType: DbFieldType.Real,
-    });
+    } as IFieldVo);
     const table = new TableDomain({
       id: 'tblFormulaUnit',
       name: 'Formula Unit',
@@ -77,9 +78,10 @@ describe('convertFormulaToSelectQuery blank numeric comparisons', () => {
       dbFieldName: 'weight',
       name: 'Weight',
       type: FieldType.Number,
+      options: { formatting: { precision: 2, type: 'decimal' } } as IFieldVo['options'],
       cellValueType: CellValueType.Number,
       dbFieldType: DbFieldType.Real,
-    });
+    } as IFieldVo);
     const table = new TableDomain({
       id: 'tblFormulaUnit',
       name: 'Formula Unit',

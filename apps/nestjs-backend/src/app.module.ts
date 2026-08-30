@@ -13,6 +13,7 @@ import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orc
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
+import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
@@ -60,6 +61,7 @@ import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-c
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
 import { QuotaModule } from './features/quota/quota.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
+import { AutomationRunCleanupModule } from './features/retention/automation-run-cleanup.module';
 import { ScimModule } from './features/scim/scim.module';
 import { SelectionModule } from './features/selection/selection.module';
 import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
@@ -147,6 +149,7 @@ export const appModules = {
     CommentOpenApiModule,
     OrganizationModule,
     AiModule,
+    AiBuilderModule,
     AiFieldRecordListenerModule,
     PluginModule,
     PluginPanelModule,
@@ -154,6 +157,7 @@ export const appModules = {
     // RecordHistoryColdCoreModule (services only), so auxiliary entrypoints
     // composing them never become competing cold-queue workers
     RecordHistoryColdModule,
+    AutomationRunCleanupModule,
     PluginContextMenuModule,
     PluginChartModule,
     ObservabilityModule,

@@ -50,12 +50,7 @@ export class PostgresTableQueryIndexInspector {
         name: row.index_name,
         reason: row.reason,
       }));
-      const state =
-        abnormalIndexes.length > 0
-          ? 'invalid'
-          : missingIndexCandidates.length > 0
-            ? 'missing'
-            : 'ready';
+      const state = resolveInspectionState(abnormalIndexes.length, missingIndexCandidates.length);
       return TableQueryIndexInspection.create({
         state,
         usefulIndexes: expected
@@ -77,6 +72,15 @@ export class PostgresTableQueryIndexInspector {
     }
   }
 }
+
+const resolveInspectionState = (
+  abnormalIndexCount: number,
+  missingCandidateCount: number
+): 'invalid' | 'missing' | 'ready' => {
+  if (abnormalIndexCount > 0) return 'invalid';
+  if (missingCandidateCount > 0) return 'missing';
+  return 'ready';
+};
 
 type ExpectedIndexCandidate = {
   readonly fieldId?: string;
@@ -213,50 +217,24 @@ const collectBtreeAccessPathFields = (
   snapshot: ReturnType<TableQueryShape['snapshot']>,
   resolveField: FieldResolver
 ) => {
-  const btreeFilterFields =
-    snapshot.whereShape?.fields
-      .filter((field) =>
-        ['equality', 'range', 'selection', 'empty', 'link'].includes(field.operatorFamily)
-      )
-      .map((field) =>
-        resolveField(field.fieldId, {
-          role: field.sourceKind === 'formula_source' ? 'formula_source' : 'filter',
-          sourceKind: field.sourceKind,
-          formulaFieldId: field.formula?.formulaFieldId,
-          formulaFunctionNames: field.formula?.functionNames,
-          formulaSkippedReasons: field.formula?.skippedReasons,
-          formulaPredicatePushdown: field.formula?.predicatePushdown,
-        })
-      )
-      .filter((field): field is ExpectedIndexField => Boolean(field?.fieldDbName)) ?? [];
-  const equalityFilterFields =
-    snapshot.whereShape?.fields
-      .filter((field) => ['equality', 'selection', 'empty', 'link'].includes(field.operatorFamily))
-      .map((field) =>
-        resolveField(field.fieldId, {
-          role: field.sourceKind === 'formula_source' ? 'formula_source' : 'filter',
-          sourceKind: field.sourceKind,
-          formulaFieldId: field.formula?.formulaFieldId,
-          formulaFunctionNames: field.formula?.functionNames,
-          formulaSkippedReasons: field.formula?.skippedReasons,
-          formulaPredicatePushdown: field.formula?.predicatePushdown,
-        })
-      )
-      .filter((field): field is ExpectedIndexField => Boolean(field?.fieldDbName)) ?? [];
-  const rangeFilterFields =
-    snapshot.whereShape?.fields
-      .filter((field) => field.operatorFamily === 'range')
-      .map((field) =>
-        resolveField(field.fieldId, {
-          role: field.sourceKind === 'formula_source' ? 'formula_source' : 'filter',
-          sourceKind: field.sourceKind,
-          formulaFieldId: field.formula?.formulaFieldId,
-          formulaFunctionNames: field.formula?.functionNames,
-          formulaSkippedReasons: field.formula?.skippedReasons,
-          formulaPredicatePushdown: field.formula?.predicatePushdown,
-        })
-      )
-      .filter((field): field is ExpectedIndexField => Boolean(field?.fieldDbName)) ?? [];
+  const whereFields = snapshot.whereShape?.fields ?? [];
+  const resolveWhereField = (field: (typeof whereFields)[number]): ExpectedIndexField | undefined =>
+    resolveField(field.fieldId, {
+      role: field.sourceKind === 'formula_source' ? 'formula_source' : 'filter',
+      sourceKind: field.sourceKind,
+      formulaFieldId: field.formula?.formulaFieldId,
+      formulaFunctionNames: field.formula?.functionNames,
+      formulaSkippedReasons: field.formula?.skippedReasons,
+      formulaPredicatePushdown: field.formula?.predicatePushdown,
+    });
+  const selectWhereFields = (operatorFamilies: ReadonlyArray<string>) =>
+    whereFields
+      .filter((field) => operatorFamilies.includes(field.operatorFamily))
+      .map(resolveWhereField)
+      .filter((field): field is ExpectedIndexField => Boolean(field?.fieldDbName));
+  const btreeFilterFields = selectWhereFields(['equality', 'range', 'selection', 'empty', 'link']);
+  const equalityFilterFields = selectWhereFields(['equality', 'selection', 'empty', 'link']);
+  const rangeFilterFields = selectWhereFields(['range']);
   const orderFields =
     snapshot.orderShape?.fields
       .filter((field) => field.fieldId && field.source !== 'tieBreaker')
@@ -286,77 +264,81 @@ const addWhereIndexCandidates = (
 ): void => {
   for (const field of snapshot.whereShape?.fields ?? []) {
     addFormulaExpressionIndexCandidate(candidates, field, input.resolveField);
-    if (field.operatorFamily === 'text_contains') {
-      addExpectedIndexCandidate(
-        candidates,
-        [
-          input.resolveField(field.fieldId, {
-            role: field.sourceKind === 'formula_source' ? 'formula_source' : 'search',
-            sourceKind: field.sourceKind,
-            formulaFieldId: field.formula?.formulaFieldId,
-            formulaFunctionNames: field.formula?.functionNames,
-            formulaSkippedReasons: field.formula?.skippedReasons,
-            formulaPredicatePushdown: field.formula?.predicatePushdown,
-          }),
-        ],
-        'gin_trgm',
-        field.sourceKind === 'formula_source'
-          ? 'Formula source text lookup can use trigram index'
-          : 'Text contains filter can use trigram index'
-      );
-    } else if (field.operatorFamily === 'text_prefix') {
-      addExpectedIndexCandidate(
-        candidates,
-        [
-          input.resolveField(field.fieldId, {
-            role: field.sourceKind === 'formula_source' ? 'formula_source' : 'filter',
-            sourceKind: field.sourceKind,
-            formulaFieldId: field.formula?.formulaFieldId,
-            formulaFunctionNames: field.formula?.functionNames,
-            formulaSkippedReasons: field.formula?.skippedReasons,
-            formulaPredicatePushdown: field.formula?.predicatePushdown,
-          }),
-        ],
-        'btree',
-        field.sourceKind === 'formula_source'
-          ? 'Formula source prefix lookup can use btree index'
-          : 'Text prefix filter can use btree index'
-      );
-    } else if (
+    if (field.operatorFamily === 'text_contains' || field.operatorFamily === 'text_prefix') {
+      addTextIndexCandidate(candidates, field, input.resolveField);
+      continue;
+    }
+    if (
       ['equality', 'range', 'selection', 'empty', 'link', 'formula_result'].includes(
         field.operatorFamily
       )
     ) {
-      const resolved =
-        input.btreeFilterFields.find((candidate) => candidate.fieldId === field.fieldId) ??
-        input.resolveField(field.fieldId, {
-          role:
-            field.sourceKind === 'formula_result'
-              ? 'formula_result'
-              : field.sourceKind === 'formula_expression'
-                ? 'formula_expression'
-                : 'filter',
-          sourceKind: field.sourceKind,
-          formulaFieldId: field.formula?.formulaFieldId,
-          formulaFunctionNames: field.formula?.functionNames,
-          formulaSkippedReasons: field.formula?.skippedReasons,
-          formulaPredicatePushdown: field.formula?.predicatePushdown,
-        });
-      if (!isCoveredByCompositeCandidate(resolved, input.compositeFields)) {
-        addExpectedIndexCandidate(
-          candidates,
-          [resolved],
-          'btree',
-          field.sourceKind === 'formula_expression'
-            ? 'Formula expression filter can use a validated expression index'
-            : field.sourceKind === 'formula_result'
-              ? 'Formula result filter can use btree index'
-              : 'Filter predicate can use btree index',
-          field.sourceKind === 'formula_expression' ? 'expression' : undefined
-        );
-      }
+      addBtreeFilterCandidate(candidates, field, input);
     }
   }
+};
+
+const addTextIndexCandidate = (
+  candidates: Map<string, ExpectedIndexCandidate>,
+  field: SnapshotWhereField,
+  resolveField: FieldResolver
+): void => {
+  const isContains = field.operatorFamily === 'text_contains';
+  const sourceField = resolveField(field.fieldId, {
+    role:
+      field.sourceKind === 'formula_source' ? 'formula_source' : isContains ? 'search' : 'filter',
+    sourceKind: field.sourceKind,
+    formulaFieldId: field.formula?.formulaFieldId,
+    formulaFunctionNames: field.formula?.functionNames,
+    formulaSkippedReasons: field.formula?.skippedReasons,
+    formulaPredicatePushdown: field.formula?.predicatePushdown,
+  });
+  addExpectedIndexCandidate(
+    candidates,
+    [sourceField],
+    isContains ? 'gin_trgm' : 'btree',
+    field.sourceKind === 'formula_source'
+      ? `Formula source ${isContains ? 'text lookup' : 'prefix lookup'} can use ${isContains ? 'trigram' : 'btree'} index`
+      : `${isContains ? 'Text contains' : 'Text prefix'} filter can use ${isContains ? 'trigram' : 'btree'} index`
+  );
+};
+
+const addBtreeFilterCandidate = (
+  candidates: Map<string, ExpectedIndexCandidate>,
+  field: SnapshotWhereField,
+  input: {
+    readonly resolveField: FieldResolver;
+    readonly btreeFilterFields: ReadonlyArray<ExpectedIndexField>;
+    readonly compositeFields: ReadonlyArray<ExpectedIndexField>;
+  }
+): void => {
+  const resolved =
+    input.btreeFilterFields.find((candidate) => candidate.fieldId === field.fieldId) ??
+    input.resolveField(field.fieldId, {
+      role:
+        field.sourceKind === 'formula_result'
+          ? 'formula_result'
+          : field.sourceKind === 'formula_expression'
+            ? 'formula_expression'
+            : 'filter',
+      sourceKind: field.sourceKind,
+      formulaFieldId: field.formula?.formulaFieldId,
+      formulaFunctionNames: field.formula?.functionNames,
+      formulaSkippedReasons: field.formula?.skippedReasons,
+      formulaPredicatePushdown: field.formula?.predicatePushdown,
+    });
+  if (isCoveredByCompositeCandidate(resolved, input.compositeFields)) return;
+  addExpectedIndexCandidate(
+    candidates,
+    [resolved],
+    'btree',
+    field.sourceKind === 'formula_expression'
+      ? 'Formula expression filter can use a validated expression index'
+      : field.sourceKind === 'formula_result'
+        ? 'Formula result filter can use btree index'
+        : 'Filter predicate can use btree index',
+    field.sourceKind === 'formula_expression' ? 'expression' : undefined
+  );
 };
 
 type SnapshotWhereField = NonNullable<

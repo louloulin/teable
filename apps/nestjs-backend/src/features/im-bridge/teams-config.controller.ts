@@ -8,6 +8,7 @@ import {
   Logger,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import type {
   IDeleteTeamsConfigVo,
@@ -27,8 +28,11 @@ import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { TeamsAdapter } from './teams.adapter';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { TeamsConfigService } from './teams-config.service';
+import { TeamsAdapter } from './teams.adapter';
+
+const TeamsBridgeGuard = LicenseCapabilityGuard.for('automation');
 
 /**
  * Admin endpoints for Microsoft Teams configuration.
@@ -47,6 +51,7 @@ import { TeamsConfigService } from './teams-config.service';
  * default for the space if omitted. It never persists anything.
  */
 @Controller('api/admin/im-bridge/teams/config')
+@UseGuards(TeamsBridgeGuard)
 export class TeamsConfigController {
   private readonly logger = new Logger(TeamsConfigController.name);
 
@@ -89,7 +94,8 @@ export class TeamsConfigController {
   async testMessage(
     @Body(new ZodValidationPipe(testTeamsMessageRoSchema)) body: ITestTeamsMessageRo
   ): Promise<ITestTeamsMessageVo> {
-    const webhookUrl = body.webhookUrl ?? (await this.teamsConfig.getDecryptedWebhookUrl(body.spaceId));
+    const webhookUrl =
+      body.webhookUrl ?? (await this.teamsConfig.getDecryptedWebhookUrl(body.spaceId));
     if (!webhookUrl) {
       throw new ForbiddenException(
         `no webhook URL provided and no default configured for space=${body.spaceId}`

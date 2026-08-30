@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataPrismaService } from '@teable/db-data-prisma';
-import { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService, type PlanLevel } from '@teable/db-main-prisma';
 import { DataDbClientManager } from '../../global/data-db-client-manager.service';
 import { DatabaseRouter } from '../../global/database-router.service';
+import { getRetentionMsForPlan } from '../retention/retention-policy';
 import { BucketMergeFeeder } from './bucket-merge-feeder';
 import { approxColdRowBytes, SortMemoryBudget } from './external-sort';
 import type { IColdHistoryRow, IPartBucket, IPartStatsEntry, ITableColdStats } from './part-codec';
@@ -66,6 +67,7 @@ interface IDiscoveredGroup {
   spaceId?: string;
   bindingId?: string;
   tableIds: string[];
+  retentionHorizonMs?: number;
 }
 
 /** mutable accumulator threaded through discovery to tally orphan deletions */
@@ -166,6 +168,7 @@ export class RecordHistoryFlusherService {
 
     for (const group of groups) {
       const deferredInGroup = await this.flushGroup(group, results, budget, {
+        startedAt,
         cutoff,
         mode: options.mode,
         deleteEnabled,
@@ -193,7 +196,11 @@ export class RecordHistoryFlusherService {
         deleteEnabled &&
         groupFullyDrained
       ) {
-        await this.advanceBookmark(group.bindingId, cutoff).catch((error) =>
+        const groupCutoff =
+          group.retentionHorizonMs === undefined
+            ? cutoff
+            : new Date(startedAt.getTime() - group.retentionHorizonMs);
+        await this.advanceBookmark(group.bindingId, groupCutoff).catch((error) =>
           this.logger.warn(`failed to advance flush bookmark for ${group.spaceId}: ${error}`)
         );
       }
@@ -231,6 +238,7 @@ export class RecordHistoryFlusherService {
     results: ITableFlushResult[],
     budget: { flushedRows: number; maxRows: number },
     run: {
+      startedAt: Date;
       cutoff: Date;
       mode: 'incremental' | 'backfill';
       deleteEnabled: boolean;
@@ -249,7 +257,9 @@ export class RecordHistoryFlusherService {
       const sliceResults = await mapWithConcurrency(slice, run.concurrency, (tableId) =>
         this.flushTable(
           tableId,
-          run.cutoff,
+          group.retentionHorizonMs === undefined
+            ? run.cutoff
+            : new Date(run.startedAt.getTime() - group.retentionHorizonMs),
           run.mode,
           run.deleteEnabled,
           run.config,
@@ -324,7 +334,7 @@ export class RecordHistoryFlusherService {
       ...(options.spaceIds?.length ? { spaceIds: options.spaceIds } : undefined),
     });
     if (shared.keep.length) {
-      groups.push({ kind: 'shared', tableIds: shared.keep });
+      groups.push(...(await this.groupSharedTablesByRetention(shared.keep)));
     }
     if (orphanCleanup.enabled && shared.orphans.length) {
       orphanCleanup.deletedRows += await this.deleteOrphanBufferRows(
@@ -357,6 +367,8 @@ export class RecordHistoryFlusherService {
     cutoff: Date,
     orphanCleanup: IOrphanCleanup
   ): Promise<IDiscoveredGroup | undefined> {
+    const retentionHorizonMs = await this.getSpaceRetentionHorizon(binding.spaceId);
+    const spaceCutoff = new Date(Date.now() - retentionHorizonMs);
     if (!options.ignoreBookmarks) {
       const rows = await this.prismaService.$queryRaw<
         { maxModified: Date | null }[]
@@ -382,7 +394,7 @@ export class RecordHistoryFlusherService {
         orphanCleanup.deletedRows += await this.deleteOrphanBufferRows(
           client,
           filtered.orphans,
-          cutoff
+          spaceCutoff
         );
       }
       if (filtered.keep.length) {
@@ -391,15 +403,65 @@ export class RecordHistoryFlusherService {
           spaceId: binding.spaceId,
           bindingId: binding.id,
           tableIds: filtered.keep,
+          retentionHorizonMs,
         };
       }
       // nothing buffered: still advance the bookmark (to the cutoff, matching
       // what a flush would have covered) so quiet dbs stay skipped
-      await this.advanceBookmark(binding.id, cutoff).catch(() => undefined);
+      await this.advanceBookmark(binding.id, spaceCutoff).catch(() => undefined);
     } catch (error) {
       this.logger.warn(`cold flush discovery skipped space ${binding.spaceId}: ${error}`);
     }
     return undefined;
+  }
+
+  private async groupSharedTablesByRetention(tableIds: string[]): Promise<IDiscoveredGroup[]> {
+    if (!this.prismaService.spaceQuota?.findMany) {
+      return [{ kind: 'shared', tableIds }];
+    }
+    const tableRows = await this.prismaService.tableMeta.findMany({
+      where: { id: { in: tableIds } },
+      select: { id: true, base: { select: { spaceId: true } } },
+    });
+    const spaceIds = [...new Set(tableRows.map((row) => row.base.spaceId))];
+    if (!spaceIds.length) return [{ kind: 'shared', tableIds }];
+
+    const quotas = await this.prismaService.spaceQuota.findMany({
+      where: { spaceId: { in: spaceIds } },
+      select: { spaceId: true, plan: true, recordHistoryDays: true },
+    });
+    const quotaBySpace = new Map(quotas.map((quota) => [quota.spaceId, quota]));
+    const groups = new Map<number, IDiscoveredGroup>();
+    for (const tableId of tableIds) {
+      const spaceId = tableRows.find((row) => row.id === tableId)?.base.spaceId;
+      const quota = spaceId ? quotaBySpace.get(spaceId) : undefined;
+      const horizonMs =
+        quota?.recordHistoryDays && quota.recordHistoryDays > 0
+          ? quota.recordHistoryDays * 86_400_000
+          : getRetentionMsForPlan((quota?.plan ?? 'self_hosted') as PlanLevel, 'record');
+      const group = groups.get(horizonMs) ?? {
+        kind: 'shared',
+        tableIds: [],
+        retentionHorizonMs: horizonMs,
+      };
+      group.tableIds.push(tableId);
+      groups.set(horizonMs, group);
+    }
+    return [...groups.values()];
+  }
+
+  private async getSpaceRetentionHorizon(spaceId: string): Promise<number> {
+    if (!this.prismaService.spaceQuota?.findUnique) {
+      return getRetentionMsForPlan('self_hosted', 'record');
+    }
+    const quota = await this.prismaService.spaceQuota.findUnique({
+      where: { spaceId },
+      select: { plan: true, recordHistoryDays: true },
+    });
+    if (quota?.recordHistoryDays && quota.recordHistoryDays > 0) {
+      return quota.recordHistoryDays * 86_400_000;
+    }
+    return getRetentionMsForPlan((quota?.plan ?? 'self_hosted') as PlanLevel, 'record');
   }
 
   /** loose index scan: distinct table_id from the buffer at O(#tables × log n) */

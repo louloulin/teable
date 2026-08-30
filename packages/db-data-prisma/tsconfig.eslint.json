@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowJs": true
+  },
+  "exclude": ["node_modules", "**/.*/*", "dist", "src/generated"],
+  "include": [
+    ".eslintrc.*",
+    "scripts/**/*.mjs",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.cjs",
+    "src/**/*.mjs",
+    "src/**/*.jsx",
+    "src/**/*.json"
+  ]
+}

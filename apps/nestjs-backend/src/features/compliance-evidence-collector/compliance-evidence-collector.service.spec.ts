@@ -16,7 +16,7 @@ import {
 } from './compliance-evidence-collector.service';
 import { EvidenceRecord } from './compliance-evidence-collector.types';
 
-function rec(over: Partial = {}): EvidenceRecord {
+function rec(over: Partial<EvidenceRecord> = {}): EvidenceRecord {
   return {
     id: 'evi_aaaa0001',
     controlId: 'SOC2-CC6.1',
@@ -76,7 +76,7 @@ describe('compliance-evidence-collector.collectEvidence', () => {
   it('window', () => {
     const r = collectEvidence({
       candidates: [{ controlId: 'SOC2-CC6.1', kind: 'query_log', content: 'x', source: 'a', collectedAt: '2020-01-01T00:00:00Z' }],
-      windowDays: 90,
+      options: { windowDays: 90 },
       now: '2026-08-25T00:00:00Z',
     });
     expect(r.records.length).toBe(0);

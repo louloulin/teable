@@ -24,8 +24,11 @@ describe('LicenseCapabilityService', () => {
     const svc = new LicenseCapabilityService(license);
     svc.refresh();
     expect(svc.isEnabled('ai_chat')).toBe(true);
-    expect(svc.isEnabled('ai_field')).toBe(false);
+    expect(svc.isEnabled('ai_field')).toBe(true);
+    expect(svc.isEnabled('ai_app_builder')).toBe(true);
+    expect(svc.isEnabled('cuppy_claw')).toBe(true);
     expect(svc.isEnabled('sso')).toBe(false);
+    expect(svc.isEnabled('permission_matrix')).toBe(false);
   });
 
   it('enables all AI capabilities + audit under pro', () => {
@@ -70,5 +73,15 @@ describe('LicenseCapabilityService', () => {
       expect(err).toBeInstanceOf(CustomHttpException);
       expect((err as CustomHttpException).code).toBe(HttpErrorCode.PAYMENT_REQUIRED);
     }
+  });
+
+  it('accepts a runtime activation without requiring an environment variable', () => {
+    const license = {
+      resolveFromEnv: () => ({ source: 'none' }),
+    } as unknown as LicenseService;
+    const svc = new LicenseCapabilityService(license);
+    svc.refresh({ source: 'env', claims: { plan: 'business' }, effectiveLimits: {} as never });
+    expect(svc.currentPlan()).toBe('business');
+    expect(svc.isEnabled('sso')).toBe(true);
   });
 });

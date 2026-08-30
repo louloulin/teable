@@ -133,7 +133,11 @@ export class TotpAuthService {
 
     if (!input.code) return null;
     for (const f of factors) {
-      const counter = verifyCode(f, input.code, Date.now());
+      const counter = verifyCode(
+        f as unknown as Pick<ITotpFactorRow, 'secret' | 'algorithm' | 'digits' | 'period' | 'lastCounter'>,
+        input.code,
+        Date.now()
+      );
       if (counter !== null) {
         await this.prisma.userTotpFactor.update({
           where: { id: f.id },

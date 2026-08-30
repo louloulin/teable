@@ -9,13 +9,14 @@
  */
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
-import { SettingModule } from '../setting/setting.module';
+import { LicenseModule } from '../license/license.module';
 import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
-import { GoogleSheetsController } from './google-sheets.controller';
+import { SettingModule } from '../setting/setting.module';
 import { GoogleSheetsOAuthService } from './google-sheets-oauth.service';
+import { GoogleSheetsController } from './google-sheets.controller';
 
 @Module({
-  imports: [PrismaModule, SettingModule, RecordOpenApiModule],
+  imports: [PrismaModule, SettingModule, RecordOpenApiModule, LicenseModule],
   controllers: [GoogleSheetsController],
   providers: [GoogleSheetsOAuthService],
   exports: [GoogleSheetsOAuthService],

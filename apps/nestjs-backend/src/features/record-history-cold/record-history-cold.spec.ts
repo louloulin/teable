@@ -1005,6 +1005,40 @@ describe('record-history cold storage', () => {
       expect(orphanCleanup.deletedRows).toBe(0);
     });
 
+    it('groups shared tables by their space retention policy', async () => {
+      const prismaService = {
+        tableMeta: {
+          findMany: async () => [
+            { id: 'tblFree', base: { spaceId: 'spcFree' } },
+            { id: 'tblBusiness', base: { spaceId: 'spcBusiness' } },
+          ],
+        },
+        spaceQuota: {
+          findMany: async () => [
+            { spaceId: 'spcFree', plan: 'free', recordHistoryDays: null },
+            { spaceId: 'spcBusiness', plan: 'business', recordHistoryDays: null },
+          ],
+        },
+      };
+      const service = new RecordHistoryFlusherService(
+        prismaService as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any
+      );
+
+      const groups = await (service as any).groupSharedTablesByRetention([
+        'tblFree',
+        'tblBusiness',
+      ]);
+
+      expect(groups).toEqual([
+        { kind: 'shared', tableIds: ['tblFree'], retentionHorizonMs: 14 * 86_400_000 },
+        { kind: 'shared', tableIds: ['tblBusiness'], retentionHorizonMs: 1095 * 86_400_000 },
+      ]);
+    });
+
     it('isolates a failed orphan delete so live-table flushing still proceeds', async () => {
       const { service, executed } = makeFlusher({
         bufferedTables: ['tblLive', 'tblOrphan'],

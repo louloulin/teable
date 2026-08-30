@@ -8,7 +8,7 @@
  * directly consume.
  */
 
-export type PlanTier = 'free' | 'pro' | 'business' | 'enterprise';
+export type PlanTier = 'self_hosted' | 'free' | 'pro' | 'business' | 'enterprise';
 
 export interface IPlanRetentionPolicy {
   tier: PlanTier;

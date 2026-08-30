@@ -69,9 +69,9 @@ describe('PermissionMatrixService mergeRecordFilters', () => {
         { recordFilter: { tableId: 't1', filter: f2 } } as never,
       ],
       't1'
-    ) as { conjunction: string; items: unknown[] };
+    ) as { conjunction: string; filterSet: unknown[] };
     expect(out.conjunction).toBe('and');
-    expect(out.items).toEqual([f1, f2]);
+    expect(out.filterSet).toEqual([f1, f2]);
   });
 });
 

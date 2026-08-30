@@ -3,7 +3,7 @@ import type { ILogger, LogContext } from '@teable/v2-core';
 /**
  * A captured log entry from SpyLogger.
  */
-export interface CapturedLogEntry {
+export interface ICapturedLogEntry {
   level: 'debug' | 'info' | 'warn' | 'error';
   message: string;
   context?: LogContext;
@@ -14,7 +14,7 @@ export interface CapturedLogEntry {
  * The context logged by ComputedFieldUpdater.execute() for computed:plan.
  * @see ComputedFieldUpdater.ts:169-191
  */
-export interface ComputedPlanLogEntry {
+export interface IComputedPlanLogEntry {
   baseId: string;
   seedTableId: string;
   changeType?: 'insert' | 'update' | 'delete';
@@ -44,7 +44,7 @@ export interface ComputedPlanLogEntry {
  * Optionally forwards logs to a delegate logger (e.g., ConsoleLogger).
  */
 export class SpyLogger implements ILogger {
-  private readonly entries: CapturedLogEntry[] = [];
+  private readonly entries: ICapturedLogEntry[] = [];
   private readonly delegate?: ILogger;
 
   constructor(delegate?: ILogger) {
@@ -59,7 +59,7 @@ export class SpyLogger implements ILogger {
     return this.child({ scopes: { [scope]: context ?? {} } });
   }
 
-  capture(level: CapturedLogEntry['level'], message: string, context?: LogContext): void {
+  capture(level: ICapturedLogEntry['level'], message: string, context?: LogContext): void {
     this.entries.push({ level, message, context, timestamp: Date.now() });
   }
 
@@ -86,14 +86,14 @@ export class SpyLogger implements ILogger {
   /**
    * Get all captured log entries.
    */
-  getEntries(): ReadonlyArray<CapturedLogEntry> {
+  getEntries(): ReadonlyArray<ICapturedLogEntry> {
     return this.entries;
   }
 
   /**
    * Get entries filtered by message pattern.
    */
-  getEntriesByMessage(pattern: string | RegExp): CapturedLogEntry[] {
+  getEntriesByMessage(pattern: string | RegExp): ICapturedLogEntry[] {
     return this.entries.filter((e) =>
       typeof pattern === 'string' ? e.message.includes(pattern) : pattern.test(e.message)
     );
@@ -103,16 +103,16 @@ export class SpyLogger implements ILogger {
    * Get all computed:plan log entries.
    * These are logged by ComputedFieldUpdater during execution.
    */
-  getComputedPlans(): ComputedPlanLogEntry[] {
+  getComputedPlans(): IComputedPlanLogEntry[] {
     return this.entries
       .filter((e) => e.message === 'computed:plan')
-      .map((e) => e.context as unknown as ComputedPlanLogEntry);
+      .map((e) => e.context as unknown as IComputedPlanLogEntry);
   }
 
   /**
    * Get the most recent computed:plan log entry.
    */
-  getLastComputedPlan(): ComputedPlanLogEntry | undefined {
+  getLastComputedPlan(): IComputedPlanLogEntry | undefined {
     const plans = this.getComputedPlans();
     return plans[plans.length - 1];
   }

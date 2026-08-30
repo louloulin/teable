@@ -5,23 +5,21 @@ import { vi } from 'vitest';
 
 import { FullTextSearchAuthService } from './full-text-search.auth.service';
 
-interface IMockIndexRow {
+interface IMockDocumentRow {
   id: string;
-  tableId: string;
+  indexId: string;
   recordId: string;
-  fieldId: string;
-  text: string;
-  indexedAt: Date;
+  bodyText: string;
+  tokens: string;
 }
 
-function mkRow(over: Partial<IMockIndexRow> = {}): IMockIndexRow {
+function mkRow(over: Partial<IMockDocumentRow> = {}): IMockDocumentRow {
   return {
     id: 'idx_1',
-    tableId: 'tbl',
-    recordId: 'rec_1',
-    fieldId: 'fld_1',
-    text: 'hello world',
-    indexedAt: new Date('2024-06-01T00:00:00Z'),
+    indexId: 'tbl',
+    recordId: 'rec_1:fld_1',
+    bodyText: 'hello world',
+    tokens: 'hello world',
     ...over,
   };
 }
@@ -32,7 +30,7 @@ function mkPrismaMock() {
   const findMany = vi.fn();
   const deleteMany = vi.fn();
   const prisma = {
-    searchIndex: { upsert, findUnique, findMany, deleteMany },
+    searchDocument: { upsert, findUnique, findMany, deleteMany },
   } as unknown as PrismaService;
   return { prisma, mocks: { upsert, findUnique, findMany, deleteMany } };
 }
@@ -62,7 +60,7 @@ describe('FullTextSearchAuthService', () => {
       const n = await svc.removeDocument('tbl', 'rec_1', 'fld_1');
       expect(n).toBe(1);
       expect(mocks.deleteMany).toHaveBeenCalledWith({
-        where: { tableId: 'tbl', recordId: 'rec_1', fieldId: 'fld_1' },
+        where: { indexId: 'tbl', recordId: 'rec_1:fld_1' },
       });
     });
 
@@ -78,7 +76,7 @@ describe('FullTextSearchAuthService', () => {
   describe('getDocument', () => {
     it('returns the parsed document', async () => {
       const { prisma, mocks } = mkPrismaMock();
-      mocks.findUnique.mockResolvedValue(mkRow({ text: 'foo bar' }));
+      mocks.findUnique.mockResolvedValue(mkRow({ bodyText: 'foo bar' }));
       const svc = new FullTextSearchAuthService(prisma);
       const doc = await svc.getDocument('tbl', 'rec_1', 'fld_1');
       expect(doc.tokens).toContain('foo');
@@ -98,8 +96,8 @@ describe('FullTextSearchAuthService', () => {
     it('finds matching documents', async () => {
       const { prisma, mocks } = mkPrismaMock();
       mocks.findMany.mockResolvedValue([
-        mkRow({ recordId: 'r1', text: 'apple banana' }),
-        mkRow({ recordId: 'r2', text: 'kiwi lime' }),
+        mkRow({ recordId: 'r1:fld_1', bodyText: 'apple banana' }),
+        mkRow({ recordId: 'r2:fld_1', bodyText: 'kiwi lime' }),
       ]);
       const svc = new FullTextSearchAuthService(prisma);
       const out = await svc.search({

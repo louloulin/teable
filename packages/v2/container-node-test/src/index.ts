@@ -50,7 +50,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 
-import { SpyLogger, type ComputedPlanLogEntry } from './SpyLogger';
+import { SpyLogger, type IComputedPlanLogEntry } from './SpyLogger';
 
 /**
  * Node.js crypto-based hasher implementation for tests.
@@ -107,13 +107,13 @@ export interface IV2NodeTestContainer {
    * Get all computed:plan log entries captured by the SpyLogger.
    * These are logged by ComputedFieldUpdater during execution.
    */
-  getComputedPlans(): ComputedPlanLogEntry[];
+  getComputedPlans(): IComputedPlanLogEntry[];
 
   /**
    * Get the most recent computed:plan log entry.
    * Useful for verifying the last computed update operation.
    */
-  getLastComputedPlan(): ComputedPlanLogEntry | undefined;
+  getLastComputedPlan(): IComputedPlanLogEntry | undefined;
 
   /**
    * Clear all captured log entries.
@@ -614,7 +614,7 @@ const loadTypeValidationPolyfillMigrationSql = async (): Promise<string> => {
 };
 
 // Re-export SpyLogger types
-export { SpyLogger, type CapturedLogEntry, type ComputedPlanLogEntry } from './SpyLogger';
+export { SpyLogger, type ICapturedLogEntry, type IComputedPlanLogEntry } from './SpyLogger';
 
 // Re-export snapshot utilities
 export {

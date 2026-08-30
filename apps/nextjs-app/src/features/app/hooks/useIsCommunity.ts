@@ -1,9 +1,11 @@
 import { useIsReadOnlyPreview } from '@teable/sdk/hooks';
 import { useEnv } from './useEnv';
+import { useIsSelfHosted } from './useIsSelfHosted';
 
 export const useIsCommunity = () => {
   const { edition } = useEnv();
   const isReadOnlyPreview = useIsReadOnlyPreview();
+  const isSelfHosted = useIsSelfHosted();
 
   // In template/share preview mode, allow all features to be displayed
   // (similar to how template preview works)
@@ -11,5 +13,5 @@ export const useIsCommunity = () => {
     return false;
   }
 
-  return edition?.toUpperCase() != 'EE' && edition?.toUpperCase() != 'CLOUD';
+  return !isSelfHosted && edition?.toUpperCase() !== 'EE' && edition?.toUpperCase() !== 'CLOUD';
 };

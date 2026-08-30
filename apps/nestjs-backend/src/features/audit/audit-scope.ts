@@ -75,7 +75,8 @@ export class AuditScope {
   setResourceId(resourceId: string): void {
     const operation = this.cls.get('audit');
     if (!operation) return;
-    this.cls.set('audit', { ...operation, resourceId });
+    const nextOperation: IClsStore['audit'] = { ...operation, resourceId };
+    (this.cls as unknown as { set(key: string, value: unknown): void }).set('audit', nextOperation);
   }
 
   /**

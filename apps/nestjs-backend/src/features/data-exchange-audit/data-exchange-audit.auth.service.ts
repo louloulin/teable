@@ -4,7 +4,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService, type Prisma } from '@teable/db-main-prisma';
 
 import {
   appendEvent,
@@ -13,11 +13,7 @@ import {
   validateEvent,
   verifyChain,
 } from './data-exchange-audit.service';
-import type {
-  AuditAction,
-  IAuditEvent,
-  IAuditQuery,
-} from './data-exchange-audit.types';
+import type { AuditAction, IAuditEvent, IAuditQuery } from './data-exchange-audit.types';
 import { hashEvent } from './data-exchange-audit.types';
 
 @Injectable()
@@ -35,10 +31,14 @@ export class DataExchangeAuditAuthService {
   }): Promise<IAuditEvent> {
     const id = `${input.orgId}:${input.now}:${Math.random().toString(36).slice(2, 10)}`;
     const anchor = await this.prisma.auditEvent.findFirst({
-      where: { orgId: input.orgId },
-      orderBy: { occurredAt: 'desc' },
+      where: { organizationId: input.orgId },
+      orderBy: { createdTime: 'desc' },
     });
-    const prevHash = anchor?.chainHash ?? '';
+    const anchorDetail = anchor?.detail;
+    const prevHash =
+      anchorDetail && typeof anchorDetail === 'object' && 'chainHash' in anchorDetail
+        ? String(anchorDetail.chainHash)
+        : '';
     const chainHash = hashEvent({
       id,
       orgId: input.orgId,
@@ -64,13 +64,15 @@ export class DataExchangeAuditAuthService {
     await this.prisma.auditEvent.create({
       data: {
         id,
-        orgId: input.orgId,
-        actor: input.actor,
+        organizationId: input.orgId,
+        actorId: input.actor,
         action: input.action,
-        recordId: input.recordId,
-        metadata: input.metadata as object,
-        occurredAt: input.now,
-        chainHash,
+        detail: {
+          metadata: input.metadata,
+          recordId: input.recordId ?? null,
+          occurredAt: input.now,
+          chainHash,
+        } as Prisma.InputJsonObject,
       },
     });
     return event;
@@ -79,8 +81,8 @@ export class DataExchangeAuditAuthService {
   /** Query stored events. */
   async query(orgId: string, query: IAuditQuery): Promise<IAuditEvent[]> {
     const rows = await this.prisma.auditEvent.findMany({
-      where: { orgId },
-      orderBy: { occurredAt: 'asc' },
+      where: { organizationId: orgId },
+      orderBy: { createdTime: 'asc' },
     });
     const events = rows.map(rowToEvent);
     return queryEvents({ events, query: { ...query, orgId } });
@@ -89,8 +91,8 @@ export class DataExchangeAuditAuthService {
   /** Verify integrity of stored chain. */
   async verifyIntegrity(orgId: string): Promise<{ ok: boolean; brokenAt?: number }> {
     const rows = await this.prisma.auditEvent.findMany({
-      where: { orgId },
-      orderBy: { occurredAt: 'asc' },
+      where: { organizationId: orgId },
+      orderBy: { createdTime: 'asc' },
     });
     return verifyChain(rows.map(rowToEvent));
   }
@@ -101,17 +103,22 @@ export class DataExchangeAuditAuthService {
 }
 
 function rowToEvent(r: Record<string, unknown>): IAuditEvent {
-  const occurredAtRaw = r['occurredAt'];
+  const detail = r['detail'];
+  const detailRecord =
+    detail && typeof detail === 'object' ? (detail as Record<string, unknown>) : {};
+  const occurredAtRaw = detailRecord['occurredAt'] ?? r['createdTime'];
   const occurredAt =
-    typeof occurredAtRaw === 'string' ? occurredAtRaw : new Date(occurredAtRaw as string).toISOString();
+    typeof occurredAtRaw === 'string'
+      ? occurredAtRaw
+      : new Date(occurredAtRaw as string).toISOString();
   return {
     id: String(r['id']),
-    orgId: String(r['orgId']),
-    actor: String(r['actor']),
+    orgId: String(r['organizationId']),
+    actor: String(r['actorId']),
     action: String(r['action']) as AuditAction,
-    recordId: r['recordId'] ? String(r['recordId']) : undefined,
-    metadata: (r['metadata'] as Record<string, unknown>) ?? {},
+    recordId: detailRecord['recordId'] ? String(detailRecord['recordId']) : undefined,
+    metadata: (detailRecord['metadata'] as Record<string, unknown>) ?? {},
     occurredAt,
-    chainHash: String(r['chainHash']),
+    chainHash: String(detailRecord['chainHash'] ?? ''),
   };
 }

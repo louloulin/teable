@@ -1,6 +1,5 @@
 import { SsoService } from './sso.service';
 import { vi } from 'vitest';
-import { vi } from 'vitest';
 import {
   ISsoIdTokenClaims,
   SSO_DISCOVERY_CACHE_TTL_MS,

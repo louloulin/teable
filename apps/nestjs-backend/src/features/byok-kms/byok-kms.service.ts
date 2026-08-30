@@ -8,7 +8,14 @@
  * KmsProvider interface in `byok-kms.auth.service`.
  */
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  type CipherGCM,
+  type DecipherGCM,
+} from 'node:crypto';
 
 import type {
   ICustomerKmsKey,
@@ -45,7 +52,7 @@ export function generateDek(): Buffer {
 /** AES-256-GCM encrypt arbitrary plaintext with a DEK. */
 export function encryptWithDek(input: { dek: Buffer; plaintext: Buffer }): Buffer {
   const iv = randomBytes(IV_BYTES);
-  const cipher = createCipheriv(ALGORITHM, input.dek, iv);
+  const cipher = createCipheriv(ALGORITHM, input.dek, iv) as CipherGCM;
   const ciphertext = Buffer.concat([cipher.update(input.plaintext), cipher.final()]);
   const tag = cipher.getAuthTag();
   return Buffer.concat([iv, tag, ciphertext]);
@@ -56,7 +63,7 @@ export function decryptWithDek(input: { dek: Buffer; blob: Buffer }): Buffer {
   const iv = input.blob.subarray(0, IV_BYTES);
   const tag = input.blob.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
   const ciphertext = input.blob.subarray(IV_BYTES + TAG_BYTES);
-  const decipher = createDecipheriv(ALGORITHM, input.dek, iv);
+  const decipher = createDecipheriv(ALGORITHM, input.dek, iv) as DecipherGCM;
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }

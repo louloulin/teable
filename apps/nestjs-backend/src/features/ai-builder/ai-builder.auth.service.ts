@@ -5,26 +5,29 @@ import {
   Injectable,
   NotFoundException,
   Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { FieldType } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
+import type { ICreateTableWithDefault } from '@teable/openapi';
 
+import { TableOpenApiV2Service } from '../table/open-api/table-open-api-v2.service';
 import {
   buildProposalRow,
   buildPromptForLlm,
   hashProposal,
   ILlmProvider,
   isValidStatusTransition,
-  OfflineBuilderProvider,
   parseAndValidateProposal,
   sanitizePrompt,
   stringifyProposal,
   validateProposal,
 } from './ai-builder.service';
 import type {
-  BuilderEntityType,
   BuilderProposalStatus,
   IApproveBuilderProposalInput,
   IBuilderProposal,
+  IBuilderFieldProposal,
   IBuilderProposalRow,
   ICreateBuilderProposalInput,
 } from './ai-builder.types';
@@ -37,17 +40,27 @@ export class AiBuilderAuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Optional() @Inject(LLM_PROVIDER) provider?: ILlmProvider
+    @Optional() @Inject(LLM_PROVIDER) provider?: ILlmProvider,
+    @Optional() private readonly tableService?: TableOpenApiV2Service
   ) {
-    this.provider = provider ?? new OfflineBuilderProvider();
+    if (!provider) {
+      throw new ServiceUnavailableException('AI Builder provider is not configured');
+    }
+    this.provider = provider;
   }
 
   async createProposal(input: ICreateBuilderProposalInput): Promise<IBuilderProposalRow> {
     const prompt = sanitizePrompt(input.sourcePrompt);
-    const llmRaw = await this.provider.complete({
-      model: 'stub/builder-v1',
-      prompt: buildPromptForLlm({ userPrompt: prompt, entityType: 'table' }),
-    });
+    let llmRaw: string;
+    try {
+      llmRaw = await this.provider.complete({
+        model: 'configured/builder',
+        prompt: buildPromptForLlm({ userPrompt: prompt, entityType: 'table' }),
+        baseId: input.baseId,
+      });
+    } catch {
+      throw new ServiceUnavailableException('AI Builder provider is unavailable');
+    }
     let proposal: IBuilderProposal;
     try {
       proposal = parseAndValidateProposal(llmRaw);
@@ -61,7 +74,7 @@ export class AiBuilderAuthService {
       status: 'draft',
       sourcePrompt: prompt,
       proposal,
-      model: 'stub/builder-v1',
+      model: 'configured/builder',
       createdBy: input.createdBy,
     });
     const created = await this.prisma.aiBuilderProposal.create({
@@ -79,9 +92,9 @@ export class AiBuilderAuthService {
     return toRow(created);
   }
 
-  async getProposal(proposalId: string): Promise<IBuilderProposalRow | null> {
+  async getProposal(proposalId: string, baseId?: string): Promise<IBuilderProposalRow | null> {
     const row = await this.prisma.aiBuilderProposal.findUnique({ where: { id: proposalId } });
-    return row ? toRow(row) : null;
+    return row && (!baseId || row.baseId === baseId) ? toRow(row) : null;
   }
 
   async listProposals(baseId: string): Promise<IBuilderProposalRow[]> {
@@ -97,6 +110,9 @@ export class AiBuilderAuthService {
       where: { id: input.proposalId },
     });
     if (!existing) throw new NotFoundException(`proposal not found: ${input.proposalId}`);
+    if (input.baseId && existing.baseId !== input.baseId) {
+      throw new NotFoundException(`proposal not found: ${input.proposalId}`);
+    }
     if (existing.createdBy !== input.approvedBy) {
       throw new ForbiddenException('only the author can approve');
     }
@@ -114,11 +130,14 @@ export class AiBuilderAuthService {
     return toRow(updated);
   }
 
-  async reject(proposalId: string, reason: string): Promise<IBuilderProposalRow> {
+  async reject(proposalId: string, reason: string, baseId?: string): Promise<IBuilderProposalRow> {
     const existing = await this.prisma.aiBuilderProposal.findUnique({
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException(`proposal not found: ${proposalId}`);
+    if (baseId && existing.baseId !== baseId) {
+      throw new NotFoundException(`proposal not found: ${proposalId}`);
+    }
     if (!isValidStatusTransition(existing.status as BuilderProposalStatus, 'rejected')) {
       throw new BadRequestException(`invalid transition: ${existing.status} → rejected`);
     }
@@ -130,17 +149,42 @@ export class AiBuilderAuthService {
     return toRow(updated);
   }
 
-  async markApplied(proposalId: string, resourceId: string): Promise<IBuilderProposalRow> {
+  async markApplied(
+    proposalId: string,
+    resourceId: string | undefined,
+    baseId?: string
+  ): Promise<IBuilderProposalRow> {
     const existing = await this.prisma.aiBuilderProposal.findUnique({
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException(`proposal not found: ${proposalId}`);
+    if (baseId && existing.baseId !== baseId) {
+      throw new NotFoundException(`proposal not found: ${proposalId}`);
+    }
     if (!isValidStatusTransition(existing.status as BuilderProposalStatus, 'applied')) {
       throw new BadRequestException(`invalid transition: ${existing.status} → applied`);
     }
+    let appliedResourceId = resourceId;
+    if (!appliedResourceId) {
+      if (!this.tableService) {
+        throw new BadRequestException('table service is unavailable for automatic apply');
+      }
+      if (existing.status !== 'approved') {
+        throw new BadRequestException('proposal must be approved before applying');
+      }
+      const proposal = this.revalidate(existing.proposalJson);
+      if (proposal.entityType !== 'table') {
+        throw new BadRequestException('only table proposals can be applied automatically');
+      }
+      const table = await this.tableService.createTable(
+        existing.baseId,
+        toCreateTableInput(proposal.payload)
+      );
+      appliedResourceId = table.id;
+    }
     const updated = await this.prisma.aiBuilderProposal.update({
       where: { id: proposalId },
-      data: { status: 'applied', appliedResourceId: resourceId },
+      data: { status: 'applied', appliedResourceId },
     });
     return toRow(updated);
   }
@@ -156,6 +200,70 @@ export class AiBuilderAuthService {
   stringifyProposal = stringifyProposal;
   sanitizePrompt = sanitizePrompt;
   buildPromptForLlm = buildPromptForLlm;
+}
+
+function toCreateTableInput(payload: IBuilderProposal['payload']): ICreateTableWithDefault {
+  if (!('fields' in payload)) {
+    throw new BadRequestException('table proposal fields are missing');
+  }
+  const fields = payload.fields.map((field, index) => ({
+    name: field.name,
+    type: toFieldType(field.type),
+    options: toFieldOptions(field),
+    ...(field.name === payload.primaryFieldName || index === 0 ? { isPrimary: true } : {}),
+  }));
+  return {
+    name: payload.name,
+    fields,
+    views: [{ type: 'grid', name: 'Grid view' }],
+    records: [],
+  } as ICreateTableWithDefault;
+}
+
+function toFieldType(type: IBuilderFieldProposal['type']): FieldType {
+  switch (type) {
+    case 'longText':
+      return FieldType.LongText;
+    case 'number':
+      return FieldType.Number;
+    case 'checkbox':
+      return FieldType.Checkbox;
+    case 'singleSelect':
+      return FieldType.SingleSelect;
+    case 'multipleSelects':
+      return FieldType.MultipleSelect;
+    case 'date':
+      return FieldType.Date;
+    case 'rating':
+      return FieldType.Rating;
+    case 'formula':
+      return FieldType.Formula;
+    default:
+      return FieldType.SingleLineText;
+  }
+}
+
+function toFieldOptions(field: IBuilderFieldProposal): Record<string, unknown> {
+  switch (field.type) {
+    case 'singleSelect':
+    case 'multipleSelects':
+      return {
+        choices: (field.options ?? ['todo', 'done']).map((name, index) => ({
+          name,
+          color: ['blue', 'green', 'orange', 'red', 'purple'][index % 5],
+        })),
+      };
+    case 'date':
+      return { formatting: { date: 'YYYY-MM-DD', time: 'None', timeZone: 'utc' } };
+    case 'number':
+      return { formatting: { type: 'decimal', precision: 2 } };
+    case 'rating':
+      return { icon: 'star', color: 'yellowBright', max: 5 };
+    case 'formula':
+      return { expression: field.formula ?? '""' };
+    default:
+      return {};
+  }
 }
 
 function toRow(r: {
@@ -188,4 +296,4 @@ function toRow(r: {
   };
 }
 
-export const __testOnly = { toRow };
+export const testOnly = { toRow };

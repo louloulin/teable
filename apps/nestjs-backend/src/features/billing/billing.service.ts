@@ -13,6 +13,7 @@ import type {
   BillingPlanCode,
   ICreateInvoiceInput,
   ICreateSubscriptionInput,
+  IInvoice,
   IPlanDescriptor,
   ISubscription,
   IUpdateSubscriptionInput,

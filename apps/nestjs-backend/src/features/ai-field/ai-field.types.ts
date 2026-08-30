@@ -115,6 +115,15 @@ export interface IAiRunResult {
   durationMs: number;
 }
 
+export interface IUsageAggregate {
+  total: number;
+  byStatus: Record<'ok' | 'failed' | 'rate-limited' | 'skipped', number>;
+  promptTokens: number;
+  completionTokens: number;
+  averageDurationMs: number;
+  totalDurationMs: number;
+}
+
 export interface ICreateTemplateInput {
   operation: AiFieldOperation;
   language?: string;

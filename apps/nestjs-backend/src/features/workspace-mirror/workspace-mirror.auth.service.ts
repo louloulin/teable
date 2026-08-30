@@ -8,7 +8,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService, type Prisma } from '@teable/db-main-prisma';
 
 import {
   batchRecords,
@@ -52,7 +52,7 @@ export class WorkspaceMirrorAuthService {
         baseId: args.baseId,
         region: args.region,
         kind: args.kind,
-        payload: JSON as Record,
+        payload: args.payload as Prisma.InputJsonValue,
         seq,
         recordedAt: new Date(),
       },

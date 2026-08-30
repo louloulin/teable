@@ -151,7 +151,7 @@ export class BackupService {
           status: 'complete',
           sizeBytes: BigInt(gz.length),
           archivePath,
-          manifest: manifest as Record<string, unknown>,
+          manifest: manifest as unknown as Record<string, unknown>,
           lastModifiedTime: new Date(),
         },
       });

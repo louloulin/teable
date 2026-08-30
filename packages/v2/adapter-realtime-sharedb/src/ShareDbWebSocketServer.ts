@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./websocket-json-stream.d.ts" />
 import type { ILogger } from '@teable/v2-core';
 import { NoopLogger } from '@teable/v2-core';
 import WebSocketJSONStream from '@teamwork/websocket-json-stream';

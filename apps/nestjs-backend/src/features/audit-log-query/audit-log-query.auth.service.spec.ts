@@ -34,7 +34,7 @@ function mkRow(over: Partial<IMockAuditRow> = {}): IMockAuditRow {
 function mkPrismaMock() {
   const findMany = vi.fn();
   const prisma = {
-    auditLog: { findMany },
+    auditEvent: { findMany },
   } as unknown as PrismaService;
   return { prisma, mocks: { findMany } };
 }

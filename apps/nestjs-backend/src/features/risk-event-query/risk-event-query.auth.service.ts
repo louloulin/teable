@@ -149,7 +149,7 @@ export class RiskEventQueryAuthService {
   }
 
   /** Re-export event-kind predicate. */
-  isRiskEventKind: (s: string) => s is RiskEventKind = (s) => {
+  isRiskEventKind = (s: string): s is RiskEventKind => {
     return ['risk-decision', 'login-attempt', 'ban-action'].includes(s);
   };
 }

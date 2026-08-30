@@ -24,6 +24,7 @@ interface IMockQueryLogTable {
 }
 interface IMockSynonymTable {
   create: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
@@ -67,6 +68,7 @@ const buildPrisma = (): IMockPrisma => ({
   },
   searchSynonym: {
     create: vi.fn(async ({ data }) => ({ ...data, createdTime: now })),
+    findFirst: vi.fn(async () => null),
     findUnique: vi.fn(async () => null),
     findMany: vi.fn(async () => []),
     delete: vi.fn(async () => null),
@@ -285,7 +287,7 @@ describe('FulltextSearchAuthService (Stage 42)', () => {
     });
 
     it('rejects duplicate', async () => {
-      prisma.searchSynonym.findUnique.mockResolvedValueOnce({ id: 'x' });
+      prisma.searchSynonym.findFirst.mockResolvedValueOnce({ id: 'x' });
       await expect(
         svc.addSynonym({ term: 'x', synonyms: ['y'], createdBy: 'u' })
       ).rejects.toBeInstanceOf(ConflictException);

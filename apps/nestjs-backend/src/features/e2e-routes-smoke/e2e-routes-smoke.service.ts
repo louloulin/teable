@@ -39,6 +39,7 @@ export function validateSmokeCase(c: IRouteSmokeCase): string | null {
 export function expectedStatusFor(input: {
   route: IRouteSpec;
   hasToken: boolean;
+  expectedStatus?: number;
 }): number {
   if (input.expectedStatus) return input.expectedStatus;
   if (!input.route.authRequired) return 200;

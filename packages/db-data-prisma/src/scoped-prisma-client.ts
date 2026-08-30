@@ -1,6 +1,6 @@
 import { createPrismaPgAdapter, type IPgPoolLease } from '@teable/db-main-prisma';
 
-import { Prisma, PrismaClient } from './generated/client';
+import { PrismaClient, type Prisma } from './generated/client';
 
 const quoteLiteral = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
@@ -48,10 +48,9 @@ export const createScopedDataPrismaClient = (
       return await fn(transaction);
     }, options);
 
-  let proxy: ScopedDataPrismaClient;
   let disconnected = false;
 
-  proxy = new Proxy(client, {
+  const proxy = new Proxy(client, {
     get(target, property, receiver) {
       if (property === 'txClient') return () => proxy;
       if (property === '$tx') return scopedTransaction;

@@ -70,7 +70,8 @@ export class DomainVerificationController {
   }
 
   private requireOrgId(): string {
-    const orgId = this.cls.get('organizationId');
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    const orgId = cls.get('organizationId') as string | undefined;
     if (!orgId)
       throw new CustomHttpException(
         'organization context missing',

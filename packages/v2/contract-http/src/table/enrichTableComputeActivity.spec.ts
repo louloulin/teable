@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { enrichTableDtoWithComputeActivity } from './enrichTableComputeActivity';
 import type { ITableDto } from './dto';
+import { enrichTableDtoWithComputeActivity } from './enrichTableComputeActivity';
 
 const baseTable = (): ITableDto =>
   ({

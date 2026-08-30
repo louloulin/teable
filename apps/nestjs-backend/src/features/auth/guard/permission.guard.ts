@@ -53,6 +53,11 @@ export class PermissionGuard {
     private readonly permissionService: PermissionService
   ) {}
 
+  private setClsValue(key: string, value: unknown): void {
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set(key, value);
+  }
+
   protected defaultResourceId(context: ExecutionContext): string | undefined {
     const req = context.switchToHttp().getRequest();
     // before check baseId, as users can be individually invited into the base.
@@ -150,7 +155,8 @@ export class PermissionGuard {
       resourceId,
       permissions
     );
-    this.cls.set('permissions', ownPermissions);
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set('permissions', ownPermissions);
     return true;
   }
 
@@ -183,13 +189,13 @@ export class PermissionGuard {
     // Preserve logged-in user identity for allowEdit; fall back to anonymous
     const currentUserId = this.cls.get('user.id');
     if (!currentUserId || isAnonymous(currentUserId)) {
-      this.cls.set('user', {
+      this.setClsValue('user', {
         id: ANONYMOUS_USER_ID,
         name: ANONYMOUS_USER_ID,
         email: '',
       });
     }
-    this.cls.set('permissions', ownPermissions);
+    this.setClsValue('permissions', ownPermissions);
     return true;
   }
 
@@ -239,13 +245,13 @@ export class PermissionGuard {
     // Preserve logged-in user identity for allowEdit; fall back to anonymous
     const currentUserId = this.cls.get('user.id');
     if (!currentUserId || isAnonymous(currentUserId)) {
-      this.cls.set('user', {
+      this.setClsValue('user', {
         id: ANONYMOUS_USER_ID,
         name: ANONYMOUS_USER_ID,
         email: '',
       });
     }
-    this.cls.set('permissions', ownPermissions);
+    this.setClsValue('permissions', ownPermissions);
     return true;
   }
 
@@ -284,7 +290,7 @@ export class PermissionGuard {
       permissions,
       accessTokenId
     );
-    this.cls.set('permissions', ownPermissions);
+    this.setClsValue('permissions', ownPermissions);
     return true;
   }
 

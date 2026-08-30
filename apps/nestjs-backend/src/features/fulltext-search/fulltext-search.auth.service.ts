@@ -213,8 +213,8 @@ export class FulltextSearchAuthService {
   async addSynonym(input: IAddSynonymInput): Promise<ISearchSynonym> {
     if (input.term.trim().length === 0) throw new BadRequestException('term required');
     if (input.synonyms.length === 0) throw new BadRequestException('at least one synonym required');
-    const dup = await this.prisma.searchSynonym.findUnique({
-      where: { indexId_term: { indexId: input.indexId ?? null, term: input.term } },
+    const dup = await this.prisma.searchSynonym.findFirst({
+      where: { indexId: input.indexId ?? null, term: input.term },
     });
     if (dup) throw new ConflictException('synonym exists');
     const id = `syn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;

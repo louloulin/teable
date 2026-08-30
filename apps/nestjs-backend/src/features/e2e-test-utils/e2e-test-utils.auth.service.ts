@@ -52,9 +52,9 @@ export class E2ETestUtilsAuthService {
     const row = await this.prisma.testFixture.findUnique({ where: { id: input.seed } });
     if (!row) return null;
     return {
-      org: row['org'] as ITestFixture['org'],
-      users: row['users'] as ITestFixture['users'],
-      tokens: row['tokens'] as ITestFixture['tokens'],
+      org: row['org'] as unknown as ITestFixture['org'],
+      users: row['users'] as unknown as ITestFixture['users'],
+      tokens: row['tokens'] as unknown as ITestFixture['tokens'],
       seed: String(row['seed']),
     };
   }

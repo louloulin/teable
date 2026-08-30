@@ -1,12 +1,16 @@
-import { PermissionMatrixService } from './permission-matrix.service';
-import { vi } from 'vitest';
-import { vi } from 'vitest';
+import { lastValueFrom, of } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
+
+import type { IPermissionRoleVo } from './permission-matrix.constants';
+import type { PermissionMatrixService } from './permission-matrix.service';
 import { PermissionInterceptor } from './permission.interceptor';
-import { IPermissionRoleVo } from './permission-matrix.constants';
 
 const matrix = (): PermissionMatrixService => {
   const fake = {
     resolveRolesForUser: vi.fn(async () => []),
+    mergeRecordFilters: vi.fn(() => null),
+    applyCurrentUser: vi.fn((filter) => filter),
     fieldAccess: vi.fn(() => 'unset' as const),
   };
   return fake as unknown as PermissionMatrixService;
@@ -25,15 +29,37 @@ const reflector = (enabled: boolean) =>
 const execCtx = (req: Record<string, unknown>) =>
   ({
     switchToHttp: () => ({ getRequest: () => req }),
+    getHandler: () => undefined,
+    getClass: () => undefined,
   }) as never;
 
 describe('PermissionInterceptor.response projection', () => {
+  it('stashes the resolved row filter before invoking the handler', async () => {
+    const m = matrix();
+    (m.resolveRolesForUser as Mock).mockResolvedValueOnce([
+      {
+        nodes: [{ tableId: 't1', access: 'editable' }],
+        recordActions: [{ tableId: 't1', action: 'view' }],
+        fieldPermissions: [],
+        recordFilter: { tableId: 't1', filter: { ownerId: '$current_user' } },
+      },
+    ] as IPermissionRoleVo[]);
+    (m.mergeRecordFilters as Mock).mockReturnValueOnce({ ownerId: '$current_user' });
+    (m.applyCurrentUser as Mock).mockReturnValueOnce({ ownerId: 'u1' });
+    const req = { params: { tableId: 't1', baseId: 'b1' } } as Record<string, unknown>;
+    const interceptor = new PermissionInterceptor(m, cls({ id: 'u1' }), reflector(true));
+    const next = { handle: () => of({ ok: true }) };
+
+    await lastValueFrom(interceptor.intercept(execCtx(req), next as never));
+    expect(req).toMatchObject({ permission: { filter: { ownerId: 'u1' } } });
+  });
+
   it('projects hidden fields to null in record envelopes', async () => {
     const m = matrix();
-    (m.resolveRolesForUser as import('vitest').Mock).mockResolvedValueOnce([
+    (m.resolveRolesForUser as Mock).mockResolvedValueOnce([
       { nodes: [], recordActions: [], fieldPermissions: [] },
     ] as IPermissionRoleVo[]);
-    (m.fieldAccess as import('vitest').Mock).mockImplementation((_r, _t, fid: string) =>
+    (m.fieldAccess as Mock).mockImplementation((_r, _t, fid: string) =>
       fid === 'secret' ? ('hidden' as const) : ('editable' as const)
     );
 
@@ -74,7 +100,7 @@ describe('PermissionInterceptor.response projection', () => {
 
   it('handles bare rows (no `fields` envelope)', () => {
     const m = matrix();
-    (m.fieldAccess as import('vitest').Mock).mockImplementation((_r, _t, fid: string) =>
+    (m.fieldAccess as Mock).mockImplementation((_r, _t, fid: string) =>
       fid === 'secret' ? ('hidden' as const) : ('editable' as const)
     );
     const interceptor = new PermissionInterceptor(m, cls({ id: 'u1' }), reflector(true));

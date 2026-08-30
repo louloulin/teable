@@ -34,7 +34,8 @@ const providerRow = {
   issuer: 'https://idp.example.com/saml',
   ssoUrl: 'https://idp.example.com/sso',
   emailDomain: 'example.com',
-  enabled: true,
+  status: 'active',
+  type: 'saml',
 };
 
 const sampleAssertion =
@@ -92,7 +93,7 @@ describe('SamlAuthService (Stage 21)', () => {
     it('rejects when the matched provider is disabled', async () => {
       prisma.ssoIdentityProvider.findFirst.mockResolvedValueOnce({
         ...providerRow,
-        enabled: false,
+        status: 'disabled',
       });
       await expect(
         svc.startLogin({
@@ -112,7 +113,7 @@ describe('SamlAuthService (Stage 21)', () => {
         acsUrl: 'y',
       });
       expect(prisma.ssoIdentityProvider.findFirst).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1', enabled: true },
+        where: { organizationId: 'org_1', status: 'active', type: 'saml' },
       });
     });
   });

@@ -142,9 +142,7 @@ export class VectorFieldAuthService {
     return toRecord(upserted, collection.dimensions);
   }
 
-  async search(
-    input: ISearchInput
-  ): Promise<{ hits: Record<ISimilarityHit, unknown>[]; prompt: string }> {
+  async search(input: ISearchInput): Promise<{ hits: ISimilarityHit[]; prompt: string }> {
     const collection = await this.prisma.vectorCollection.findUnique({
       where: { id: input.collectionId },
     });
@@ -173,7 +171,7 @@ export class VectorFieldAuthService {
       content: h.content,
     }));
     const prompt = buildRagPrompt({ query: '', hits });
-    return { hits: hits as unknown as Record<ISimilarityHit, unknown>[], prompt };
+    return { hits, prompt };
   }
 
   async deleteRecord(recordId: string): Promise<void> {
@@ -181,7 +179,7 @@ export class VectorFieldAuthService {
   }
 
   buildRagPrompt = buildRagPrompt;
-  DEFAULT_TOP_K = DEFAULT_TOP_K;
+  defaultTopK = DEFAULT_TOP_K;
 }
 
 function toCollection(r: {

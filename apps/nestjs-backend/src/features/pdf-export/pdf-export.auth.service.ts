@@ -4,14 +4,13 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
+import { DatabaseRouter } from '../../global/database-router.service';
 
 import type {
   IPdfBuildResult,
   IPdfDocumentOptions,
-  IColumn,
-  IRow,
-  ITableData,
-} from '../data-exchange/data-exchange.types';
+} from './pdf-export.types';
+import type { IColumn, IRow, ITableData } from '../data-exchange/data-exchange.types';
 import { buildDocument, buildTableLayout, paginateTable } from './pdf-export.service';
 import type { IDocumentDraft, ITableDraft } from './pdf-export.service';
 
@@ -20,7 +19,7 @@ const MARGIN = 36;
 
 @Injectable()
 export class PdfExportAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly databaseRouter?: DatabaseRouter) {}
 
   async exportTable(args: {
     tableId: string;
@@ -51,8 +50,14 @@ export class PdfExportAuthService {
   private async loadTable(tableId: string, limit: number): Promise<ITableData> {
     const fields = await this.prisma.field.findMany({ where: { tableId } });
     const columns: IColumn[] = fields.map((f) => ({ id: f.id, name: f.name }));
-    const records = await this.prisma.record.findMany({ where: { tableId }, take: limit });
-    const rows: IRow[] = records.map((r) => ({
+    const records = this.databaseRouter
+      ? (await this.databaseRouter.queryDataPrismaForTable<Array<Record<string, unknown>>>(
+          tableId, `SELECT * FROM "${tableId}" LIMIT ${Math.max(0, Math.floor(limit))}`
+        )).map((r: Record<string, unknown>) => ({ id: String(r.__id ?? r.id), data: r }))
+      : ((await (this.prisma as unknown as { record?: { findMany: Function } }).record?.findMany({
+          where: { tableId }, take: limit,
+        })) ?? []);
+    const rows: IRow[] = records.map((r: { id: string; data?: unknown }) => ({
       id: r.id,
       cells: (r.data ?? {}) as Record<string, unknown>,
     }));

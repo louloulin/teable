@@ -6,8 +6,8 @@ export interface OpenApiOperationPy {
   operationId: string;
   method: string;
   path: string;
-  tags?: readonly string[];
-  parameters?: readonly Array<{ name: string; in: string; type: string; required: boolean }>;
+  tags?: ReadonlyArray<string>;
+  parameters?: ReadonlyArray<{ name: string; in: string; type: string; required: boolean }>;
   requestBody?: { schemaRef: string; required: boolean };
   responseSchemaRef?: string;
 }
@@ -15,16 +15,16 @@ export interface OpenApiOperationPy {
 export interface OpenApiSchemaPy {
   ref: string;
   pyType: string;
-  required: readonly string[];
+  required: ReadonlyArray<string>;
   properties: ReadonlyArray<{ name: string; pyType: string; optional: boolean }>;
 }
 
 export interface OpenApiDocumentPy {
   title: string;
   version: string;
-  servers: readonly string[];
-  operations: readonly OpenApiOperationPy[];
-  schemas: readonly OpenApiSchemaPy[];
+  servers: ReadonlyArray<string>;
+  operations: ReadonlyArray<OpenApiOperationPy>;
+  schemas: ReadonlyArray<OpenApiSchemaPy>;
 }
 
 export interface GeneratedPyFile {
@@ -35,7 +35,7 @@ export interface GeneratedPyFile {
 export interface PyCodegenResult {
   packageName: string;
   version: string;
-  files: readonly GeneratedPyFile[];
+  files: ReadonlyArray<GeneratedPyFile>;
   entrypoint: string;
 }
 

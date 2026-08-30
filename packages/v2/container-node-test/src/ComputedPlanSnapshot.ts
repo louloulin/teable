@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { ComputedPlanLogEntry } from './SpyLogger';
+import type { IComputedPlanLogEntry } from './SpyLogger';
 
 /**
  * A structured snapshot of computed steps for JSON assertions.
@@ -34,7 +34,7 @@ export interface ComputedPlanSnapshotOptions {
  * ```
  */
 export const printComputedSteps = (
-  plan: ComputedPlanLogEntry,
+  plan: IComputedPlanLogEntry,
   options?: ComputedPlanSnapshotOptions
 ): string => {
   const { tableNames, fieldNames } = options ?? {};
@@ -74,7 +74,7 @@ export const printComputedSteps = (
  * ```
  */
 export const formatComputedPlanSnapshot = (
-  plan: ComputedPlanLogEntry,
+  plan: IComputedPlanLogEntry,
   options?: ComputedPlanSnapshotOptions
 ): ComputedStepsSnapshot => {
   const { tableNames, fieldNames } = options ?? {};

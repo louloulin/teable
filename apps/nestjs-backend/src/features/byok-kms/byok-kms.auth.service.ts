@@ -14,6 +14,7 @@ import {
   encryptWithDek,
   envelopeHash,
   generateDek,
+  generateAlias,
   isRotationDue,
   isValidAlias,
   parseRotationPolicy,

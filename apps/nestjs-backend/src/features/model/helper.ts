@@ -18,7 +18,8 @@ export const clearCache = async (
   }
 
   if (cls.isActive()) {
-    const currentClearCacheKeys = cls.get('clearCacheKeys') || [];
-    cls.set('clearCacheKeys', [...currentClearCacheKeys, ...clearCacheKeys]);
+    const typedCls = cls as unknown as ClsService<Record<string, unknown>>;
+    const currentClearCacheKeys = (typedCls.get('clearCacheKeys') as (keyof IPerformanceCacheStore)[] | undefined) ?? [];
+    typedCls.set('clearCacheKeys', [...currentClearCacheKeys, ...clearCacheKeys]);
   }
 };

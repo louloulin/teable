@@ -120,7 +120,7 @@ export function computeProgress(
     approvalsCount: approvals.length,
     rejectionsCount: rejections.length,
     abstainsCount: abstains.length,
-    pendingApproverIds: pending,
+    pendingApproverIds: [...pending],
     remainingRequired,
     decided: outcome.decided,
   };
@@ -138,7 +138,7 @@ function cancelledProgress(
     approvalsCount: approvals.length,
     rejectionsCount: rejections.length,
     abstainsCount: abstains.length,
-    pendingApproverIds: pending,
+    pendingApproverIds: [...pending],
     remainingRequired: 0,
     decided: true,
   };
@@ -156,7 +156,7 @@ function expiredProgress(
     approvalsCount: approvals.length,
     rejectionsCount: rejections.length,
     abstainsCount: abstains.length,
-    pendingApproverIds: pending,
+    pendingApproverIds: [...pending],
     remainingRequired: 0,
     decided: true,
   };

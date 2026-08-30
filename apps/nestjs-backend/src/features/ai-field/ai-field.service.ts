@@ -18,6 +18,7 @@ import type {
   IRunAiFieldInput,
   ISummarizeConfig,
   ITranslateConfig,
+  IUsageAggregate,
 } from './ai-field.types';
 import { SUPPORTED_MODELS, SUPPORTED_OPERATIONS } from './ai-field.types';
 
@@ -191,15 +192,6 @@ export function guardOutput(input: {
   }
   // translate: no guard besides trim
   return trimmed;
-}
-
-export interface IUsageAggregate {
-  total: number;
-  byStatus: Record<'ok' | 'failed' | 'rate-limited' | 'skipped', number>;
-  promptTokens: number;
-  completionTokens: number;
-  averageDurationMs: number;
-  totalDurationMs: number;
 }
 
 export function foldRuns(

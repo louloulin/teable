@@ -2,12 +2,18 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Header,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 
+import type { AuditExportFormat } from '../audit-export/audit-export.types';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
-import { AuditLogService, IAuditLogFilter, IAuditLogPage } from './audit-log.service';
+import { AuditLogService } from './audit-log.service';
+import type { IAuditLogFilter, IAuditLogPage } from './audit-log.service';
 
 /**
  * Query-side guard for the audit log capability. Re-used by every method
@@ -49,6 +55,7 @@ const DEFAULT_PAGE_SIZE = 20;
  */
 @Controller('api/admin/audit-log')
 @UseGuards(AuditLogGuard)
+@Permissions('instance|read')
 export class AuditLogController {
   constructor(private readonly auditLog: AuditLogService) {}
 
@@ -72,6 +79,28 @@ export class AuditLogController {
       pageSize,
     });
     return this.auditLog.query(filter);
+  }
+
+  @Get('export')
+  @Header('Cache-Control', 'no-store')
+  async export(
+    @Query('format') format: string | undefined,
+    @Query('actor') actor: string | undefined,
+    @Query('action') action: string | undefined,
+    @Query('resourceType') resourceType: string | undefined,
+    @Query('since') since: string | undefined,
+    @Query('until') until: string | undefined,
+    @Res({ passthrough: true }) response: Response
+  ): Promise<string> {
+    const exportFormat = this.parseExportFormat(format);
+    const filter = this.parseFilter({ actor, action, resourceType, since, until });
+    const result = await this.auditLog.export(filter, exportFormat);
+    response.setHeader('Content-Type', result.mimeType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename.replace(/[^\w.-]/g, '_')}"`
+    );
+    return result.body;
   }
 
   /**
@@ -120,9 +149,7 @@ export class AuditLogController {
   private parseDate(field: string, value: string): Date {
     const ms = Date.parse(value);
     if (Number.isNaN(ms)) {
-      throw new BadRequestException(
-        `${field} must be a valid ISO8601 timestamp, got: ${value}`
-      );
+      throw new BadRequestException(`${field} must be a valid ISO8601 timestamp, got: ${value}`);
     }
     return new Date(ms);
   }
@@ -143,5 +170,11 @@ export class AuditLogController {
       throw new BadRequestException(`pageSize must be a positive integer, got: ${raw}`);
     }
     return Math.min(parsed, MAX_PAGE_SIZE);
+  }
+
+  private parseExportFormat(raw: string | undefined): AuditExportFormat {
+    if (raw === undefined || raw === '') return 'csv';
+    if (raw === 'csv' || raw === 'json' || raw === 'jsonl') return raw;
+    throw new BadRequestException(`format must be one of csv, json, jsonl, got: ${raw}`);
   }
 }

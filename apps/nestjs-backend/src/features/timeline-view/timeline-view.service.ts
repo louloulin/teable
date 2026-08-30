@@ -392,9 +392,9 @@ function resolveBackwardLatest(
 
 function applyConstraint(
   d: ITimelineDependency,
-  earliestStart: Map<string, Date>,
-  earliestFinish: Map<string, Date>,
-  durations: Map<string, number>
+  earliestStart: ReadonlyMap<string, Date>,
+  earliestFinish: ReadonlyMap<string, Date>,
+  durations: ReadonlyMap<string, number>
 ): Date {
   const lagMs = (d.lagDays ?? 0) * MS_PER_DAY;
   switch (d.type) {

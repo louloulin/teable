@@ -15,8 +15,10 @@ import type {
   ICreateRecordsVo,
   IFormSubmitRo,
   IGetRecordHistoryQuery,
+  IGetRecordsRo,
   IRecord,
   IRecordHistoryVo,
+  IRecordsVo,
   IRecordInsertOrderRo,
   IUpdateRecordRo,
 } from '@teable/openapi';
@@ -26,6 +28,7 @@ import { IThresholdConfig, ThresholdConfig } from '../../../configs/threshold.co
 import { CustomHttpException } from '../../../custom.exception';
 import { EventEmitterService } from '../../../event-emitter/event-emitter.service';
 import { Events } from '../../../event-emitter/events';
+import { ButtonClickEvent } from '../../../event-emitter/events/table/button.event';
 import { DataDbClientManager } from '../../../global/data-db-client-manager.service';
 import type { IClsStore } from '../../../types/cls';
 import { retryOnDeadlock } from '../../../utils/retry-decorator';
@@ -577,6 +580,11 @@ export class RecordOpenApiService {
       },
       fieldKeyType: FieldKeyType.Id,
     });
+    const user = this.cls.get('user');
+    await this.eventEmitterService.emitAsync(
+      Events.TABLE_BUTTON_CLICK,
+      new ButtonClickEvent({ tableId, fieldId, record: updatedRecord }, user ? { user } : {})
+    );
     updatedRecord.fields = pick(updatedRecord.fields, [fieldId]);
 
     return {
@@ -584,6 +592,10 @@ export class RecordOpenApiService {
       fieldId,
       record: updatedRecord,
     };
+  }
+
+  async getRecords(tableId: string, query: IGetRecordsRo): Promise<IRecordsVo> {
+    return this.recordService.getRecords(tableId, query, true);
   }
 
   async resetButton(tableId: string, recordId: string, fieldId: string) {
@@ -699,7 +711,13 @@ export class RecordOpenApiService {
       );
     }
 
-    return records[0];
+    const record = records[0];
+    const user = this.cls.get('user');
+    await this.eventEmitterService.emitAsync(Events.TABLE_FORM_SUBMIT, {
+      payload: { tableId, viewId, record },
+      context: user ? { user } : {},
+    });
+    return record;
   }
 
   @Audit({
@@ -713,7 +731,10 @@ export class RecordOpenApiService {
     typecast?: boolean
   ): Promise<ICreateRecordsVo> {
     return this.prismaService.$tx(async () => {
-      this.cls.set('entry', { type: 'form', id: viewId });
+      (this.cls as unknown as { set: (key: string, value: unknown) => void }).set('entry', {
+        type: 'form',
+        id: viewId,
+      });
       return this.createRecords(tableId, {
         records: [{ fields }],
         fieldKeyType: FieldKeyType.Id,

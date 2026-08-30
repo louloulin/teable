@@ -48,33 +48,46 @@ export class PostgresTableQueryRemediationExecutor implements TableQueryRemediat
     }
   ): Promise<Result<unknown, DomainError>> {
     const task = input.task.snapshot();
-    if (task.kind === 'manual_investigation') {
+    if (task.kind === 'manual_investigation')
       return ok({ skipped: true, reason: 'manual investigation task' });
-    }
-    if (
+    if (this.isSchemaMaintenanceTask(task))
+      return this.executeSearchVectorSchemaMaintenance(context, task);
+    if (!input.allowManualIndexExecution)
+      return ok({ skipped: true, reason: 'manual index execution disabled' });
+    if (manualSearchVectorTaskKinds[task.kind]) return this.executeSearchVectorTask(task);
+    return this.executeIndexTask(task);
+  }
+
+  private isSchemaMaintenanceTask(
+    task: ReturnType<TableQueryRemediationTask['snapshot']>
+  ): boolean {
+    return (
       (task.kind === 'rebuild_search_access_path' || task.kind === 'rebuild_search_vector') &&
       isSchemaMaintenancePayload(task.payload)
-    ) {
-      return this.executeSearchVectorSchemaMaintenance(context, task);
+    );
+  }
+
+  private async executeSearchVectorTask(
+    task: ReturnType<TableQueryRemediationTask['snapshot']>
+  ): Promise<Result<unknown, DomainError>> {
+    try {
+      const executor = new PostgresTableSearchVectorExecutor(this.metaDb, this.dataDb);
+      return ok(
+        await executor.execute({
+          tableId: task.tableId,
+          payload: task.payload as Parameters<
+            PostgresTableSearchVectorExecutor['execute']
+          >[0]['payload'],
+        })
+      );
+    } catch (error) {
+      return err(toInfrastructureError(error, 'Failed to execute search vector remediation'));
     }
-    if (!input.allowManualIndexExecution) {
-      return ok({ skipped: true, reason: 'manual index execution disabled' });
-    }
-    if (manualSearchVectorTaskKinds[task.kind]) {
-      try {
-        const executor = new PostgresTableSearchVectorExecutor(this.metaDb, this.dataDb);
-        return ok(
-          await executor.execute({
-            tableId: task.tableId,
-            payload: task.payload as Parameters<
-              PostgresTableSearchVectorExecutor['execute']
-            >[0]['payload'],
-          })
-        );
-      } catch (error) {
-        return err(toInfrastructureError(error, 'Failed to execute search vector remediation'));
-      }
-    }
+  }
+
+  private async executeIndexTask(
+    task: ReturnType<TableQueryRemediationTask['snapshot']>
+  ): Promise<Result<unknown, DomainError>> {
     const payload = task.payload as {
       readonly fieldDbName?: string;
       readonly fieldId?: string;

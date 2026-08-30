@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
+import { DatabaseRouter } from '../../global/database-router.service';
 
 import { exportTable, parseCsv, parseJson, validateRows } from './data-exchange.service';
 import type {
@@ -14,7 +15,7 @@ import type {
 
 @Injectable()
 export class DataExchangeAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly databaseRouter?: DatabaseRouter) {}
 
   async exportTable(args: {
     tableId: string;
@@ -38,7 +39,7 @@ export class DataExchangeAuthService {
     const summary = validateRows({ tableId: args.tableId, columns, rows });
     if (summary.errors.length > 0) return summary;
     const store = args.store ?? this;
-    await store.insert({ tableId: args.tableId, rows });
+    await store.insert({ tableId: args.tableId, rows: [...rows] });
     return summary;
   }
 
@@ -48,7 +49,7 @@ export class DataExchangeAuthService {
   }): Promise<ReadonlyArray<string>> {
     const ids: string[] = [];
     for (const row of input.rows) {
-      const created = await this.prisma.record.create({
+      const created = await (this.prisma as unknown as { record: { create: Function } }).record.create({
         data: { tableId: input.tableId, data: row.cells },
       });
       if (created?.id) ids.push(created.id);
@@ -60,22 +61,25 @@ export class DataExchangeAuthService {
     if (format === 'csv') return parseCsv(body, columns);
     if (format === 'json') {
       const table: ITableData = parseJson(body);
-      return table.rows;
+      return [...table.rows];
     }
     throw new Error(`import not supported for format: ${format}`);
   }
 
   private async loadTable(tableId: string, limit: number): Promise<ITableData> {
     const columns = await this.loadColumns(tableId);
-    const records = await this.prisma.record.findMany({
-      where: { tableId },
-      take: limit,
-    });
-    const rows: IRow[] = records.map((r) => ({
+    const records = this.databaseRouter
+      ? (await this.databaseRouter.queryDataPrismaForTable<Array<Record<string, unknown>>>(
+          tableId, `SELECT * FROM "${tableId}" LIMIT ${Math.max(0, Math.floor(limit))}`
+        )).map((r: Record<string, unknown>) => ({ id: String(r.__id ?? r.id), data: r }))
+      : await (this.prisma as unknown as { record: { findMany: Function } }).record.findMany({
+          where: { tableId }, take: limit,
+        });
+    const rows: IRow[] = records.map((r: { id: string; data: unknown }) => ({
       id: r.id,
       cells: r.data as Record<string, unknown>,
     }));
-    return { tableId, columns, rows };
+    return { tableId, columns, rows: [...rows] };
   }
 
   private async loadColumns(tableId: string): Promise<IColumn[]> {

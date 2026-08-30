@@ -42,8 +42,8 @@ export class PermissionGuard implements CanActivate {
     const handler = typeof context.getHandler === 'function' ? context.getHandler() : undefined;
     const cls = typeof context.getClass === 'function' ? context.getClass() : undefined;
     const action = this.reflector.getAllAndOverride<PermissionAction>(PERMISSION_ACTION_META, [
-      handler,
-      cls,
+      handler ?? PermissionGuard,
+      cls ?? PermissionGuard,
     ]);
     if (!action) return true;
 

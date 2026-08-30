@@ -63,6 +63,11 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { UseV2Feature } from '../../canary/decorators/use-v2-feature.decorator';
 import { V2FeatureGuard } from '../../canary/guards/v2-feature.guard';
 import { V2IndicatorInterceptor } from '../../canary/interceptors/v2-indicator.interceptor';
+import { applyPermissionFilterToRecordQuery } from '../../permission-matrix/permission-filter-merge';
+import {
+  PermissionInterceptor,
+  RequirePermissionFilter,
+} from '../../permission-matrix/permission.interceptor';
 import { RecordService } from '../record.service';
 import { ShareViewScopeService } from '../share-view-scope.service';
 import { FieldKeyPipe } from './field-key.pipe';
@@ -118,16 +123,20 @@ export class RecordOpenApiController {
 
   @UseV2Feature('getRecords')
   @Permissions('record|read')
+  @RequirePermissionFilter()
+  @UseInterceptors(PermissionInterceptor)
   @Get()
   async getRecords(
     @Param('tableId') tableId: string,
-    @Query(new ZodValidationPipe(getRecordsRoSchema), TqlPipe, FieldKeyPipe) query: IGetRecordsRo
+    @Query(new ZodValidationPipe(getRecordsRoSchema), TqlPipe, FieldKeyPipe) query: IGetRecordsRo,
+    @Req() req: Record<string, unknown>
   ): Promise<IRecordsVo> {
+    const permissionQuery = applyPermissionFilterToRecordQuery(req, query);
     if (this.cls.get('useV2')) {
-      return this.recordOpenApiV2Service.getRecords(tableId, query);
+      return this.recordOpenApiV2Service.getRecords(tableId, permissionQuery);
     }
 
-    return await this.recordService.getRecords(tableId, query, true);
+    return await this.recordService.getRecords(tableId, permissionQuery, true);
   }
 
   @Permissions('record|read')
@@ -142,6 +151,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('updateRecord')
   @Permissions('record|update')
+  @EmitControllerEvent(Events.OPERATION_RECORDS_UPDATE)
   @Patch(':recordId')
   async updateRecord(
     @Param('tableId') tableId: string,
@@ -244,6 +254,7 @@ export class RecordOpenApiController {
 
   @Permissions('record|update')
   @UseV2Feature('updateRecords')
+  @EmitControllerEvent(Events.OPERATION_RECORDS_UPDATE)
   @Patch()
   async updateRecords(
     @Param('tableId') tableId: string,
@@ -328,6 +339,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('deleteRecord')
   @Permissions('record|delete')
+  @EmitControllerEvent(Events.OPERATION_RECORDS_DELETE)
   @Delete(':recordId')
   async deleteRecord(
     @Param('tableId') tableId: string,
@@ -347,6 +359,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('deleteRecord')
   @Permissions('record|delete')
+  @EmitControllerEvent(Events.OPERATION_RECORDS_DELETE)
   @Delete()
   async deleteRecords(
     @Param('tableId') tableId: string,

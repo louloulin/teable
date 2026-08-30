@@ -18,7 +18,7 @@ export class AuditLogQueryAuthService {
   ): Promise<IAuditQueryResult> {
     const query = normalizeQuery(rawQuery);
     validateQuery(query);
-    const rows = await this.prisma.auditLog.findMany({ orderBy: { createdTime: 'desc' } });
+    const rows = await this.prisma.auditEvent.findMany({ orderBy: { createdTime: 'desc' } });
     return evaluateQuery(rows.map(toRow), query);
   }
 
@@ -33,24 +33,29 @@ export class AuditLogQueryAuthService {
 
 function toRow(r: {
   id: string;
-  actorId: string;
-  actorType: string;
+  actorId: string | null;
   action: string;
-  resourceType: string;
-  resourceId: string;
-  tableId: string | null;
+  detail: unknown;
   createdTime: Date;
-  ip: string | null;
+  ipAddress: string | null;
 }): IAuditLogRow {
+  const detail =
+    r.detail && typeof r.detail === 'object' && !Array.isArray(r.detail)
+      ? (r.detail as Record<string, unknown>)
+      : {};
   return {
     id: r.id,
-    actorId: r.actorId,
-    actorType: r.actorType,
+    actorId: r.actorId ?? '',
+    actorType: typeof detail.actorType === 'string' ? detail.actorType : 'user',
     action: r.action,
-    resourceType: r.resourceType,
-    resourceId: r.resourceId,
-    tableId: r.tableId ?? undefined,
+    resourceType: typeof detail.resourceType === 'string' ? detail.resourceType : 'unknown',
+    resourceId: typeof detail.resourceId === 'string' ? detail.resourceId : '',
+    tableId: typeof detail.tableId === 'string' ? detail.tableId : undefined,
     createdTime: r.createdTime,
-    ip: r.ip ?? undefined,
+    ip: r.ipAddress ?? undefined,
+    meta:
+      typeof detail.payload === 'object' && detail.payload !== null
+        ? (detail.payload as Record<string, unknown>)
+        : undefined,
   };
 }

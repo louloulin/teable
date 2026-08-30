@@ -15,29 +15,32 @@ interface IPrismaMock {
 function makePrisma(): IPrismaMock {
   const store = new Map<string, Record<string, unknown>>();
   return {
-    auditEvent: {
+      auditEvent: {
       findFirst: vi.fn(async (args: unknown) => {
-        const where = (args as { where: { orgId: string } }).where;
+        const where = (args as { where: { organizationId: string } }).where;
         let latest: Record<string, unknown> | null = null;
         for (const r of store.values()) {
-          if (r['orgId'] !== where.orgId) continue;
-          if (!latest || new Date(r['occurredAt'] as string).getTime() > new Date(latest['occurredAt'] as string).getTime()) {
+          if (r['organizationId'] !== where.organizationId) continue;
+          if (!latest || new Date(r['createdTime'] as string).getTime() > new Date(latest['createdTime'] as string).getTime()) {
             latest = r;
           }
         }
         return latest;
       }),
       findMany: vi.fn(async (args: unknown) => {
-        const where = (args as { where: { orgId: string } }).where;
+        const where = (args as { where: { organizationId: string } }).where;
         return [...store.values()]
-          .filter((r) => r['orgId'] === where.orgId)
-          .sort((a, b) => new Date(a['occurredAt'] as string).getTime() - new Date(b['occurredAt'] as string).getTime());
+          .filter((r) => r['organizationId'] === where.organizationId)
+          .sort((a, b) => new Date(a['createdTime'] as string).getTime() - new Date(b['createdTime'] as string).getTime());
       }),
       create: vi.fn(async (args: unknown) => {
         const data = (args as { data: Record<string, unknown> }).data;
-        const occurredAt = data['occurredAt'];
-        const occurredAtStr = typeof occurredAt === 'string' ? occurredAt : new Date(occurredAt as string).toISOString();
-        store.set(String(data['id']), { ...data, occurredAt: occurredAtStr });
+        const detail = data['detail'] as Record<string, unknown>;
+        store.set(String(data['id']), {
+          ...data,
+          createdTime: new Date(String(detail['occurredAt'] ?? Date.now())).toISOString(),
+          detail,
+        });
         return undefined;
       }),
     },

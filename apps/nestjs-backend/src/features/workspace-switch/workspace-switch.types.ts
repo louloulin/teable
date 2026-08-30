@@ -31,6 +31,7 @@ export interface ICreateSwitchInput {
   userId: string;
   fromSpaceId: string | null;
   toSpaceId: string;
+  token?: string;
   /** Token lifetime in seconds; defaults to 5 min. */
   ttlSeconds?: number;
 }

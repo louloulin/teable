@@ -28,6 +28,7 @@ export enum Events {
   TABLE_RECORD_UPDATE = 'table.record.update',
 
   TABLE_BUTTON_CLICK = 'table.button.click',
+  TABLE_FORM_SUBMIT = 'table.form.submit',
 
   TABLE_VIEW_CREATE = 'table.view.create',
   TABLE_VIEW_DELETE = 'table.view.delete',

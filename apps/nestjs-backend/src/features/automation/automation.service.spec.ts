@@ -1,16 +1,23 @@
-import { AutomationService } from './automation.service';
-import { IAutomationDetail } from './automation.types';
 import { vi } from 'vitest';
+import { AutomationService } from './automation.service';
+import type { IAutomationDetail } from './automation.types';
 
-interface MockStore {
+interface IMockStore {
   automation: {
     create: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
-  automationTrigger: { createMany: ReturnType<typeof vi.fn> };
-  automationAction: { createMany: ReturnType<typeof vi.fn> };
+  automationTrigger: {
+    createMany: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  automationAction: {
+    createMany: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
   automationRun: {
     create: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
@@ -18,15 +25,22 @@ interface MockStore {
   };
 }
 
-const buildPrisma = (): MockStore => ({
+const buildPrisma = (): IMockStore => ({
   automation: {
     create: vi.fn(async ({ data }) => ({ ...data, createdTime: new Date() })),
     findFirst: vi.fn(async () => null),
     findMany: vi.fn(async () => []),
     delete: vi.fn(async () => undefined),
+    update: vi.fn(async ({ where, data }) => ({ id: where.id, ...data })),
   },
-  automationTrigger: { createMany: vi.fn(async () => ({ count: 0 })) },
-  automationAction: { createMany: vi.fn(async () => ({ count: 0 })) },
+  automationTrigger: {
+    createMany: vi.fn(async () => ({ count: 0 })),
+    deleteMany: vi.fn(async () => ({ count: 0 })),
+  },
+  automationAction: {
+    createMany: vi.fn(async () => ({ count: 0 })),
+    deleteMany: vi.fn(async () => ({ count: 0 })),
+  },
   automationRun: {
     create: vi.fn(async ({ data }) => data),
     findFirst: vi.fn(async () => null),
@@ -36,7 +50,7 @@ const buildPrisma = (): MockStore => ({
 
 describe('AutomationService (Stage 13 MVP)', () => {
   let svc: AutomationService;
-  let store: MockStore;
+  let store: IMockStore;
 
   beforeEach(() => {
     store = buildPrisma();
@@ -93,9 +107,7 @@ describe('AutomationService (Stage 13 MVP)', () => {
     );
     expect(store.automationAction.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({ type: 'webhook', orderIndex: 0 }),
-        ]),
+        data: expect.arrayContaining([expect.objectContaining({ type: 'webhook', orderIndex: 0 })]),
       })
     );
   });
@@ -165,6 +177,18 @@ describe('AutomationService (Stage 13 MVP)', () => {
     );
   });
 
+  it('sets startedAt without finishing a run when status is running', async () => {
+    await svc.finishRun('run_running', { status: 'running' });
+    expect(store.automationRun.update).toHaveBeenCalledWith({
+      where: { id: 'run_running' },
+      data: expect.objectContaining({
+        status: 'running',
+        startedAt: expect.any(Date),
+        finishedAt: null,
+      }),
+    });
+  });
+
   it('listByBase() passes baseId where and createdTime desc ordering', async () => {
     store.automation.findMany.mockResolvedValueOnce([]);
     await svc.listByBase('b1');
@@ -172,5 +196,84 @@ describe('AutomationService (Stage 13 MVP)', () => {
       where: { baseId: 'b1' },
       orderBy: { createdTime: 'desc' },
     });
+  });
+
+  it('saves updates as a draft without replacing live actions', async () => {
+    const live = {
+      id: 'auto_1',
+      name: 'Live',
+      enabled: true,
+      draftVersion: 0,
+      liveVersion: 1,
+      triggers: [{ type: 'record_created' }],
+      actions: [{ type: 'email', orderIndex: 0, config: {} }],
+    };
+    store.automation.findFirst.mockResolvedValueOnce(live).mockResolvedValueOnce({
+      ...live,
+      draftConfig: { name: 'Draft', triggers: [], actions: [] },
+      draftVersion: 1,
+    });
+
+    const result = await svc.update('auto_1', {
+      name: 'Draft',
+      lastModifiedBy: 'u1',
+      triggers: [],
+      actions: [],
+    });
+
+    expect(result.draftVersion).toBe(1);
+    expect(store.automationTrigger.deleteMany).not.toHaveBeenCalled();
+    expect(store.automationAction.deleteMany).not.toHaveBeenCalled();
+    expect(store.automation.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ draftConfig: expect.any(Object), draftVersion: 1 }),
+      })
+    );
+  });
+
+  it('applies a draft and links a retry to its source run', async () => {
+    const live = {
+      id: 'auto_1',
+      name: 'Live',
+      enabled: true,
+      liveVersion: 1,
+      draftConfig: { triggers: [], actions: [] },
+      triggers: [],
+      actions: [{ type: 'run_script', orderIndex: 0, config: { script: 'return 1' } }],
+    };
+    store.automation.findFirst.mockResolvedValueOnce(live).mockResolvedValueOnce(live);
+    await svc.applyUpdate('auto_1', 'u1');
+    expect(store.automationTrigger.deleteMany).toHaveBeenCalledWith({
+      where: { automationId: 'auto_1' },
+    });
+    expect(store.automationAction.deleteMany).toHaveBeenCalledWith({
+      where: { automationId: 'auto_1' },
+    });
+
+    store.automationRun.findFirst.mockResolvedValueOnce({
+      id: 'run_1',
+      automationId: 'auto_1',
+      triggerType: 'record_created',
+      status: 'failed',
+      input: {},
+      output: {
+        steps: [
+          { index: 0, status: 'succeeded' },
+          { index: 1, status: 'failed' },
+        ],
+      },
+      error: 'failed',
+      retryCount: 0,
+      version: 1,
+    });
+    store.automation.findFirst.mockResolvedValueOnce({ ...live, draftConfig: null });
+    store.automationRun.create.mockResolvedValueOnce({ id: 'run_2', status: 'pending' });
+    const retry = await svc.createRetryRun('run_1', 'resume');
+    expect(retry.resumeFromStep).toBe(1);
+    expect(store.automationRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ parentRunId: 'run_1', resumeFromStep: 1 }),
+      })
+    );
   });
 });

@@ -43,6 +43,12 @@ export class AuthController {
     };
   }
 
+  @AllowAnonymous(AllowAnonymousType.USER)
+  @Get('/profile')
+  async profile(@Req() request: Express.Request) {
+    return this.me(request);
+  }
+
   @Get('/user')
   @TokenAccess()
   async user(@Req() request: Express.Request) {

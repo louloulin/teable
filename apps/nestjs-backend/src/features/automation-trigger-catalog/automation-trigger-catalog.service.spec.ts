@@ -16,11 +16,11 @@ import {
   summarizeTriggerCatalog,
   validateTriggerConfig,
 } from './automation-trigger-catalog.service';
-import { ITriggerCatalog } from './automation-trigger-catalog.types';
+import type { ITriggerCatalog } from './automation-trigger-catalog.types';
 
 describe('automation-trigger-catalog.builtins', () => {
-  it('has 6 builtin types', () => {
-    expect(BUILTIN_TRIGGER_CATALOG.types.length).toBe(6);
+  it('has every executable trigger type', () => {
+    expect(BUILTIN_TRIGGER_CATALOG.types.length).toBe(9);
   });
   it('default is record_created', () => {
     expect(BUILTIN_TRIGGER_CATALOG.defaultType).toBe('record_created');
@@ -40,11 +40,11 @@ describe('automation-trigger-catalog.index / get', () => {
 describe('automation-trigger-catalog.list / group', () => {
   it('list by category', () => {
     const rec = listTriggersByCategory(BUILTIN_TRIGGER_CATALOG, 'record');
-    expect(rec.length).toBe(3);
+    expect(rec.length).toBe(4);
   });
   it('group by category', () => {
     const g = groupTriggersByCategory(BUILTIN_TRIGGER_CATALOG);
-    expect(g['record'].length).toBe(3);
+    expect(g['record'].length).toBe(4);
     expect(g['schedule'].length).toBe(1);
   });
 });
@@ -70,7 +70,10 @@ describe('automation-trigger-catalog.validate', () => {
     expect(v.ok).toBe(false);
   });
   it('flags bad select', () => {
-    const v = validateTriggerConfig(BUILTIN_TRIGGER_CATALOG, 'record_created', { tableId: 'tbl1', extra: 'nope' });
+    const v = validateTriggerConfig(BUILTIN_TRIGGER_CATALOG, 'record_created', {
+      tableId: 'tbl1',
+      extra: 'nope',
+    });
     expect(v.normalized.tableId).toBe('tbl1');
     expect(v.ok).toBe(true);
   });
@@ -108,8 +111,12 @@ describe('automation-trigger-catalog.merge / cap', () => {
 
 describe('automation-trigger-catalog.missing / hasOutput / serialize / summarize', () => {
   it('missing fields', () => {
-    expect(missingTriggerFields(BUILTIN_TRIGGER_CATALOG, 'record_created', {})).toContain('tableId');
-    expect(missingTriggerFields(BUILTIN_TRIGGER_CATALOG, 'record_created', { tableId: 't' })).toEqual([]);
+    expect(missingTriggerFields(BUILTIN_TRIGGER_CATALOG, 'record_created', {})).toContain(
+      'tableId'
+    );
+    expect(
+      missingTriggerFields(BUILTIN_TRIGGER_CATALOG, 'record_created', { tableId: 't' })
+    ).toEqual([]);
   });
   it('hasOutput', () => {
     expect(hasTriggerOutputKey(BUILTIN_TRIGGER_CATALOG, 'record_created', 'recordId')).toBe(true);
@@ -120,7 +127,7 @@ describe('automation-trigger-catalog.missing / hasOutput / serialize / summarize
   });
   it('summarize', () => {
     const s = summarizeTriggerCatalog(BUILTIN_TRIGGER_CATALOG);
-    expect(s.count).toBe(6);
-    expect(s.categories['record']).toBe(3);
+    expect(s.count).toBe(9);
+    expect(s.categories['record']).toBe(4);
   });
 });

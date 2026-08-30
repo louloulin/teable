@@ -76,6 +76,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     const rows = await this.prisma.permissionRole.findMany({
       where: { baseId },
       orderBy: { createdAt: 'asc' },
+      include: { members: true, nodes: true, fieldPerms: true, recordActions: true, recordFilters: true },
     });
     return Promise.all(rows.map((r) => this.toVo(r)));
   }
@@ -223,6 +224,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
         members: { some: { userId } },
       },
       orderBy: { createdAt: 'asc' },
+      include: { members: true, nodes: true, fieldPerms: true, recordActions: true, recordFilters: true },
     });
     const vos = await Promise.all(rows.map((r) => this.toVo(r)));
     this.cache.set(this.cacheKey(baseId, userId), {
@@ -256,7 +258,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
       .map((f) => f.filter);
     if (filters.length === 0) return null;
     if (filters.length === 1) return filters[0];
-    return { conjunction: 'and', items: filters };
+    return { conjunction: 'and', filterSet: filters };
   }
 
   /** Field-level projection: hidden > readonly > editable wins. */
@@ -296,7 +298,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
   applyCurrentUser(filter: PermissionFilter, userId: string): PermissionFilter {
     if (!filterReferencesCurrentUser(filter)) return filter;
     const cloned = JSON.parse(JSON.stringify(filter)) as unknown;
-    return this.substitute(cloned, userId);
+    return this.substitute(cloned, userId) as PermissionFilter;
   }
 
   private substitute(node: unknown, userId: string): unknown {
@@ -342,18 +344,18 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     name: string;
     description: string | null;
     status: PermissionRoleStatus;
-    members: { userId: string }[];
-    nodes: { tableId: string; access: 'none' | 'editable' }[];
-    fieldPermissions: {
+    members?: { userId: string }[];
+    nodes?: { tableId: string; access: 'none' | 'editable' }[];
+    fieldPerms?: {
       tableId: string;
       fieldId: string;
       access: 'hidden' | 'readonly' | 'editable';
     }[];
-    recordActions: {
+    recordActions?: {
       tableId: string;
       action: 'view' | 'update' | 'create' | 'delete' | 'comment';
     }[];
-    recordFilter: { tableId: string; filter: PermissionFilter } | null;
+    recordFilters?: { tableId: string; filter: PermissionFilter }[];
   }): Promise<IPermissionRoleVo> {
     return {
       id: row.id,
@@ -361,11 +363,11 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
       name: row.name,
       description: row.description,
       status: row.status,
-      members: row.members.map((m) => m.userId),
-      nodes: row.nodes,
-      fieldPermissions: row.fieldPermissions,
-      recordActions: row.recordActions,
-      recordFilter: row.recordFilter,
+      members: (row.members ?? []).map((m) => m.userId),
+      nodes: row.nodes ?? [],
+      fieldPermissions: row.fieldPerms ?? [],
+      recordActions: row.recordActions ?? [],
+      recordFilter: row.recordFilters?.[0] ?? null,
     };
   }
 }

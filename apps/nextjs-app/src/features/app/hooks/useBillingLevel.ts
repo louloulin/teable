@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import type { BillingProductLevel } from '@teable/openapi';
 import { getInstanceUsage, getSubscriptionSummary } from '@teable/openapi';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import { useBaseUsage } from './useBaseUsage';
 import { useIsCloud } from './useIsCloud';
 import { useIsEE } from './useIsEE';
+import { useIsSelfHosted } from './useIsSelfHosted';
 
 export const useBillingLevel = ({ spaceId, baseId }: { spaceId?: string; baseId?: string }) => {
   const isCloud = useIsCloud();
   const isEE = useIsEE();
+  const isSelfHosted = useIsSelfHosted();
 
   const baseUsage = useBaseUsage({ disabled: !baseId });
 
@@ -23,5 +26,7 @@ export const useBillingLevel = ({ spaceId, baseId }: { spaceId?: string; baseId?
     enabled: isCloud && Boolean(spaceId),
   });
 
-  return subscriptionSummary?.level ?? baseUsage?.level ?? instanceUsage?.level;
+  return isSelfHosted
+    ? ('enterprise' as BillingProductLevel)
+    : subscriptionSummary?.level ?? baseUsage?.level ?? instanceUsage?.level;
 };

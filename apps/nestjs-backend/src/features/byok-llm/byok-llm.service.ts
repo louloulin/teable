@@ -199,7 +199,6 @@ export function computeHealth(input: {
   let status: LlmKeyStatus = 'active';
   if (total >= minReq && successRate < 0.5) status = 'invalid';
   else if (total >= minReq && successRate < 0.8) status = 'rate-limited';
-  else if (status === 'disabled') status = 'disabled';
   return {
     provider: input.provider,
     keyId: input.keyId,

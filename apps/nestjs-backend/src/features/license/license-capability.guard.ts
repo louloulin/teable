@@ -1,6 +1,8 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
 
-import { LicenseCapability, LicenseCapabilityService } from './license-capability.service';
+import type { LicenseCapability } from './license-capability.service';
+import { LicenseCapabilityService } from './license-capability.service';
 
 /**
  * Route-level license gate. Apply via `@UseGuards(LicenseCapabilityGuard('ai_chat'))`
@@ -9,13 +11,13 @@ import { LicenseCapability, LicenseCapabilityService } from './license-capabilit
  */
 @Injectable()
 export class LicenseCapabilityGuard implements CanActivate {
-  private readonly cap: LicenseCapability;
+  private cap: LicenseCapability;
   constructor(private readonly caps: LicenseCapabilityService) {
     // Default capability — overridden by the `for()` factory below.
     this.cap = 'ai_chat';
   }
 
-  static for(cap: LicenseCapability) {
+  static for(cap: LicenseCapability): typeof LicenseCapabilityGuard {
     class Scoped extends LicenseCapabilityGuard {
       constructor(c: LicenseCapabilityService) {
         super(c);

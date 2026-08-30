@@ -109,7 +109,8 @@ export class BaseNodeService {
   }
 
   private setIgnoreBaseNodeListener() {
-    this.cls.set('ignoreBaseNodeListener', true);
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set('ignoreBaseNodeListener', true);
   }
 
   /**

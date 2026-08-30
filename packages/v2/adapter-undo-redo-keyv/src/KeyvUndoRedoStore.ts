@@ -1,9 +1,6 @@
 import { brotliDecompressSync, gzipSync, gunzipSync } from 'node:zlib';
-import type Keyv from 'keyv';
-import { ok } from 'neverthrow';
 
 import type {
-  DomainError,
   IUndoRedoStore,
   UndoEntry,
   UndoRedoListOptions,
@@ -11,6 +8,8 @@ import type {
   UndoScope,
 } from '@teable/v2-core';
 import { composeUndoRedoCommands, flattenUndoRedoCommands } from '@teable/v2-core';
+import type Keyv from 'keyv';
+import { ok } from 'neverthrow';
 
 type StoredUndoEntry = Omit<UndoEntry, 'scope'>;
 
@@ -46,7 +45,7 @@ type LoadedState = {
 
 const DEFAULT_COMPRESSION_THRESHOLD_BYTES = 16 * 1024;
 
-export interface KeyvUndoRedoStoreOptions {
+export interface IKeyvUndoRedoStoreOptions {
   keyPrefix?: string;
   ttlMs?: number;
   maxEntries?: number;
@@ -103,7 +102,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
 
   constructor(
     private readonly keyv: Pick<Keyv, 'get' | 'set' | 'delete'>,
-    options?: KeyvUndoRedoStoreOptions
+    options?: IKeyvUndoRedoStoreOptions
   ) {
     this.keyPrefix = options?.keyPrefix ?? 'v2:undo-redo';
     this.ttlMs = options?.ttlMs;

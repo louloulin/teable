@@ -50,7 +50,7 @@ export function buildSessionRow(
     userId: input.userId,
     fromSpaceId: input.fromSpaceId,
     toSpaceId: input.toSpaceId,
-    token: hashSwitchToken(input.token ?? ''), // callers pass raw token
+    token: hashSwitchToken(input.token ?? ''),
     expiresAt,
     consumedAt: null,
     createdTime: now,

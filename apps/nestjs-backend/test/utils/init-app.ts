@@ -81,6 +81,7 @@ import { WsGateway } from '../../src/ws/ws.gateway';
 import { DevWsGateway } from '../../src/ws/ws.gateway.dev';
 import { acquireApp, getSharedBundle } from './e2e-shared';
 import { TestingLogger } from './testing-logger';
+import type { IInitAppReturnType } from '../../vitest-e2e.setup';
 
 export async function initApp() {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises

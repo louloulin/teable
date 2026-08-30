@@ -160,8 +160,8 @@ export const BaseNodeTree = (props: IBaseNodeTreeProps) => {
   const shareUrlPrefix = useShareUrlPrefix();
   const canCreateTable = Boolean(permission?.['table|create']);
   const canCreateDashboard = Boolean(permission?.['base|update'] && !disallowDashboard);
-  const canCreateWorkflow = !isCommunity && Boolean(permission?.['automation|create']);
-  const canCreateApp = !isCommunity && Boolean(aiChatEnabled && permission?.['app|create']);
+  const canCreateWorkflow = Boolean(!isCommunity && permission?.['automation|create']);
+  const canCreateApp = Boolean(!isCommunity && aiChatEnabled && permission?.['app|create']);
   const canCreateFolder = Boolean(permission?.['base|update']);
   const canUpdateTable = Boolean(permission?.['table|update']);
 

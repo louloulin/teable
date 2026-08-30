@@ -28,9 +28,37 @@ node_modules
 /out/
 /build
 /dist/
+**/.next/
+**/out/
+**/build/
+**/dist/
 
 # v2 packages build output
 packages/v2/**/dist/
+
+# TypeScript compiler output emitted beside source files by local builds.
+# Keep hand-authored TypeScript and static assets visible to git.
+packages/core/src/**/*.js
+packages/core/src/**/*.js.map
+packages/core/src/**/*.d.ts
+packages/formula/src/**/*.js
+packages/formula/src/**/*.js.map
+packages/formula/src/**/*.d.ts
+packages/openapi/src/**/*.js
+packages/openapi/src/**/*.js.map
+packages/openapi/src/**/*.d.ts
+packages/db-data-prisma/src/**/*.js
+packages/db-data-prisma/src/**/*.js.map
+packages/db-data-prisma/src/**/*.d.ts
+packages/db-main-prisma/src/**/*.js
+packages/db-main-prisma/src/**/*.js.map
+packages/db-main-prisma/src/**/*.d.ts
+packages/i18n-keys/src/**/*.js
+packages/i18n-keys/src/**/*.js.map
+packages/i18n-keys/src/**/*.d.ts
+packages/v2/**/src/**/*.js
+packages/v2/**/src/**/*.js.map
+packages/v2/**/src/**/*.d.ts
 
 # Next.js auto-generated type definitions
 **/next-env.d.ts
@@ -79,3 +107,8 @@ pnpm-debug.log*
 # LocalStorage assets
 
 **/.assets
+
+# Generated local/static runtime assets.
+**/static/plugin/
+**/static/system/
+**/static/test/

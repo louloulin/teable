@@ -16,8 +16,7 @@ import { z } from 'zod';
 import { axios } from '../../axios';
 import { registerRoute } from '../../utils';
 
-export const LIST_DEAD_LETTER_WEBHOOK_DELIVERIES =
-  '/admin/webhook/delivery/dead-letter';
+export const LIST_DEAD_LETTER_WEBHOOK_DELIVERIES = '/admin/webhook/delivery/dead-letter';
 
 export const deadLetterWebhookDeliveryVoSchema = z.object({
   id: z.string(),
@@ -32,9 +31,7 @@ export const deadLetterWebhookDeliveryVoSchema = z.object({
   createdTime: z.string(),
 });
 
-export type IDeadLetterWebhookDeliveryVo = z.infer<
-  typeof deadLetterWebhookDeliveryVoSchema
->;
+export type IDeadLetterWebhookDeliveryVo = z.infer<typeof deadLetterWebhookDeliveryVoSchema>;
 
 export const listDeadLetterWebhookDeliveriesVoSchema = z.object({
   rows: z.array(deadLetterWebhookDeliveryVoSchema),
@@ -64,7 +61,5 @@ export const ListDeadLetterWebhookDeliveriesRoute: RouteConfig = registerRoute({
 });
 
 export const listDeadLetterWebhookDeliveries = async () => {
-  return axios.get<IListDeadLetterWebhookDeliveriesVo>(
-    LIST_DEAD_LETTER_WEBHOOK_DELIVERIES
-  );
+  return axios.get<IListDeadLetterWebhookDeliveriesVo>(LIST_DEAD_LETTER_WEBHOOK_DELIVERIES);
 };

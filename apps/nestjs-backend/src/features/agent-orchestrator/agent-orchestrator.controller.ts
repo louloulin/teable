@@ -36,15 +36,12 @@ export class AgentOrchestratorController {
   }
 
   @Get('stats')
-  stats(): { tools_registered: number } {
-    return { tools_registered: this.orchestrator.adapterRegistry().forUser.length };
+  stats(): { conversations: number; tools: number } {
+    return this.orchestrator.stats();
   }
 
   @Post('conversations/:id/reset')
-  reset(@Param('id') _id: string): { ok: true } {
-    // The orchestrator's `inspect()` returns a no-op conversation when no
-    // real state is present; resetting a real one is a feature for the
-    // persistence adapter (out of scope for the inline-build slice).
-    return { ok: true };
+  reset(@Param('id') id: string): { ok: true; existed: boolean } {
+    return { ok: true, existed: this.orchestrator.reset(id) };
   }
 }

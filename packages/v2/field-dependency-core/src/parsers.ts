@@ -4,9 +4,9 @@ import type { Result } from 'neverthrow';
 
 import type {
   LinkRelationship,
-  ParsedConditionalOptions,
-  ParsedLinkOptions,
-  ParsedLookupOptions,
+  IParsedConditionalOptions,
+  IParsedLinkOptions,
+  IParsedLookupOptions,
 } from './types';
 
 /**
@@ -132,7 +132,7 @@ export const extractConditionFieldIds = (filter: unknown): string[] => {
  */
 export const parseLinkOptions = (
   raw: string | null
-): Result<ParsedLinkOptions | null, DomainError> => {
+): Result<IParsedLinkOptions | null, DomainError> => {
   if (!raw) return ok(null);
   const parsed = parseJson(raw, 'field.options');
   if (parsed.isErr()) return err(parsed.error);
@@ -165,7 +165,7 @@ export const parseLinkOptions = (
  */
 export const parseLookupOptions = (
   raw: string | null
-): Result<ParsedLookupOptions | null, DomainError> => {
+): Result<IParsedLookupOptions | null, DomainError> => {
   if (!raw) return ok(null);
   const parsed = parseJson(raw, 'field.lookup_options');
   if (parsed.isErr()) return err(parsed.error);
@@ -198,7 +198,7 @@ export const parseLookupOptions = (
  */
 export const parseConditionalFieldOptions = (
   raw: string | null
-): Result<ParsedConditionalOptions | null, DomainError> => {
+): Result<IParsedConditionalOptions | null, DomainError> => {
   if (!raw) return ok(null);
   const parsed = parseJson(raw, 'field.options (conditional)');
   if (parsed.isErr()) return err(parsed.error);

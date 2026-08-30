@@ -50,7 +50,7 @@ interface ITestConfig {
   baseId: string;
 }
 
-interface IInitAppReturnType {
+export interface IInitAppReturnType {
   app: INestApplication<unknown>;
   appUrl: string;
   cookie: string;

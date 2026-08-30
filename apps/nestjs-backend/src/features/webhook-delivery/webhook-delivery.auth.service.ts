@@ -57,6 +57,7 @@ interface IWebhookDeliveryRow {
 interface IWebhookDeliveryDb {
   webhookEndpoint: {
     findUnique(args: { where: { id: string } }): Promise<IWebhookEndpointRow | null>;
+    findMany(args?: { where?: { enabled?: boolean } }): Promise<IWebhookEndpointRow[]>;
   };
   webhookPayload: {
     create(args: { data: IWebhookPayloadRow }): Promise<IWebhookPayloadRow>;
@@ -120,6 +121,22 @@ export class WebhookDeliveryAuthService {
     };
     await this.db.webhookDelivery.create({ data: toRow(delivery) });
     return delivery;
+  }
+
+  async enqueueEvent(args: { event: string; body: string; now?: Date }): Promise<number> {
+    const endpoints = await this.db.webhookEndpoint.findMany({ where: { enabled: true } });
+    let enqueued = 0;
+    for (const endpoint of endpoints) {
+      if (!endpointAcceptsEvent(toEndpoint(endpoint), args.event)) continue;
+      await this.enqueue({
+        endpointId: endpoint.id,
+        event: args.event,
+        body: args.body,
+        now: args.now,
+      });
+      enqueued += 1;
+    }
+    return enqueued;
   }
 
   async listDue(now: Date = new Date()): Promise<IWebhookDelivery[]> {

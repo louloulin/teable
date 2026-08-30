@@ -10,14 +10,128 @@
  */
 
 import { Module } from '@nestjs/common';
+import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
+import { AiModule } from '../ai/ai.module';
+import { AiService } from '../ai/ai.service';
+import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
 import { LicenseModule } from '../license/license.module';
+import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
+import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
+import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
+import { TableOpenApiService } from '../table/open-api/table-open-api.service';
 import { AgentOrchestratorController } from './agent-orchestrator.controller';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
+import { CuppyController } from './cuppy.controller';
 
 @Module({
-  imports: [LicenseModule],
-  controllers: [AgentOrchestratorController],
-  providers: [AgentOrchestratorService],
+  controllers: [AgentOrchestratorController, CuppyController],
+  imports: [
+    LicenseModule,
+    CuppyPromptRouterModule,
+    AiModule,
+    TableOpenApiModule,
+    RecordOpenApiModule,
+  ],
+  providers: [
+    AgentOrchestratorService,
+    {
+      provide: 'CUPPY_BUILTIN_TOOLS',
+      inject: [AgentOrchestratorService, TableOpenApiService, RecordOpenApiService],
+      useFactory: (
+        orchestrator: AgentOrchestratorService,
+        tables: TableOpenApiService,
+        records: RecordOpenApiService
+      ) => {
+        orchestrator.registerTool({
+          name: 'schema_query',
+          description: 'List the accessible tables and fields for the current base.',
+          parameters: {
+            type: 'object',
+            properties: { tableId: { type: 'string' } },
+            additionalProperties: false,
+          },
+          invoke: async (args, ctx) => {
+            if (!ctx.base_id) return { error: 'baseId is required' };
+            if (typeof args.tableId === 'string' && args.tableId.length > 0) {
+              return tables.getTable(ctx.base_id, args.tableId);
+            }
+            return tables.getTables(ctx.base_id);
+          },
+        });
+        orchestrator.registerTool({
+          name: 'record_query',
+          description: 'Read records from an accessible table with a bounded page size.',
+          parameters: {
+            type: 'object',
+            properties: {
+              tableId: { type: 'string' },
+              take: { type: 'number', minimum: 1, maximum: 50 },
+              skip: { type: 'number', minimum: 0 },
+            },
+            required: ['tableId'],
+            additionalProperties: false,
+          },
+          invoke: async (args, ctx) => {
+            if (typeof args.tableId !== 'string' || args.tableId.length === 0) {
+              return { error: 'tableId is required' };
+            }
+            if (!ctx.base_id) return { error: 'baseId is required' };
+            await tables.getTable(ctx.base_id, args.tableId);
+            return records.getRecords(args.tableId, {
+              take: Math.min(50, Math.max(1, Number(args.take) || 20)),
+              skip: Math.max(0, Number(args.skip) || 0),
+            } as never);
+          },
+        });
+        return true;
+      },
+    },
+    {
+      provide: 'CUPPY_LLM_CLIENT',
+      inject: [AiService],
+      useFactory: (ai: AiService) => ({
+        async chat(args: {
+          baseId?: string;
+          system: string;
+          messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+          tools: Array<{
+            name: string;
+            description: string;
+            parameters: Record<string, unknown>;
+          }>;
+          executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+        }) {
+          if (!args.baseId) throw new Error('baseId is required for configured Cuppy AI');
+          const model = await ai.getChatModelInstance(args.baseId);
+          type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
+          const tools: GenerateTools = Object.fromEntries(
+            args.tools.map((definition) => [
+              definition.name,
+              tool({
+                description: definition.description,
+                inputSchema: jsonSchema(definition.parameters),
+                execute: (input) =>
+                  args.executeTool(definition.name, input as Record<string, unknown>),
+              }),
+            ])
+          );
+          const result = await generateText({
+            model: model.lg,
+            system: args.system,
+            messages: args.messages
+              .filter(
+                (message): message is { role: 'user' | 'assistant'; content: string } =>
+                  message.role !== 'tool'
+              )
+              .map((message) => ({ role: message.role, content: message.content })),
+            tools,
+            stopWhen: stepCountIs(3),
+          });
+          return { text: result.text };
+        },
+      }),
+    },
+  ],
   exports: [AgentOrchestratorService],
 })
 export class AgentOrchestratorModule {}

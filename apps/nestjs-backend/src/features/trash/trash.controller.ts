@@ -30,6 +30,11 @@ export class TrashController {
     private readonly cls: ClsService<IClsStore>
   ) {}
 
+  private setClsValue(key: string, value: unknown): void {
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set(key, value);
+  }
+
   @Get()
   async getTrash(@Query(new ZodValidationPipe(trashRoSchema)) query: ITrashRo): Promise<ITrashVo> {
     return await this.trashService.getTrash(query);
@@ -100,9 +105,9 @@ export class TrashController {
 
     const feature =
       'feature' in decision ? decision.feature : TrashController.restoreTableV2Feature;
-    this.cls.set('useV2', decision.useV2);
-    this.cls.set('v2Feature', feature);
-    this.cls.set('v2Reason', decision.reason);
+    this.setClsValue('useV2', Boolean(decision.useV2));
+    this.setClsValue('v2Feature', feature);
+    this.setClsValue('v2Reason', decision.reason);
 
     response.setHeader(X_TEABLE_V2_HEADER, decision.useV2 ? 'true' : 'false');
     response.setHeader(X_TEABLE_V2_FEATURE_HEADER, feature);
@@ -112,9 +117,9 @@ export class TrashController {
   protected prepareRestoreFieldV2Headers(response: Response): void {
     const feature: V2Feature = 'createField';
     const reason = 'header_override';
-    this.cls.set('useV2', true);
-    this.cls.set('v2Feature', feature);
-    this.cls.set('v2Reason', reason);
+    this.setClsValue('useV2', true);
+    this.setClsValue('v2Feature', feature);
+    this.setClsValue('v2Reason', reason);
 
     response.setHeader(X_TEABLE_V2_HEADER, 'true');
     response.setHeader(X_TEABLE_V2_FEATURE_HEADER, feature);

@@ -3,7 +3,8 @@ import type { ICreateSpaceRo, IDataDbPreflightVo } from '@teable/openapi';
 type DataDbMode = 'default' | 'byodb';
 
 export const isByodbSpaceCreateEnabled = (edition?: string) => {
-  return edition?.toUpperCase() === 'EE';
+  const normalizedEdition = edition?.toUpperCase();
+  return normalizedEdition === 'EE' || normalizedEdition === 'SELF_HOSTED';
 };
 
 export const getCreateSpaceDataDbPayload = (

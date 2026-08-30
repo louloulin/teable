@@ -1,9 +1,9 @@
 import type {
-  FieldDependencyEdge,
-  FieldMeta,
-  ParsedConditionalOptions,
-  ParsedLinkOptions,
-  ParsedLookupOptions,
+  IFieldDependencyEdge,
+  IFieldMeta,
+  IParsedConditionalOptions,
+  IParsedLinkOptions,
+  IParsedLookupOptions,
 } from './types';
 
 /**
@@ -16,8 +16,8 @@ import type {
 export const buildLookupEdges = (
   fieldId: string,
   tableId: string,
-  options: ParsedLookupOptions
-): FieldDependencyEdge[] => {
+  options: IParsedLookupOptions
+): IFieldDependencyEdge[] => {
   return [
     // Dependency on the link field (same-record)
     {
@@ -51,8 +51,8 @@ export const buildLookupEdges = (
 export const buildRollupEdges = (
   fieldId: string,
   tableId: string,
-  options: ParsedLookupOptions
-): FieldDependencyEdge[] => {
+  options: IParsedLookupOptions
+): IFieldDependencyEdge[] => {
   return [
     // Dependency on the link field (same-record)
     {
@@ -85,8 +85,8 @@ export const buildRollupEdges = (
 export const buildLinkEdges = (
   fieldId: string,
   tableId: string,
-  options: ParsedLinkOptions
-): FieldDependencyEdge[] => {
+  options: IParsedLinkOptions
+): IFieldDependencyEdge[] => {
   return [
     // Dependency on the lookup field in foreign table (for display title)
     {
@@ -112,12 +112,12 @@ export const buildConditionalEdges = (
   fieldId: string,
   tableId: string,
   fieldType: string,
-  options: ParsedConditionalOptions
-): FieldDependencyEdge[] => {
+  options: IParsedConditionalOptions
+): IFieldDependencyEdge[] => {
   const semantic =
     fieldType === 'conditionalRollup' ? 'conditional_rollup_source' : 'conditional_lookup_source';
 
-  const edges: FieldDependencyEdge[] = [
+  const edges: IFieldDependencyEdge[] = [
     // Dependency on the lookup field in foreign table
     {
       fromFieldId: options.lookupFieldId,
@@ -152,7 +152,7 @@ export const buildConditionalEdges = (
  * These are edges that are not stored in the reference table but
  * are derived from field configuration.
  */
-export const buildDerivedEdgesFromField = (field: FieldMeta): FieldDependencyEdge[] => {
+export const buildDerivedEdgesFromField = (field: IFieldMeta): IFieldDependencyEdge[] => {
   const { id: fieldId, tableId, type, lookupOptions, options, conditionalOptions } = field;
 
   // Lookup field
@@ -181,8 +181,8 @@ export const buildDerivedEdgesFromField = (field: FieldMeta): FieldDependencyEdg
 /**
  * Build derived edges from a list of fields.
  */
-export const buildDerivedEdges = (fields: ReadonlyArray<FieldMeta>): FieldDependencyEdge[] => {
-  const edges: FieldDependencyEdge[] = [];
+export const buildDerivedEdges = (fields: ReadonlyArray<IFieldMeta>): IFieldDependencyEdge[] => {
+  const edges: IFieldDependencyEdge[] = [];
   for (const field of fields) {
     edges.push(...buildDerivedEdgesFromField(field));
   }
@@ -194,11 +194,11 @@ export const buildDerivedEdges = (fields: ReadonlyArray<FieldMeta>): FieldDepend
  * Derived edges take priority over reference edges when there are conflicts.
  */
 export const mergeEdges = (
-  referenceEdges: ReadonlyArray<FieldDependencyEdge>,
-  derivedEdges: ReadonlyArray<FieldDependencyEdge>
-): ReadonlyArray<FieldDependencyEdge> => {
-  const map = new Map<string, FieldDependencyEdge>();
-  const add = (edge: FieldDependencyEdge) => {
+  referenceEdges: ReadonlyArray<IFieldDependencyEdge>,
+  derivedEdges: ReadonlyArray<IFieldDependencyEdge>
+): ReadonlyArray<IFieldDependencyEdge> => {
+  const map = new Map<string, IFieldDependencyEdge>();
+  const add = (edge: IFieldDependencyEdge) => {
     // Key includes kind and linkFieldId to distinguish different propagation paths
     const linkKey = edge.linkFieldId ?? '';
     const key = `${edge.fromFieldId}|${edge.toFieldId}|${edge.kind}|${linkKey}`;

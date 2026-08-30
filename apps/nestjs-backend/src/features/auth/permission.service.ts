@@ -60,6 +60,11 @@ export class PermissionService {
     private readonly jwtService: JwtService
   ) {}
 
+  private setClsValue(key: string, value: unknown): void {
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set(key, value);
+  }
+
   private getDepartmentIds() {
     const departments = this.cls.get('organization.departments');
     return departments?.map((department) => department.id) || [];
@@ -207,7 +212,8 @@ export class PermissionService {
         },
       });
     }
-    this.cls.set('spaceId', spaceId);
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set('spaceId', spaceId);
     return { baseId, spaceId };
   }
 
@@ -232,7 +238,8 @@ export class PermissionService {
         },
       });
     }
-    this.cls.set('spaceId', spaceId);
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set('spaceId', spaceId);
     return { spaceId };
   }
   private async isBaseIdAllowedForResource(
@@ -296,7 +303,8 @@ export class PermissionService {
 
     // set the spaceId to the cls when the user operate in a space
     if (resourceId.startsWith(IdPrefix.Space)) {
-      this.cls.set('spaceId', resourceId);
+      const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+      cls.set('spaceId', resourceId);
     }
 
     if (
@@ -358,7 +366,8 @@ export class PermissionService {
         }
       );
     }
-    this.cls.set('spaceId', spaceId);
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set('spaceId', spaceId);
     return getPermissions(role);
   }
 
@@ -367,7 +376,7 @@ export class PermissionService {
     if (tempAuthBaseId === baseId) {
       const template = await this.templateModel.getTemplateRawByBaseId(baseId);
       if (template) {
-        this.cls.set('template', {
+        this.setClsValue('template', {
           id: template.id,
           baseId: template.snapshot.baseId,
         });
@@ -497,7 +506,7 @@ export class PermissionService {
         this.logger.error(`Template access denied, template not found for ${resourceId}`);
         throw deniedResourceError;
       }
-      this.cls.set('template', {
+      this.setClsValue('template', {
         id: template.id,
         baseId: template.snapshot.baseId,
       });
@@ -521,7 +530,7 @@ export class PermissionService {
         this.logger.error(`Template access denied, template not found for ${resourceId}`);
         throw deniedResourceError;
       }
-      this.cls.set('template', {
+      this.setClsValue('template', {
         id: template.id,
         baseId: template.snapshot.baseId,
       });
@@ -648,7 +657,7 @@ export class PermissionService {
     }
 
     // Set base share in cls for downstream services to use
-    this.cls.set('baseShare', { baseId, nodeId });
+    this.setClsValue('baseShare', { baseId, nodeId });
 
     // When allowEdit is enabled and user is logged in, grant editor-level permissions
     // excluding invite/share/privacy-sensitive actions
@@ -884,7 +893,7 @@ export class PermissionService {
     });
 
     cache.set(baseId, allNodes);
-    this.cls.set('baseShareNodeCache', cache);
+    this.setClsValue('baseShareNodeCache', cache);
     return allNodes;
   }
 
@@ -1091,7 +1100,7 @@ export class PermissionService {
       );
     }
 
-    this.cls.set('shareViewId', shareId);
+    this.setClsValue('shareViewId', shareId);
 
     // allowEdit + logged-in → full record CRUD (curated by ShareViewEditPermissions)
     // minus globally excluded sensitive actions. Anyone else (anonymous, or

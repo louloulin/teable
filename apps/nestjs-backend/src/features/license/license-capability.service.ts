@@ -11,7 +11,7 @@ import { LicenseService } from './license.service';
  * Single source of truth for "is feature X enabled under the current license?".
  *
  *   - Self-host OSS / Standalone (no license): all local capabilities ON.
- *   - `free`: only entry-level AI (cuppy chat, basic field).
+ *   - `free`: the four AI entry points shown on the public pricing page.
  *   - `pro`: all AI capabilities ON.
  *   - `business` / `enterprise`: all AI + enterprise capabilities ON.
  *
@@ -41,7 +41,8 @@ export type LicenseCapability =
   // Stage 14 webhook outbound — Business+ only
   | 'webhook'
   // Stage 52 audit log query DSL — Business+ only
-  | 'audit_log_query';
+  | 'audit_log_query'
+  | 'workspace_mirror';
 
 const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'ai_field',
@@ -62,12 +63,13 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'automation',
   'webhook',
   'audit_log_query',
+  'workspace_mirror',
 ];
 
 const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
 
 const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
-  free: new Set<LicenseCapability>(['ai_chat']),
+  free: new Set<LicenseCapability>(['ai_field', 'ai_chat', 'ai_app_builder', 'cuppy_claw']),
   pro: new Set<LicenseCapability>([
     'ai_field',
     'ai_chat',
@@ -94,6 +96,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'automation',
     'webhook',
     'audit_log_query',
+    'workspace_mirror',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -114,6 +117,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'automation',
     'webhook',
     'audit_log_query',
+    'workspace_mirror',
   ]),
   // Self-hosted OSS does not require a cloud license for local operation.
   self_hosted: ALL_CAPABILITIES_SET,
@@ -137,8 +141,7 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
    * (e.g. test harnesses that toggle env at runtime) take effect after a
    * service restart. Safe to call at any point.
    */
-  refresh(): void {
-    const resolved = this.license.resolveFromEnv();
+  refresh(resolved = this.license.resolveFromEnv()): void {
     const next: PlanLevel =
       resolved.claims?.plan ?? (resolved.source === 'none' ? 'self_hosted' : 'free');
     if (next !== this.plan) {
@@ -153,6 +156,9 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
 
   /** Strict, throws when the capability is missing. */
   require(cap: LicenseCapability): void {
+    if (this.plan === 'self_hosted') {
+      return;
+    }
     if (!this.isEnabled(cap)) {
       throw new CustomHttpException(
         `capability "${cap}" requires a license upgrade`,
@@ -163,6 +169,9 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
   }
 
   isEnabled(cap: LicenseCapability): boolean {
+    if (this.plan === 'self_hosted') {
+      return true;
+    }
     return this.cache.get(cap) ?? false;
   }
 

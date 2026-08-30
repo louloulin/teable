@@ -37,12 +37,14 @@ import {
   verifyOAuthPopupState,
 } from '../../utils/oauth-popup-state';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { NotionImportService, type INotionImportResult } from './notion-import.service';
 import { NotionOAuthService } from './notion-oauth.service';
 
 const guardFor = (cap: 'admin_panel') => LicenseCapabilityGuard.for(cap);
+const NotionGuard = guardFor('admin_panel');
 
 const disconnectBodySchema = notionDisconnectRoSchema;
 const connectBodySchema = notionConnectRoSchema;
@@ -64,7 +66,8 @@ export class NotionController {
   ) {}
 
   @Get('authorize')
-  @Public()
+  @UseGuards(NotionGuard)
+  @Permissions('instance|update')
   authorize(@Query('spaceId') spaceId: string, @Res() res: Response): void {
     if (!spaceId) throw new BadRequestException('spaceId is required');
     res.redirect(this.oauthService.getAuthorizeUrl(createOAuthPopupState('notion', spaceId)));
@@ -99,6 +102,7 @@ export class NotionController {
    */
   @Post('connect')
   @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
   async connect(
     @Body(new ZodValidationPipe(connectBodySchema)) body: IConnectBody
   ): Promise<INotionConnectVo> {
@@ -124,6 +128,7 @@ export class NotionController {
    */
   @Get('databases')
   @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
   async databases(
     @Query(new ZodValidationPipe(databasesQuerySchema)) query: IDatabasesQuery
   ): Promise<INotionDatabasesVo> {
@@ -144,6 +149,7 @@ export class NotionController {
    */
   @Post('import')
   @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
   async import(
     @Body(new ZodValidationPipe(importBodySchema)) body: IImportBody
   ): Promise<INotionImportVo> {
@@ -177,6 +183,7 @@ export class NotionController {
 
   @Post('disconnect')
   @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
   async disconnect(
     @Body(new ZodValidationPipe(disconnectBodySchema)) _body: IDisconnectBody
   ): Promise<INotionDisconnectVo> {

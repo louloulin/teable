@@ -21,7 +21,7 @@ import {
 } from './compliance-attestation.service';
 import { Attestation, AttestationPolicy } from './compliance-attestation.types';
 
-function att(over: Partial = {}): Attestation {
+function att(over: Partial<Attestation> = {}): Attestation {
   return {
     id: 'att_abcdef12',
     kind: 'sub_process',

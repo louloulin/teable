@@ -37,12 +37,11 @@ export type BuildTableSearchAccessPathDefinitionOptions = {
 
 const languageConfigPattern = /^[\w.]+$/;
 
-export const buildTableSearchAccessPathDefinition = (
-  table: Table,
-  options: BuildTableSearchAccessPathDefinitionOptions = {}
-): Result<TableSearchAccessPathDefinition, DomainError> => {
-  const semantics = options.semantics ?? 'substring';
-  const provider = options.provider ?? (semantics === 'lexical' ? 'tsvector' : 'pg_trgm');
+const validateSearchOptions = (
+  semantics: 'substring' | 'lexical',
+  provider: 'pg_trgm' | 'pg_bigm' | 'tsvector',
+  languageConfig: string
+): Result<void, DomainError> => {
   if (semantics === 'substring' && provider === 'tsvector') {
     return err(domainError.validation({ message: 'Substring search requires an n-gram provider' }));
   }
@@ -51,27 +50,32 @@ export const buildTableSearchAccessPathDefinition = (
       domainError.validation({ message: 'Lexical search requires the tsvector provider' })
     );
   }
-  const languageConfig = options.languageConfig?.trim() || 'simple';
-  if (!languageConfigPattern.test(languageConfig)) {
-    return err(domainError.validation({ message: 'Invalid search vector language config' }));
-  }
+  return languageConfigPattern.test(languageConfig)
+    ? ok(undefined)
+    : err(domainError.validation({ message: 'Invalid search vector language config' }));
+};
 
-  const selectedIds = options.fieldIds?.length ? new Set(options.fieldIds) : undefined;
+const collectSearchFields = (
+  table: Table,
+  selectedIds: ReadonlySet<string> | undefined
+): Result<
+  {
+    fields: TableSearchDocumentFieldDefinition[];
+    skippedFields: SearchDocumentFieldContribution[];
+  },
+  DomainError
+> => {
   const visitor = new SearchDocumentFieldContributionVisitor();
   const fields: TableSearchDocumentFieldDefinition[] = [];
   const skippedFields: SearchDocumentFieldContribution[] = [];
-
   for (const field of table.getFields()) {
-    const fieldId = field.id().toString();
-    if (selectedIds && !selectedIds.has(fieldId)) continue;
-
+    if (selectedIds && !selectedIds.has(field.id().toString())) continue;
     const contribution = field.accept(visitor);
     if (contribution.isErr()) return err(contribution.error);
     if (!contribution.value.included) {
       skippedFields.push(contribution.value);
       continue;
     }
-
     const dbFieldName = field.dbFieldName().andThen((name) => name.value());
     if (dbFieldName.isErr()) {
       skippedFields.push({
@@ -81,7 +85,6 @@ export const buildTableSearchAccessPathDefinition = (
       });
       continue;
     }
-
     fields.push({
       ...contribution.value,
       included: true,
@@ -89,6 +92,21 @@ export const buildTableSearchAccessPathDefinition = (
       textProjection: 'text_cast',
     });
   }
+  return ok({ fields, skippedFields });
+};
+
+export const buildTableSearchAccessPathDefinition = (
+  table: Table,
+  options: BuildTableSearchAccessPathDefinitionOptions = {}
+): Result<TableSearchAccessPathDefinition, DomainError> => {
+  const { semantics, provider, languageConfig } = resolveSearchOptions(options);
+  const validation = validateSearchOptions(semantics, provider, languageConfig);
+  if (validation.isErr()) return err(validation.error);
+
+  const selectedIds = options.fieldIds?.length ? new Set(options.fieldIds) : undefined;
+  const collected = collectSearchFields(table, selectedIds);
+  if (collected.isErr()) return err(collected.error);
+  const { fields, skippedFields } = collected.value;
 
   const tableId = table.id().toString();
   const definitionKey = `${tableId}:${semantics}:${provider}:${
@@ -120,6 +138,16 @@ export const buildTableSearchAccessPathDefinition = (
     fields,
     skippedFields,
   });
+};
+
+const resolveSearchOptions = (options: BuildTableSearchAccessPathDefinitionOptions) => {
+  const semantics = options.semantics ?? 'substring';
+  const provider = options.provider ?? (semantics === 'lexical' ? 'tsvector' : 'pg_trgm');
+  return {
+    semantics,
+    provider,
+    languageConfig: options.languageConfig?.trim() || 'simple',
+  };
 };
 
 export type TableSearchVectorFieldDefinition = TableSearchDocumentFieldDefinition;

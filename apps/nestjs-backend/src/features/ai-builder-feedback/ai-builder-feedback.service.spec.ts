@@ -162,16 +162,28 @@ describe('ai-builder-feedback.computeEditDiff', () => {
   });
   it('handles view proposals', () => {
     const diff = computeEditDiff(
-      { ...baseProposal({ entityType: 'view' }), payload: { name: 'v1', type: 'grid' } },
-      { ...baseProposal({ entityType: 'view' }), payload: { name: 'v1', type: 'kanban' } }
+      {
+        ...baseProposal({ entityType: 'view' }),
+        payload: { name: 'v1', type: 'grid' },
+      } as IBuilderProposal,
+      {
+        ...baseProposal({ entityType: 'view' }),
+        payload: { name: 'v1', type: 'kanban' },
+      } as IBuilderProposal
     );
     expect(diff.retype).toBe(1);
     expect(diff.magnitude).toBeGreaterThan(0);
   });
   it('handles field proposals', () => {
     const diff = computeEditDiff(
-      { ...baseProposal({ entityType: 'field' }), payload: { name: 'x', type: 'singleLineText' } },
-      { ...baseProposal({ entityType: 'field' }), payload: { name: 'y', type: 'singleLineText' } }
+      {
+        ...baseProposal({ entityType: 'field' }),
+        payload: { name: 'x', type: 'singleLineText' },
+      } as IBuilderProposal,
+      {
+        ...baseProposal({ entityType: 'field' }),
+        payload: { name: 'y', type: 'singleLineText' },
+      } as IBuilderProposal
     );
     expect(diff.renamed).toBe(1);
   });

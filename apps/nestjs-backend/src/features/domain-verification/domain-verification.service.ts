@@ -27,7 +27,7 @@ export class DomainVerificationService {
   async claim(organizationId: string, domain: string, createdBy: string) {
     const clean = this.normalizeDomain(domain);
     if (!clean) {
-      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION_ERROR);
     }
     const existing = await this.prisma.organizationDomain.findUnique({
       where: { domain: clean },
@@ -139,7 +139,7 @@ export class DomainVerificationService {
     }
     if (row.status !== 'verified' && (data.ssoBound || data.boundAppId)) {
       // Refuse to flip a binding flag on an unverified domain.
-      throw new CustomHttpException('domain must be verified first', HttpErrorCode.PRECONDITION_FAILED);
+      throw new CustomHttpException('domain must be verified first', HttpErrorCode.UNPROCESSABLE_ENTITY);
     }
     return this.prisma.organizationDomain.update({
       where: { id: row.id },

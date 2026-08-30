@@ -54,7 +54,7 @@ export class SsoService {
     if (!verified) {
       throw new CustomHttpException(
         'email domain must be verified first',
-        HttpErrorCode.PRECONDITION_FAILED
+        HttpErrorCode.UNPROCESSABLE_ENTITY
       );
     }
     // Validate discovery synchronously so admin gets immediate feedback.
@@ -125,7 +125,7 @@ export class SsoService {
     });
     const url = new URL(discovery.authorization_endpoint);
     url.searchParams.set('response_type', 'code');
-    url.searchParams.set('client_id', provider.clientId);
+    url.searchParams.set('client_id', provider.clientId ?? '');
     url.searchParams.set('redirect_uri', this.callbackUrl());
     url.searchParams.set('scope', 'openid email profile');
     url.searchParams.set('state', state);
@@ -141,20 +141,21 @@ export class SsoService {
   async handleCallback(input: { code: string; state: string }): Promise<{
     provider: ISsoProviderConfig;
     claims: ISsoIdTokenClaims;
+    stateRow: { id: string; providerId: string; consumed: boolean; expiresAt: Date };
     redirectTo: string | null;
   }> {
     const stateRow = await this.prisma.ssoLoginState.findUnique({ where: { state: input.state } });
     if (!stateRow) {
-      throw new CustomHttpException('invalid state', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('invalid state', HttpErrorCode.VALIDATION_ERROR);
     }
     if (stateRow.consumed || stateRow.expiresAt.getTime() < Date.now()) {
-      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION_ERROR);
     }
     const provider = await this.prisma.ssoIdentityProvider.findUnique({
       where: { id: stateRow.providerId },
     });
     if (!provider || provider.status !== SsoConnectionStatus.active) {
-      throw new CustomHttpException('provider inactive', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('provider inactive', HttpErrorCode.VALIDATION_ERROR);
     }
     const discovery = await this.fetchDiscovery(provider.issuer, provider.discoveryUrl);
     const tokens = await this.exchangeCode({
@@ -271,7 +272,7 @@ export class SsoService {
   async verifyIdToken(jwt: string, expectedIssuer: string, expectedAudience: string) {
     const parts = jwt.split('.');
     if (parts.length !== 3) {
-      throw new CustomHttpException('malformed id_token', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('malformed id_token', HttpErrorCode.VALIDATION_ERROR);
     }
     const [headerB64, payloadB64, signatureB64] = parts;
     const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8')) as {
@@ -280,34 +281,34 @@ export class SsoService {
       typ?: string;
     };
     if (header.alg !== 'RS256') {
-      throw new CustomHttpException('unsupported alg', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('unsupported alg', HttpErrorCode.VALIDATION_ERROR);
     }
     const claims = JSON.parse(
       Buffer.from(payloadB64, 'base64url').toString('utf8')
     ) as ISsoIdTokenClaims;
     if (claims.iss !== expectedIssuer) {
-      throw new CustomHttpException('iss mismatch', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('iss mismatch', HttpErrorCode.VALIDATION_ERROR);
     }
     const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
     if (!aud.includes(expectedAudience)) {
-      throw new CustomHttpException('aud mismatch', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('aud mismatch', HttpErrorCode.VALIDATION_ERROR);
     }
     if (claims.exp * 1000 < Date.now()) {
-      throw new CustomHttpException('id_token expired', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token expired', HttpErrorCode.VALIDATION_ERROR);
     }
     // Resolve JWKS lazily; key set keyed by issuer so multiple providers don't collide.
     const discovery = await this.fetchDiscovery(expectedIssuer);
     const jwks = await this.fetchJwks(discovery.jwks_uri);
     const jwk = header.kid ? jwks[header.kid] : undefined;
     if (!jwk) {
-      throw new CustomHttpException('kid not found', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('kid not found', HttpErrorCode.VALIDATION_ERROR);
     }
     const verifier = createVerify('RSA-SHA256');
     verifier.update(`${headerB64}.${payloadB64}`);
     verifier.end();
     const ok = verifier.verify(jwk, Buffer.from(signatureB64, 'base64url'));
     if (!ok) {
-      throw new CustomHttpException('bad signature', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('bad signature', HttpErrorCode.VALIDATION_ERROR);
     }
     return claims;
   }
@@ -330,10 +331,11 @@ export class SsoService {
         ext: undefined,
       };
       try {
-        map[key.kid] = createPublicKey({ key: jwk as never, format: 'jwk' }).export({
+        const pem = createPublicKey({ key: jwk as never, format: 'jwk' }).export({
           type: 'spki',
           format: 'pem',
         });
+        map[key.kid] = typeof pem === 'string' ? pem : pem.toString('utf8');
       } catch (err) {
         this.logger.warn(`failed to import jwk ${key.kid}: ${(err as Error).message}`);
       }

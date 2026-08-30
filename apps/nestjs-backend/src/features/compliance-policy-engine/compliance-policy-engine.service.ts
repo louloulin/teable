@@ -120,7 +120,10 @@ export function filterViolations(result: PolicyEvalResult, severity: PolicySever
 /** Highest severity among violations. */
 export function maxSeverity(violations: readonly PolicyViolation[]): PolicySeverity | undefined {
   if (!violations.length) return undefined;
-  return violations.reduce((m, v) => (SEVERITY_RANK[v.severity] > SEVERITY_RANK[m] ? v.severity : m), 'info');
+  return violations.reduce<PolicySeverity>(
+    (m, v) => (SEVERITY_RANK[v.severity] > SEVERITY_RANK[m] ? v.severity : m),
+    'info'
+  );
 }
 
 /** Build the actions for a violation (from rule.actions). */

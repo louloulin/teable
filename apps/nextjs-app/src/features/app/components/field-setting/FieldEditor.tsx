@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { tableConfig } from '@/features/i18n/table.config';
 import { useIsCloud } from '../../hooks/useIsCloud';
 import { useIsEE } from '../../hooks/useIsEE';
+import { useIsSelfHosted } from '../../hooks/useIsSelfHosted';
 import { FieldAiConfig } from './field-ai-config';
 import { FieldValidation } from './field-validation/FieldValidation';
 import { FieldOptions } from './FieldOptions';
@@ -80,6 +81,7 @@ export const FieldEditor = (props: {
   const selectedLookupField = useSelectedLookupField(field);
 
   const isEE = useIsEE();
+  const isSelfHosted = useIsSelfHosted();
   const isCloud = useIsCloud();
 
   const updateFieldProps = (props: Partial<IFieldEditorRo>) => {
@@ -297,7 +299,9 @@ export const FieldEditor = (props: {
         </p>
       </div>
       <FieldValidation field={field} operator={operator} onChange={updateFieldProps} />
-      {(isCloud || isEE) && <FieldAiConfig field={field} onChange={updateFieldProps} />}
+      {(isCloud || isEE || isSelfHosted) && (
+        <FieldAiConfig field={field} onChange={updateFieldProps} />
+      )}
       {getUnionOptions()}
     </div>
   );

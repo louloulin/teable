@@ -1,33 +1,34 @@
+import { vi, type Mock } from 'vitest';
+
 import { SsoLoginStateCleanupProcessor } from './sso-login-state-cleanup.processor';
-import { vi } from 'vitest';
 import { SSO_LOGIN_STATE_CLEANUP_QUEUE, SSO_LOGIN_STATE_TTL_MS } from './sso.constants';
 
-interface MockPrisma {
-  ssoLoginState: { deleteMany: import('vitest').Mock };
+interface IMockPrisma {
+  ssoLoginState: { deleteMany: Mock };
 }
 
-interface MockQueue {
-  add: import('vitest').Mock;
-  close: import('vitest').Mock;
+interface IMockQueue {
+  add: Mock;
+  close: Mock;
 }
 
-const buildPrismaMock = (deletedCount = 0): MockPrisma => ({
+const buildPrismaMock = (deletedCount = 0): IMockPrisma => ({
   ssoLoginState: {
     deleteMany: vi.fn(async () => ({ count: deletedCount })),
   },
 });
 
-const buildQueueMock = (): MockQueue => ({
+const buildQueueMock = (): IMockQueue => ({
   add: vi.fn(async () => undefined),
   close: vi.fn(async () => undefined),
 });
 
-const buildProcessor = (prisma: MockPrisma, queue: MockQueue) =>
+const buildProcessor = (prisma: IMockPrisma, queue: IMockQueue) =>
   new SsoLoginStateCleanupProcessor(prisma as never, queue as never);
 
 describe('SsoLoginStateCleanupProcessor — Stage 4.2', () => {
-  let prisma: MockPrisma;
-  let queue: MockQueue;
+  let prisma: IMockPrisma;
+  let queue: IMockQueue;
   let svc: SsoLoginStateCleanupProcessor;
 
   beforeEach(() => {

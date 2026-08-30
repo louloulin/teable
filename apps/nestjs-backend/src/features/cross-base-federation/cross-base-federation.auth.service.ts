@@ -55,8 +55,6 @@ export class CrossBaseFederationAuthService {
         lastRefreshedBy: v.lastRefreshedBy,
         lastRefreshedAt: v.lastRefreshedAt ? new Date(v.lastRefreshedAt) : null,
         lastStalenessSeconds: v.lastStalenessSeconds,
-        createdAt: new Date(v.createdAt),
-        updatedAt: new Date(v.updatedAt),
       },
       update: {
         name: v.name,
@@ -67,7 +65,6 @@ export class CrossBaseFederationAuthService {
         lastRefreshedBy: v.lastRefreshedBy,
         lastRefreshedAt: v.lastRefreshedAt ? new Date(v.lastRefreshedAt) : null,
         lastStalenessSeconds: v.lastStalenessSeconds,
-        updatedAt: new Date(v.updatedAt),
       },
     });
     return v;

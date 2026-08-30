@@ -64,7 +64,7 @@ export type FieldDependencyEdgeSemantic =
  * A dependency edge between two fields.
  * Uses string IDs for portability across different contexts.
  */
-export interface FieldDependencyEdge {
+export interface IFieldDependencyEdge {
   fromFieldId: string;
   toFieldId: string;
   fromTableId: string;
@@ -84,7 +84,7 @@ export type LinkRelationship = 'oneMany' | 'manyOne' | 'oneOne' | 'manyMany';
 /**
  * Parsed lookup options (for lookup/rollup fields).
  */
-export interface ParsedLookupOptions {
+export interface IParsedLookupOptions {
   linkFieldId: string;
   foreignTableId: string;
   lookupFieldId: string;
@@ -97,7 +97,7 @@ export interface ParsedLookupOptions {
 /**
  * Parsed link options (for link fields).
  */
-export interface ParsedLinkOptions {
+export interface IParsedLinkOptions {
   foreignTableId: string;
   lookupFieldId: string;
   isOneWay?: boolean;
@@ -112,7 +112,7 @@ export interface ParsedLinkOptions {
  * Metadata for conditional field options (conditionalRollup / conditionalLookup).
  * Unlike regular lookup/rollup, these don't have a linkFieldId.
  */
-export interface ParsedConditionalOptions {
+export interface IParsedConditionalOptions {
   foreignTableId: string;
   lookupFieldId: string;
   /** Field IDs referenced in the condition filter - changes to these fields should trigger recalculation */
@@ -124,24 +124,24 @@ export interface ParsedConditionalOptions {
 /**
  * Field metadata for dependency graph construction.
  */
-export interface FieldMeta {
+export interface IFieldMeta {
   id: string;
   tableId: string;
   type: string;
   isComputed: boolean;
   isLookup?: boolean;
-  options: ParsedLinkOptions | null;
-  lookupOptions: ParsedLookupOptions | null;
+  options: IParsedLinkOptions | null;
+  lookupOptions: IParsedLookupOptions | null;
   /** For conditionalRollup/conditionalLookup fields */
-  conditionalOptions: ParsedConditionalOptions | null;
+  conditionalOptions: IParsedConditionalOptions | null;
 }
 
 /**
  * Result of loading field dependency graph data.
  */
-export interface FieldDependencyGraphData {
-  fieldsById: Map<string, FieldMeta>;
-  edges: ReadonlyArray<FieldDependencyEdge>;
+export interface IFieldDependencyGraphData {
+  fieldsById: Map<string, IFieldMeta>;
+  edges: ReadonlyArray<IFieldDependencyEdge>;
 }
 
 /**

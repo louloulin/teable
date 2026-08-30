@@ -1,4 +1,5 @@
 import { applyPermissionFilter } from './permission-filter-merge';
+import { applyPermissionFilterToRecordQuery } from './permission-filter-merge';
 
 describe('applyPermissionFilter — Stage 5b', () => {
   it('returns where unchanged when req.permission is absent', () => {
@@ -50,5 +51,40 @@ describe('applyPermissionFilter — Stage 5b', () => {
     );
     // The filter `hidden: false` cannot widen the `visible: true` constraint.
     expect(out).toEqual({ AND: [{ visible: true }, { hidden: false }] });
+  });
+});
+
+describe('applyPermissionFilterToRecordQuery', () => {
+  it('AND-merges a permission filter into the record query', () => {
+    const query = {
+      filter: { conjunction: 'and' as const, filterSet: [] },
+    };
+    const permission = {
+      conjunction: 'and' as const,
+      filterSet: [
+        { fieldId: 'owner', operator: 'is' as const, value: 'u1' },
+      ],
+    };
+
+    const output = applyPermissionFilterToRecordQuery(
+      { permission: { filter: permission } },
+      query
+    );
+
+    expect(output.filter).toEqual({
+      conjunction: 'and',
+      filterSet: [
+        { filterSet: [query.filter, permission], conjunction: 'and' },
+      ],
+    });
+    expect(query.filter.filterSet).toHaveLength(0);
+  });
+
+  it('leaves malformed or absent permission filters untouched', () => {
+    const query = { filter: { conjunction: 'and' as const, filterSet: [] } };
+    expect(applyPermissionFilterToRecordQuery({ permission: { filter: { owner: 'u1' } } }, query)).toBe(
+      query
+    );
+    expect(applyPermissionFilterToRecordQuery(undefined, query)).toBe(query);
   });
 });

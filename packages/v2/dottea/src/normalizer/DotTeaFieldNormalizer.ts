@@ -149,6 +149,15 @@ type NormalizedFieldOptions = {
   config?: Record<string, unknown>;
 };
 
+type FieldNormalizationContext = {
+  readonly field: DotTeaFieldInput;
+  readonly fieldTypesById: ReadonlyMap<string, string>;
+  readonly options: NormalizeFieldOptions | undefined;
+  readonly normalizedOptions: Record<string, unknown> | undefined;
+  readonly lookupOptions: Record<string, unknown> | undefined;
+  readonly hostFieldTypesById: ReadonlyMap<string, string>;
+};
+
 export type NormalizeFieldOptions = {
   readonly availableTableIds?: ReadonlySet<string>;
   readonly fieldIdsByTableId?: ReadonlyMap<string, ReadonlySet<string>>;
@@ -226,6 +235,136 @@ const areFieldTypeMapsEqual = (
   return true;
 };
 
+const fallbackFieldOptions = (context: FieldNormalizationContext): NormalizedFieldOptions => ({
+  options: context.normalizedOptions,
+});
+
+const hasValidLookupReferences = (
+  lookupOptions: Record<string, unknown> | undefined,
+  context: FieldNormalizationContext
+): boolean =>
+  Boolean(
+    lookupOptions &&
+      !referencesMissingForeignTable(
+        readString(lookupOptions, 'foreignTableId'),
+        context.options
+      ) &&
+      !referencesMissingHostLinkField(
+        readString(lookupOptions, 'linkFieldId'),
+        context.hostFieldTypesById
+      ) &&
+      !referencesMissingForeignField(
+        readString(lookupOptions, 'foreignTableId'),
+        readString(lookupOptions, 'lookupFieldId'),
+        context.options
+      )
+  );
+
+const normalizeConditionalLookupOptions = (
+  context: FieldNormalizationContext
+): NormalizedFieldOptions => {
+  const foreignTableId =
+    readString(context.lookupOptions, 'foreignTableId') ??
+    readString(context.normalizedOptions, 'foreignTableId');
+  const lookupFieldId =
+    readString(context.lookupOptions, 'lookupFieldId') ??
+    readString(context.normalizedOptions, 'lookupFieldId');
+  const condition =
+    normalizeCondition(context.lookupOptions) ?? normalizeCondition(context.normalizedOptions);
+  const valid =
+    foreignTableId &&
+    lookupFieldId &&
+    condition &&
+    !referencesMissingForeignTable(foreignTableId, context.options) &&
+    !referencesMissingForeignField(foreignTableId, lookupFieldId, context.options) &&
+    !referencesMissingConditionField(foreignTableId, condition, context.options);
+  return valid
+    ? { type: 'conditionalLookup', options: { foreignTableId, lookupFieldId, condition } }
+    : fallbackFieldOptions({ ...context, normalizedOptions: context.normalizedOptions });
+};
+
+const normalizeLookupFieldOptions = (context: FieldNormalizationContext): NormalizedFieldOptions =>
+  hasValidLookupReferences(context.lookupOptions, context)
+    ? { type: 'lookup', options: context.lookupOptions }
+    : fallbackFieldOptions(context);
+
+const normalizeLinkFieldOptions = (context: FieldNormalizationContext): NormalizedFieldOptions => {
+  const linkOptions = normalizeLinkOptions(context.normalizedOptions);
+  const valid =
+    linkOptions &&
+    !referencesMissingForeignTable(readString(linkOptions, 'foreignTableId'), context.options) &&
+    !referencesMissingForeignField(
+      readString(linkOptions, 'foreignTableId'),
+      readString(linkOptions, 'lookupFieldId'),
+      context.options
+    ) &&
+    !referencesMissingVisibleField(
+      readString(linkOptions, 'foreignTableId'),
+      linkOptions,
+      context.options
+    );
+  return valid ? { type: 'link', options: linkOptions } : fallbackFieldOptions(context);
+};
+
+const normalizeRollupFieldOptions = (
+  context: FieldNormalizationContext
+): NormalizedFieldOptions => {
+  const formulaOptions = normalizeFormulaOptions(context.normalizedOptions, 'countall({values})');
+  return formulaOptions && hasValidLookupReferences(context.lookupOptions, context)
+    ? { type: 'rollup', options: formulaOptions, config: context.lookupOptions }
+    : fallbackFieldOptions(context);
+};
+
+const normalizeConditionalRollupFieldOptions = (
+  context: FieldNormalizationContext
+): NormalizedFieldOptions => {
+  const formulaOptions = normalizeFormulaOptions(context.normalizedOptions, 'countall({values})');
+  const foreignTableId = readString(context.normalizedOptions, 'foreignTableId');
+  const lookupFieldId = readString(context.normalizedOptions, 'lookupFieldId');
+  const condition = normalizeCondition(context.normalizedOptions);
+  const valid =
+    formulaOptions &&
+    foreignTableId &&
+    lookupFieldId &&
+    condition &&
+    !referencesMissingForeignTable(foreignTableId, context.options) &&
+    !referencesMissingForeignField(foreignTableId, lookupFieldId, context.options) &&
+    !referencesMissingConditionField(foreignTableId, condition, context.options);
+  return valid
+    ? {
+        type: 'conditionalRollup',
+        options: formulaOptions,
+        config: { foreignTableId, lookupFieldId, condition },
+      }
+    : fallbackFieldOptions(context);
+};
+
+const normalizeFormulaFieldOptions = (
+  context: FieldNormalizationContext
+): NormalizedFieldOptions => {
+  const expression = readString(context.normalizedOptions, 'expression') ?? '';
+  const refs = expression ? extractFieldReferences(expression) : [];
+  const hasInvalidDependency = refs.some((ref) => {
+    const type = context.fieldTypesById.get(ref);
+    return !type || type === 'rollup' || type === 'conditionalRollup';
+  });
+  if (hasInvalidDependency) return fallbackFieldOptions(context);
+  const formulaOptions = normalizeFormulaOptions(context.normalizedOptions, '0');
+  return formulaOptions
+    ? { type: 'formula', options: formulaOptions }
+    : fallbackFieldOptions(context);
+};
+
+const normalizeComputedFieldOptions = (
+  context: FieldNormalizationContext
+): NormalizedFieldOptions => {
+  if (context.field.type === 'rollup') return normalizeRollupFieldOptions(context);
+  if (context.field.type === 'conditionalRollup') {
+    return normalizeConditionalRollupFieldOptions(context);
+  }
+  return normalizeFormulaFieldOptions(context);
+};
+
 /**
  * Normalize a field's options from v1 (dottea) format to v2 format.
  * This handles the conversion of link, lookup, formula, rollup, conditionalRollup,
@@ -241,143 +380,31 @@ export const normalizeFieldOptions = (
   options?: NormalizeFieldOptions
 ): NormalizedFieldOptions => {
   const rawOptions = asRecord(field.options);
-  const normalizedSelectOptions =
+  const normalizedOptions =
     field.type === 'singleSelect' || field.type === 'multipleSelect'
       ? normalizeSelectChoices(rawOptions)
       : rawOptions;
-  const rawLookupOptions = asRecord(field.lookupOptions);
-  const hostFieldTypesById = options?.hostFieldTypesById ?? fieldTypesById;
+  const lookupOptions = normalizeLookupOptions(asRecord(field.lookupOptions));
+  const context: FieldNormalizationContext = {
+    field,
+    fieldTypesById,
+    options,
+    normalizedOptions,
+    lookupOptions,
+    hostFieldTypesById: options?.hostFieldTypesById ?? fieldTypesById,
+  };
 
-  const lookupOptions = normalizeLookupOptions(rawLookupOptions);
-  // v1 exports lookup fields using the looked-up value type plus isLookup=true.
-  // Handle these before concrete field types, especially link, so a lookup whose
-  // result is a link is not recreated as a physical LinkField.
   if (field.type === 'conditionalLookup' || field.isConditionalLookup) {
-    // Config can be in rawOptions or rawLookupOptions depending on v1 export format
-    const foreignTableId =
-      readString(rawLookupOptions, 'foreignTableId') ??
-      readString(normalizedSelectOptions, 'foreignTableId');
-    const lookupFieldId =
-      readString(rawLookupOptions, 'lookupFieldId') ??
-      readString(normalizedSelectOptions, 'lookupFieldId');
-    const condition =
-      normalizeCondition(rawLookupOptions) ?? normalizeCondition(normalizedSelectOptions);
-    if (
-      foreignTableId &&
-      lookupFieldId &&
-      condition &&
-      !referencesMissingForeignTable(foreignTableId, options) &&
-      !referencesMissingForeignField(foreignTableId, lookupFieldId, options) &&
-      !referencesMissingConditionField(foreignTableId, condition, options)
-    ) {
-      return {
-        type: 'conditionalLookup',
-        options: { foreignTableId, lookupFieldId, condition },
-      };
-    }
-    return { type: 'singleLineText', options: normalizedSelectOptions };
+    return normalizeConditionalLookupOptions(context);
   }
-
   if (field.type === 'lookup' || field.isLookup) {
-    if (!lookupOptions) {
-      return { type: 'singleLineText', options: normalizedSelectOptions };
-    }
-    if (
-      referencesMissingForeignTable(readString(lookupOptions, 'foreignTableId'), options) ||
-      referencesMissingHostLinkField(
-        readString(lookupOptions, 'linkFieldId'),
-        hostFieldTypesById
-      ) ||
-      referencesMissingForeignField(
-        readString(lookupOptions, 'foreignTableId'),
-        readString(lookupOptions, 'lookupFieldId'),
-        options
-      )
-    ) {
-      return { type: 'singleLineText', options: normalizedSelectOptions };
-    }
-    return { type: 'lookup', options: lookupOptions };
+    return normalizeLookupFieldOptions(context);
   }
-
-  if (field.type === 'link') {
-    const linkOptions = normalizeLinkOptions(normalizedSelectOptions);
-    if (
-      !linkOptions ||
-      referencesMissingForeignTable(readString(linkOptions, 'foreignTableId'), options) ||
-      referencesMissingForeignField(
-        readString(linkOptions, 'foreignTableId'),
-        readString(linkOptions, 'lookupFieldId'),
-        options
-      ) ||
-      referencesMissingVisibleField(readString(linkOptions, 'foreignTableId'), linkOptions, options)
-    ) {
-      return { type: 'singleLineText', options: normalizedSelectOptions };
-    }
-    return { type: 'link', options: linkOptions };
+  if (field.type === 'link') return normalizeLinkFieldOptions(context);
+  if (field.type === 'rollup' || field.type === 'conditionalRollup' || field.type === 'formula') {
+    return normalizeComputedFieldOptions(context);
   }
-
-  if (field.type === 'rollup') {
-    const formulaOptions = normalizeFormulaOptions(normalizedSelectOptions, 'countall({values})');
-    return formulaOptions &&
-      lookupOptions &&
-      !referencesMissingForeignTable(readString(lookupOptions, 'foreignTableId'), options) &&
-      !referencesMissingHostLinkField(
-        readString(lookupOptions, 'linkFieldId'),
-        hostFieldTypesById
-      ) &&
-      !referencesMissingForeignField(
-        readString(lookupOptions, 'foreignTableId'),
-        readString(lookupOptions, 'lookupFieldId'),
-        options
-      )
-      ? { type: 'rollup', options: formulaOptions, config: lookupOptions }
-      : { type: 'singleLineText', options: normalizedSelectOptions };
-  }
-
-  if (field.type === 'conditionalRollup') {
-    const formulaOptions = normalizeFormulaOptions(normalizedSelectOptions, 'countall({values})');
-    const foreignTableId = readString(normalizedSelectOptions, 'foreignTableId');
-    const lookupFieldId = readString(normalizedSelectOptions, 'lookupFieldId');
-    const condition = normalizeCondition(normalizedSelectOptions);
-    if (
-      formulaOptions &&
-      foreignTableId &&
-      lookupFieldId &&
-      condition &&
-      !referencesMissingForeignTable(foreignTableId, options) &&
-      !referencesMissingForeignField(foreignTableId, lookupFieldId, options) &&
-      !referencesMissingConditionField(foreignTableId, condition, options)
-    ) {
-      return {
-        type: 'conditionalRollup',
-        options: formulaOptions,
-        config: { foreignTableId, lookupFieldId, condition },
-      };
-    }
-    return { type: 'singleLineText', options: normalizedSelectOptions };
-  }
-
-  if (field.type === 'formula') {
-    const expression =
-      typeof normalizedSelectOptions?.expression === 'string'
-        ? normalizedSelectOptions.expression
-        : '';
-    const refs = expression ? extractFieldReferences(expression) : [];
-    const hasMissingDependency = refs.some((ref) => !fieldTypesById.has(ref));
-    const hasComputedDependency = refs.some((ref) => {
-      const type = fieldTypesById.get(ref);
-      return type === 'rollup' || type === 'conditionalRollup';
-    });
-    if (hasMissingDependency || hasComputedDependency) {
-      return { type: 'singleLineText', options: normalizedSelectOptions };
-    }
-    const formulaOptions = normalizeFormulaOptions(normalizedSelectOptions, '0');
-    return formulaOptions
-      ? { type: 'formula', options: formulaOptions }
-      : { type: 'singleLineText', options: normalizedSelectOptions };
-  }
-
-  return { options: normalizedSelectOptions };
+  return fallbackFieldOptions(context);
 };
 
 /**

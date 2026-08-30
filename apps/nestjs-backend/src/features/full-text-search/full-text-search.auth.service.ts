@@ -14,15 +14,15 @@ import type {
   IIndexedDocument,
   ISearchQuery,
   ISearchResult,
+  ISearchToken,
 } from './full-text-search.types';
 
-interface IMockIndexRow {
+interface ISearchDocumentRow {
   id: string;
-  tableId: string;
+  indexId: string;
   recordId: string;
-  fieldId: string;
-  text: string;
-  indexedAt: Date;
+  bodyText: string;
+  tokens: string;
 }
 
 @Injectable()
@@ -31,25 +31,22 @@ export class FullTextSearchAuthService {
 
   async indexDocument(input: IIndexDocumentInput): Promise<IIndexedDocument> {
     const doc = buildIndexedDocument(input);
-    await this.prisma.searchIndex.upsert({
-      where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        tableId_recordId_fieldId: {
-          tableId: input.tableId,
-          recordId: input.recordId,
-          fieldId: input.fieldId,
-        },
-      },
+    const indexId = input.tableId;
+    const documentId = `${input.recordId}:${input.fieldId}`;
+    await this.prisma.searchDocument.upsert({
+      where: { indexId_recordId: { indexId, recordId: documentId } },
       create: {
-        tableId: input.tableId,
-        recordId: input.recordId,
-        fieldId: input.fieldId,
-        text: input.text,
-        indexedAt: doc.indexedAt,
+        id: `fts_${indexId}_${input.recordId}_${input.fieldId}`,
+        indexId,
+        recordId: documentId,
+        bodyText: input.text,
+        tokens: doc.tokens.join(' '),
+        contentHash: doc.tokens.join('|'),
       },
       update: {
-        text: input.text,
-        indexedAt: doc.indexedAt,
+        bodyText: input.text,
+        tokens: doc.tokens.join(' '),
+        contentHash: doc.tokens.join('|'),
       },
     });
     return doc;
@@ -57,46 +54,43 @@ export class FullTextSearchAuthService {
 
   async removeDocument(tableId: string, recordId: string, fieldId?: string): Promise<number> {
     if (fieldId) {
-      await this.prisma.searchIndex.deleteMany({
-        where: { tableId, recordId, fieldId },
+      await this.prisma.searchDocument.deleteMany({
+        where: { indexId: tableId, recordId: `${recordId}:${fieldId}` },
       });
       return 1;
     }
-    const res = await this.prisma.searchIndex.deleteMany({ where: { tableId, recordId } });
+    const res = await this.prisma.searchDocument.deleteMany({
+      where: { indexId: tableId, recordId: { startsWith: `${recordId}:` } },
+    });
     return res.count;
   }
 
   async getDocument(tableId: string, recordId: string, fieldId: string): Promise<IIndexedDocument> {
-    const row = await this.prisma.searchIndex.findUnique({
-      where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        tableId_recordId_fieldId: { tableId, recordId, fieldId },
-      },
+    const row = await this.prisma.searchDocument.findUnique({
+      where: { indexId_recordId: { indexId: tableId, recordId: `${recordId}:${fieldId}` } },
     });
     if (!row) throw new NotFoundException(`indexed doc not found`);
     return buildIndexedDocument({
-      tableId: row.tableId,
-      recordId: row.recordId,
-      fieldId: row.fieldId,
-      text: row.text,
+      tableId,
+      recordId,
+      fieldId,
+      text: row.bodyText,
     });
   }
 
   async search(rawQuery: Partial<ISearchQuery>): Promise<ISearchResult> {
-    const query = normalizeQuery(rawQuery);
+    const query = normalizeQuery(rawQuery as Partial<ISearchQuery> & { tokens?: ISearchToken[] });
     validateQuery(query);
-    if (query.tableId) {
-      const rows = await this.prisma.searchIndex.findMany({ where: { tableId: query.tableId } });
-      return searchDocuments(rows.map(toDoc), query);
-    }
-    const rows = await this.prisma.searchIndex.findMany();
+    const rows = await this.prisma.searchDocument.findMany({
+      where: query.tableId ? { indexId: query.tableId } : undefined,
+    });
     return searchDocuments(rows.map(toDoc), query);
   }
 
   async buildNativeSql(
     rawQuery: Partial<ISearchQuery>
   ): Promise<{ sql: string; params: string[] }> {
-    const query = normalizeQuery(rawQuery);
+    const query = normalizeQuery(rawQuery as Partial<ISearchQuery> & { tokens?: ISearchToken[] });
     validateQuery(query);
     return buildSearchQuery({ query, schema: 'public', indexTable: 'search_index' });
   }
@@ -104,11 +98,12 @@ export class FullTextSearchAuthService {
   shouldIndexField = shouldIndexField;
 }
 
-function toDoc(r: IMockIndexRow): IIndexedDocument {
+function toDoc(r: ISearchDocumentRow): IIndexedDocument {
+  const separator = r.recordId.lastIndexOf(':');
   return buildIndexedDocument({
-    tableId: r.tableId,
-    recordId: r.recordId,
-    fieldId: r.fieldId,
-    text: r.text,
+    tableId: r.indexId,
+    recordId: separator > 0 ? r.recordId.slice(0, separator) : r.recordId,
+    fieldId: separator > 0 ? r.recordId.slice(separator + 1) : '',
+    text: r.bodyText,
   });
 }

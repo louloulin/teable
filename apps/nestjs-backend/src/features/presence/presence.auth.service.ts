@@ -32,9 +32,10 @@ export class PresenceAuthService {
 
   async join(input: IJoinPresenceInput, now: Date = new Date()): Promise<IPresenceSession> {
     validateJoinInput(input);
-    const existing = await this.prisma.presenceSession.findMany({
+    const existingRows = await this.prisma.presenceSession.findMany({
       where: { baseId: input.baseId },
     });
+    const existing = existingRows.map(toSession);
     const drop = applyJoinPolicy(existing, input);
     if (drop.length > 0) {
       await this.prisma.presenceSession.deleteMany({

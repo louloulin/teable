@@ -69,7 +69,5 @@ export const RetryWebhookDeliveryRoute: RouteConfig = registerRoute({
  * brand-new run.
  */
 export const retryWebhookDelivery = async (id: string) => {
-  return axios.post<IRetryWebhookDeliveryVo>(
-    urlBuilder(RETRY_WEBHOOK_DELIVERY, { id })
-  );
+  return axios.post<IRetryWebhookDeliveryVo>(urlBuilder(RETRY_WEBHOOK_DELIVERY, { id }));
 };

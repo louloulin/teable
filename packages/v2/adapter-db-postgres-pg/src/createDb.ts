@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Kysely, PostgresDialect } from 'kysely';
-import type { IV2PostgresDbConfig } from './config';
 import type { Pool as PgPool } from 'pg';
+
+import type { IV2PostgresDbConfig } from './config';
 
 // Use webpack's special require that bypasses bundling, falling back to dynamic import
 // This is needed because webpack transforms dynamic imports in ways that bypass

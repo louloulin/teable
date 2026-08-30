@@ -44,6 +44,10 @@ CREATE INDEX IF NOT EXISTS "sso_identity_provider_issuer_idx"
 CREATE INDEX IF NOT EXISTS "sso_identity_provider_status_idx"
   ON "sso_identity_provider" ("status");
 
+ALTER TABLE "sso_identity_provider" ADD COLUMN IF NOT EXISTS "sso_url" TEXT;
+ALTER TABLE "sso_identity_provider" ADD COLUMN IF NOT EXISTS "idp_cert" TEXT;
+ALTER TABLE "sso_identity_provider" ADD COLUMN IF NOT EXISTS "display_name" TEXT;
+
 -- 3. Short-lived state table for the OAuth2 callback round-trip.
 CREATE TABLE IF NOT EXISTS "sso_login_state" (
   "id"              TEXT PRIMARY KEY,

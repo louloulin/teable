@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
+import { LicenseModule } from '../license/license.module';
 
 import { TeamsConfigController } from './teams-config.controller';
 import { TeamsConfigService } from './teams-config.service';
@@ -20,7 +21,7 @@ import { TeamsAdapter } from './teams.adapter';
  * the upstream `IMBridgeService` core body stay untouched.
  */
 @Module({
-  imports: [PrismaModule, HttpModule],
+  imports: [PrismaModule, HttpModule, LicenseModule],
   controllers: [TeamsConfigController],
   providers: [TeamsAdapter, TeamsConfigService],
   exports: [TeamsAdapter, TeamsConfigService],

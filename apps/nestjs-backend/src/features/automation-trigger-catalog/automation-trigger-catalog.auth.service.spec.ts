@@ -21,7 +21,7 @@ function setup() {
 describe('AutomationTriggerCatalogAuthService.get / list / group / index', () => {
   it('get catalog', () => {
     const { svc } = setup();
-    expect(svc.getCatalog().types.length).toBe(6);
+    expect(svc.getCatalog().types.length).toBe(9);
   });
   it('get', () => {
     const { svc } = setup();
@@ -30,7 +30,7 @@ describe('AutomationTriggerCatalogAuthService.get / list / group / index', () =>
   });
   it('listByCategory', () => {
     const { svc } = setup();
-    expect(svc.listByCategory('record').length).toBe(3);
+    expect(svc.listByCategory('record').length).toBe(4);
   });
   it('groupByCategory', () => {
     const { svc } = setup();
@@ -38,7 +38,7 @@ describe('AutomationTriggerCatalogAuthService.get / list / group / index', () =>
   });
   it('index', () => {
     const { svc } = setup();
-    expect(svc.index().size).toBe(6);
+    expect(svc.index().size).toBe(9);
   });
 });
 
@@ -65,7 +65,17 @@ describe('AutomationTriggerCatalogAuthService.extend / serialize / summarize / p
     svc.extend({
       version: 1,
       defaultType: 'manual',
-      types: [{ type: 'extra', label: 'E', category: 'system', description: '', icon: '', fields: [], outputKeys: [] }],
+      types: [
+        {
+          type: 'extra',
+          label: 'E',
+          category: 'system',
+          description: '',
+          icon: '',
+          fields: [],
+          outputKeys: [],
+        },
+      ],
     });
     expect(svc.getCatalog().types.length).toBe(before + 1);
   });
@@ -75,7 +85,7 @@ describe('AutomationTriggerCatalogAuthService.extend / serialize / summarize / p
   });
   it('summarize', () => {
     const { svc } = setup();
-    expect(svc.summarize().count).toBe(6);
+    expect(svc.summarize().count).toBe(9);
   });
   it('ping', async () => {
     const { svc } = setup();

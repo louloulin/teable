@@ -352,22 +352,23 @@ const toFormulaAwareOperatorFamily = (
   operatorFamily: TableQueryOperatorFamily,
   formula: TableQueryFormulaAccessPathShape | undefined
 ): TableQueryOperatorFamily => {
-  if (!formula) return operatorFamily;
-  if (!formula.stable) return 'formula_result';
+  if (!formula || !formula.stable) return formula ? 'formula_result' : operatorFamily;
+  if (formula.sourceKind !== 'formula_source') return 'formula_result';
+
   const predicateFamilies = formula.predicatePushdown?.supported
     ? formula.predicatePushdown.operatorFamilies
     : [];
-  if (formula.sourceKind === 'formula_source') {
-    if (predicateFamilies.includes('text_contains')) return 'text_contains';
-    if (predicateFamilies.includes('text_prefix')) return 'text_prefix';
-    if (predicateFamilies.includes('equality')) return 'equality';
-    if (predicateFamilies.includes('range')) return 'range';
-    if (formula.operatorFamilies.includes('text_contains')) return 'text_contains';
-    if (formula.operatorFamilies.includes('text_prefix')) return 'text_prefix';
-    if (operatorFamily === 'equality' || operatorFamily === 'range') return operatorFamily;
-  }
-  if (formula.sourceKind === 'formula_expression') return 'formula_result';
-  return 'formula_result';
+  const preferredFamilies = [
+    ...predicateFamilies,
+    ...formula.operatorFamilies,
+  ] as readonly TableQueryOperatorFamily[];
+  const supportedFamily = preferredFamilies.find((family) =>
+    ['text_contains', 'text_prefix', 'equality', 'range'].includes(family)
+  );
+  if (supportedFamily) return supportedFamily;
+  return operatorFamily === 'equality' || operatorFamily === 'range'
+    ? operatorFamily
+    : 'formula_result';
 };
 
 const toOperatorFamily = (

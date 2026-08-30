@@ -1,5 +1,5 @@
 import type { DomainError, ImportCsvResult } from '@teable/v2-core';
-import { err, ok, type Result } from 'neverthrow';
+import type { Result } from 'neverthrow';
 import { z } from 'zod';
 
 import type { IDomainEventDto } from '../shared/domainEvent';

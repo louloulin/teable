@@ -39,17 +39,17 @@ export class SsoAuthService {
   ): Promise<Awaited<ReturnType<UserService['findOrCreateUser']>>> {
     const email = claims.email;
     if (!email) {
-      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION_ERROR);
     }
     if (claims.email_verified === false) {
-      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION_ERROR);
     }
     // domain-claim guard — recheck here so a config drift between SSO
     // and the verification table doesn't widen trust.
     if (!email.toLowerCase().endsWith(`@${provider.emailDomain.toLowerCase()}`)) {
       throw new CustomHttpException(
         'email does not match IdP emailDomain',
-        HttpErrorCode.VALIDATION
+HttpErrorCode.VALIDATION_ERROR
       );
     }
     const user = await this.usersService.findOrCreateUser({
@@ -90,24 +90,24 @@ export class SsoAuthService {
     claims: ISsoIdTokenClaims
   ) {
     if (stateRow.consumed) {
-      throw new CustomHttpException('state already consumed', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('state already consumed', HttpErrorCode.VALIDATION_ERROR);
     }
     if (stateRow.expiresAt.getTime() < Date.now()) {
-      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('state expired', HttpErrorCode.VALIDATION_ERROR);
     }
     // Mirror resolveLocalUser's claim checks here so any failure aborts the
     // transaction before consumed=true is written. These run BEFORE the
     // transaction so a malformed state row never opens a useless tx.
     if (!claims.email) {
-      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token missing email claim', HttpErrorCode.VALIDATION_ERROR);
     }
     if (claims.email_verified === false) {
-      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('id_token email is not verified', HttpErrorCode.VALIDATION_ERROR);
     }
     if (!claims.email.toLowerCase().endsWith(`@${provider.emailDomain.toLowerCase()}`)) {
       throw new CustomHttpException(
         'email does not match IdP emailDomain',
-        HttpErrorCode.VALIDATION
+        HttpErrorCode.VALIDATION_ERROR
       );
     }
     const user = await this.prisma.$transaction(async (tx) => {

@@ -11,7 +11,14 @@ interface IOAuthPopupState {
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-const secret = (): string => process.env.SECRET_KEY ?? 'teable-oauth-state-development-secret';
+const secret = (): string => {
+  const configured = process.env.SECRET_KEY?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SECRET_KEY is required for OAuth popup state signing in production');
+  }
+  return 'teable-oauth-state-development-secret';
+};
 
 const encode = (value: string): string => Buffer.from(value, 'utf8').toString('base64url');
 

@@ -5,6 +5,8 @@
 import type { FieldConversion, FieldDataKind, IFieldTypeMap } from './field-type-map.types';
 import { FIELD_DATA_KINDS, MAX_FIELD_MAPS } from './field-type-map.types';
 
+export type { IFieldTypeMap } from './field-type-map.types';
+
 /** Type guard. */
 export function isFieldDataKind(s: string): s is FieldDataKind {
   return (FIELD_DATA_KINDS as ReadonlyArray<string>).includes(s);

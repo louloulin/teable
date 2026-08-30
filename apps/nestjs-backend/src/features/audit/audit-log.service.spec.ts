@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuditLogService } from './audit-log.service';
 
 /**
- * Build a fake PrismaService exposing just the `auditLog` delegate we
+ * Build a fake PrismaService exposing just the `auditEvent` delegate we
  * touch. Everything else is left unstubbed — the service should never
  * reach for another model.
  */
@@ -11,7 +11,7 @@ const buildPrisma = () => {
   const findMany = vi.fn().mockResolvedValue([]);
   const count = vi.fn().mockResolvedValue(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prisma = { auditLog: { findMany, count } } as any;
+  const prisma = { auditEvent: { findMany, count } } as any;
   return { prisma, findMany, count };
 };
 
@@ -36,23 +36,23 @@ describe('AuditLogService', () => {
     const findArgs = findMany.mock.calls[0][0];
     expect(findArgs).toEqual({
       where: {
-        userId: 'u1',
+        actorId: 'u1',
         action: 'user.sso.login.success',
-        resourceType: 'user',
-        createdAt: { gte: since, lte: until },
+        detail: { path: ['resourceType'], equals: 'user' },
+        createdTime: { gte: since, lte: until },
       },
       skip: 0,
       take: 20,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdTime: 'desc' },
     });
     // count() must use the same where so `total` reflects the same row set.
     expect(count).toHaveBeenCalledTimes(1);
     expect(count.mock.calls[0][0]).toEqual({
       where: {
-        userId: 'u1',
+        actorId: 'u1',
         action: 'user.sso.login.success',
-        resourceType: 'user',
-        createdAt: { gte: since, lte: until },
+        detail: { path: ['resourceType'], equals: 'user' },
+        createdTime: { gte: since, lte: until },
       },
     });
   });
@@ -94,18 +94,18 @@ describe('AuditLogService', () => {
     // single string literal in `where`. We assert the literal shape only —
     // Prisma's own escaping is what protects us from injection.
     expect(findArgs.where).toEqual({
-      userId: "u1' OR 1=1--",
+      actorId: "u1' OR 1=1--",
       action: "user.sso.login.failure'; DROP TABLE audit_log;--",
-      resourceType: 'user',
+      detail: { path: ['resourceType'], equals: 'user' },
     });
     // Structural sanity: the where clause has no OR operator, no DROP
     // TABLE clause split off as a separate value — the entire payload
     // sits as one string per field.
     const keys = Object.keys(findArgs.where);
-    expect(keys).toEqual(['userId', 'action', 'resourceType']);
-    expect(typeof findArgs.where.userId).toBe('string');
+    expect(keys).toEqual(['actorId', 'action', 'detail']);
+    expect(typeof findArgs.where.actorId).toBe('string');
     expect(typeof findArgs.where.action).toBe('string');
-    expect(typeof findArgs.where.resourceType).toBe('string');
+    expect(findArgs.where.detail).toEqual({ path: ['resourceType'], equals: 'user' });
   });
 
   it('omits createdAt filter when neither since nor until is provided', async () => {
@@ -113,8 +113,8 @@ describe('AuditLogService', () => {
     const service = new AuditLogService(prisma);
 
     await service.query({ actor: 'u1', pageSize: 5 });
-    expect(findMany.mock.calls[0][0].where).toEqual({ userId: 'u1' });
-    expect(findMany.mock.calls[0][0].where.createdAt).toBeUndefined();
+    expect(findMany.mock.calls[0][0].where).toEqual({ actorId: 'u1' });
+    expect(findMany.mock.calls[0][0].where.createdTime).toBeUndefined();
   });
 
   it('emits an empty-page result when the table has no rows', async () => {
@@ -130,21 +130,29 @@ describe('AuditLogService', () => {
     const { prisma, findMany, count } = buildPrisma();
     const row = {
       id: 'row1',
-      userId: 'u1',
+      actorId: 'u1',
       action: 'user.sso.login.success',
-      resourceType: 'user',
-      resourceId: 'u1',
-      payload: {},
-      rootAction: null,
-      operationId: null,
-      createdAt: new Date(),
+      detail: { resourceType: 'user', resourceId: 'u1', payload: {} },
+      createdTime: new Date(),
     };
     findMany.mockResolvedValueOnce([row]);
     count.mockResolvedValueOnce(7);
     const service = new AuditLogService(prisma);
 
     await expect(service.query({ actor: 'u1' })).resolves.toEqual({
-      rows: [row],
+      rows: [
+        {
+          id: row.id,
+          userId: 'u1',
+          action: row.action,
+          resourceType: 'user',
+          resourceId: 'u1',
+          payload: {},
+          rootAction: null,
+          operationId: null,
+          createdAt: row.createdTime,
+        },
+      ],
       total: 7,
     });
   });

@@ -29,6 +29,7 @@ import {
   Query,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { FieldKeyType } from '@teable/core';
 import {
@@ -45,9 +46,11 @@ import {
   oauthPopupHtml,
   verifyOAuthPopupState,
 } from '../../utils/oauth-popup-state';
+import { safeFetch } from '../../utils/ssrf-http';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { RecordOpenApiV2Service } from '../record/open-api/record-open-api-v2.service';
 import { GoogleSheetsOAuthService } from './google-sheets-oauth.service';
 import {
@@ -69,6 +72,7 @@ interface ISyncCounts {
 }
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+const GoogleSheetsGuard = LicenseCapabilityGuard.for('admin_panel');
 
 @Controller('api/admin/google-sheets')
 @Permissions('instance|update')
@@ -87,6 +91,7 @@ export class GoogleSheetsController {
    * front end owns state for now).
    */
   @Get('authorize-url')
+  @UseGuards(GoogleSheetsGuard)
   async getAuthorizeUrl(
     @Query('spaceId') spaceId: string
   ): Promise<{ url: string; configured: boolean }> {
@@ -136,6 +141,7 @@ export class GoogleSheetsController {
   }
 
   @Post('connect')
+  @UseGuards(GoogleSheetsGuard)
   @HttpCode(200)
   async connect(
     @Body(new ZodValidationPipe(googleSheetsConnectRoSchema)) body: IGoogleSheetsConnectRo
@@ -155,6 +161,7 @@ export class GoogleSheetsController {
   }
 
   @Get('status/:spaceId')
+  @UseGuards(GoogleSheetsGuard)
   async status(@Param('spaceId') spaceId: string): Promise<IGoogleSheetsStatusVo> {
     const stored = await this.oauth.getStoredTokens(spaceId);
     if (!stored) {
@@ -172,6 +179,7 @@ export class GoogleSheetsController {
   }
 
   @Post('sync')
+  @UseGuards(GoogleSheetsGuard)
   @HttpCode(200)
   async sync(
     @Body(new ZodValidationPipe(googleSheetsSyncRoSchema)) body: IGoogleSheetsSyncRo
@@ -260,6 +268,7 @@ export class GoogleSheetsController {
   }
 
   @Post('disconnect/:spaceId')
+  @UseGuards(GoogleSheetsGuard)
   @HttpCode(200)
   async disconnect(
     @Param('spaceId') spaceId: string
@@ -273,6 +282,7 @@ export class GoogleSheetsController {
    * Kept distinct from POST so existing callers don't break.
    */
   @Delete('disconnect/:spaceId')
+  @UseGuards(GoogleSheetsGuard)
   async disconnectDelete(
     @Param('spaceId') spaceId: string
   ): Promise<{ disconnected: true; spaceId: string }> {
@@ -291,7 +301,7 @@ const fetchSpreadsheet = async ({
 }: IFetchSpreadsheetArgs): Promise<IGoogleSheetsSpreadsheet> => {
   const u = new URL(`${SHEETS_API_BASE}/${encodeURIComponent(spreadsheetId)}`);
   u.searchParams.set('includeGridData', 'true');
-  const res = await fetch(u.toString(), {
+  const res = await safeFetch(u.toString(), {
     headers: { authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
@@ -318,7 +328,7 @@ const runValuesBatchUpdate = async ({
   // We use the values.batchUpdate endpoint, not the sheets.batchUpdate endpoint:
   // values.batchUpdate is simpler for a full-range overwrite and doesn't
   // require us to resolve a numeric sheetId → grid range.
-  const res = await fetch(
+  const res = await safeFetch(
     `${SHEETS_API_BASE}/${encodeURIComponent(spreadsheetId)}/values:batchUpdate`,
     {
       method: 'POST',

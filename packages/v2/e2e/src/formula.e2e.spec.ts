@@ -1701,6 +1701,7 @@ describe('v2 http formula (e2e)', () => {
             name: 'Last Modified Date',
             options: {
               expression: `IF({${primaryFieldId}}, DATETIME_FORMAT({${lastModifiedTimeFieldId}}, "YYYY-MM-DD"), DATETIME_FORMAT({${lastModifiedTimeFieldId}}, "YYYY-MM-DD"))`,
+              timeZone: 'utc',
             },
           },
         }),

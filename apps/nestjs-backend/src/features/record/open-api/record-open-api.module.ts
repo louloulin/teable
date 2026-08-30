@@ -18,6 +18,7 @@ import { ViewOpenApiModule } from '../../view/open-api/view-open-api.module';
 import { ViewModule } from '../../view/view.module';
 import { RecordModifyModule } from '../record-modify/record-modify.module';
 import { RecordModule } from '../record.module';
+import { PermissionMatrixModule } from '../../permission-matrix/permission-matrix.module';
 import { RecordOpenApiV2Service } from './record-open-api-v2.service';
 import { RecordOpenApiController } from './record-open-api.controller';
 import { RecordOpenApiService } from './record-open-api.service';
@@ -42,6 +43,7 @@ import { RecordOpenApiService } from './record-open-api.service';
     CanaryModule,
     SpaceDataDbMigrationGuardModule,
     forwardRef(() => SelectionModule),
+    PermissionMatrixModule,
   ],
   controllers: [RecordOpenApiController],
   providers: [RecordOpenApiService, RecordOpenApiV2Service, TableQuerySearchVectorRuntimeService],

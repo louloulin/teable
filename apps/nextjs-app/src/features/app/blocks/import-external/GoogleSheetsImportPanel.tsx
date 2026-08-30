@@ -1,6 +1,6 @@
 import { FileSpreadsheet } from '@teable/icons';
-import { Button, cn, Input, Label } from '@teable/ui-lib/shadcn';
-import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
+import { Button, cn } from '@teable/ui-lib/shadcn';
+import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import React from 'react';
 import { spaceConfig } from '@/features/i18n/space.config';
@@ -10,32 +10,13 @@ interface IGoogleSheetsImportPanelProps {
 }
 
 /**
- * Minimal Google Sheets import entry. The Airtable pipeline accepts both
- * integrationId and accessToken, but Google Sheets has no Airtable-equivalent
- * backend yet — we surface the UI shell (URL input + "Coming soon" affordance)
- * so the admin nav can advertise the feature without lying about a working
- * import. Until a sheets-import service is added, the panel submits the URL
- * via a no-op client stub and toasts a placeholder so the form is still
- * testable.
+ * Entry point for the implemented Google Sheets OAuth and sync administration
+ * flow. Importing is configured from the dedicated admin page.
  */
 export const GoogleSheetsImportPanel = (props: IGoogleSheetsImportPanelProps) => {
   const { className } = props;
   const { t } = useTranslation(spaceConfig.i18nNamespaces);
-  const [url, setUrl] = React.useState('');
-  const [busy, setBusy] = React.useState(false);
-
-  const submit = async () => {
-    setBusy(true);
-    try {
-      // Placeholder: would call `importGoogleSheetsAnalyze({ url })` once the
-      // sheets-import backend exists. For now we surface the limitation in the
-      // UI so an admin who tries the flow sees an honest message.
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      toast.warning(t('space:sheetsImport.notImplemented'));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const router = useRouter();
 
   return (
     <div className={cn('flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm', className)}>
@@ -50,22 +31,9 @@ export const GoogleSheetsImportPanel = (props: IGoogleSheetsImportPanelProps) =>
           </div>
         </div>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="google-sheets-url">{t('space:sheetsImport.urlLabel')}</Label>
-        <Input
-          id="google-sheets-url"
-          type="url"
-          inputMode="url"
-          spellCheck={false}
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder={t('space:sheetsImport.urlPlaceholder')}
-        />
-        <p className="text-xs text-muted-foreground">{t('space:sheetsImport.urlHelp')}</p>
-      </div>
       <div className="flex justify-end">
-        <Button onClick={submit} disabled={busy || !url.trim()}>
-          {busy ? t('common:actions.loading') : t('space:sheetsImport.continue')}
+        <Button onClick={() => router.push('/admin/google-sheets')}>
+          {t('space:sheetsImport.continue')}
         </Button>
       </div>
     </div>

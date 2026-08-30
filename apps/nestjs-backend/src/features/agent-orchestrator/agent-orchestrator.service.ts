@@ -11,42 +11,38 @@
  * License: AGPL-3.0
  */
 
-import { Injectable, Optional } from '@nestjs/common';
-import {
+import { Inject, Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
+import { CuppyPromptRouter } from '../cuppy-prompt-router/cuppy-prompt-router';
+import type {
   ConversationContext,
-  ConversationStore,
   InboundMessage,
   OutboundReply,
   AdapterRegistry,
-  InMemoryAdapterRegistry,
   Tool,
 } from './agent-orchestrator';
+import { ConversationStore, InMemoryAdapterRegistry } from './agent-orchestrator';
 
-export interface LlmCallResult {
+export interface ILlmCallResult {
   text: string;
-  /** Names of tools the LLM wants to call; the router narrows these. */
-  requested_tools?: string[];
+  /** Tool calls returned by a lightweight/mock provider. */
+  requestedTools?: Array<string | { name: string; args?: Record<string, unknown> }>;
 }
 
 /** A minimal LLM client interface so the service is decoupled from the
  *  concrete provider (OpenAI / Anthropic / BYOK). */
-export interface LlmClient {
+export interface ILlmClient {
   chat(args: {
+    baseId?: string;
     system: string;
     messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
     tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
-  }): Promise<LlmCallResult>;
+    executeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+  }): Promise<ILlmCallResult>;
 }
 
-export interface PromptRouter {
+export interface IPromptRouter {
   /** Return the (prompt-system-message, tool-set) for a given user message. */
-  route(
-    ctx: ConversationContext,
-    text: string
-  ): Promise<{
-    system: string;
-    tools: string[];
-  }>;
+  route(args: { recent: string[]; text: string }): Promise<{ system: string; tools: string[] }>;
 }
 
 @Injectable()
@@ -56,12 +52,20 @@ export class AgentOrchestratorService {
   private readonly tools = new Map<string, Tool>();
 
   constructor(
-    @Optional() private readonly llm?: LlmClient,
-    @Optional() private readonly router?: PromptRouter
+    @Optional() @Inject('CUPPY_LLM_CLIENT') private readonly llm?: ILlmClient,
+    @Optional() @Inject(CuppyPromptRouter) private readonly router?: IPromptRouter
   ) {}
 
   registerTool(tool: Tool): void {
     this.tools.set(tool.name, tool);
+  }
+
+  reset(conversationId: string): boolean {
+    return this.store.reset(conversationId);
+  }
+
+  stats(): { conversations: number; tools: number } {
+    return { conversations: this.store.size(), tools: this.tools.size };
   }
 
   adapterRegistry(): AdapterRegistry {
@@ -78,11 +82,13 @@ export class AgentOrchestratorService {
    * delivered via the adapter's outbound channel.
    */
   async handle(
-    conversation_id: string,
-    user_id: string,
+    conversationId: string,
+    userId: string,
     inbound: InboundMessage
   ): Promise<OutboundReply> {
-    const ctx = this.store.loadOrCreate(conversation_id, user_id);
+    const inboundBaseId = this.inboundBaseId(inbound);
+    const ctx = this.store.loadOrCreate(conversationId, userId, inboundBaseId);
+    if (inboundBaseId) ctx.base_id = inboundBaseId;
 
     // 1. Persist the user message before any LLM call.
     this.store.appendMessage(ctx, 'user', inbound.text);
@@ -90,7 +96,10 @@ export class AgentOrchestratorService {
     // 2. Route — pick the system prompt + active toolset.  Falls back to a
     //    no-router default if the dependency was not wired.
     const routed = this.router
-      ? await this.router.route(ctx, inbound.text)
+      ? await this.router.route({
+          recent: ctx.messages.slice(-4).map((message) => message.content),
+          text: inbound.text,
+        })
       : { system: 'You are the teable assistant.', tools: [] };
     this.store.setActiveTools(ctx, routed.tools);
 
@@ -102,29 +111,41 @@ export class AgentOrchestratorService {
       .filter((t): t is Tool => Boolean(t))
       .map((t) => ({ name: t.name, description: t.description, parameters: t.parameters }));
 
-    // 4. Call the LLM.  If no client is wired (e.g. tests) we fall back to a
-    //    deterministic echo so the orchestrator can still be exercised.
-    const llmResult = this.llm
-      ? await this.llm.chat({
-          system: routed.system,
-          messages: ctx.messages.map((m) => ({ role: m.role, content: m.content })),
-          tools: toolSchemas,
-        })
-      : { text: `[echo] ${inbound.text}` };
+    // Schema questions are safe, deterministic reads.  Run the selected
+    // schema tool before the model call so providers that do not reliably emit
+    // tool calls still receive live, permission-checked workspace context.
+    if (routed.tools.includes('schema_query')) {
+      await this.invokeTool('schema_query', {}, ctx, conversationId);
+    }
+
+    // 4. Call the configured LLM. Tests inject a fake client explicitly.
+    let llmResult: ILlmCallResult;
+    if (!this.llm) {
+      throw new ServiceUnavailableException('Cuppy AI provider is not configured');
+    }
+    try {
+      llmResult = await this.llm.chat({
+        baseId: inboundBaseId,
+        system: routed.system,
+        messages: ctx.messages.map((message) => ({
+          role: message.role === 'tool' ? 'user' : message.role,
+          content: message.role === 'tool' ? `[tool result] ${message.content}` : message.content,
+        })),
+        tools: toolSchemas,
+        executeTool: (name, args) => this.invokeTool(name, args, ctx, conversationId),
+      });
+    } catch {
+      throw new ServiceUnavailableException('Cuppy AI provider is unavailable');
+    }
 
     // 5. Execute any tool calls the LLM requested — serialised through the
     //    conversation context so the tool can read/write scratchpad.
-    if (llmResult.requested_tools?.length) {
-      for (const toolName of llmResult.requested_tools) {
-        const tool = this.tools.get(toolName);
-        if (!tool) continue;
-        try {
-          await tool.invoke({ __placeholder__: true, __conversation_id__: conversation_id }, ctx);
-        } catch {
-          // Intentionally swallow — a failed tool must not break the user
-          // reply.  Real telemetry is the caller's responsibility.
-        }
-      }
+    for (const requestedTool of llmResult.requestedTools ?? []) {
+      const toolCall =
+        typeof requestedTool === 'string'
+          ? { name: requestedTool, args: {} }
+          : { name: requestedTool.name, args: requestedTool.args ?? {} };
+      await this.invokeTool(toolCall.name, toolCall.args, ctx, conversationId);
     }
 
     // 6. Persist the assistant reply and return it.
@@ -133,7 +154,31 @@ export class AgentOrchestratorService {
   }
 
   /** Test seam — load a conversation by id without mutating it. */
-  inspect(conversation_id: string): ConversationContext | undefined {
-    return this.store.loadOrCreate(conversation_id, '__never__');
+  inspect(conversationId: string): ConversationContext | undefined {
+    return this.store.peek(conversationId);
+  }
+
+  private async invokeTool(
+    name: string,
+    args: Record<string, unknown>,
+    ctx: ConversationContext,
+    conversationId: string
+  ): Promise<unknown> {
+    const tool = this.tools.get(name);
+    if (!tool || !ctx.active_tools.includes(name)) return undefined;
+    try {
+      const result = await tool.invoke({ ...args, __conversation_id__: conversationId }, ctx);
+      this.store.appendMessage(ctx, 'tool', JSON.stringify({ name, result }));
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'tool execution failed';
+      this.store.appendMessage(ctx, 'tool', JSON.stringify({ name, error: message }));
+      return { error: message };
+    }
+  }
+
+  private inboundBaseId(inbound: InboundMessage): string | undefined {
+    const baseId = inbound.provider_meta?.baseId;
+    return typeof baseId === 'string' && baseId.length > 0 ? baseId : undefined;
   }
 }

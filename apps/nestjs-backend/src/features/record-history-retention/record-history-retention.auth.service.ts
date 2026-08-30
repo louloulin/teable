@@ -32,10 +32,17 @@ export class PrismaSubscriberLookup implements ISubscriberLookup {
       select: { id: true, deletedTime: true },
     });
     if (!row) return null;
-    // Placeholder: in OSS, every space is "free" by default. Stage 32
-    // (Stripe billing) wires the real tier here. For now we return
-    // the lowest tier so the resolver still produces a policy.
-    return { tier: 'free' };
+    const quota = await this.prisma.spaceQuota.findUnique({
+      where: { spaceId: baseId },
+      select: { plan: true, recordHistoryDays: true },
+    });
+    const tier = quota?.plan ?? 'self_hosted';
+    return {
+      tier,
+      ...(quota?.recordHistoryDays && quota.recordHistoryDays > 0
+        ? { overrideDays: quota.recordHistoryDays }
+        : {}),
+    };
   }
 }
 
@@ -66,7 +73,7 @@ export class RecordHistoryRetentionAuthService {
   async withinRecordCap(baseId: string): Promise<boolean> {
     const { resolved } = await this.getRetention(baseId);
     if (resolved.maxRecordsPerBase === 0) return true;
-    const count = await this.prisma.recordHistory.count({ where: { baseId } });
+    const count = await this.prisma.recordHistory.count({ where: { tableId: baseId } });
     return count < resolved.maxRecordsPerBase;
   }
 

@@ -52,8 +52,11 @@ export class SamlAuthService {
     if (!provider) {
       throw new BadRequestException('no SAML provider for this domain');
     }
-    if (!provider.enabled) {
+    if (provider.status !== 'active' || provider.type !== 'saml') {
       throw new BadRequestException('SAML provider disabled');
+    }
+    if (!provider.ssoUrl) {
+      throw new BadRequestException('SAML provider is missing its SSO URL');
     }
     const stateId = `saml_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
     const { encoded, xml } = buildAuthnRequest({
@@ -115,12 +118,12 @@ export class SamlAuthService {
       const domain = emailId.split('@')[1]?.toLowerCase();
       if (domain) {
         return this.prisma.ssoIdentityProvider.findFirst({
-          where: { organizationId, emailDomain: domain, enabled: true },
+          where: { organizationId, emailDomain: domain, type: 'saml', status: 'active' },
         });
       }
     }
     return this.prisma.ssoIdentityProvider.findFirst({
-      where: { organizationId, enabled: true },
+      where: { organizationId, type: 'saml', status: 'active' },
     });
   }
 

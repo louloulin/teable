@@ -1,15 +1,14 @@
 import type { TestingModule } from '@nestjs/testing';
-import { vi } from 'vitest';
-import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '@teable/db-main-prisma';
+import { vi, type Mock } from 'vitest';
 
 import { QuotaService } from '../quota/quota.service';
 import { LicenseService } from './license.service';
 
 describe('LicenseService', () => {
   let service: LicenseService;
-  let quota: { setPlanLimits: import('vitest').Mock };
+  let quota: { setPlanLimits: Mock };
 
   beforeEach(async () => {
     quota = { setPlanLimits: vi.fn().mockResolvedValue({}) };

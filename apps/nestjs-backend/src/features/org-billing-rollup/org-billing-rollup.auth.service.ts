@@ -277,7 +277,7 @@ function toRollup(row: Record<string, unknown>): IBillingRollup {
     byKind:
       typeof row['byKind'] === 'object' && row['byKind'] !== null
         ? (row['byKind'] as IBillingRollup['byKind'])
-        : {},
+        : ({} as IBillingRollup['byKind']),
     generatedAt: new Date(String(row['generatedAt'] ?? Date.now())).toISOString(),
   };
 }

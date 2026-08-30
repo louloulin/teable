@@ -78,6 +78,7 @@ function mkPrismaMock() {
   const prisma = {
     webhookEndpoint: {
       findUnique: endpointFindUnique,
+      findMany: vi.fn(),
       create: endpointCreate,
     },
     webhookDelivery: {
@@ -115,6 +116,27 @@ function mkDispatcher(statusCode = 200): IWebhookDispatcher {
 }
 
 describe('WebhookDeliveryAuthService', () => {
+  it('enqueues a matching record event for every enabled endpoint', async () => {
+    const { prisma, mocks } = mkPrismaMock();
+    const endpointFindMany = prisma.webhookEndpoint.findMany as unknown as ReturnType<typeof vi.fn>;
+    endpointFindMany.mockResolvedValue([
+      mkEndpoint({ id: 'ep_match', events: ['record.update'] }),
+      mkEndpoint({ id: 'ep_skip', events: ['record.delete'] }),
+    ]);
+    mocks.endpointFindUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+      mkEndpoint({
+        id: where.id,
+        events: where.id === 'ep_match' ? ['record.update'] : ['record.delete'],
+      })
+    );
+    mocks.payloadCreate.mockResolvedValue({ id: 'pld_new' });
+    mocks.deliveryCreate.mockResolvedValue(mkDelivery({ id: 'dlv_new' }));
+    const svc = new WebhookDeliveryAuthService(prisma, mkDispatcher());
+
+    await expect(svc.enqueueEvent({ event: 'record.update', body: '{}' })).resolves.toBe(1);
+    expect(mocks.deliveryCreate).toHaveBeenCalledTimes(1);
+  });
+
   describe('enqueue', () => {
     it('persists payload + delivery when endpoint matches', async () => {
       const { prisma, mocks } = mkPrismaMock();

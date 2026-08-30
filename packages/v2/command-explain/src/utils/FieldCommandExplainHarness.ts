@@ -168,15 +168,19 @@ export class OverlayTableRepository implements ITableRepository {
     table: Table,
     _mutateSpec: ISpecification<Table, ITableSpecVisitor>
   ): Promise<Result<TableUpdatePersistResult | void, DomainError>> {
-    this.deletedTableIds.delete(table.id().toString());
-    this.overlayByTableId.set(table.id().toString(), table);
+    this.setOverlay(table);
     return ok(undefined);
   }
 
   async restore(_context: IExecutionContext, table: Table): Promise<Result<void, DomainError>> {
-    this.deletedTableIds.delete(table.id().toString());
-    this.overlayByTableId.set(table.id().toString(), table);
+    this.setOverlay(table);
     return ok(undefined);
+  }
+
+  private setOverlay(table: Table): void {
+    const tableId = table.id().toString();
+    this.deletedTableIds.delete(tableId);
+    this.overlayByTableId.set(tableId, table);
   }
 
   async delete(context: IExecutionContext, table: Table): Promise<Result<void, DomainError>> {

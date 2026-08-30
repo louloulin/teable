@@ -20,7 +20,7 @@ import {
 import { ControlItem } from '../compliance-control-map/compliance-control-map.types';
 import { EvidenceRecord } from '../compliance-evidence-collector/compliance-evidence-collector.types';
 
-function c(over: Partial = {}): ControlItem {
+function c(over: Partial<ControlItem> = {}): ControlItem {
   return {
     id: 'SOC2-CC6.1',
     framework: 'SOC2',
@@ -32,7 +32,7 @@ function c(over: Partial = {}): ControlItem {
     ...over,
   };
 }
-function r(over: Partial = {}): EvidenceRecord {
+function r(over: Partial<EvidenceRecord> = {}): EvidenceRecord {
   return {
     id: 'evi_aaaa0001',
     controlId: 'SOC2-CC6.1',

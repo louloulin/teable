@@ -15,8 +15,12 @@ vi.mock('@teable/openapi', async (importOriginal) => {
   return { ...actual, getAiProxyGatewayModels: vi.fn() };
 });
 
-const editionMock = vi.hoisted(() => ({ isEE: true }));
+const editionMock = vi.hoisted(() => ({ isEE: true, isCloud: false, isSelfHosted: false }));
 vi.mock('@/features/app/hooks/useIsEE', () => ({ useIsEE: () => editionMock.isEE }));
+vi.mock('@/features/app/hooks/useIsCloud', () => ({ useIsCloud: () => editionMock.isCloud }));
+vi.mock('@/features/app/hooks/useIsSelfHosted', () => ({
+  useIsSelfHosted: () => editionMock.isSelfHosted,
+}));
 
 const mockGatewayModels = (models: IGatewayApiModel[]) => {
   vi.mocked(getAiProxyGatewayModels).mockResolvedValue({
@@ -42,6 +46,8 @@ beforeAll(() => {
 afterEach(() => {
   setProviderHidden(LLMProviderType.OPENROUTER, false);
   editionMock.isEE = true;
+  editionMock.isCloud = false;
+  editionMock.isSelfHosted = false;
 });
 
 beforeEach(() => {
@@ -161,6 +167,8 @@ describe('LLMProviderForm', () => {
 
     it('does not request gateway models on the community edition', async () => {
       editionMock.isEE = false;
+      editionMock.isCloud = false;
+      editionMock.isSelfHosted = false;
       vi.mocked(getAiProxyGatewayModels).mockClear();
       render(<LLMProviderForm value={provider} onChange={vi.fn()} onTest={vi.fn()} />);
 

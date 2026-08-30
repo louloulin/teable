@@ -10,17 +10,17 @@ import {
   mergeEdges,
 } from './edge-builder';
 import type {
-  FieldDependencyEdge,
-  FieldMeta,
-  ParsedLookupOptions,
-  ParsedLinkOptions,
-  ParsedConditionalOptions,
+  IFieldDependencyEdge,
+  IFieldMeta,
+  IParsedLookupOptions,
+  IParsedLinkOptions,
+  IParsedConditionalOptions,
 } from './types';
 
 describe('edge-builder', () => {
   describe('buildLookupEdges', () => {
     it('creates two edges for lookup field', () => {
-      const options: ParsedLookupOptions = {
+      const options: IParsedLookupOptions = {
         linkFieldId: 'fldLink',
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldSource',
@@ -57,7 +57,7 @@ describe('edge-builder', () => {
 
   describe('buildRollupEdges', () => {
     it('creates two edges for rollup field', () => {
-      const options: ParsedLookupOptions = {
+      const options: IParsedLookupOptions = {
         linkFieldId: 'fldLink',
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldSource',
@@ -80,7 +80,7 @@ describe('edge-builder', () => {
 
   describe('buildLinkEdges', () => {
     it('creates link_title edge for link field', () => {
-      const options: ParsedLinkOptions = {
+      const options: IParsedLinkOptions = {
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldPrimary',
       };
@@ -102,7 +102,7 @@ describe('edge-builder', () => {
 
   describe('buildConditionalEdges', () => {
     it('creates edges for conditionalRollup', () => {
-      const options: ParsedConditionalOptions = {
+      const options: IParsedConditionalOptions = {
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldSource',
         conditionFieldIds: ['fldCond1', 'fldCond2'],
@@ -132,7 +132,7 @@ describe('edge-builder', () => {
     });
 
     it('creates edges for conditionalLookup', () => {
-      const options: ParsedConditionalOptions = {
+      const options: IParsedConditionalOptions = {
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldSource',
         conditionFieldIds: [],
@@ -150,7 +150,7 @@ describe('edge-builder', () => {
     });
 
     it('skips duplicate condition field if same as lookup field', () => {
-      const options: ParsedConditionalOptions = {
+      const options: IParsedConditionalOptions = {
         foreignTableId: 'tblForeign',
         lookupFieldId: 'fldSource',
         conditionFieldIds: ['fldSource', 'fldOther'], // fldSource is duplicate
@@ -170,7 +170,7 @@ describe('edge-builder', () => {
 
   describe('buildDerivedEdgesFromField', () => {
     it('builds edges for lookup field', () => {
-      const field: FieldMeta = {
+      const field: IFieldMeta = {
         id: 'fldLookup',
         tableId: 'tblLocal',
         type: 'lookup',
@@ -192,7 +192,7 @@ describe('edge-builder', () => {
     });
 
     it('builds edges for rollup field', () => {
-      const field: FieldMeta = {
+      const field: IFieldMeta = {
         id: 'fldRollup',
         tableId: 'tblLocal',
         type: 'rollup',
@@ -213,7 +213,7 @@ describe('edge-builder', () => {
     });
 
     it('builds edges for link field', () => {
-      const field: FieldMeta = {
+      const field: IFieldMeta = {
         id: 'fldLink',
         tableId: 'tblLocal',
         type: 'link',
@@ -233,7 +233,7 @@ describe('edge-builder', () => {
     });
 
     it('returns empty array for non-computed field', () => {
-      const field: FieldMeta = {
+      const field: IFieldMeta = {
         id: 'fldText',
         tableId: 'tblLocal',
         type: 'singleLineText',
@@ -251,7 +251,7 @@ describe('edge-builder', () => {
 
   describe('buildDerivedEdges', () => {
     it('builds edges for multiple fields', () => {
-      const fields: FieldMeta[] = [
+      const fields: IFieldMeta[] = [
         {
           id: 'fldLookup',
           tableId: 'tblLocal',
@@ -285,7 +285,7 @@ describe('edge-builder', () => {
 
   describe('mergeEdges', () => {
     it('combines reference and derived edges', () => {
-      const referenceEdges: FieldDependencyEdge[] = [
+      const referenceEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fld1',
           toFieldId: 'fld2',
@@ -296,7 +296,7 @@ describe('edge-builder', () => {
         },
       ];
 
-      const derivedEdges: FieldDependencyEdge[] = [
+      const derivedEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fld3',
           toFieldId: 'fld4',
@@ -312,7 +312,7 @@ describe('edge-builder', () => {
     });
 
     it('deduplicates edges by key', () => {
-      const referenceEdges: FieldDependencyEdge[] = [
+      const referenceEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fld1',
           toFieldId: 'fld2',
@@ -323,7 +323,7 @@ describe('edge-builder', () => {
         },
       ];
 
-      const derivedEdges: FieldDependencyEdge[] = [
+      const derivedEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fld1',
           toFieldId: 'fld2',
@@ -341,9 +341,9 @@ describe('edge-builder', () => {
     });
 
     it('preserves edges with different linkFieldId', () => {
-      const referenceEdges: FieldDependencyEdge[] = [];
+      const referenceEdges: IFieldDependencyEdge[] = [];
 
-      const derivedEdges: FieldDependencyEdge[] = [
+      const derivedEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fldSource',
           toFieldId: 'fldLookup1',
@@ -369,9 +369,9 @@ describe('edge-builder', () => {
     });
 
     it('preserves edges with different kind', () => {
-      const referenceEdges: FieldDependencyEdge[] = [];
+      const referenceEdges: IFieldDependencyEdge[] = [];
 
-      const derivedEdges: FieldDependencyEdge[] = [
+      const derivedEdges: IFieldDependencyEdge[] = [
         {
           fromFieldId: 'fld1',
           toFieldId: 'fld2',

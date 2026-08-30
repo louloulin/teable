@@ -44,7 +44,7 @@ export class QuotaService {
   async ensureForSpace(spaceId: string, plan: PlanLevel = 'self_hosted'): Promise<void> {
     await this.prisma.spaceQuota.upsert({
       where: { spaceId },
-      create: { spaceId, plan, ...this.defaultRow(plan) },
+      create: { ...this.defaultRow(plan), spaceId, plan },
       update: {},
     });
   }
@@ -84,7 +84,7 @@ export class QuotaService {
         updatedBy: actorId ?? null,
         // cast through unknown because addon fields aren't on the type but
         // the schema permits them.
-        ...(merged as Prisma.SpaceQuotaUncheckedCreateInput),
+        ...(merged as Omit<Prisma.SpaceQuotaUncheckedCreateInput, 'spaceId'>),
       },
       update: {
         ...(merged as Prisma.SpaceQuotaUncheckedUpdateInput),

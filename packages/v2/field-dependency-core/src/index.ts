@@ -1,15 +1,21 @@
 // Types
 export type {
-  FieldDependencyEdge,
+  IFieldDependencyEdge,
   FieldDependencyEdgeKind,
   FieldDependencyEdgeSemantic,
-  FieldDependencyGraphData,
-  FieldMeta,
+  IFieldDependencyGraphData,
+  IFieldMeta,
   LinkRelationship,
   OptionsParser,
-  ParsedConditionalOptions,
-  ParsedLinkOptions,
-  ParsedLookupOptions,
+  IParsedConditionalOptions,
+  IParsedLinkOptions,
+  IParsedLookupOptions,
+} from './types';
+
+export type {
+  IParsedConditionalOptions as ParsedConditionalOptions,
+  IParsedLinkOptions as ParsedLinkOptions,
+  IParsedLookupOptions as ParsedLookupOptions,
 } from './types';
 
 // Parsers

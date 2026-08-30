@@ -57,6 +57,7 @@ export interface Tool {
 export interface ConversationContext {
   conversation_id: ConversationId;
   user_id: UserId;
+  base_id?: string;
   /** Monotonic history; truncated at `MAX_HISTORY_MESSAGES` to keep prompts
    *  within model limits. */
   messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string; ts: number }>;
@@ -79,12 +80,17 @@ export class ConversationStore {
   private readonly map = new Map<ConversationId, ConversationContext>();
 
   /** Load or create a conversation for a (user, optional existing) id. */
-  loadOrCreate(conversation_id: ConversationId, user_id: UserId): ConversationContext {
+  loadOrCreate(
+    conversation_id: ConversationId,
+    user_id: UserId,
+    base_id?: string
+  ): ConversationContext {
     const existing = this.map.get(conversation_id);
     if (existing) return existing;
     const fresh: ConversationContext = {
       conversation_id,
       user_id,
+      base_id,
       messages: [],
       active_tools: [],
       scratchpad: {},
@@ -92,6 +98,10 @@ export class ConversationStore {
     };
     this.map.set(conversation_id, fresh);
     return fresh;
+  }
+
+  peek(conversationId: ConversationId): ConversationContext | undefined {
+    return this.map.get(conversationId);
   }
 
   appendMessage(
@@ -119,6 +129,14 @@ export class ConversationStore {
 
   setActiveTools(ctx: ConversationContext, tools: string[]): void {
     ctx.active_tools = [...new Set(tools)];
+  }
+
+  reset(conversationId: ConversationId): boolean {
+    return this.map.delete(conversationId);
+  }
+
+  size(): number {
+    return this.map.size;
   }
 }
 

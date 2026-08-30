@@ -8,16 +8,12 @@
  * switcher UI needs exactly that, so this service holds it and derives the
  * lag/health view via the existing pure helpers.
  *
- * Storage: process-local. The `MirrorLog` / `MirrorLag` tables that
- * `workspace-mirror.auth.service.ts` writes to are not in the Prisma schema
- * yet, so every persistence path here feature-detects the delegate and falls
- * back to the in-memory view instead of throwing. That keeps the UI usable on
- * a stock OSS install and makes this service light up automatically once the
- * migrations land — no call-site change needed.
+ * Storage: Prisma-backed with an in-memory fallback for older installations
+ * that have not applied the workspace mirror migrations yet.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService, type Prisma } from '@teable/db-main-prisma';
 
 import { computeLag, summarizeLags, validateMirrorConfig } from './workspace-mirror.service';
 import type {
@@ -78,13 +74,26 @@ export class WorkspaceMirrorConfigService {
    * owner filter here only scopes the *unfiltered list* endpoint, which has no
    * baseId to guard on.
    */
-  list(userId: string): IMirrorConfig[] {
+  async list(userId: string): Promise<IMirrorConfig[]> {
+    const delegate = this.configDelegate();
+    if (delegate) {
+      const rows = await delegate.findMany({
+        where: { createdBy: userId },
+        orderBy: { updatedTime: 'desc' },
+      });
+      return rows.map((row: { config: unknown }) => row.config as IMirrorConfig);
+    }
     return [...this.store.values()]
       .filter((entry) => entry.createdBy === userId)
       .map((entry) => entry.config);
   }
 
-  get(baseId: string): IMirrorConfig {
+  async get(baseId: string): Promise<IMirrorConfig> {
+    const delegate = this.configDelegate();
+    if (delegate) {
+      const row = await delegate.findUnique({ where: { baseId } });
+      if (row) return row.config as IMirrorConfig;
+    }
     const entry = this.store.get(baseId);
     if (!entry) {
       throw new MirrorConfigNotFoundError(baseId);
@@ -93,10 +102,24 @@ export class WorkspaceMirrorConfigService {
   }
 
   /** Create or replace the config for a base. Validated by the pure helper. */
-  upsert(config: IMirrorConfig, userId: string): IMirrorConfig {
+  async upsert(config: IMirrorConfig, userId: string): Promise<IMirrorConfig> {
     const errors = validateMirrorConfig(config);
     if (errors.length > 0) {
       throw new MirrorConfigValidationError(errors);
+    }
+    const delegate = this.configDelegate();
+    if (delegate) {
+      const existing = await delegate.findUnique({ where: { baseId: config.baseId } });
+      await delegate.upsert({
+        where: { baseId: config.baseId },
+        update: { config: config as unknown as Prisma.InputJsonValue },
+        create: {
+          baseId: config.baseId,
+          config: config as unknown as Prisma.InputJsonValue,
+          createdBy: existing?.createdBy ?? userId,
+        },
+      });
+      return config;
     }
     // Preserve the original creator so `list()` stays stable across edits.
     const createdBy = this.store.get(config.baseId)?.createdBy ?? userId;
@@ -112,9 +135,14 @@ export class WorkspaceMirrorConfigService {
    * Pause / resume shipping. `enabled: false` keeps capture running but stops
    * shipping — same semantics as `IMirrorConfig.enabled`.
    */
-  setEnabled(baseId: string, enabled: boolean): IMirrorConfig {
-    const config = this.get(baseId);
-    return this.upsert({ ...config, enabled }, this.store.get(baseId)!.createdBy);
+  async setEnabled(baseId: string, enabled: boolean): Promise<IMirrorConfig> {
+    const config = await this.get(baseId);
+    const delegate = this.configDelegate();
+    const existing = delegate ? await delegate.findUnique({ where: { baseId } }) : undefined;
+    return this.upsert(
+      { ...config, enabled },
+      existing?.createdBy ?? this.store.get(baseId)?.createdBy ?? 'system'
+    );
   }
 
   /**
@@ -122,7 +150,7 @@ export class WorkspaceMirrorConfigService {
    * existing pure helpers over whatever ack state we can read.
    */
   async statusOf(baseId: string): Promise<IMirrorQueryResult> {
-    const config = this.get(baseId);
+    const config = await this.get(baseId);
     const primarySeq = await this.readPrimarySeq(config);
     const rows = await this.readLagRows(baseId);
     const lags = config.standbys.map((standby) => {
@@ -164,7 +192,7 @@ export class WorkspaceMirrorConfigService {
   /** Recent log records for a base, newest first. Empty when unprovisioned. */
   async logs(baseId: string, since?: string, take = 100): Promise<IMirrorLogRecord[]> {
     // Confirm the base is configured before exposing its log.
-    this.get(baseId);
+    await this.get(baseId);
     const delegate = this.logDelegate();
     if (!delegate) {
       return [];
@@ -237,5 +265,9 @@ export class WorkspaceMirrorConfigService {
 
   private lagDelegate(): any | undefined {
     return (this.prisma as unknown as Record<string, any>).mirrorLag;
+  }
+
+  private configDelegate(): any | undefined {
+    return (this.prisma as unknown as Record<string, any>).workspaceMirrorConfig;
   }
 }

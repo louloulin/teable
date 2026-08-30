@@ -178,78 +178,87 @@ const buildRecordQueryShape = (
 ): Result<TableQueryShape, DomainError> => {
   const search = options?.search;
   const orderBy = options?.orderBy ?? [];
-  const queryKind: TableQueryKind = search
-    ? 'search'
-    : spec
-      ? 'filter'
-      : orderBy.some((item) => 'fieldId' in item)
-        ? 'sort'
-        : 'recordList';
-  const searchFieldsResult = search?.search.resolveFields(table, {
-    visibleFieldIds: search.visibleFieldIds,
-  });
-  const searchedFieldIds = searchFieldsResult?.isOk()
-    ? searchFieldsResult.value.map((field) => field.id().toString()).sort()
-    : undefined;
-  const searchFieldCount = searchedFieldIds?.length;
-  const searchAccessPath = options?.searchAccessPath;
-  const searchesAllFields = search?.search.searchesAllFields() ?? false;
+  const queryKind = getQueryKind(search !== undefined, spec !== undefined, orderBy);
 
   return TableQueryShape.create({
     queryKind,
-    whereShape: spec
-      ? {
-          conditionCount: 1,
-          andDepth: 1,
-          orDepth: 0,
-          fields: [],
-        }
-      : undefined,
-    searchShape: search
-      ? {
-          fieldCount: searchFieldCount ?? table.getFields().length,
-          allFields: searchesAllFields,
-          ...(!searchesAllFields && searchedFieldIds ? { searchedFieldIds } : {}),
-          valueLengthBucket: bucketSearchLength(search.search.value.length),
-          searchMode:
-            searchAccessPath?.kind === 'generated_tsvector'
-              ? 'full_text'
-              : searchAccessPath?.kind === 'generated_text'
-                ? 'substring'
-                : 'ilike',
-          searchScope: searchesAllFields ? 'all_fields' : 'selected_fields',
-          ...(searchAccessPath?.kind === 'generated_tsvector'
-            ? {
-                languageConfig: searchAccessPath.languageConfig,
-                coveredFieldIds: searchAccessPath.coveredFieldIds
-                  .map((fieldId) => fieldId.toString())
-                  .sort(),
-              }
-            : {}),
-        }
-      : undefined,
-    orderShape: orderBy.length
-      ? {
-          fields: orderBy.map<TableQueryOrderFieldShape>((item) =>
-            'fieldId' in item
-              ? {
-                  fieldId: item.fieldId.toString(),
-                  direction: item.direction,
-                  source: 'sort',
-                }
-              : {
-                  systemColumn: item.column,
-                  direction: item.direction,
-                  source:
-                    item.column.startsWith('__row_') || item.column === '__auto_number'
-                      ? 'tieBreaker'
-                      : 'sort',
-                }
-          ),
-        }
-      : undefined,
+    whereShape: spec ? emptyWhereShape : undefined,
+    searchShape: buildSearchShape(table, search, options?.searchAccessPath),
+    orderShape: buildOrderShape(orderBy),
     executionShape,
   });
+};
+
+const emptyWhereShape = { conditionCount: 1, andDepth: 1, orDepth: 0, fields: [] } as const;
+
+const buildSearchShape = (
+  table: Table,
+  search: ITableRecordQueryOptions['search'] | undefined,
+  searchAccessPath: ITableRecordQueryOptions['searchAccessPath']
+) => {
+  if (!search) return undefined;
+  const resolved = search.search.resolveFields(table, { visibleFieldIds: search.visibleFieldIds });
+  const searchedFieldIds = resolved.isOk()
+    ? resolved.value.map((field) => field.id().toString()).sort()
+    : undefined;
+  const allFields = search.search.searchesAllFields();
+  const generatedVector = searchAccessPath?.kind === 'generated_tsvector';
+  return {
+    fieldCount: searchedFieldIds?.length ?? table.getFields().length,
+    allFields,
+    ...(!allFields && searchedFieldIds ? { searchedFieldIds } : {}),
+    valueLengthBucket: bucketSearchLength(search.search.value.length),
+    searchMode: generatedVector
+      ? 'full_text'
+      : searchAccessPath?.kind === 'generated_text'
+        ? 'substring'
+        : 'ilike',
+    searchScope: allFields ? 'all_fields' : 'selected_fields',
+    ...(generatedVector
+      ? {
+          languageConfig: searchAccessPath.languageConfig,
+          coveredFieldIds: searchAccessPath.coveredFieldIds
+            .map((fieldId) => fieldId.toString())
+            .sort(),
+        }
+      : {}),
+  };
+};
+
+const buildOrderShape = (
+  orderBy:
+    | ITableRecordQueryOptions['orderBy']
+    | ITableRecordQueryStreamOptions['orderBy']
+    | undefined
+) =>
+  orderBy?.length
+    ? {
+        fields: orderBy.map<TableQueryOrderFieldShape>((item) =>
+          'fieldId' in item
+            ? { fieldId: item.fieldId.toString(), direction: item.direction, source: 'sort' }
+            : {
+                systemColumn: item.column,
+                direction: item.direction,
+                source:
+                  item.column.startsWith('__row_') || item.column === '__auto_number'
+                    ? 'tieBreaker'
+                    : 'sort',
+              }
+        ),
+      }
+    : undefined;
+
+const getQueryKind = (
+  hasSearch: boolean,
+  hasSpec: boolean,
+  orderBy:
+    | ITableRecordQueryOptions['orderBy']
+    | ITableRecordQueryStreamOptions['orderBy']
+    | undefined
+): TableQueryKind => {
+  if (hasSearch) return 'search';
+  if (hasSpec) return 'filter';
+  return orderBy?.some((item) => 'fieldId' in item) ? 'sort' : 'recordList';
 };
 
 const floorDate = (date: Date, windowMs: number): Date =>

@@ -110,6 +110,7 @@ export class ScimController {
         name: body.name?.formatted ?? body.displayName,
         externalId: body.externalId,
       }));
+    if (!user) throw new NotFoundException('User could not be provisioned');
     return this.scim.toScimUser(user);
   }
 
@@ -128,7 +129,8 @@ export class ScimController {
     if (!existing) throw new NotFoundException('User not found');
     const name = body.name?.formatted ?? body.displayName ?? existing.name;
     const updated = await this.scim.patchUserName(id, name);
-    return this.scim.toScimUser(updated!);
+    if (!updated) throw new NotFoundException('User not found');
+    return this.scim.toScimUser(updated);
   }
 
   @Delete('Users/:id')

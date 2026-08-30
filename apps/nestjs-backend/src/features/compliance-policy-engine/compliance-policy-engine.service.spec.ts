@@ -20,7 +20,7 @@ import {
 } from './compliance-policy-engine.service';
 import { PolicyRule } from './compliance-policy-engine.types';
 
-function r(over: Partial = {}): PolicyRule {
+function r(over: Partial<PolicyRule> = {}): PolicyRule {
   return { id: 'pol_aaaa0001', title: 'Test', description: 'd', severity: 'warn', actions: ['log'], ...over };
 }
 

@@ -46,6 +46,7 @@ const NEXT_BUILD_ENV_SENTRY_SOURCEMAPS_UPLOAD = trueEnv.includes(
 );
 
 const NEXTJS_SOCKET_PORT = process.env.SOCKET_PORT || '3001';
+const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
 if (!NEXT_BUILD_ENV_SOURCEMAPS) {
   console.log(
@@ -224,8 +225,14 @@ const nextConfig = {
       source: '/socket/:path*',
       destination: `http://localhost:${NEXTJS_SOCKET_PORT}/socket/:path*`,
     };
+    const backendApiProxy = BACKEND_API_URL
+      ? {
+          source: '/api/:path*',
+          destination: `${BACKEND_API_URL.replace(/\/$/, '')}/api/:path*`,
+        }
+      : null;
 
-    return isProd ? [] : [socketProxy];
+    return isProd ? [] : [socketProxy, ...(backendApiProxy ? [backendApiProxy] : [])];
   },
 
   // @link https://nextjs.org/docs/api-reference/next.config.js/headers

@@ -1,9 +1,10 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Queue } from 'bullmq';
-import type { Job } from 'bullmq';
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { PrismaService } from '@teable/db-main-prisma';
+import { Queue } from 'bullmq';
+import type { Job } from 'bullmq';
 
 import {
   SSO_LOGIN_STATE_CLEANUP_QUEUE,
@@ -27,13 +28,16 @@ import {
  */
 @Injectable()
 @Processor(SSO_LOGIN_STATE_CLEANUP_QUEUE, { concurrency: 1 })
-export class SsoLoginStateCleanupProcessor extends WorkerHost implements OnModuleInit, OnModuleDestroy {
+export class SsoLoginStateCleanupProcessor
+  extends WorkerHost
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(SsoLoginStateCleanupProcessor.name);
   private started = false;
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SSO_LOGIN_STATE_CLEANUP_QUEUE) private readonly queue: Queue
+    @InjectQueue(SSO_LOGIN_STATE_CLEANUP_QUEUE) private readonly queue: Queue
   ) {
     super();
   }
@@ -53,9 +57,7 @@ export class SsoLoginStateCleanupProcessor extends WorkerHost implements OnModul
         removeOnFail: 100,
       }
     );
-    this.logger.log(
-      `scheduled SsoLoginState cleanup every ${SSO_LOGIN_STATE_CLEANUP_REPEAT_MS}ms`
-    );
+    this.logger.log(`scheduled SsoLoginState cleanup every ${SSO_LOGIN_STATE_CLEANUP_REPEAT_MS}ms`);
   }
 
   async onModuleDestroy(): Promise<void> {

@@ -1,19 +1,15 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-  SetMetadata,
-} from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
+import type { ExecutionContext, CallHandler, NestInterceptor } from '@nestjs/common';
+import { Injectable, Logger, Optional, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { PrismaService } from '@teable/db-main-prisma';
+import { ClsService } from 'nestjs-cls';
+import { from } from 'rxjs';
+import type { Observable } from 'rxjs';
+import { map, mergeMap } from 'rxjs/operators';
 
 import type { IClsStore } from '../../types/cls';
+import type { IPermissionRoleVo, PermissionFilter } from './permission-matrix.constants';
 import { PermissionMatrixService } from './permission-matrix.service';
-import { IPermissionRoleVo, PermissionFilter } from './permission-matrix.constants';
 
 export const PERMISSION_INTERCEPTOR_META = 'permission:intercept';
 export const RequirePermissionFilter = () => SetMetadata(PERMISSION_INTERCEPTOR_META, true);
@@ -47,7 +43,8 @@ export class PermissionInterceptor implements NestInterceptor {
   constructor(
     private readonly matrix: PermissionMatrixService,
     private readonly cls: ClsService<IClsStore>,
-    private readonly reflector: Reflector
+    private readonly reflector: Reflector,
+    @Optional() private readonly prisma?: PrismaService
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -59,19 +56,38 @@ export class PermissionInterceptor implements NestInterceptor {
 
     const req = context.switchToHttp().getRequest<Record<string, unknown>>();
     const { tableId, baseId } = this.readTableContext(req);
-    if (!tableId || !baseId) return next.handle();
+    if (!tableId) return next.handle();
 
     const userId = this.cls.get('user')?.id;
     if (!userId) return next.handle();
 
-    return next.handle().pipe(
-      map(async (body) => {
-        const roles = await this.matrix.resolveRolesForUser(baseId, userId);
-        if (roles.length === 0) return body;
-        return this.projectResponse(body, roles, tableId);
-      }),
-      map(async (maybePromise) => maybePromise)
+    return from(this.resolveBaseId(tableId, baseId)).pipe(
+      mergeMap((resolvedBaseId) =>
+        resolvedBaseId ? from(this.matrix.resolveRolesForUser(resolvedBaseId, userId)) : from([[]])
+      ),
+      mergeMap((roles) => {
+        const filter = this.matrix.mergeRecordFilters(roles, tableId);
+        PermissionInterceptor.stashFilterOnReq(
+          req,
+          filter ? this.matrix.applyCurrentUser(filter, userId) : null
+        );
+        return next
+          .handle()
+          .pipe(
+            map((body) => (roles.length === 0 ? body : this.projectResponse(body, roles, tableId)))
+          );
+      })
     );
+  }
+
+  private async resolveBaseId(tableId: string, baseId: string | null): Promise<string | null> {
+    if (baseId) return baseId;
+    if (!this.prisma) return null;
+    const table = await this.prisma.tableMeta.findUnique({
+      where: { id: tableId },
+      select: { baseId: true },
+    });
+    return table?.baseId ?? null;
   }
 
   /**
@@ -79,11 +95,7 @@ export class PermissionInterceptor implements NestInterceptor {
    * to read. Hidden → null + (recursively) drop key. Readonly → keep
    * value but the write-path guard will refuse edits.
    */
-  private projectResponse(
-    body: unknown,
-    roles: IPermissionRoleVo[],
-    tableId: string
-  ): unknown {
+  private projectResponse(body: unknown, roles: IPermissionRoleVo[], tableId: string): unknown {
     if (body === null || body === undefined) return body;
     if (Array.isArray(body)) return body.map((row) => this.projectRow(row, roles, tableId));
     if (typeof body === 'object') {
@@ -103,9 +115,9 @@ export class PermissionInterceptor implements NestInterceptor {
   private projectRow(row: unknown, roles: IPermissionRoleVo[], tableId: string): unknown {
     if (!row || typeof row !== 'object') return row;
     const obj = row as Record<string, unknown>;
-    const fields = (obj.fields && typeof obj.fields === 'object'
-      ? (obj.fields as Record<string, unknown>)
-      : obj) as Record<string, unknown>;
+    const fields = (
+      obj.fields && typeof obj.fields === 'object' ? (obj.fields as Record<string, unknown>) : obj
+    ) as Record<string, unknown>;
     const projected: Record<string, unknown> = {};
     for (const [fieldId, value] of Object.entries(fields)) {
       const access = this.matrix.fieldAccess(roles, tableId, fieldId);
@@ -135,10 +147,7 @@ export class PermissionInterceptor implements NestInterceptor {
    * on `req.permission.filter` so the read handler can append it to the
    * Prisma `where` clause without re-running the merge.
    */
-  static stashFilterOnReq(
-    req: Record<string, unknown>,
-    filter: PermissionFilter | null
-  ): void {
+  static stashFilterOnReq(req: Record<string, unknown>, filter: PermissionFilter | null): void {
     (req as Record<string, unknown>).permission = { filter };
   }
 }

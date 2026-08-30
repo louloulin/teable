@@ -99,6 +99,14 @@ export interface IDataDbRoutingOptions {
 
 type IMetaRoutingClient = PrismaService | NonNullable<IClsStore['tx']['client']>;
 
+const setClsDataDb = (
+  cls: ClsService<IClsStore> | undefined,
+  value: NonNullable<IClsStore['dataDb']>
+): void => {
+  if (!cls?.isActive()) return;
+  (cls as unknown as { set: (key: string, value: unknown) => void }).set('dataDb', value);
+};
+
 /**
  * Missing row and `mode: 'default'` both mean the platform meta DB — unbinding
  * rewrites `mode` rather than deleting the row. `state` is not consulted.
@@ -888,7 +896,7 @@ export class DataDbClientManager {
     }
 
     if (this.cls?.isActive()) {
-      this.cls.set('dataDb', {
+      const dataDbContext: NonNullable<IClsStore['dataDb']> = {
         mode: 'byodb',
         spaceId,
         connectionId: connection.id,
@@ -896,15 +904,18 @@ export class DataDbClientManager {
         displayHost: connection.displayHost,
         displayDatabase: connection.displayDatabase,
         internalSchema: connection.internalSchema,
-      });
+      };
+      setClsDataDb(this.cls, dataDbContext);
     }
 
     const url = decryptDataDbUrl(connection.encryptedUrl);
-    await this.dataDbMigrationService?.ensureConnectionMigrated({
-      connectionId: connection.id,
-      internalSchema: connection.internalSchema,
-      url,
-    });
+    if (this.dataDbMigrationService) {
+      await this.dataDbMigrationService.ensureConnectionMigrated({
+        connectionId: connection.id,
+        internalSchema: connection.internalSchema,
+        url,
+      });
+    }
 
     return {
       connectionId: connection.id,
@@ -919,7 +930,7 @@ export class DataDbClientManager {
     preview: IDataDbPreviewBinding
   ): IResolvedSpaceDataDbRoute {
     if (this.cls?.isActive()) {
-      this.cls.set('dataDb', {
+      const dataDbContext: NonNullable<IClsStore['dataDb']> = {
         mode: 'byodb',
         spaceId,
         connectionId: preview.connectionId,
@@ -927,7 +938,8 @@ export class DataDbClientManager {
         displayHost: preview.displayHost ?? null,
         displayDatabase: preview.displayDatabase ?? null,
         internalSchema: preview.internalSchema,
-      });
+      };
+      setClsDataDb(this.cls, dataDbContext);
     }
 
     return {

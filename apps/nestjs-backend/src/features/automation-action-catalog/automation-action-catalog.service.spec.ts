@@ -16,11 +16,11 @@ import {
   summarizeActionCatalog,
   validateActionConfig,
 } from './automation-action-catalog.service';
-import { IActionCatalog, IActionRetrySpec } from './automation-action-catalog.types';
+import type { IActionCatalog } from './automation-action-catalog.types';
 
 describe('automation-action-catalog.builtins', () => {
-  it('has 6 builtin types', () => {
-    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(6);
+  it('has every executable action type', () => {
+    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(18);
   });
   it('default is update_record', () => {
     expect(BUILTIN_ACTION_CATALOG.defaultType).toBe('update_record');
@@ -40,34 +40,45 @@ describe('automation-action-catalog.index / get', () => {
 describe('automation-action-catalog.group / list', () => {
   it('groups', () => {
     const g = groupActionsByCategory(BUILTIN_ACTION_CATALOG);
-    expect(g['notification'].length).toBe(2);
+    expect(g['notification'].length).toBe(3);
   });
   it('lists by category', () => {
-    expect(listActionsByCategory(BUILTIN_ACTION_CATALOG, 'record').length).toBe(1);
+    expect(listActionsByCategory(BUILTIN_ACTION_CATALOG, 'record').length).toBe(3);
   });
 });
 
 describe('automation-action-catalog.validate', () => {
   it('valid send_email config', () => {
-    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'send_email', { to: 'a@b', subject: 's', body: 'b' });
+    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'send_email', {
+      to: 'a@b',
+      subject: 's',
+      body: 'b',
+    });
     expect(v.ok).toBe(true);
     expect(v.retry.maxAttempts).toBe(5);
   });
   it('flags missing required', () => {
     const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'send_email', { to: 'a@b' });
     expect(v.ok).toBe(false);
-    expect(v.issues.length).toBe(2);
+    expect(v.issues.length).toBe(1);
   });
   it('flags unknown type', () => {
     const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'bogus', {});
     expect(v.ok).toBe(false);
   });
   it('flags bad select', () => {
-    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'notify_user', { userId: 'u', message: 'm', channel: 'sms' });
+    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'notify_user', {
+      userId: 'u',
+      message: 'm',
+      channel: 'sms',
+    });
     expect(v.ok).toBe(false);
   });
   it('applies defaults', () => {
-    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'notify_user', { userId: 'u', message: 'm' });
+    const v = validateActionConfig(BUILTIN_ACTION_CATALOG, 'notify_user', {
+      userId: 'u',
+      message: 'm',
+    });
     expect(v.ok).toBe(true);
     expect(v.normalized.channel).toBe('in-app');
   });
@@ -75,7 +86,11 @@ describe('automation-action-catalog.validate', () => {
 
 describe('automation-action-catalog.computeRetryDelay', () => {
   it('exponential', () => {
-    const total = computeRetryDelay({ maxAttempts: 3, backoff: 'exponential', initialDelayMs: 1000 });
+    const total = computeRetryDelay({
+      maxAttempts: 3,
+      backoff: 'exponential',
+      initialDelayMs: 1000,
+    });
     expect(total).toBe(1000 + 2000 + 4000);
   });
   it('linear', () => {
@@ -128,7 +143,7 @@ describe('automation-action-catalog.merge / cap / serialize / summarize', () => 
   });
   it('summarize', () => {
     const s = summarizeActionCatalog(BUILTIN_ACTION_CATALOG);
-    expect(s.count).toBe(6);
+    expect(s.count).toBe(18);
     expect(s.rollbackable).toBe(1);
   });
 });

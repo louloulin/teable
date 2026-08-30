@@ -43,13 +43,18 @@ export class V2FeatureGuard implements CanActivate {
     private readonly prismaService: PrismaService
   ) {}
 
+  private setClsValue(key: string, value: unknown): void {
+    const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+    cls.set(key, value);
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
 
     // Store windowId from header for undo/redo tracking
     const windowId = req.headers['x-window-id'] as string | undefined;
     if (windowId) {
-      this.cls.set('windowId', windowId);
+      this.setClsValue('windowId', windowId);
     }
 
     // 1. Get the feature name from decorator
@@ -60,24 +65,24 @@ export class V2FeatureGuard implements CanActivate {
 
     // No feature marked, default to V1
     if (!feature) {
-      this.cls.set('useV2', false);
-      this.cls.set('v2Reason', 'no_feature');
+      this.setClsValue('useV2', false);
+      this.setClsValue('v2Reason', 'no_feature');
       return true;
     }
 
     if (this.isUnsupportedV2Payload(req.body, feature)) {
-      this.cls.set('useV2', false);
-      this.cls.set('v2Feature', feature);
-      this.cls.set('v2Reason', 'unsupported_feature');
+      this.setClsValue('useV2', false);
+      this.setClsValue('v2Feature', feature);
+      this.setClsValue('v2Reason', 'unsupported_feature');
       return true;
     }
 
     // 2. Resolve base context when possible. Marked new bases are V2-first and bypass rollout config.
     const base = await this.getBaseV2DecisionContext(context);
     const decision = await this.canaryService.shouldUseV2ForBaseWithReason(base, feature);
-    this.cls.set('useV2', decision.useV2);
-    this.cls.set('v2Feature', feature);
-    this.cls.set('v2Reason', decision.reason);
+    this.setClsValue('useV2', decision.useV2);
+    this.setClsValue('v2Feature', feature);
+    this.setClsValue('v2Reason', decision.reason);
 
     return true;
   }

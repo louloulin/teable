@@ -30,9 +30,9 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
-  ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
+  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
 } from '@opentelemetry/semantic-conventions';
 
 import { resolveBuildVersion } from '../utils/build-version';
@@ -91,7 +91,7 @@ function buildResource() {
   return resourceFromAttributes({
     [ATTR_SERVICE_NAME]: resolveServiceName(),
     [ATTR_SERVICE_VERSION]: resolveBuildVersion() || 'unknown',
-    [ATTR_DEPLOYMENT_ENVIRONMENT_NAME]: resolveEnvironment(),
+    [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: resolveEnvironment(),
   });
 }
 

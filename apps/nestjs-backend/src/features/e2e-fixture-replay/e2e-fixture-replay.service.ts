@@ -12,6 +12,7 @@ import type {
   IReplaySummary,
   ReplayStatus,
 } from './e2e-fixture-replay.types';
+import type { ITestUser } from '../e2e-test-utils/e2e-test-utils.types';
 import { MAX_REPLAY_STEPS } from './e2e-fixture-replay.types';
 
 /** Derive a stable session id from the replay seed. */

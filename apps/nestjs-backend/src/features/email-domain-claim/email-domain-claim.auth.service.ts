@@ -73,8 +73,8 @@ export class EmailDomainClaimAuthService {
         lastCheckedAt: claim.lastCheckedAt ? new Date(claim.lastCheckedAt) : null,
         lastError: claim.lastError,
         verifiedAt: claim.verifiedAt ? new Date(claim.verifiedAt) : null,
-        createdAt: new Date(claim.createdAt),
-        updatedAt: new Date(claim.updatedAt),
+        createdTime: new Date(claim.createdAt),
+        updatedTime: new Date(claim.updatedAt),
       },
       update: {
         domain: claim.domain,
@@ -85,7 +85,7 @@ export class EmailDomainClaimAuthService {
         lastCheckedAt: claim.lastCheckedAt ? new Date(claim.lastCheckedAt) : null,
         lastError: claim.lastError,
         verifiedAt: claim.verifiedAt ? new Date(claim.verifiedAt) : null,
-        updatedAt: new Date(claim.updatedAt),
+        updatedTime: new Date(claim.updatedAt),
       },
     });
     return claim;
@@ -182,7 +182,7 @@ function toClaim(row: Record<string, unknown>): IEmailDomainClaim {
       row['verifiedAt'] === null || row['verifiedAt'] === undefined
         ? null
         : new Date(String(row['verifiedAt'])).toISOString(),
-    createdAt: new Date(String(row['createdAt'] ?? Date.now())).toISOString(),
-    updatedAt: new Date(String(row['updatedAt'] ?? Date.now())).toISOString(),
+    createdAt: new Date(String(row['createdTime'] ?? row['createdAt'] ?? Date.now())).toISOString(),
+    updatedAt: new Date(String(row['updatedTime'] ?? row['updatedAt'] ?? Date.now())).toISOString(),
   };
 }

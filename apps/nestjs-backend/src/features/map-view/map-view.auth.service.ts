@@ -4,6 +4,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
+import { DatabaseRouter } from '../../global/database-router.service';
 
 import {
   applyRegionFilter,
@@ -17,7 +18,7 @@ import { MAX_MARKERS } from './map-view.types';
 
 @Injectable()
 export class MapViewAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly databaseRouter?: DatabaseRouter) {}
 
   async saveConfig(config: IMapViewConfig): Promise<IMapViewConfig> {
     const err = validateConfig(config);
@@ -47,10 +48,7 @@ export class MapViewAuthService {
     total: number;
   }> {
     const limit = Math.min(options.limit ?? MAX_MARKERS, MAX_MARKERS);
-    const records = await this.prisma.record.findMany({
-      where: { tableId: config.tableId },
-      take: limit,
-    });
+    const records = await this.loadRows(config.tableId, limit);
     const all = records
       .map((r) => resolveMarker({ id: r.id, cells: r.data as Record<string, unknown> }, config))
       .filter((m): m is IMapMarker => m !== null);
@@ -63,7 +61,19 @@ export class MapViewAuthService {
   }
 
   async loadRowsForTable(tableId: string, limit: number): Promise<IRowLike[]> {
-    const records = await this.prisma.record.findMany({ where: { tableId }, take: limit });
+    const records = await this.loadRows(tableId, limit);
     return records.map((r) => ({ id: r.id, cells: r.data as Record<string, unknown> }));
+  }
+
+  private async loadRows(tableId: string, limit: number): Promise<Array<{ id: string; data: unknown }>> {
+    if (!this.databaseRouter) {
+      return (await (this.prisma as unknown as { record?: { findMany: Function } }).record?.findMany({
+        where: { tableId }, take: limit,
+      })) ?? [];
+    }
+    const rows = await this.databaseRouter.queryDataPrismaForTable<Array<Record<string, unknown>>>(
+      tableId, `SELECT * FROM "${tableId}" LIMIT ${Math.max(0, Math.floor(limit))}`
+    );
+    return rows.map((row) => ({ id: String(row.__id ?? row.id), data: row }));
   }
 }

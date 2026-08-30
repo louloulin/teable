@@ -54,6 +54,7 @@ export default function withEnv<P extends { [key: string]: any }>(
         sentryDsn: process.env.SENTRY_DSN,
         socialAuthProviders: process.env.SOCIAL_AUTH_PROVIDERS?.split(','),
         storage: omitBy(storage, isUndefined),
+        edition: process.env.NEXT_BUILD_ENV_EDITION ?? 'SELF_HOSTED',
         passwordLoginDisabled: process.env.PASSWORD_LOGIN_DISABLED === 'true' ? true : undefined,
         publicDatabaseProxy: process.env.PUBLIC_DATABASE_PROXY,
         // default to Infinity, return undefined causing the value will be transformed to null when json-stringify

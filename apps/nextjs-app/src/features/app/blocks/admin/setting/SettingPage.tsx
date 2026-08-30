@@ -14,9 +14,11 @@ import { RotateCcwIcon } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { useEffect, useMemo, useRef } from 'react';
+import { SELF_HOSTED_USAGE } from '@/features/app/hooks/useBaseUsage';
 import { useEnv } from '@/features/app/hooks/useEnv';
 import { useIsCloud } from '@/features/app/hooks/useIsCloud';
 import { useIsEE } from '@/features/app/hooks/useIsEE';
+import { useIsSelfHosted } from '@/features/app/hooks/useIsSelfHosted';
 import { CopyInstance } from './components';
 import { BannedEmailDomains } from './components/BannedEmailDomains';
 import { Branding } from './components/Branding';
@@ -58,12 +60,14 @@ export const SettingPage = (props: ISettingPageProps) => {
 
   const isEE = useIsEE();
   const isCloud = useIsCloud();
+  const isSelfHosted = useIsSelfHosted();
 
   const { data: instanceUsage } = useQuery({
     queryKey: ['instance-usage'],
     queryFn: () => getInstanceUsage().then(({ data }) => data),
     enabled: isEE,
   });
+  const effectiveInstanceUsage = instanceUsage ?? (isSelfHosted ? SELF_HOSTED_USAGE : undefined);
 
   const onValueChange = (key: string, value: unknown) => {
     return mutateUpdateSetting({ [key]: value });
@@ -379,7 +383,7 @@ export const SettingPage = (props: ISettingPageProps) => {
           </div>
 
           {/* Branding Settings Section */}
-          {instanceUsage?.level === BillingProductLevel.Enterprise && (
+          {effectiveInstanceUsage?.level === BillingProductLevel.Enterprise && (
             <Branding
               brandName={brandName}
               brandLogo={brandLogo}

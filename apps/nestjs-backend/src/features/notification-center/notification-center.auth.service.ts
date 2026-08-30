@@ -41,6 +41,11 @@ export class NotificationCenterAuthService {
     const created = await this.prisma.notification.create({
       data: {
         id: row.id,
+        fromUserId: 'system',
+        toUserId: row.recipientUserId,
+        type: row.kind,
+        message: row.body,
+        createdBy: 'system',
         baseId: row.baseId,
         recipientUserId: row.recipientUserId,
         kind: row.kind,
@@ -213,11 +218,20 @@ export class NotificationCenterAuthService {
 
 function toNotification(r: {
   id: string;
-  baseId: string;
-  recipientUserId: string;
-  kind: string;
-  title: string;
-  body: string;
+  fromUserId: string;
+  toUserId: string;
+  type: string;
+  message: string;
+  messageI18n: string | null;
+  severity: string;
+  urlPath: string | null;
+  isRead: boolean;
+  createdBy: string;
+  baseId: string | null;
+  recipientUserId: string | null;
+  kind: string | null;
+  title: string | null;
+  body: string | null;
   link: string | null;
   sourceId: string | null;
   readAt: Date | null;
@@ -225,14 +239,14 @@ function toNotification(r: {
 }): INotification {
   return {
     id: r.id,
-    baseId: r.baseId,
-    recipientUserId: r.recipientUserId,
-    kind: r.kind as NotificationKind,
-    title: r.title,
-    body: r.body,
-    link: r.link ?? undefined,
+    baseId: r.baseId ?? '',
+    recipientUserId: r.recipientUserId ?? r.toUserId,
+    kind: (r.kind ?? r.type) as NotificationKind,
+    title: r.title ?? r.message,
+    body: r.body ?? r.message,
+    link: (r.link ?? r.urlPath) ?? undefined,
     sourceId: r.sourceId ?? undefined,
-    readAt: r.readAt,
+    readAt: r.readAt ?? (r.isRead ? r.createdTime : null),
     createdTime: r.createdTime,
   };
 }

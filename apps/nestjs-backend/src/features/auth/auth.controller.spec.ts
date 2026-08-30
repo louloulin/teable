@@ -16,4 +16,15 @@ describe('AuthController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('exposes the profile compatibility endpoint', async () => {
+    const request = {
+      user: { id: 'u1', email: 'u1@example.com' },
+    } as unknown as Express.Request;
+    await expect(controller.profile(request)).resolves.toEqual({
+      id: 'u1',
+      email: 'u1@example.com',
+      organization: undefined,
+    });
+  });
 });

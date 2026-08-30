@@ -9,6 +9,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@teable/db-main-prisma';
 import { PrismaService } from '@teable/db-main-prisma';
 
 import {
@@ -59,18 +60,18 @@ export class OrgCustomRoleAuthService {
         name: role.name,
         description: role.description,
         capabilities: role.capabilities,
-        scopes: role.scopes as unknown as object,
+        scopes: role.scopes as unknown as Prisma.InputJsonValue[],
         enabled: role.enabled,
-        createdAt: new Date(role.createdAt),
-        updatedAt: new Date(role.updatedAt),
+        createdTime: new Date(role.createdAt),
+        updatedTime: new Date(role.updatedAt),
       },
       update: {
         name: role.name,
         description: role.description,
         capabilities: role.capabilities,
-        scopes: role.scopes as unknown as object,
+        scopes: role.scopes as unknown as Prisma.InputJsonValue[],
         enabled: role.enabled,
-        updatedAt: new Date(role.updatedAt),
+        updatedTime: new Date(role.updatedAt),
       },
     });
     return role;
@@ -179,8 +180,8 @@ function toRole(row: Record<string, unknown>): ICustomRole {
       : [],
     scopes: Array.isArray(scopes) ? (scopes as ICustomRole['scopes']) : [],
     enabled: Boolean(row['enabled']),
-    createdAt: new Date(String(row['createdAt'] ?? Date.now())).toISOString(),
-    updatedAt: new Date(String(row['updatedAt'] ?? Date.now())).toISOString(),
+    createdAt: new Date(String(row['createdTime'] ?? row['createdAt'] ?? Date.now())).toISOString(),
+    updatedAt: new Date(String(row['updatedTime'] ?? row['updatedAt'] ?? Date.now())).toISOString(),
   };
 }
 

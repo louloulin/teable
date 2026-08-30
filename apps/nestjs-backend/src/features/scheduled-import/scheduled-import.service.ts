@@ -74,7 +74,7 @@ export function appendJob(input: { jobs: ReadonlyArray<IImportJob>; job: IImport
 
 /** Decide the chunk size for a job — uses default if not set. */
 export function chooseChunkSize(requested: number | undefined): number {
-  if (!Number.isInteger(requested)) return DEFAULT_CHUNK_ROWS;
+  if (requested === undefined || !Number.isInteger(requested)) return DEFAULT_CHUNK_ROWS;
   if (requested < MIN_CHUNK_ROWS || requested > MAX_CHUNK_ROWS) return DEFAULT_CHUNK_ROWS;
   return requested;
 }

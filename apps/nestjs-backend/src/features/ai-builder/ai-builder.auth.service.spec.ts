@@ -166,16 +166,11 @@ describe('AiBuilderAuthService (Stage 30)', () => {
     });
   });
 
-  it('falls back to OfflineBuilderProvider when none injected', async () => {
+  it('requires an explicitly configured provider', async () => {
     const prisma = buildPrisma();
-    const svc = new AiBuilderAuthService(prisma as never);
-    const row = await svc.createProposal({
-      baseId: 'b',
-      sourcePrompt: 'contact list with email',
-      createdBy: 'u1',
-    });
-    expect(row.status).toBe('draft');
-    expect(row.proposalJson.length).toBeGreaterThan(0);
+    expect(() => new AiBuilderAuthService(prisma as never)).toThrow(
+      'AI Builder provider is not configured'
+    );
   });
 
   it('LLM_PROVIDER symbol is exported', () => {

@@ -157,7 +157,7 @@ export class ScimAuthService {
       data: {
         id,
         email: patch.email,
-        name: patch.name,
+        name: patch.name ?? patch.email,
         organizationId: input.auth.organizationId,
         ...(patch.active ? {} : { deactivatedTime: new Date() }),
       },
@@ -175,7 +175,7 @@ export class ScimAuthService {
       id: created.id,
       externalId: patch.externalId,
       email: patch.email,
-      name: patch.name,
+      name: patch.name ?? patch.email,
       active: patch.active,
       role: patch.role,
     });
@@ -197,7 +197,7 @@ export class ScimAuthService {
       where: { id: existing.id },
       data: {
         email: patch.email,
-        name: patch.name,
+        name: patch.name ?? patch.email,
         ...(patch.active
           ? { deactivatedTime: null }
           : existing.deactivatedTime

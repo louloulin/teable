@@ -12,21 +12,26 @@ import type { ISubscriberContext } from './record-history-retention.types';
 describe('record-history-retention.resolveRetention', () => {
   it('uses tier defaults', () => {
     const out = resolveRetention({ tier: 'free' });
-    expect(out.retentionDays).toBe(7);
+    expect(out.retentionDays).toBe(14);
     expect(out.overridden).toBe(false);
     expect(out.purgeCron).toBe('0 3 * * *');
   });
-  it('uses pro tier 30-day window', () => {
+  it('uses pro tier 365-day window', () => {
     const out = resolveRetention({ tier: 'pro' });
-    expect(out.retentionDays).toBe(30);
-  });
-  it('uses business tier 90-day window', () => {
-    const out = resolveRetention({ tier: 'business' });
-    expect(out.retentionDays).toBe(90);
-  });
-  it('uses enterprise tier 365-day window', () => {
-    const out = resolveRetention({ tier: 'enterprise' });
     expect(out.retentionDays).toBe(365);
+  });
+  it('uses business tier 1095-day window', () => {
+    const out = resolveRetention({ tier: 'business' });
+    expect(out.retentionDays).toBe(1095);
+  });
+  it('uses self-hosted tier 14-day window', () => {
+    const out = resolveRetention({ tier: 'self_hosted' });
+    expect(out.retentionDays).toBe(14);
+    expect(out.maxRecordsPerBase).toBe(0);
+  });
+  it('uses enterprise tier 1095-day window', () => {
+    const out = resolveRetention({ tier: 'enterprise' });
+    expect(out.retentionDays).toBe(1095);
     expect(out.maxRecordsPerBase).toBe(0);
   });
   it('honours a positive override', () => {
@@ -36,7 +41,7 @@ describe('record-history-retention.resolveRetention', () => {
   });
   it('ignores a zero / negative override', () => {
     const out = resolveRetention({ tier: 'pro', overrideDays: 0 });
-    expect(out.retentionDays).toBe(30);
+    expect(out.retentionDays).toBe(365);
     expect(out.overridden).toBe(false);
   });
   it('enterprise override sets unlimited', () => {
@@ -51,7 +56,7 @@ describe('record-history-retention.isExpired', () => {
   const resolved = resolveRetention({ tier: 'pro' });
   it('flags rows older than the retention window', () => {
     const now = new Date('2026-01-01T00:00:00Z');
-    const old = new Date(now.getTime() - 40 * 86400000);
+    const old = new Date(now.getTime() - 400 * 86400000);
     expect(isExpired(old, resolved, now)).toBe(true);
   });
   it('keeps rows inside the window', () => {
@@ -79,13 +84,19 @@ describe('record-history-retention.suggestCron', () => {
 });
 
 describe('record-history-retention.helpers', () => {
-  it('lists all 4 tier policies', () => {
+  it('lists all 5 tier policies', () => {
     const policies = listPolicies();
-    expect(policies).toHaveLength(4);
-    expect(policies.map((p) => p.tier)).toEqual(['free', 'pro', 'business', 'enterprise']);
+    expect(policies).toHaveLength(5);
+    expect(policies.map((p) => p.tier)).toEqual([
+      'self_hosted',
+      'free',
+      'pro',
+      'business',
+      'enterprise',
+    ]);
   });
   it('exposes PLAN_RETENTION_POLICIES as a record', () => {
-    expect(PLAN_RETENTION_POLICIES.business.retentionDays).toBe(90);
+    expect(PLAN_RETENTION_POLICIES.business.retentionDays).toBe(1095);
   });
   it('describes resolutions', () => {
     expect(describeResolution(resolveRetention({ tier: 'pro' }))).toContain('pro tier');
@@ -99,7 +110,7 @@ describe('record-history-retention.describe (integration)', () => {
   it('runs an integration check without prisma', () => {
     const ctx: ISubscriberContext = { tier: 'pro' };
     const resolved = resolveRetention(ctx);
-    expect(resolved.retentionDays).toBe(30);
+    expect(resolved.retentionDays).toBe(365);
     expect(resolved.overridden).toBe(false);
   });
 });

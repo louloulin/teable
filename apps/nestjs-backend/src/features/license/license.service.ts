@@ -1,11 +1,15 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import type { OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService, type PlanLevel } from '@teable/db-main-prisma';
 
-import { IPlanLimits, PLAN_LIMITS } from '../quota/quota.constants';
-import type { ISetSpaceQuotaInput } from '../quota/quota.types';
+import { PLAN_LIMITS } from '../quota/quota.constants';
+import type { IPlanLimits } from '../quota/quota.constants';
 import { QuotaService } from '../quota/quota.service';
+import type { ISetSpaceQuotaInput } from '../quota/quota.types';
 
 import type { ILicenseClaims, IResolvedLicense } from './license.constants';
+
+const LICENSE_SETTING_KEY = 'self_hosted_license';
 
 /**
  * Self-host-friendly license activation. Resolves the current license from:
@@ -24,6 +28,7 @@ import type { ILicenseClaims, IResolvedLicense } from './license.constants';
 @Injectable()
 export class LicenseService implements OnApplicationBootstrap {
   private readonly logger = new Logger(LicenseService.name);
+  private runtimeResolved: IResolvedLicense | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -31,6 +36,7 @@ export class LicenseService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.loadPersistedLicense();
     const resolved = this.resolveFromEnv();
     if (resolved.source === 'none') {
       this.logger.log('No license configured; defaulting all spaces to self_hosted plan.');
@@ -54,7 +60,31 @@ export class LicenseService implements OnApplicationBootstrap {
   }
 
   resolveFromEnv(): IResolvedLicense {
-    return this.resolve(process.env.TEABLE_LICENSE_KEY);
+    const envResolved = this.resolve(process.env.TEABLE_LICENSE_KEY);
+    return envResolved.source === 'none' && this.runtimeResolved
+      ? this.runtimeResolved
+      : envResolved;
+  }
+
+  setRuntimeLicense(resolved: IResolvedLicense | null): void {
+    this.runtimeResolved = resolved;
+  }
+
+  private async loadPersistedLicense(): Promise<void> {
+    if (process.env.TEABLE_LICENSE_KEY) return;
+    try {
+      const row = await this.prisma.setting.findFirst({
+        where: { name: LICENSE_SETTING_KEY },
+      });
+      if (!row?.content) return;
+      const stored = JSON.parse(row.content) as { licenseKey?: string | null };
+      if (stored.licenseKey) {
+        const resolved = this.resolve(stored.licenseKey);
+        this.runtimeResolved = resolved.source === 'none' ? null : resolved;
+      }
+    } catch (err) {
+      this.logger.warn(`license persisted state load failed: ${(err as Error)?.message ?? err}`);
+    }
   }
 
   /**
@@ -68,10 +98,12 @@ export class LicenseService implements OnApplicationBootstrap {
 
     const targetIds = claims.spaceIds?.length
       ? claims.spaceIds
-      : (await this.prisma.space.findMany({
-          where: { deletedTime: null },
-          select: { id: true },
-        })).map((s) => s.id);
+      : (
+          await this.prisma.space.findMany({
+            where: { deletedTime: null },
+            select: { id: true },
+          })
+        ).map((s) => s.id);
 
     const input: ISetSpaceQuotaInput = {
       plan: claims.plan,
@@ -96,15 +128,17 @@ export class LicenseService implements OnApplicationBootstrap {
   private parseJwt(token: string): IResolvedLicense | null {
     if (!token.includes('.')) return null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const jwt = require('jsonwebtoken') as typeof import('jsonwebtoken');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const jwt = require('jsonwebtoken');
       const pub = process.env.TEABLE_LICENSE_PUBLIC_KEY;
       const secret = process.env.TEABLE_LICENSE_HMAC_SECRET;
-      const decoded = (pub
+      const decoded = (
+        pub
           ? jwt.verify(token, pub, { algorithms: ['RS256'] })
           : secret
             ? jwt.verify(token, secret, { algorithms: ['HS256'] })
-            : null) as (ILicenseClaims & { exp?: number }) | null;
+            : null
+      ) as (ILicenseClaims & { exp?: number }) | null;
       if (!decoded) return null;
       const claims: ILicenseClaims = {
         plan: decoded.plan,
@@ -119,9 +153,7 @@ export class LicenseService implements OnApplicationBootstrap {
         effectiveLimits: this.limitsForClaims(claims),
       };
     } catch (err) {
-      this.logger.warn(
-        `JWT license verification failed: ${(err as Error)?.message ?? err}`
-      );
+      this.logger.warn(`JWT license verification failed: ${(err as Error)?.message ?? err}`);
       return null;
     }
   }

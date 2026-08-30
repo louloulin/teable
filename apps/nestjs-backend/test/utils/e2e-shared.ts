@@ -44,6 +44,7 @@ interface ISharedState {
   baselineEnv?: Record<string, string | undefined>;
   originalDbUrl?: string;
   originalMetaDbUrl?: string;
+  originalDataDbUrl?: string;
   originalCacheRedisUri?: string;
   originalPerfCacheUri?: string;
   /** First shared app to finish booting — the worker's canonical axios target. */
@@ -365,6 +366,11 @@ export function applyWorkerDatabaseEnv(): void {
   const metaUrl = (state().originalMetaDbUrl ??= process.env.PRISMA_META_DATABASE_URL);
   if (metaUrl && url && sameDatabaseTarget(metaUrl, url)) {
     process.env.PRISMA_META_DATABASE_URL = workerDatabaseUrl(metaUrl, poolId);
+  }
+
+  const dataUrl = (state().originalDataDbUrl ??= process.env.PRISMA_DATA_DATABASE_URL);
+  if (dataUrl && url && sameDatabaseTarget(dataUrl, url)) {
+    process.env.PRISMA_DATA_DATABASE_URL = workerDatabaseUrl(dataUrl, poolId);
   }
 
   // The redis cache holds sessions and permission caches keyed by the shared seed

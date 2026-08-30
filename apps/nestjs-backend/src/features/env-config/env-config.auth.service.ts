@@ -33,14 +33,14 @@ export class EnvConfigAuthService {
         kind: input.spec.kind,
         required: input.spec.required,
         defaultValue: input.spec.default === undefined ? null : String(input.spec.default),
-        enumValues: input.spec.enumValues ? (input.spec.enumValues as object) : null,
+        enumValues: input.spec.enumValues ? JSON.parse(JSON.stringify(input.spec.enumValues)) : null,
         description: input.spec.description ?? null,
       },
       update: {
         kind: input.spec.kind,
         required: input.spec.required,
         defaultValue: input.spec.default === undefined ? null : String(input.spec.default),
-        enumValues: input.spec.enumValues ? (input.spec.enumValues as object) : null,
+        enumValues: input.spec.enumValues ? JSON.parse(JSON.stringify(input.spec.enumValues)) : null,
         description: input.spec.description ?? null,
       },
     });

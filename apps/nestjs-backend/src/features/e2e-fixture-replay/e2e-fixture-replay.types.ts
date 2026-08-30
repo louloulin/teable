@@ -4,6 +4,8 @@
 
 import type { ITestFixture, ITestUser } from '../e2e-test-utils/e2e-test-utils.types';
 
+export type { ITestFixture, ITestUser } from '../e2e-test-utils/e2e-test-utils.types';
+
 export type ReplayStatus = 'pending' | 'replaying' | 'done' | 'failed';
 
 export interface IReplayStep {

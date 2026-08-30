@@ -1,6 +1,5 @@
 import { HttpErrorCode } from '@teable/core';
 import { vi } from 'vitest';
-import { vi } from 'vitest';
 import { CustomHttpException } from '../../custom.exception';
 import { PermissionMatrixService } from './permission-matrix.service';
 import { PermissionGuard } from './permission.guard';

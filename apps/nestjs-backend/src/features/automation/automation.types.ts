@@ -11,39 +11,66 @@ export type AutomationTriggerType =
   | 'record_created'
   | 'record_updated'
   | 'record_deleted'
-  | 'schedule';
+  | 'record_matches_conditions'
+  | 'schedule'
+  | 'button_clicked'
+  | 'form_submitted'
+  | 'webhook_received'
+  | 'email_received';
 
 export type AutomationActionType =
+  | 'create_record'
+  | 'get_records'
+  | 'http_request'
   | 'update_record'
+  | 'conditional_logic'
+  | 'ai_generate'
   | 'webhook'
   | 'email'
   | 'slack'
   | 'discord'
   | 'telegram'
-  | 'teams';
+  | 'teams'
+  | 'run_script'
+  | 'send_email'
+  | 'call_webhook'
+  | 'notify_user'
+  | 'ai_prompt'
+  | 'send_teams_message';
 
-export type AutomationRunStatus =
-  | 'pending'
-  | 'running'
-  | 'succeeded'
-  | 'failed'
-  | 'skipped';
+export type AutomationRunStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
 
 export const AUTOMATION_TRIGGER_TYPES: readonly AutomationTriggerType[] = [
   'record_created',
   'record_updated',
   'record_deleted',
+  'record_matches_conditions',
   'schedule',
+  'button_clicked',
+  'form_submitted',
+  'webhook_received',
+  'email_received',
 ] as const;
 
 export const AUTOMATION_ACTION_TYPES: readonly AutomationActionType[] = [
   'update_record',
+  'create_record',
+  'get_records',
+  'http_request',
   'webhook',
+  'conditional_logic',
+  'ai_generate',
   'email',
   'slack',
   'discord',
   'telegram',
   'teams',
+  'run_script',
+  'send_email',
+  'call_webhook',
+  'notify_user',
+  'ai_prompt',
+  'send_teams_message',
 ] as const;
 
 /**
@@ -60,6 +87,9 @@ export interface IAutomationRow {
   createdTime: Date;
   lastModifiedBy: string | null;
   lastModifiedTime: Date | null;
+  draftConfig?: Record<string, unknown> | null;
+  draftVersion?: number;
+  liveVersion?: number;
 }
 
 export interface IAutomationTriggerRow {
@@ -89,9 +119,22 @@ export interface IAutomationRunRow {
   output: Record<string, unknown> | null;
   error: string | null;
   retryCount: number;
+  parentRunId?: string | null;
+  version?: number;
+  resumeFromStep?: number | null;
   startedAt: Date | null;
   finishedAt: Date | null;
   createdTime: Date;
+}
+
+export interface IAutomationRunStep {
+  index: number;
+  actionType: AutomationActionType;
+  status: 'succeeded' | 'failed';
+  output?: unknown;
+  error?: string;
+  startedAt: string;
+  finishedAt: string;
 }
 
 export interface IAutomationDetail extends IAutomationRow {
@@ -123,6 +166,37 @@ export interface IAutomationCreateInput {
   }>;
 }
 
+export interface IAutomationUpdateInput {
+  name?: string;
+  description?: string | null;
+  enabled?: boolean;
+  lastModifiedBy: string;
+  triggers: IAutomationCreateInput['triggers'];
+  actions: IAutomationCreateInput['actions'];
+}
+
+export interface IAutomationDraft {
+  name?: string;
+  description?: string | null;
+  enabled?: boolean;
+  triggers: IAutomationCreateInput['triggers'];
+  actions: IAutomationCreateInput['actions'];
+}
+
+export interface IAutomationAiDraftInput {
+  baseId: string;
+  prompt: string;
+  automationId?: string;
+  modelKey?: string;
+  offline?: boolean;
+}
+
+export interface IAutomationAiDraftResult {
+  source: 'ai' | 'offline';
+  model: string;
+  draft: IAutomationDraft;
+}
+
 /**
  * Input shape for `AutomationService.trigger()`. Mirrors what record-event
  * hooks will eventually pass; kept structural so callers (and tests) can
@@ -131,4 +205,17 @@ export interface IAutomationCreateInput {
 export interface IAutomationTriggerInput {
   triggerType: AutomationTriggerType;
   payload: Record<string, unknown>;
+}
+
+export interface IAutomationCondition {
+  fieldId: string;
+  operator:
+    | 'equals'
+    | 'not_equals'
+    | 'contains'
+    | 'greater_than'
+    | 'less_than'
+    | 'is_empty'
+    | 'is_not_empty';
+  value?: unknown;
 }

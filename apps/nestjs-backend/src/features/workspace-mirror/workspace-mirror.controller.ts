@@ -84,17 +84,17 @@ export class WorkspaceMirrorController {
   ) {}
 
   @Get('configs')
-  listConfigs(): IMirrorConfig[] {
+  async listConfigs(): Promise<IMirrorConfig[]> {
     return this.configService.list(this.currentUserId());
   }
 
   @Post('configs')
   @Permissions('space|update')
   @ResourceMeta('baseId', 'body')
-  createConfig(@Body() body: unknown): IMirrorConfig {
+  async createConfig(@Body() body: unknown): Promise<IMirrorConfig> {
     assertConfigShape(body);
     try {
-      return this.configService.upsert(body, this.currentUserId());
+      return await this.configService.upsert(body, this.currentUserId());
     } catch (err) {
       throw this.translate(err);
     }
@@ -102,9 +102,9 @@ export class WorkspaceMirrorController {
 
   @Get('configs/:baseId')
   @Permissions('space|update')
-  getConfig(@Param('baseId') baseId: string): IMirrorConfig {
+  async getConfig(@Param('baseId') baseId: string): Promise<IMirrorConfig> {
     try {
-      return this.configService.get(baseId);
+      return await this.configService.get(baseId);
     } catch (err) {
       throw this.translate(err);
     }
@@ -134,9 +134,9 @@ export class WorkspaceMirrorController {
 
   @Post('configs/:baseId/pause')
   @Permissions('space|update')
-  pause(@Param('baseId') baseId: string): IMirrorConfig {
+  async pause(@Param('baseId') baseId: string): Promise<IMirrorConfig> {
     try {
-      return this.configService.setEnabled(baseId, false);
+      return await this.configService.setEnabled(baseId, false);
     } catch (err) {
       throw this.translate(err);
     }
@@ -144,9 +144,9 @@ export class WorkspaceMirrorController {
 
   @Post('configs/:baseId/resume')
   @Permissions('space|update')
-  resume(@Param('baseId') baseId: string): IMirrorConfig {
+  async resume(@Param('baseId') baseId: string): Promise<IMirrorConfig> {
     try {
-      return this.configService.setEnabled(baseId, true);
+      return await this.configService.setEnabled(baseId, true);
     } catch (err) {
       throw this.translate(err);
     }

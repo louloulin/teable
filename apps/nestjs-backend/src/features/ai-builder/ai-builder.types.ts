@@ -59,6 +59,8 @@ export interface IBuilderProposal {
   payload: IBuilderTableProposal | IBuilderFieldProposal | IBuilderViewProposal;
 }
 
+export type BuilderProposal = IBuilderProposal;
+
 export interface IBuilderProposalRow {
   id: string;
   baseId: string;
@@ -83,6 +85,7 @@ export interface ICreateBuilderProposalInput {
 export interface IApproveBuilderProposalInput {
   proposalId: string;
   approvedBy: string;
+  baseId?: string;
 }
 
 export const SUPPORTED_FIELD_TYPES: ReadonlyArray<BuilderFieldType> = [

@@ -1,4 +1,5 @@
 import type { PermissionFilter } from './permission-matrix.constants';
+import { mergeFilter, type IFilter } from '@teable/core';
 
 /**
  * Stage 5b — drop-in helper for record read handlers to AND-merge the
@@ -23,4 +24,28 @@ export function applyPermissionFilter<T extends Record<string, unknown>>(
   const filter = req?.permission?.filter;
   if (!filter || Object.keys(filter).length === 0) return where;
   return { AND: [where, filter] } as unknown as T;
+}
+
+export function applyPermissionFilterToRecordQuery<T extends { filter?: IFilter | null }>(
+  req: { permission?: { filter?: PermissionFilter | null } } | undefined,
+  query: T
+): T {
+  const permissionFilter = req?.permission?.filter;
+  if (!isRecordFilter(permissionFilter)) return query;
+
+  return {
+    ...query,
+    filter: mergeFilter(query.filter ?? undefined, permissionFilter),
+  } as T;
+}
+
+function isRecordFilter(value: PermissionFilter | null | undefined): value is IFilter {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      'conjunction' in value &&
+      ('filterSet' in value) &&
+      Array.isArray((value as { filterSet?: unknown }).filterSet)
+  );
 }

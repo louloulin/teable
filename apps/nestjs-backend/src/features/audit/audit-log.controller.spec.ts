@@ -1,7 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { HttpErrorCode } from '@teable/core';
+import type { Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
-import { HttpErrorCode } from '@teable/core';
 import { CustomHttpException } from '../../custom.exception';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { LicenseCapabilityService } from '../license/license-capability.service';
@@ -17,16 +18,20 @@ import { AuditLogService, type IAuditLogPage } from './audit-log.service';
  * mock `LicenseCapabilityService.require` (used to assert the guard
  * fires when capability is off).
  */
-const buildHarness = async (opts: {
-  capsEnabled: boolean;
-  serviceResponse?: IAuditLogPage;
-}) => {
+const buildHarness = async (opts: { capsEnabled: boolean; serviceResponse?: IAuditLogPage }) => {
   const query = vi.fn().mockResolvedValue(
-    opts.serviceResponse ?? {
-      rows: [],
-      total: 0,
-    } satisfies IAuditLogPage
+    opts.serviceResponse ??
+      ({
+        rows: [],
+        total: 0,
+      } satisfies IAuditLogPage)
   );
+  const exportAuditLog = vi.fn().mockResolvedValue({
+    body: 'id,action\n',
+    mimeType: 'text/csv; charset=utf-8',
+    filename: 'audit-test.csv',
+    rowCount: 0,
+  });
   const isEnabled = vi.fn().mockReturnValue(opts.capsEnabled);
   const require = vi.fn().mockImplementation(() => {
     if (!opts.capsEnabled) {
@@ -41,7 +46,7 @@ const buildHarness = async (opts: {
   const moduleRef: TestingModule = await Test.createTestingModule({
     controllers: [AuditLogController],
     providers: [
-      { provide: AuditLogService, useValue: { query } },
+      { provide: AuditLogService, useValue: { query, export: exportAuditLog } },
       {
         provide: LicenseCapabilityService,
         useValue: { isEnabled, require },
@@ -50,7 +55,7 @@ const buildHarness = async (opts: {
   }).compile();
 
   const controller = moduleRef.get(AuditLogController);
-  return { controller, query, isEnabled, require, moduleRef };
+  return { controller, query, exportAuditLog, isEnabled, require, moduleRef };
 };
 
 describe('AuditLogController', () => {
@@ -95,9 +100,7 @@ describe('AuditLogController', () => {
       },
     });
 
-    await expect(
-      controller.query(undefined, 'user.sso.login.success', 'user')
-    ).resolves.toEqual({
+    await expect(controller.query(undefined, 'user.sso.login.success', 'user')).resolves.toEqual({
       rows: [
         {
           id: 'row1',
@@ -119,6 +122,49 @@ describe('AuditLogController', () => {
     expect(filter.action).toBe('user.sso.login.success');
     expect(filter.resourceType).toBe('user');
     expect(filter.actor).toBeUndefined();
+  });
+
+  it('exports filtered audit rows with a safe attachment response', async () => {
+    const { controller, exportAuditLog } = await buildHarness({ capsEnabled: true });
+    const response = { setHeader: vi.fn() } as unknown as Response;
+
+    await expect(
+      controller.export(
+        'json',
+        'u1',
+        'record.create',
+        'record',
+        '2026-08-01T00:00:00.000Z',
+        '2026-08-25T23:59:59.000Z',
+        response
+      )
+    ).resolves.toBe('id,action\n');
+
+    expect(exportAuditLog).toHaveBeenCalledWith(
+      {
+        actor: 'u1',
+        action: 'record.create',
+        resourceType: 'record',
+        since: new Date('2026-08-01T00:00:00.000Z'),
+        until: new Date('2026-08-25T23:59:59.000Z'),
+        page: 1,
+        pageSize: 20,
+      },
+      'json'
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="audit-test.csv"'
+    );
+  });
+
+  it('rejects unsupported export formats', async () => {
+    const { controller } = await buildHarness({ capsEnabled: true });
+    const response = { setHeader: vi.fn() } as unknown as Response;
+
+    await expect(
+      controller.export('xml', undefined, undefined, undefined, undefined, undefined, response)
+    ).rejects.toThrow(/format must be one of csv, json, jsonl/);
   });
 
   it('parses page/pageSize and ISO8601 since/until into the service filter', async () => {
@@ -163,9 +209,9 @@ describe('AuditLogController', () => {
   it('rejects malformed since/until with BadRequestException', async () => {
     const { controller } = await buildHarness({ capsEnabled: true });
 
-    await expect(
-      controller.query(undefined, undefined, undefined, 'not-a-date')
-    ).rejects.toThrow(/since must be a valid ISO8601 timestamp/);
+    await expect(controller.query(undefined, undefined, undefined, 'not-a-date')).rejects.toThrow(
+      /since must be a valid ISO8601 timestamp/
+    );
 
     await expect(
       controller.query(undefined, undefined, undefined, undefined, 'also-bad')
@@ -184,7 +230,7 @@ describe('AuditLogController', () => {
     const guard = new (guardRef as any)({
       isEnabled,
       require,
-    } as LicenseCapabilityService);
+    } as unknown as LicenseCapabilityService);
     expect(() => guard.canActivate({} as never)).toThrow(CustomHttpException);
     expect(() => guard.canActivate({} as never)).toThrow(/capability "audit_log"/);
 

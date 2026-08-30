@@ -3,19 +3,69 @@
  */
 
 import {
+  MAX_TRIGGER_CATALOG_TYPES,
+  MAX_TRIGGER_FIELDS_PER_TYPE,
+} from './automation-trigger-catalog.types';
+import type {
   ITriggerCatalog,
   ITriggerFieldSpec,
   ITriggerTypeSpec,
   ITriggerValidationIssue,
   ITriggerValidationResult,
-  MAX_TRIGGER_CATALOG_TYPES,
-  MAX_TRIGGER_FIELDS_PER_TYPE,
 } from './automation-trigger-catalog.types';
 
 /** Built-in trigger catalog. UI may extend via DB. */
 export const BUILTIN_TRIGGER_CATALOG: ITriggerCatalog = {
   version: 1,
   types: [
+    {
+      type: 'record_matches_conditions',
+      label: 'Record matches conditions',
+      category: 'record',
+      description: 'Fires when an updated record matches configured conditions.',
+      icon: 'filter',
+      fields: [
+        { key: 'tableId', label: 'Table', kind: 'string', required: true },
+        { key: 'conditions', label: 'Conditions', kind: 'json', required: true },
+      ],
+      outputKeys: ['recordId', 'tableId', 'before', 'after', 'values'],
+    },
+    {
+      type: 'button_clicked',
+      label: 'Button clicked',
+      category: 'manual',
+      description: 'Fires when a configured button invokes the automation.',
+      icon: 'mouse-pointer-click',
+      fields: [{ key: 'tableId', label: 'Table', kind: 'string', required: false }],
+      outputKeys: ['tableId', 'recordId', 'inputs'],
+    },
+    {
+      type: 'form_submitted',
+      label: 'Form submitted',
+      category: 'system',
+      description: 'Fires when a form submits a record payload.',
+      icon: 'file-input',
+      fields: [{ key: 'tableId', label: 'Table', kind: 'string', required: true }],
+      outputKeys: ['tableId', 'recordId', 'values'],
+    },
+    {
+      type: 'webhook_received',
+      label: 'Inbound webhook',
+      category: 'webhook',
+      description: 'Fires when an inbound webhook is received.',
+      icon: 'globe',
+      fields: [{ key: 'secret', label: 'HMAC secret', kind: 'string', required: false }],
+      outputKeys: ['headers', 'body', 'receivedAt'],
+    },
+    {
+      type: 'email_received',
+      label: 'Email received',
+      category: 'system',
+      description: 'Fires when an inbound email payload is received.',
+      icon: 'mail',
+      fields: [{ key: 'secret', label: 'HMAC secret', kind: 'string', required: false }],
+      outputKeys: ['headers', 'body', 'receivedAt'],
+    },
     {
       type: 'record_created',
       label: 'Record created',
@@ -36,7 +86,13 @@ export const BUILTIN_TRIGGER_CATALOG: ITriggerCatalog = {
       icon: 'edit',
       fields: [
         { key: 'tableId', label: 'Table', kind: 'string', required: true },
-        { key: 'watchFields', label: 'Watch fields', kind: 'json', required: false, defaultValue: [] },
+        {
+          key: 'watchFields',
+          label: 'Watch fields',
+          kind: 'json',
+          required: false,
+          defaultValue: [],
+        },
       ],
       outputKeys: ['recordId', 'tableId', 'before', 'after'],
     },
@@ -46,9 +102,7 @@ export const BUILTIN_TRIGGER_CATALOG: ITriggerCatalog = {
       category: 'record',
       description: 'Fires when a record is removed.',
       icon: 'trash-2',
-      fields: [
-        { key: 'tableId', label: 'Table', kind: 'string', required: true },
-      ],
+      fields: [{ key: 'tableId', label: 'Table', kind: 'string', required: true }],
       outputKeys: ['recordId', 'tableId'],
     },
     {
@@ -59,32 +113,15 @@ export const BUILTIN_TRIGGER_CATALOG: ITriggerCatalog = {
       icon: 'clock',
       fields: [
         { key: 'cron', label: 'Cron expression', kind: 'cron', required: true },
-        { key: 'timezone', label: 'Timezone', kind: 'string', required: false, defaultValue: 'UTC' },
+        {
+          key: 'timezone',
+          label: 'Timezone',
+          kind: 'string',
+          required: false,
+          defaultValue: 'UTC',
+        },
       ],
       outputKeys: ['fireTime'],
-    },
-    {
-      type: 'webhook_inbound',
-      label: 'Inbound webhook',
-      category: 'webhook',
-      description: 'Fires when an inbound webhook is received.',
-      icon: 'globe',
-      fields: [
-        { key: 'path', label: 'Path', kind: 'string', required: true },
-        { key: 'secret', label: 'HMAC secret', kind: 'string', required: false },
-      ],
-      outputKeys: ['headers', 'body', 'receivedAt'],
-    },
-    {
-      type: 'manual',
-      label: 'Manual trigger',
-      category: 'manual',
-      description: 'Run on demand from the editor.',
-      icon: 'play',
-      fields: [
-        { key: 'inputs', label: 'Inputs', kind: 'json', required: false, defaultValue: {} },
-      ],
-      outputKeys: ['inputs'],
     },
   ],
   defaultType: 'record_created',
@@ -155,37 +192,41 @@ export function validateTriggerConfig(
 }
 
 function validateField(field: ITriggerFieldSpec, value: unknown): string | null {
-  switch (field.kind) {
-    case 'string':
-      return typeof value === 'string' ? null : `expected string for ${field.key}`;
-    case 'number':
-      return typeof value === 'number' && Number.isFinite(value) ? null : `expected number for ${field.key}`;
-    case 'boolean':
-      return typeof value === 'boolean' ? null : `expected boolean for ${field.key}`;
-    case 'select':
-      return field.options && field.options.includes(String(value))
+  const validators: Record<
+    ITriggerFieldSpec['kind'],
+    (field: ITriggerFieldSpec, value: unknown) => string | null
+  > = {
+    string: (current, currentValue) =>
+      typeof currentValue === 'string' ? null : `expected string for ${current.key}`,
+    number: (current, currentValue) =>
+      typeof currentValue === 'number' && Number.isFinite(currentValue)
         ? null
-        : `value ${String(value)} not in options`;
-    case 'cron':
-      return typeof value === 'string' && /^[0-9*\/,\-\s]+$/.test(value)
+        : `expected number for ${current.key}`,
+    boolean: (current, currentValue) =>
+      typeof currentValue === 'boolean' ? null : `expected boolean for ${current.key}`,
+    select: (current, currentValue) =>
+      current.options?.includes(String(currentValue))
         ? null
-        : `invalid cron: ${String(value)}`;
-    case 'json':
-      return typeof value === 'object' ? null : `expected object for ${field.key}`;
-    default:
-      return null;
-  }
+        : `value ${String(currentValue)} not in options`,
+    cron: (_current, currentValue) =>
+      typeof currentValue === 'string' && /^[0-9*,\-\s]+$/.test(currentValue)
+        ? null
+        : `invalid cron: ${String(currentValue)}`,
+    json: (current, currentValue) =>
+      typeof currentValue === 'object' ? null : `expected object for ${current.key}`,
+  };
+  return validators[field.kind](field, value);
 }
 
 /** Merge two catalogs (extension wins on conflict). */
-export function mergeTriggerCatalogs(
-  base: ITriggerCatalog,
-  ext: ITriggerCatalog
-): ITriggerCatalog {
+export function mergeTriggerCatalogs(base: ITriggerCatalog, ext: ITriggerCatalog): ITriggerCatalog {
   const byType = new Map<string, ITriggerTypeSpec>();
   for (const t of base.types) byType.set(t.type, t);
   for (const t of ext.types) byType.set(t.type, t);
-  const merged: ITriggerTypeSpec[] = Array.from(byType.values()).slice(0, MAX_TRIGGER_CATALOG_TYPES);
+  const merged: ITriggerTypeSpec[] = Array.from(byType.values()).slice(
+    0,
+    MAX_TRIGGER_CATALOG_TYPES
+  );
   return {
     version: Math.max(base.version, ext.version),
     types: merged,
@@ -217,11 +258,7 @@ export function missingTriggerFields(
 }
 
 /** Whether a given output key is exposed by the trigger. */
-export function hasTriggerOutputKey(
-  catalog: ITriggerCatalog,
-  type: string,
-  key: string
-): boolean {
+export function hasTriggerOutputKey(catalog: ITriggerCatalog, type: string, key: string): boolean {
   const spec = getTriggerSpec(catalog, type);
   return !!spec && spec.outputKeys.includes(key);
 }
@@ -232,9 +269,10 @@ export function serializeTriggerCatalog(catalog: ITriggerCatalog): string {
 }
 
 /** Pretty-print a summary of the catalog (for editor palette sidebar). */
-export function summarizeTriggerCatalog(
-  catalog: ITriggerCatalog
-): { count: number; categories: Record<string, number> } {
+export function summarizeTriggerCatalog(catalog: ITriggerCatalog): {
+  count: number;
+  categories: Record<string, number>;
+} {
   const categories: Record<string, number> = {};
   for (const t of catalog.types) {
     categories[t.category] = (categories[t.category] ?? 0) + 1;

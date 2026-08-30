@@ -65,8 +65,8 @@ export class OrgQuotaReservationAuthService {
         expiresAt: new Date(r.expiresAt),
         consumed: r.consumed,
         reason: r.reason,
-        createdAt: new Date(r.createdAt),
-        updatedAt: new Date(r.updatedAt),
+        createdTime: new Date(r.createdAt),
+        updatedTime: new Date(r.updatedAt),
       },
       update: {
         amount: r.amount,
@@ -75,7 +75,7 @@ export class OrgQuotaReservationAuthService {
         expiresAt: new Date(r.expiresAt),
         consumed: r.consumed,
         reason: r.reason,
-        updatedAt: new Date(r.updatedAt),
+        updatedTime: new Date(r.updatedAt),
       },
     });
     return r;
@@ -162,7 +162,7 @@ function toReservation(row: Record<string, unknown>): IOrgQuotaReservation {
     expiresAt: new Date(String(row['expiresAt'] ?? Date.now())).toISOString(),
     consumed: Boolean(row['consumed']),
     reason: String(row['reason'] ?? ''),
-    createdAt: new Date(String(row['createdAt'] ?? Date.now())).toISOString(),
-    updatedAt: new Date(String(row['updatedAt'] ?? Date.now())).toISOString(),
+    createdAt: new Date(String(row['createdTime'] ?? row['createdAt'] ?? Date.now())).toISOString(),
+    updatedAt: new Date(String(row['updatedTime'] ?? row['updatedAt'] ?? Date.now())).toISOString(),
   };
 }

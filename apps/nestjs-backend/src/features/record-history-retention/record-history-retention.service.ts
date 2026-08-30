@@ -14,33 +14,40 @@ import type {
 } from './record-history-retention.types';
 
 export const PLAN_RETENTION_POLICIES: Record<PlanTier, IPlanRetentionPolicy> = {
+  self_hosted: {
+    tier: 'self_hosted',
+    retentionDays: 14,
+    purgeCron: '0 3 * * *',
+    maxRecordsPerBase: 0,
+    description: 'Self-hosted keeps 14 days of record history by default.',
+  },
   free: {
     tier: 'free',
-    retentionDays: 7,
+    retentionDays: 14,
     purgeCron: '0 3 * * *',
     maxRecordsPerBase: 5_000,
-    description: 'Free tier keeps 7 days of record history.',
+    description: 'Free tier keeps 14 days of record history.',
   },
   pro: {
     tier: 'pro',
-    retentionDays: 30,
+    retentionDays: 365,
     purgeCron: '0 3 * * *',
     maxRecordsPerBase: 50_000,
-    description: 'Pro tier keeps 30 days of record history.',
+    description: 'Pro tier keeps 365 days of record history.',
   },
   business: {
     tier: 'business',
-    retentionDays: 90,
+    retentionDays: 1095,
     purgeCron: '0 2 * * *',
     maxRecordsPerBase: 250_000,
-    description: 'Business tier keeps 90 days of record history.',
+    description: 'Business tier keeps 1095 days of record history.',
   },
   enterprise: {
     tier: 'enterprise',
-    retentionDays: 365,
+    retentionDays: 1095,
     purgeCron: '0 1 * * *',
     maxRecordsPerBase: 0,
-    description: 'Enterprise tier keeps 365 days; unlimited per-base records.',
+    description: 'Enterprise tier keeps 1095 days; unlimited per-base records.',
   },
 };
 

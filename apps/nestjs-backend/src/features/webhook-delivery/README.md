@@ -19,7 +19,14 @@ admin endpoint that re-queues dead-letter rows.
   used by the auth service in production. Posts the body via the
   global `fetch` with an `AbortController` for the timeout.
 - `webhook-delivery.module.ts` — registers the auth service with the
-  HTTP dispatcher + PrismaService, and exposes the admin controller.
+  HTTP dispatcher + PrismaService, exposes the admin controller, and
+  wires record-event listeners plus the repeatable due-delivery worker.
+
+Record create/update/delete events are mapped to `record.create`,
+`record.update`, and `record.delete`. Only enabled endpoints whose
+`events` list contains the event (or is empty) receive a delivery. The
+worker runs every five seconds and reuses the existing exponential
+backoff/dead-letter state machine.
 
 ## Admin endpoint
 

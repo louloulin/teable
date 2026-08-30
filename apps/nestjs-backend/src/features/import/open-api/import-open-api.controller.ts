@@ -69,8 +69,9 @@ export class ImportController {
     }
 
     if (this.cls.get('useV2')) {
-      this.cls.set('useV2', false);
-      this.cls.set('v2Reason', 'unsupported_feature');
+      const cls = this.cls as unknown as ClsService<Record<string, unknown>>;
+      cls.set('useV2', false);
+      cls.set('v2Reason', 'unsupported_feature');
     }
 
     return await this.importOpenService.createTableFromImport(baseId, importRo);

@@ -96,7 +96,7 @@ export function userToScim(input: {
   id: string;
   externalId: string | null;
   email: string;
-  name: string | null;
+    name: string;
   active: boolean;
   role: string;
 }): IScimUser {
@@ -292,7 +292,7 @@ export class ScimService {
 
   async loadConfig(): Promise<IScimStoredConfig> {
     const row = await this.prisma.setting.findUnique({
-      where: { id: SCIM_SETTING_ROW_ID },
+      where: { name: SCIM_SETTING_ROW_ID },
     });
     if (!row || !row.content) {
       return emptyConfig();
@@ -313,12 +313,12 @@ export class ScimService {
 
   private async saveConfig(cfg: IScimStoredConfig) {
     await this.prisma.setting.upsert({
-      where: { id: SCIM_SETTING_ROW_ID },
+      where: { name: SCIM_SETTING_ROW_ID },
       update: { content: JSON.stringify(cfg) },
       create: {
-        id: SCIM_SETTING_ROW_ID,
-        name: 'scimConfig',
+        name: SCIM_SETTING_ROW_ID,
         content: JSON.stringify(cfg),
+        createdBy: 'system',
       },
     });
   }

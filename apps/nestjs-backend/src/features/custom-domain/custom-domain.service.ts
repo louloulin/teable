@@ -39,7 +39,7 @@ export class CustomDomainService {
   async checkDomain(domain: string): Promise<{ cnameTarget: string; verified: boolean }> {
     const clean = this.normalizeDomain(domain);
     if (!clean) {
-      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION_ERROR);
     }
     const row = await this.prisma.organizationDomain.findUnique({
       where: { domain: clean },
@@ -54,7 +54,7 @@ export class CustomDomainService {
   async claimDomain(domain: string, organizationId: string, createdBy: string) {
     const clean = this.normalizeDomain(domain);
     if (!clean) {
-      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION);
+      throw new CustomHttpException('invalid domain', HttpErrorCode.VALIDATION_ERROR);
     }
     const existing = await this.prisma.organizationDomain.findUnique({
       where: { domain: clean },

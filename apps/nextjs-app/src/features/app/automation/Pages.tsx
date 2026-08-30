@@ -4,13 +4,12 @@ import { Button } from '@teable/ui-lib/shadcn/ui/button';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
+import { WorkFlowPanel } from './workflow-panel/WorkFlowPanel';
 
-export function AutomationPage() {
+export function AutomationPage(props: { baseId?: string; workflowId?: string }) {
   const { t } = useTranslation('common');
   const isReadOnlyPreview = useIsReadOnlyPreview();
 
-  // In template/share preview mode, don't show upgrade prompt
-  // Allow the actual automation component to be rendered (if available via override)
   if (isReadOnlyPreview) {
     return (
       <div className="h-full flex-col md:flex">
@@ -23,11 +22,14 @@ export function AutomationPage() {
           </div>
         </div>
         <div className="flex h-full items-center justify-center p-4">
-          {/* In preview mode, the actual WorkFlowPanel component will be rendered via override */}
-          <div className="text-sm text-muted-foreground">{t('noun.automation')}</div>
+          <WorkFlowPanel baseId={props.baseId ?? ''} workflowId={props.workflowId ?? ''} />
         </div>
       </div>
     );
+  }
+
+  if (props.baseId) {
+    return <WorkFlowPanel baseId={props.baseId} workflowId={props.workflowId ?? ''} />;
   }
 
   return (

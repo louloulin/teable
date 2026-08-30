@@ -2,7 +2,10 @@ import { createAxios } from '@teable/openapi';
 
 export const getAxios = () => {
   const axios = createAxios();
-  axios.defaults.baseURL = `http://localhost:${process.env.PORT}/api`;
+  const backendUrl =
+    process.env.BACKEND_API_URL ??
+    `http://localhost:${process.env.BACKEND_PORT ?? process.env.PORT}`;
+  axios.defaults.baseURL = `${backendUrl.replace(/\/$/, '')}/api`;
   return axios;
 };
 
