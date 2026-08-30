@@ -188,10 +188,14 @@ export class AiFieldRecordListener {
         if (prompt == null) continue;
 
         try {
-          const generated = await this.aiService.generateText(baseId, {
-            prompt,
-            modelKey: cfg.modelKey || undefined,
-          });
+          const generated = await this.aiService.generateText(
+            baseId,
+            {
+              prompt,
+              modelKey: cfg.modelKey || undefined,
+            },
+            false
+          );
           const text = (generated ?? '').toString().trim();
           if (!text) continue;
           if (!updatesByRow[record.id]) {

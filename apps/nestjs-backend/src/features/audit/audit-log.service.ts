@@ -32,6 +32,12 @@ export interface IAuditLogPage {
   total: number;
 }
 
+export interface IAuditLogSummary {
+  total: number;
+  distinctActions: number;
+  perAction: Array<{ action: string; count: number }>;
+}
+
 /**
  * Row shape returned by `AuditLogService.query()`.
  *
@@ -74,6 +80,12 @@ interface IAuditEventDelegate {
     orderBy?: Record<string, 'asc' | 'desc'>;
   }): Promise<IAuditEventRecord[]>;
   count(args: { where: Record<string, unknown> }): Promise<number>;
+  groupBy?: (
+    args: {
+      by: ['action'];
+      where: Record<string, unknown>;
+    } & Record<string, unknown>
+  ) => Promise<Array<{ action: string } & Record<'_count', Record<'_all', number>>>>;
 }
 
 const getAuditEventDelegate = (prisma: PrismaService): IAuditEventDelegate => {
@@ -147,6 +159,26 @@ export class AuditLogService {
     ]);
 
     return { rows: records.map(toAuditLogRow), total };
+  }
+
+  async summary(filter: IAuditLogFilter): Promise<IAuditLogSummary> {
+    const where = this.buildWhere(filter);
+    const delegate = getAuditEventDelegate(this.prisma);
+    const total = await delegate.count({ where });
+    const groups = delegate.groupBy
+      ? await delegate.groupBy({
+          by: ['action'],
+          where,
+          ['_count']: { ['_all']: true },
+          orderBy: { ['_count']: { action: 'desc' } },
+        })
+      : [];
+
+    return {
+      total,
+      distinctActions: groups.length,
+      perAction: groups.map((group) => ({ action: group.action, count: group['_count']['_all'] })),
+    };
   }
 
   /**

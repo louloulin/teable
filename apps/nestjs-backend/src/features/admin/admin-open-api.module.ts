@@ -2,8 +2,11 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
 
 import { LicenseModule } from '../license/license.module';
+import { DeleteUserModule } from '../user/delete-user/delete-user.module';
+import { V2Module } from '../v2/v2.module';
 import { AdminOpenApiController } from './admin-open-api.controller';
 import { AdminOpenApiService } from './admin-open-api.service';
+import { AdminTableQueryOpsService } from './admin-table-query-ops.service';
 
 /**
  * Stage 7 admin-panel read-side module.
@@ -20,9 +23,9 @@ import { AdminOpenApiService } from './admin-open-api.service';
  * can't resolve in the AdminOpenApiModule scope.
  */
 @Module({
-  imports: [PrismaModule, LicenseModule],
+  imports: [PrismaModule, LicenseModule, V2Module, DeleteUserModule],
   controllers: [AdminOpenApiController],
-  providers: [AdminOpenApiService],
+  providers: [AdminOpenApiService, AdminTableQueryOpsService],
   exports: [AdminOpenApiService],
 })
 export class AdminOpenApiModule {}

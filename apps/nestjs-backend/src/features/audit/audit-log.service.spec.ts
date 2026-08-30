@@ -10,12 +10,39 @@ import { AuditLogService } from './audit-log.service';
 const buildPrisma = () => {
   const findMany = vi.fn().mockResolvedValue([]);
   const count = vi.fn().mockResolvedValue(0);
+  const groupBy = vi.fn().mockResolvedValue([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prisma = { auditEvent: { findMany, count } } as any;
-  return { prisma, findMany, count };
+  const prisma = { auditEvent: { findMany, count, groupBy } } as any;
+  return { prisma, findMany, count, groupBy };
 };
 
 describe('AuditLogService', () => {
+  it('summarizes filtered events by action in descending count order', async () => {
+    const { prisma, count, groupBy } = buildPrisma();
+    count.mockResolvedValueOnce(5);
+    groupBy.mockResolvedValueOnce([
+      { action: 'record.update', _count: { _all: 3 } },
+      { action: 'record.create', _count: { _all: 2 } },
+    ]);
+    const service = new AuditLogService(prisma);
+
+    await expect(service.summary({ actor: 'u1' })).resolves.toEqual({
+      total: 5,
+      distinctActions: 2,
+      perAction: [
+        { action: 'record.update', count: 3 },
+        { action: 'record.create', count: 2 },
+      ],
+    });
+    expect(count).toHaveBeenCalledWith({ where: { actorId: 'u1' } });
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['action'],
+      where: { actorId: 'u1' },
+      _count: { _all: true },
+      orderBy: { _count: { action: 'desc' } },
+    });
+  });
+
   it('builds a Prisma where clause that maps actor/action/resourceType/since/until to known columns', async () => {
     const { prisma, findMany, count } = buildPrisma();
     const service = new AuditLogService(prisma);

@@ -42,7 +42,9 @@ export type LicenseCapability =
   | 'webhook'
   // Stage 52 audit log query DSL — Business+ only
   | 'audit_log_query'
-  | 'workspace_mirror';
+  | 'workspace_mirror'
+  | 'computed_outbox'
+  | 'table_query_ops';
 
 const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'ai_field',
@@ -64,6 +66,8 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'webhook',
   'audit_log_query',
   'workspace_mirror',
+  'computed_outbox',
+  'table_query_ops',
 ];
 
 const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
@@ -97,6 +101,8 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'webhook',
     'audit_log_query',
     'workspace_mirror',
+    'computed_outbox',
+    'table_query_ops',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -118,6 +124,8 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'webhook',
     'audit_log_query',
     'workspace_mirror',
+    'computed_outbox',
+    'table_query_ops',
   ]),
   // Self-hosted OSS does not require a cloud license for local operation.
   self_hosted: ALL_CAPABILITIES_SET,

@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
 
 import { LicenseModule } from '../license/license.module';
-import { AuditLogController } from './audit-log.controller';
+import { AuditLogController, AuditOperationsSummaryController } from './audit-log.controller';
 import { AuditLogListener } from './audit-log.listener';
 import { AuditLogService } from './audit-log.service';
 import { AuditScope } from './audit-scope';
@@ -21,7 +21,7 @@ import { RecordAuditListener } from './record-audit.listener';
 @Global()
 @Module({
   imports: [PrismaModule, LicenseModule],
-  controllers: [AuditLogController],
+  controllers: [AuditLogController, AuditOperationsSummaryController],
   providers: [AuditScope, AuditLogListener, AuditLogService, RecordAuditListener],
   exports: [AuditScope, AuditLogService],
 })

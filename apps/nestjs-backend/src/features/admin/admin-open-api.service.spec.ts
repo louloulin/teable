@@ -3,6 +3,8 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from '@teable/db-main-prisma';
 import { SettingKey } from '@teable/openapi';
 import { vi } from 'vitest';
+import { AuditScope } from '../audit/audit-scope';
+import { DeleteUserService } from '../user/delete-user/delete-user.service';
 import { AdminOpenApiService } from './admin-open-api.service';
 
 /**
@@ -16,10 +18,14 @@ class FakePrisma {
   user = {
     findMany: vi.fn(),
     count: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
   };
   space = {
     findMany: vi.fn(),
     count: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
   };
   template = {
     findMany: vi.fn(),
@@ -28,6 +34,9 @@ class FakePrisma {
   setting = {
     findFirst: vi.fn(),
   };
+  dataDbConnection = { count: vi.fn() };
+  base = { count: vi.fn() };
+  collaborator = { count: vi.fn() };
   quotaHit = {
     findMany: vi.fn(),
     count: vi.fn(),
@@ -44,6 +53,8 @@ describe('AdminOpenApiService', () => {
       providers: [
         AdminOpenApiService,
         { provide: PrismaService, useValue: prisma as unknown as PrismaService },
+        { provide: AuditScope, useValue: { emitAtomic: vi.fn() } },
+        { provide: DeleteUserService, useValue: { deleteUserById: vi.fn() } },
       ],
     }).compile();
     service = module.get(AdminOpenApiService);
@@ -117,6 +128,80 @@ describe('AdminOpenApiService', () => {
         })
       );
     });
+
+    it('returns auto-join state and operational counts', async () => {
+      prisma.space.findMany.mockResolvedValue([
+        {
+          id: 'space-1',
+          name: 'Sales',
+          createdBy: 'user-1',
+          createdTime: new Date('2026-01-01T00:00:00.000Z'),
+          autoJoin: true,
+        },
+      ]);
+      prisma.space.count.mockResolvedValue(1);
+      prisma.base.count.mockResolvedValue(3);
+      prisma.collaborator.count.mockResolvedValue(5);
+
+      const out = await service.listSpaces({ skip: 0, take: 100 });
+
+      expect(out.list[0]).toMatchObject({
+        id: 'space-1',
+        autoJoin: true,
+        baseCount: 3,
+        collaboratorCount: 5,
+      });
+    });
+  });
+
+  describe('updateUser', () => {
+    const existing = {
+      id: 'user-2',
+      name: 'Alice',
+      email: 'alice@example.com',
+      isAdmin: false,
+      isSystem: false,
+      deactivatedTime: null,
+    };
+
+    it('updates active state and emits an audit event', async () => {
+      prisma.user.findUnique.mockResolvedValue(existing);
+      prisma.user.update.mockResolvedValue({
+        ...existing,
+        deactivatedTime: new Date('2026-01-01T00:00:00.000Z'),
+        createdTime: new Date('2025-01-01T00:00:00.000Z'),
+        lastSignTime: null,
+      });
+      const out = await service.updateUser({
+        userId: 'user-2',
+        requesterId: 'admin-1',
+        active: false,
+      });
+      expect(out.deactivatedTime).toEqual(new Date('2026-01-01T00:00:00.000Z'));
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { deactivatedTime: expect.any(Date) } })
+      );
+    });
+
+    it('rejects system users and self-modification', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...existing, isSystem: true });
+      await expect(
+        service.updateUser({ userId: 'user-2', requesterId: 'admin-1', active: false })
+      ).rejects.toThrow('System users cannot be modified');
+      prisma.user.findUnique.mockResolvedValue(existing);
+      await expect(
+        service.updateUser({ userId: 'user-2', requesterId: 'user-2', active: false })
+      ).rejects.toThrow('current administrator');
+    });
+
+    it('prevents removing the last active administrator', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...existing, isAdmin: true });
+      prisma.user.count.mockResolvedValue(0);
+      await expect(
+        service.updateUser({ userId: 'user-2', requesterId: 'admin-1', isAdmin: false })
+      ).rejects.toThrow('last active administrator');
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('listPublishedTemplates', () => {
@@ -130,6 +215,50 @@ describe('AdminOpenApiService', () => {
           orderBy: { order: 'asc' },
           skip: 0,
           take: 100,
+        })
+      );
+    });
+  });
+
+  describe('space management', () => {
+    it('renames an active space and audits the change', async () => {
+      prisma.space.findFirst.mockResolvedValue({ id: 'space-1' });
+      prisma.space.update.mockResolvedValue({
+        id: 'space-1',
+        name: 'Renamed space',
+        createdBy: 'user-1',
+        createdTime: new Date('2026-01-01T00:00:00.000Z'),
+        autoJoin: true,
+      });
+
+      const out = await service.updateSpace({
+        spaceId: 'space-1',
+        name: 'Renamed space',
+        autoJoin: true,
+      });
+
+      expect(out.name).toBe('Renamed space');
+      expect(out.autoJoin).toBe(true);
+      expect(prisma.space.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'space-1' },
+          data: { name: 'Renamed space', autoJoin: true },
+        })
+      );
+    });
+
+    it('soft-deletes an active space instead of deleting rows', async () => {
+      prisma.space.findFirst.mockResolvedValue({ id: 'space-1' });
+      prisma.space.update.mockResolvedValue({ id: 'space-1' });
+
+      await expect(service.deleteSpace('space-1')).resolves.toEqual({
+        id: 'space-1',
+        deleted: true,
+      });
+      expect(prisma.space.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'space-1' },
+          data: { deletedTime: expect.any(Date) },
         })
       );
     });

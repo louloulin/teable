@@ -339,7 +339,9 @@ export class V2ContainerService implements OnApplicationBootstrap, OnModuleDestr
   }
 
   private resolveTableQueryOpsOptions(): IV2NodePgContainerOptions['tableQueryOps'] | undefined {
-    const previewDefaultEnabled = Boolean(this.configService.get('PREVIEW_TAG'));
+    const previewDefaultEnabled =
+      Boolean(this.configService.get('PREVIEW_TAG')) ||
+      this.configService.get<string>('NODE_ENV') !== 'production';
     if (
       !resolveBoolean(this.configService.get('V2_TABLE_QUERY_OPS_ENABLED'), previewDefaultEnabled)
     ) {

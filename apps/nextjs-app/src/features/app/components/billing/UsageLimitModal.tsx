@@ -38,7 +38,7 @@ export const UsageLimitModal = () => {
         query: { spaceId },
       });
     } else {
-      router.push('/admin/user');
+      router.push('/admin/operations');
     }
     toggleModal(false);
   };

@@ -13,6 +13,7 @@
 
 import { Inject, Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { CuppyPromptRouter } from '../cuppy-prompt-router/cuppy-prompt-router';
+import { InstanceSkillService } from '../instance-skills/instance-skill.service';
 import type {
   ConversationContext,
   InboundMessage,
@@ -53,7 +54,8 @@ export class AgentOrchestratorService {
 
   constructor(
     @Optional() @Inject('CUPPY_LLM_CLIENT') private readonly llm?: ILlmClient,
-    @Optional() @Inject(CuppyPromptRouter) private readonly router?: IPromptRouter
+    @Optional() @Inject(CuppyPromptRouter) private readonly router?: IPromptRouter,
+    @Optional() @Inject(InstanceSkillService) private readonly instanceSkills?: InstanceSkillService
   ) {}
 
   registerTool(tool: Tool): void {
@@ -124,9 +126,14 @@ export class AgentOrchestratorService {
       throw new ServiceUnavailableException('Cuppy AI provider is not configured');
     }
     try {
+      const instanceSkillContext = this.instanceSkills
+        ? await this.instanceSkills.enabledPromptContext()
+        : '';
       llmResult = await this.llm.chat({
         baseId: inboundBaseId,
-        system: routed.system,
+        system: instanceSkillContext
+          ? `${routed.system}\n\n${instanceSkillContext}`
+          : routed.system,
         messages: ctx.messages.map((message) => ({
           role: message.role === 'tool' ? 'user' : message.role,
           content: message.role === 'tool' ? `[tool result] ${message.content}` : message.content,

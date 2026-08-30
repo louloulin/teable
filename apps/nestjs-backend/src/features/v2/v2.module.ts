@@ -6,10 +6,12 @@ import { LoggerModule } from '../../logger/logger.module';
 import { ShareDbModule } from '../../share-db/share-db.module';
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
 import { CalculationModule } from '../calculation/calculation.module';
+import { LicenseModule } from '../license/license.module';
 import { NotificationModule } from '../notification/notification.module';
 import { RecordModule } from '../record/record.module';
 import { UndoRedoStackService } from '../undo-redo/stack/undo-redo-stack.service';
 import { ViewModule } from '../view/view.module';
+import { ComputedOutboxAdminController } from './computed-outbox-trigger/computed-outbox-admin.controller';
 import { ComputedOutboxAnomalyService } from './computed-outbox-trigger/computed-outbox-anomaly.service';
 import { ComputedOutboxMonitorService } from './computed-outbox-trigger/computed-outbox-monitor.service';
 import { ComputedOutboxRedriveService } from './computed-outbox-trigger/computed-outbox-redrive.service';
@@ -108,13 +110,14 @@ const toErrorMessage = (body: unknown): string => {
     LoggerModule.register(),
     AttachmentsStorageModule,
     CalculationModule,
+    LicenseModule,
     ShareDbModule,
     NotificationModule,
     RecordModule,
     ViewModule,
     ComputedOutboxWakeupProducerModule.register(),
   ],
-  controllers: [V2Controller, V2OpenApiController],
+  controllers: [V2Controller, V2OpenApiController, ComputedOutboxAdminController],
   providers: [
     DiscoveryService,
     V2ContainerService,

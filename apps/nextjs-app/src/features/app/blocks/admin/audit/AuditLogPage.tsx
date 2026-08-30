@@ -23,7 +23,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import type { IAuditListQuery, IAuditListVo } from '@teable/openapi';
-import { listAuditOperations } from '@teable/openapi';
+import { listAuditOperations, listAuditOperationsSummary } from '@teable/openapi';
 import { Skeleton } from '@teable/ui-lib/shadcn';
 import { useTranslation } from 'next-i18next';
 import { useCallback, useMemo, useState } from 'react';
@@ -47,6 +47,11 @@ export const AuditLogPage = ({ initialRows }: IAuditLogPageProps) => {
     queryKey: ['admin-audit-operations', filter],
     queryFn: () => listAuditOperations(filter).then((res) => res.data),
     initialData: initialRows,
+    refetchOnWindowFocus: false,
+  });
+  const { data: summary } = useQuery({
+    queryKey: ['admin-audit-operations-summary', filter],
+    queryFn: () => listAuditOperationsSummary(filter).then((res) => res.data),
     refetchOnWindowFocus: false,
   });
 
@@ -80,7 +85,7 @@ export const AuditLogPage = ({ initialRows }: IAuditLogPageProps) => {
     <div className="flex h-screen flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-8">
       <div className="pb-6">
         <h1 className="text-2xl font-semibold">{t('admin.auditLog.title', 'Audit Log')}</h1>
-        <div className="text-muted-foreground mt-2 text-sm">
+        <div className="mt-2 text-sm text-muted-foreground">
           {t(
             'admin.auditLog.description',
             'Read-only view of audit operations captured by the global audit interceptor and the @Audit() decorator. R1-T10 adds keyword / from / to filters and CSV / JSON export.'
@@ -89,6 +94,16 @@ export const AuditLogPage = ({ initialRows }: IAuditLogPageProps) => {
       </div>
 
       <div className="flex flex-1 flex-col gap-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-sm text-muted-foreground">Matching events</div>
+            <div className="mt-1 text-2xl font-semibold">{summary?.total ?? data?.total ?? 0}</div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-sm text-muted-foreground">Distinct actions</div>
+            <div className="mt-1 text-2xl font-semibold">{summary?.distinctActions ?? 0}</div>
+          </div>
+        </div>
         <AuditLogFilter
           value={filter}
           onApply={onApply}

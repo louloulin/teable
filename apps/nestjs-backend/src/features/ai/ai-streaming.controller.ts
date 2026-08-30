@@ -85,7 +85,8 @@ export class AiStreamingController {
     const chunks: AsyncIterable<IStreamChunk> = this.aiService.generateTextStream(
       baseId,
       { prompt, modelKey: undefined },
-      abortController.signal
+      abortController.signal,
+      false
     );
 
     await this.aiStreamingService.streamChunks(res, chunks, abortController.signal);

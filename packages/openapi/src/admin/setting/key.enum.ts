@@ -17,4 +17,5 @@ export enum SettingKey {
   CANARY_CONFIG = 'canaryConfig',
   TRASH_CLEANUP_ENABLED_AT = 'trashCleanupEnabledAt',
   IM_CONFIG = 'imConfig',
+  INSTANCE_SKILLS = 'instanceSkills',
 }

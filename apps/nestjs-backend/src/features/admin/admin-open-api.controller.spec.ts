@@ -1,7 +1,9 @@
 import { Test } from '@nestjs/testing';
+import { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import { AdminOpenApiController } from './admin-open-api.controller';
 import { AdminOpenApiService } from './admin-open-api.service';
+import { AdminTableQueryOpsService } from './admin-table-query-ops.service';
 
 /**
  * Controller-level tests focus on the wiring: every route should pass
@@ -14,25 +16,45 @@ describe('AdminOpenApiController', () => {
   let controller: AdminOpenApiController;
   let service: {
     listUsers: ReturnType<typeof vi.fn>;
+    updateUser: ReturnType<typeof vi.fn>;
     listSpaces: ReturnType<typeof vi.fn>;
     listPublishedTemplates: ReturnType<typeof vi.fn>;
     getAiSettings: ReturnType<typeof vi.fn>;
     getQuotaDashboard: ReturnType<typeof vi.fn>;
+    getTableQueryOpsOverview: ReturnType<typeof vi.fn>;
+    getAiGenerationQueueOverview: ReturnType<typeof vi.fn>;
+    restoreUser: ReturnType<typeof vi.fn>;
+    deleteUser: ReturnType<typeof vi.fn>;
+    permanentlyDeleteUser: ReturnType<typeof vi.fn>;
   };
+  let tableQueryOpsService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
     service = {
       listUsers: vi.fn(),
+      updateUser: vi.fn(),
       listSpaces: vi.fn(),
       listPublishedTemplates: vi.fn(),
       getAiSettings: vi.fn(),
       getQuotaDashboard: vi.fn(),
+      getTableQueryOpsOverview: vi.fn(),
+      getAiGenerationQueueOverview: vi.fn(),
+      restoreUser: vi.fn(),
+      deleteUser: vi.fn(),
+      permanentlyDeleteUser: vi.fn(),
+    };
+    tableQueryOpsService = {
+      acceptRecommendation: vi.fn(),
+      dismissRecommendation: vi.fn(),
+      runTask: vi.fn(),
     };
 
     const module = await Test.createTestingModule({
       controllers: [AdminOpenApiController],
       providers: [
         { provide: AdminOpenApiService, useValue: service },
+        { provide: AdminTableQueryOpsService, useValue: tableQueryOpsService },
+        { provide: ClsService, useValue: { get: vi.fn(() => 'admin-1') } },
       ],
     }).compile();
 
@@ -54,6 +76,18 @@ describe('AdminOpenApiController', () => {
       skip: 10,
       take: 5,
       search: 'alice',
+    });
+  });
+
+  it('forwards an authenticated admin user update', async () => {
+    const updated = { id: 'user-2', isAdmin: false, deactivatedTime: null };
+    service.updateUser.mockResolvedValue(updated);
+    const out = await controller.updateUser({ id: 'user-2' }, { active: true });
+    expect(out).toEqual(updated);
+    expect(service.updateUser).toHaveBeenCalledWith({
+      userId: 'user-2',
+      requesterId: 'admin-1',
+      active: true,
     });
   });
 
@@ -90,5 +124,21 @@ describe('AdminOpenApiController', () => {
     const out = await controller.aiSettings();
     expect(out).toEqual({ aiConfig: { foo: 'bar' } });
     expect(service.getAiSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards the Table Query Ops scope and limit', async () => {
+    const result = { enabled: true, summary: {}, hotTables: [], recommendations: [], tasks: [] };
+    service.getTableQueryOpsOverview.mockResolvedValue(result);
+    await expect(
+      controller.tableQueryOpsOverview({ baseId: 'base-1', limit: 10 })
+    ).resolves.toEqual(result);
+    expect(service.getTableQueryOpsOverview).toHaveBeenCalledWith({ baseId: 'base-1', limit: 10 });
+  });
+
+  it('returns the AI generation diagnostics overview', async () => {
+    const result = { queue: { available: false }, summary: {}, fields: [], recentRuns: [] };
+    service.getAiGenerationQueueOverview.mockResolvedValue(result);
+    await expect(controller.aiGenerationQueueOverview()).resolves.toEqual(result);
+    expect(service.getAiGenerationQueueOverview).toHaveBeenCalledTimes(1);
   });
 });

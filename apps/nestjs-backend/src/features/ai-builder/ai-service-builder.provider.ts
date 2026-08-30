@@ -11,6 +11,6 @@ export class AiServiceBuilderProvider implements ILlmProvider {
     if (!input.baseId) {
       throw new Error('baseId is required for AI Builder generation');
     }
-    return this.aiService.generateText(input.baseId, { prompt: input.prompt });
+    return this.aiService.generateText(input.baseId, { prompt: input.prompt }, true);
   }
 }

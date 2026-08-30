@@ -10,6 +10,7 @@ import { ShareDbModule } from '../share-db/share-db.module';
 import { EventEmitterService } from './event-emitter.service';
 import { ActionTriggerListener } from './listeners/action-trigger.listener';
 import { AttachmentListener } from './listeners/attachment.listener';
+import { AutoJoinSpaceListener } from './listeners/auto-join-space.listener';
 import { BasePermissionUpdateListener } from './listeners/base-permission-update.listener';
 import { CollaboratorInviteListener } from './listeners/collaborator-invite.listener';
 import { CollaboratorNotificationListener } from './listeners/collaborator-notification.listener';
@@ -55,6 +56,7 @@ export class EventEmitterModule extends EventEmitterModuleClass {
         PinListener,
         RecordHistoryListener,
         TrashListener,
+        AutoJoinSpaceListener,
       ],
       exports: [EventEmitterService],
     };

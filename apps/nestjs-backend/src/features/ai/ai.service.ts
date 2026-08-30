@@ -26,6 +26,7 @@ import type { Response } from 'express';
 import { BaseConfig, IBaseConfig } from '../../configs/base.config';
 import { CustomHttpException } from '../../custom.exception';
 import { PerformanceCacheService } from '../../performance-cache';
+import { InstanceSkillService } from '../instance-skills/instance-skill.service';
 import { SettingService } from '../setting/setting.service';
 import { AiGatewayModelsService } from './ai-gateway-models.service';
 import { getAdaptedProviderOptions, getTaskModelKey, modelProviders } from './util';
@@ -53,7 +54,8 @@ export class AiService {
     private readonly prismaService: PrismaService,
     @BaseConfig() private readonly baseConfig: IBaseConfig,
     private readonly performanceCacheService: PerformanceCacheService,
-    private readonly aiGatewayModelsService: AiGatewayModelsService
+    private readonly aiGatewayModelsService: AiGatewayModelsService,
+    private readonly instanceSkillService: InstanceSkillService
   ) {}
 
   public parseModelKey(modelKey: string) {
@@ -523,7 +525,7 @@ export class AiService {
     aiGenerateRo: IAiGenerateRo,
     response: Response
   ): Promise<void> {
-    const { prompt } = aiGenerateRo;
+    const prompt = await this.withInstanceSkills(aiGenerateRo.prompt);
     const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
 
     const result = streamText({
@@ -537,12 +539,16 @@ export class AiService {
   async *generateTextStream(
     baseId: string,
     aiGenerateRo: IAiGenerateRo,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    includeInstanceSkills = true
   ): AsyncGenerator<{ delta: string; done: boolean; value?: string }> {
     const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
+    const prompt = includeInstanceSkills
+      ? await this.withInstanceSkills(aiGenerateRo.prompt)
+      : aiGenerateRo.prompt;
     const result = streamText({
       model: modelInstance,
-      prompt: aiGenerateRo.prompt,
+      prompt,
       abortSignal,
     });
     let value = '';
@@ -553,15 +559,22 @@ export class AiService {
     yield { delta: '', done: true, value };
   }
 
-  async generateText(baseId: string, aiGenerateRo: IAiGenerateRo) {
-    const { prompt } = aiGenerateRo;
+  async generateText(baseId: string, aiGenerateRo: IAiGenerateRo, includeInstanceSkills = true) {
     const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
+    const prompt = includeInstanceSkills
+      ? await this.withInstanceSkills(aiGenerateRo.prompt)
+      : aiGenerateRo.prompt;
 
     const { text } = await generateText({
       model: modelInstance,
       prompt: prompt,
     });
     return text;
+  }
+
+  private async withInstanceSkills(prompt: string): Promise<string> {
+    const context = await this.instanceSkillService.enabledPromptContext();
+    return context ? `${context}\n\nUser request:\n${prompt}` : prompt;
   }
 
   async getInstanceAIConfig() {

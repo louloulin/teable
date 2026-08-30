@@ -8,3 +8,5 @@ export * from './im-bridge';
 export * from './scim';
 export * from './webhook';
 export * from './operations';
+export * from './skills';
+export * from './computed-outbox';

@@ -13,7 +13,7 @@ import type { AuditExportFormat } from '../audit-export/audit-export.types';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AuditLogService } from './audit-log.service';
-import type { IAuditLogFilter, IAuditLogPage } from './audit-log.service';
+import type { IAuditLogFilter, IAuditLogPage, IAuditLogSummary } from './audit-log.service';
 
 /**
  * Query-side guard for the audit log capability. Re-used by every method
@@ -33,6 +33,52 @@ const MAX_PAGE_SIZE = 100;
  * Default page size when the caller omits `pageSize`.
  */
 const DEFAULT_PAGE_SIZE = 20;
+
+const parseDate = (field: string, value: string): Date => {
+  const ms = Date.parse(value);
+  if (Number.isNaN(ms)) {
+    throw new BadRequestException(`${field} must be a valid ISO8601 timestamp, got: ${value}`);
+  }
+  return new Date(ms);
+};
+
+export const parseAuditFilter = (raw: {
+  actor?: string;
+  action?: string;
+  resourceType?: string;
+  since?: string;
+  until?: string;
+  page?: string;
+  pageSize?: string;
+}): IAuditLogFilter => {
+  const filter: IAuditLogFilter = {};
+
+  if (raw.actor) filter.actor = raw.actor;
+  if (raw.action) filter.action = raw.action;
+  if (raw.resourceType) filter.resourceType = raw.resourceType;
+  if (raw.since) filter.since = parseDate('since', raw.since);
+  if (raw.until) filter.until = parseDate('until', raw.until);
+  if (raw.page) {
+    const parsed = Number(raw.page);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new BadRequestException(`page must be a positive integer, got: ${raw.page}`);
+    }
+    filter.page = parsed;
+  } else {
+    filter.page = 1;
+  }
+  if (raw.pageSize) {
+    const parsed = Number(raw.pageSize);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new BadRequestException(`pageSize must be a positive integer, got: ${raw.pageSize}`);
+    }
+    filter.pageSize = Math.min(parsed, MAX_PAGE_SIZE);
+  } else {
+    filter.pageSize = DEFAULT_PAGE_SIZE;
+  }
+
+  return filter;
+};
 
 /**
  * GET /api/admin/audit-log
@@ -120,61 +166,30 @@ export class AuditLogController {
     page?: string;
     pageSize?: string;
   }): IAuditLogFilter {
-    const filter: IAuditLogFilter = {};
-
-    if (raw.actor !== undefined && raw.actor !== '') {
-      filter.actor = raw.actor;
-    }
-    if (raw.action !== undefined && raw.action !== '') {
-      filter.action = raw.action;
-    }
-    if (raw.resourceType !== undefined && raw.resourceType !== '') {
-      filter.resourceType = raw.resourceType;
-    }
-    if (raw.since !== undefined && raw.since !== '') {
-      const since = this.parseDate('since', raw.since);
-      filter.since = since;
-    }
-    if (raw.until !== undefined && raw.until !== '') {
-      const until = this.parseDate('until', raw.until);
-      filter.until = until;
-    }
-
-    filter.page = this.parsePositiveInt('page', raw.page, 1);
-    filter.pageSize = this.parsePageSize(raw.pageSize);
-
-    return filter;
-  }
-
-  private parseDate(field: string, value: string): Date {
-    const ms = Date.parse(value);
-    if (Number.isNaN(ms)) {
-      throw new BadRequestException(`${field} must be a valid ISO8601 timestamp, got: ${value}`);
-    }
-    return new Date(ms);
-  }
-
-  private parsePositiveInt(field: string, raw: string | undefined, fallback: number): number {
-    if (raw === undefined || raw === '') return fallback;
-    const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      throw new BadRequestException(`${field} must be a positive integer, got: ${raw}`);
-    }
-    return parsed;
-  }
-
-  private parsePageSize(raw: string | undefined): number {
-    if (raw === undefined || raw === '') return DEFAULT_PAGE_SIZE;
-    const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      throw new BadRequestException(`pageSize must be a positive integer, got: ${raw}`);
-    }
-    return Math.min(parsed, MAX_PAGE_SIZE);
+    return parseAuditFilter(raw);
   }
 
   private parseExportFormat(raw: string | undefined): AuditExportFormat {
     if (raw === undefined || raw === '') return 'csv';
     if (raw === 'csv' || raw === 'json' || raw === 'jsonl') return raw;
     throw new BadRequestException(`format must be one of csv, json, jsonl, got: ${raw}`);
+  }
+}
+
+@Controller('api/admin/audit/operations')
+@UseGuards(AuditLogGuard)
+@Permissions('instance|read')
+export class AuditOperationsSummaryController {
+  constructor(private readonly auditLog: AuditLogService) {}
+
+  @Get('summary')
+  async summary(
+    @Query('actor') actor?: string,
+    @Query('action') action?: string,
+    @Query('resourceType') resourceType?: string,
+    @Query('since') since?: string,
+    @Query('until') until?: string
+  ): Promise<IAuditLogSummary> {
+    return this.auditLog.summary(parseAuditFilter({ actor, action, resourceType, since, until }));
   }
 }

@@ -9,6 +9,7 @@ import {
   Key,
   LayoutTemplate as TemplateIcon,
   MagicAi,
+  MessageSquare,
   Settings,
   ShieldUser,
   Webhook as WebhookIcon,
@@ -55,6 +56,12 @@ export const AdminLayout: React.FC<{
       pathTo: '/admin/ai-setting',
     },
     {
+      Icon: MagicAi,
+      label: 'Skills',
+      route: '/admin/skills',
+      pathTo: '/admin/skills',
+    },
+    {
       Icon: ClipboardList,
       label: 'Audit log',
       route: '/admin/audit-log',
@@ -77,6 +84,24 @@ export const AdminLayout: React.FC<{
       label: 'Operations',
       route: '/admin/operations',
       pathTo: '/admin/operations',
+    },
+    {
+      Icon: Database,
+      label: 'Computed Outbox',
+      route: '/admin/computed-outbox',
+      pathTo: '/admin/computed-outbox',
+    },
+    {
+      Icon: Database,
+      label: 'Table Query Ops',
+      route: '/admin/table-query-ops',
+      pathTo: '/admin/table-query-ops',
+    },
+    {
+      Icon: MagicAi,
+      label: 'AI generation diagnostics',
+      route: '/admin/ai-generation-queue',
+      pathTo: '/admin/ai-generation-queue',
     },
     {
       Icon: ClipboardList,
@@ -125,6 +150,12 @@ export const AdminLayout: React.FC<{
       label: tCommon('settings.webhook.title'),
       route: '/admin/webhook-delivery',
       pathTo: '/admin/webhook-delivery',
+    },
+    {
+      Icon: MessageSquare,
+      label: 'Microsoft Teams',
+      route: '/admin/teams',
+      pathTo: '/admin/teams',
     },
   ];
 

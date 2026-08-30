@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InstanceSkillModule } from '../instance-skills/instance-skill.module';
 import { LicenseModule } from '../license/license.module';
 import { RecordModule } from '../record/record.module';
 import { SettingModule } from '../setting/setting.module';
@@ -9,7 +10,7 @@ import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 
 @Module({
-  imports: [SettingModule, LicenseModule, RecordModule],
+  imports: [SettingModule, LicenseModule, RecordModule, InstanceSkillModule],
   controllers: [AiController, AiStreamingController],
   providers: [AiService, AiGatewayModelsService, AiStreamingService],
   exports: [AiService, AiGatewayModelsService, AiStreamingService],

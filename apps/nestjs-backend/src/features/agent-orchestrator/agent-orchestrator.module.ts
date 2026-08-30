@@ -14,6 +14,7 @@ import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
 import { AiModule } from '../ai/ai.module';
 import { AiService } from '../ai/ai.service';
 import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
+import { InstanceSkillModule } from '../instance-skills/instance-skill.module';
 import { LicenseModule } from '../license/license.module';
 import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
@@ -27,6 +28,7 @@ import { CuppyController } from './cuppy.controller';
   controllers: [AgentOrchestratorController, CuppyController],
   imports: [
     LicenseModule,
+    InstanceSkillModule,
     CuppyPromptRouterModule,
     AiModule,
     TableOpenApiModule,
