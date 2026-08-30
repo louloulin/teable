@@ -95,6 +95,13 @@ import { LoggerModule } from './logger/logger.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { WsModule } from './ws/ws.module';
 
+import { PresenceModule } from './features/presence/presence.module';
+import { WorkspaceSwitchModule } from './features/workspace-switch/workspace-switch.module';
+import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
+import { EmailDomainClaimModule } from './features/email-domain-claim/email-domain-claim.module';
+import { RiskControlModule } from './features/risk-control/risk-control.module';
+import { LicenseKeySelfModule } from './features/license-key-self/license-key-self.module';
+import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 export const appModules = {
   imports: [
     SentryModule.forRoot(),
@@ -121,6 +128,7 @@ export const appModules = {
     AggregationOpenApiModule,
     AnnouncementsModule,
     SandboxAgentModule,
+    PresenceModule,
     UserModule,
     ViewPermissionModule,
     AuthModule,
@@ -146,13 +154,18 @@ export const appModules = {
     SettingAdminOpenApiModule,
     CanaryModule,
     LicenseModule,
+    LicenseKeySelfModule,
     QuotaModule,
     DomainVerificationModule,
     CustomDomainModule,
+    IpAllowlistModule,
+    EmailDomainClaimModule,
+    RiskControlModule,
     SsoModule,
     TotpModule,
     DataMaskingModule,
     AuditExportModule,
+    ApiExplorerModule,
     ScimModule,
     PermissionMatrixModule,
     SettingOpenApiModule,
@@ -187,6 +200,7 @@ export const appModules = {
     ModelFinetunePipelineModule,
     EvalHarnessModule,
     WorkspaceMirrorModule,
+    WorkspaceSwitchModule,
   ],
   providers: [InitBootstrapProvider],
 };
