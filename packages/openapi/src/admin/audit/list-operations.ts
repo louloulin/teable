@@ -14,8 +14,10 @@ import { registerRoute } from '../../utils';
 export const auditListRowSchema = z.object({
   id: z.string(),
   action: z.string(),
-  resourceId: z.string(),
-  userId: z.string().nullable(),
+  resourceType: z.string(),
+  resourceId: z.string().nullable(),
+  userId: z.string(),
+  payload: z.unknown(),
   rootAction: z.string().nullable(),
   operationId: z.string().nullable(),
   createdAt: z.string(),
@@ -23,10 +25,9 @@ export const auditListRowSchema = z.object({
 
 export type IAuditListRow = z.infer<typeof auditListRowSchema>;
 
-/** Server response for `GET /api/admin/audit/operations`. */
+/** Server response for `GET /api/admin/audit-log`. */
 export const auditListVoSchema = z.object({
   rows: z.array(auditListRowSchema),
-  nextCursor: z.string().nullable(),
   total: z.number().int(),
 });
 
@@ -46,17 +47,18 @@ export type IAuditListVo = z.infer<typeof auditListVoSchema>;
  *     authoritative for paging and ignores `from` / `to`.
  */
 export const auditListQuerySchema = z.object({
+  actor: z.string().min(1).max(128).optional(),
   action: z.string().min(1).max(128).optional(),
-  resourceId: z.string().min(1).max(128).optional(),
-  limit: z.coerce.number().int().min(1).max(1000).optional(),
-  from: z.string().min(1).max(64).optional(),
-  to: z.string().min(1).max(64).optional(),
-  cursor: z.string().min(1).max(256).optional(),
+  resourceType: z.string().min(1).max(128).optional(),
+  since: z.string().datetime().optional(),
+  until: z.string().datetime().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export type IAuditListQuery = z.infer<typeof auditListQuerySchema>;
 
-export const GET_ADMIN_AUDIT_OPERATIONS = '/admin/audit/operations';
+export const GET_ADMIN_AUDIT_OPERATIONS = '/admin/audit-log';
 
 export const GetAdminAuditOperationsRoute: RouteConfig = registerRoute({
   method: 'get',

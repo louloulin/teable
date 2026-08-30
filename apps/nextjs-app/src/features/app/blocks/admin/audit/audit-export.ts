@@ -15,8 +15,10 @@ export const AUDIT_EXPORT_COLUMNS = [
   'id',
   'createdAt',
   'action',
+  'resourceType',
   'resourceId',
   'userId',
+  'payload',
   'rootAction',
   'operationId',
 ] as const satisfies ReadonlyArray<keyof IAuditListRow>;
@@ -81,7 +83,7 @@ export function exportAuditRows(
  *  comma, double-quote, CR, or LF; double internal quotes. */
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const s = String(value);
+  const s = typeof value === 'object' ? JSON.stringify(value) : String(value);
   if (s === '') return '';
   if (/[",\r\n]/.test(s)) {
     return '"' + s.replace(/"/g, '""') + '"';

@@ -26,6 +26,7 @@ import { CanarySettings } from './components/canary';
 import type { IList } from './components/ConfigurationList';
 import { ConfigurationList } from './components/ConfigurationList';
 import { MailConfigDialog } from './components/mail-config/MailConfig';
+import { SsoFederationPanel } from './components/SsoFederationPanel';
 
 import { InviteCodeManage } from './components/waitlist/InviteCodeManage';
 import { WaitlistManage } from './components/waitlist/WaitlistManage';
@@ -65,7 +66,7 @@ export const SettingPage = (props: ISettingPageProps) => {
   const { data: instanceUsage } = useQuery({
     queryKey: ['instance-usage'],
     queryFn: () => getInstanceUsage().then(({ data }) => data),
-    enabled: isEE,
+    enabled: isEE || isSelfHosted,
   });
   const effectiveInstanceUsage = instanceUsage ?? (isSelfHosted ? SELF_HOSTED_USAGE : undefined);
 
@@ -381,6 +382,8 @@ export const SettingPage = (props: ISettingPageProps) => {
               </div>
             )}
           </div>
+
+          <SsoFederationPanel />
 
           {/* Branding Settings Section */}
           {effectiveInstanceUsage?.level === BillingProductLevel.Enterprise && (

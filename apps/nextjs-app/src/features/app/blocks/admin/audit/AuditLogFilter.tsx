@@ -44,43 +44,43 @@ export const AuditLogFilter = ({
   hasRows,
 }: IAuditLogFilterProps) => {
   const [action, setAction] = useState(value.action ?? '');
-  const [resourceId, setResourceId] = useState(value.resourceId ?? '');
-  const [keyword, setKeyword] = useState((value as { keyword?: string }).keyword ?? '');
-  const [from, setFrom] = useState((value as { from?: string }).from ?? '');
-  const [to, setTo] = useState((value as { to?: string }).to ?? '');
-  const [limit, setLimit] = useState(value.limit ?? DEFAULT_LIMIT);
+  const [actor, setActor] = useState(value.actor ?? '');
+  const [resourceType, setResourceType] = useState(value.resourceType ?? '');
+  const [since, setSince] = useState(value.since ?? '');
+  const [until, setUntil] = useState(value.until ?? '');
+  const [pageSize, setPageSize] = useState(value.pageSize ?? DEFAULT_LIMIT);
 
   const onSubmit = () => {
     onApply({
       ...(action.trim() ? { action: action.trim() } : {}),
-      ...(resourceId.trim() ? { resourceId: resourceId.trim() } : {}),
-      ...(keyword.trim() ? { keyword: keyword.trim() } : {}),
-      ...(from.trim() ? { from: from.trim() } : {}),
-      ...(to.trim() ? { to: to.trim() } : {}),
-      limit: Math.min(Math.max(Number(limit) || DEFAULT_LIMIT, 1), 1000),
+      ...(actor.trim() ? { actor: actor.trim() } : {}),
+      ...(resourceType.trim() ? { resourceType: resourceType.trim() } : {}),
+      ...(since.trim() ? { since: new Date(since).toISOString() } : {}),
+      ...(until.trim() ? { until: new Date(until).toISOString() } : {}),
+      pageSize: Math.min(Math.max(Number(pageSize) || DEFAULT_LIMIT, 1), 100),
     });
   };
 
   const onReset = () => {
     setAction('');
-    setResourceId('');
-    setKeyword('');
-    setFrom('');
-    setTo('');
-    setLimit(DEFAULT_LIMIT);
-    onApply({ limit: DEFAULT_LIMIT });
+    setActor('');
+    setResourceType('');
+    setSince('');
+    setUntil('');
+    setPageSize(DEFAULT_LIMIT);
+    onApply({ pageSize: DEFAULT_LIMIT });
   };
 
   return (
     <div className="bg-card flex flex-col gap-3 rounded-lg border p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-1 flex-col gap-1">
-          <Label htmlFor="audit-filter-keyword">Keyword</Label>
+          <Label htmlFor="audit-filter-actor">Operator</Label>
           <Input
-            id="audit-filter-keyword"
-            value={keyword}
-            placeholder="substring across action / resource / user / rootAction / operationId"
-            onChange={(e) => setKeyword(e.target.value)}
+            id="audit-filter-actor"
+            value={actor}
+            placeholder="User ID"
+            onChange={(e) => setActor(e.target.value)}
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -93,43 +93,43 @@ export const AuditLogFilter = ({
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <Label htmlFor="audit-filter-resource">Resource ID</Label>
+          <Label htmlFor="audit-filter-resource-type">Resource type</Label>
           <Input
-            id="audit-filter-resource"
-            value={resourceId}
-            placeholder="e.g. tblXXXX, recYYYY"
-            onChange={(e) => setResourceId(e.target.value)}
+            id="audit-filter-resource-type"
+            value={resourceType}
+            placeholder="record, field, base"
+            onChange={(e) => setResourceType(e.target.value)}
           />
         </div>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-1 flex-col gap-1">
-          <Label htmlFor="audit-filter-from">From (ISO)</Label>
+          <Label htmlFor="audit-filter-since">Since (ISO)</Label>
           <Input
-            id="audit-filter-from"
-            value={from}
+            id="audit-filter-since"
+            value={since}
             placeholder="2026-08-01T00:00:00Z"
-            onChange={(e) => setFrom(e.target.value)}
+            onChange={(e) => setSince(e.target.value)}
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <Label htmlFor="audit-filter-to">To (ISO)</Label>
+          <Label htmlFor="audit-filter-until">Until (ISO)</Label>
           <Input
-            id="audit-filter-to"
-            value={to}
+            id="audit-filter-until"
+            value={until}
             placeholder="2026-08-26T23:59:59Z"
-            onChange={(e) => setTo(e.target.value)}
+            onChange={(e) => setUntil(e.target.value)}
           />
         </div>
         <div className="flex w-32 flex-col gap-1">
-          <Label htmlFor="audit-filter-limit">Limit</Label>
+          <Label htmlFor="audit-filter-page-size">Page size</Label>
           <Input
-            id="audit-filter-limit"
+            id="audit-filter-page-size"
             type="number"
             min={1}
             max={1000}
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
           />
         </div>
       </div>

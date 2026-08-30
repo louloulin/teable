@@ -4,6 +4,7 @@ import {
   hashScimToken,
   matchesFilter,
   parseBearerHeader,
+  ScimService,
   scimToUserPatch,
   toListResponse,
   userToScim,
@@ -153,6 +154,46 @@ describe('SCIM helpers (Stage 23)', () => {
       ).toBe(true);
       expect(matchesFilter('not active eq "true"', users[2])).toBe(true);
       expect(matchesFilter('not active eq "true"', users[0])).toBe(false);
+    });
+  });
+});
+
+describe('SCIM group persistence', () => {
+  it('keeps groups visible to a new service instance', async () => {
+    const rows = new Map<string, string>();
+    const prisma = {
+      setting: {
+        findUnique: vi.fn(async ({ where }: { where: { name: string } }) => {
+          const content = rows.get(where.name);
+          return content === undefined ? null : { content };
+        }),
+        upsert: vi.fn(
+          async ({
+            where,
+            create,
+            update,
+          }: {
+            where: { name: string };
+            create: { content: string };
+            update: { content: string };
+          }) => {
+            rows.set(where.name, update.content ?? create.content);
+          }
+        ),
+      },
+    };
+
+    const firstInstance = new ScimService(prisma as never);
+    const created = await firstInstance.createGroup({
+      displayName: 'Engineering',
+      members: [{ value: 'usr_1' }],
+    });
+    const restartedInstance = new ScimService(prisma as never);
+
+    await expect(restartedInstance.findGroupById(created.id)).resolves.toMatchObject({
+      id: created.id,
+      displayName: 'Engineering',
+      members: [{ value: 'usr_1' }],
     });
   });
 });

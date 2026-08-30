@@ -73,8 +73,10 @@ export const AuditLogTable = ({
                 <td className="px-4 py-2">
                   <Badge variant="secondary">{row.action}</Badge>
                 </td>
-                <td className="px-4 py-2 font-mono text-xs">{row.resourceId}</td>
-                <td className="px-4 py-2 font-mono text-xs">{row.userId ?? '—'}</td>
+                <td className="px-4 py-2 font-mono text-xs">
+                  {row.resourceType}:{row.resourceId ?? '—'}
+                </td>
+                <td className="px-4 py-2 font-mono text-xs">{row.userId || '—'}</td>
                 <td className="px-4 py-2 font-mono text-xs">{row.rootAction ?? '—'}</td>
                 <td className="px-4 py-2 font-mono text-xs">{row.operationId ?? '—'}</td>
               </tr>

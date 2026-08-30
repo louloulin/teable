@@ -10,6 +10,7 @@ import { LicenseModule } from '../license/license.module';
 import { MailSenderModule } from '../mail-sender/mail-sender.module';
 import { NotificationModule } from '../notification/notification.module';
 import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
+import { AutomationAdminController } from './automation-admin.controller';
 import { AutomationAiBuilderService } from './automation-ai-builder.service';
 import { AutomationEventListener } from './automation-event.listener';
 import { AutomationRateLimitService } from './automation-rate-limit.service';
@@ -42,7 +43,7 @@ import { WebhookDispatcher } from './webhook-dispatcher.service';
     RecordOpenApiModule,
     EventJobModule.registerQueue(AUTOMATION_SCHEDULE_QUEUE),
   ],
-  controllers: [AutomationController],
+  controllers: [AutomationController, AutomationAdminController],
   providers: [
     AutomationService,
     AutomationActionCatalogAuthService,

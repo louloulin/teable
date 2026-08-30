@@ -14,6 +14,10 @@ import { GoogleAnalytics, MicrosoftClarity, PostHog, Umami } from '@/components/
 import RouterProgressBar from '@/components/RouterProgress';
 import { SideBarScript } from '@/features/app/components/sidebar/SideBarScript';
 import { HttpErrorPage } from '@/features/system/pages';
+import { installErrorReporter } from '@/lib/observability/error-reporter';
+import { installFetchInstrumentation } from '@/lib/observability/fetch-instrumentation';
+import { startRUM } from '@/lib/observability/rum-init';
+import { defaultWebVitalsHandler, setWebVitalsHandler } from '@/lib/observability/web-vitals';
 import type { IServerEnv } from '@/lib/server-env';
 import type { NextPageWithLayout } from '@/lib/type';
 import { colors } from '@/themes/colors';
@@ -63,6 +67,12 @@ const MyApp = (appProps: AppPropsWithLayout) => {
   useEffect(() => {
     Sentry.setUser(user ? { id: user.id, email: user.email } : null);
   }, [user]);
+  useEffect(() => {
+    installErrorReporter();
+    installFetchInstrumentation();
+    setWebVitalsHandler(defaultWebVitalsHandler);
+    void startRUM();
+  }, []);
 
   return (
     <>

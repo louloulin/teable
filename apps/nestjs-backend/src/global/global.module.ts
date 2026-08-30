@@ -28,6 +28,8 @@ import { PermissionModule } from '../features/auth/permission.module';
 import { DataLoaderModule } from '../features/data-loader/data-loader.module';
 import { LicenseModule } from '../features/license/license.module';
 import { ModelModule } from '../features/model/model.module';
+import { QuotaEnforcementInterceptor } from '../features/quota/quota.interceptor';
+import { QuotaModule } from '../features/quota/quota.module';
 import { DataDbMigrationService } from '../features/space/data-db-migration.service';
 import { SpaceDataDbMigrationGuardService } from '../features/space/space-data-db-migration-guard.service';
 import { RequestInfoMiddleware } from '../middleware/request-info.middleware';
@@ -73,6 +75,7 @@ const globalModules = {
     DataLoaderModule,
     PerformanceCacheModule,
     ApiRateLimitModule,
+    QuotaModule,
     I18nModule.forRootAsync({
       useFactory: () => {
         const i18nPath = getI18nPath();
@@ -127,6 +130,10 @@ const globalModules = {
       // are still capped at the plan rate.
       provide: APP_GUARD,
       useClass: ApiThrottleGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: QuotaEnforcementInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

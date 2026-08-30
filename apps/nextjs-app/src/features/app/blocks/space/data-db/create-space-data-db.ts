@@ -4,7 +4,7 @@ type DataDbMode = 'default' | 'byodb';
 
 export const isByodbSpaceCreateEnabled = (edition?: string) => {
   const normalizedEdition = edition?.toUpperCase();
-  return normalizedEdition === 'EE' || normalizedEdition === 'SELF_HOSTED';
+  return !normalizedEdition || normalizedEdition === 'EE' || normalizedEdition === 'SELF_HOSTED';
 };
 
 export const getCreateSpaceDataDbPayload = (

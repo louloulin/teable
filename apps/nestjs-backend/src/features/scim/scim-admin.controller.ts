@@ -27,6 +27,7 @@ export class ScimAdminController {
   async getConfig(): Promise<IScimConfigVo> {
     const cfg = await this.scim.loadConfig();
     const users = await this.scim.listInstanceUsers();
+    const groups = await this.scim.listGroups();
     return {
       enabled: cfg.enabled,
       endpoint: '/scim/v2',
@@ -34,7 +35,7 @@ export class ScimAdminController {
       createdTime: cfg.createdTime,
       lastRotatedTime: cfg.lastRotatedTime,
       userCount: users.length,
-      groupCount: 0,
+      groupCount: groups.length,
     };
   }
 
@@ -42,6 +43,7 @@ export class ScimAdminController {
   async rotate(): Promise<IScimConfigWithTokenVo> {
     const { token, cfg } = await this.scim.rotateToken();
     const users = await this.scim.listInstanceUsers();
+    const groups = await this.scim.listGroups();
     return {
       enabled: cfg.enabled,
       endpoint: '/scim/v2',
@@ -49,7 +51,7 @@ export class ScimAdminController {
       createdTime: cfg.createdTime,
       lastRotatedTime: cfg.lastRotatedTime,
       userCount: users.length,
-      groupCount: 0,
+      groupCount: groups.length,
       token,
     };
   }
@@ -72,6 +74,15 @@ export class ScimAdminController {
 
   @Get('groups')
   async listGroups(): Promise<IScimListGroupsVo> {
-    return { total: 0, groups: [] };
+    const groups = await this.scim.listGroups();
+    return {
+      total: groups.length,
+      groups: groups.map((group) => ({
+        id: group.id,
+        displayName: group.displayName,
+        externalId: group.externalId,
+        members: group.members.map((member) => member.value),
+      })),
+    };
   }
 }

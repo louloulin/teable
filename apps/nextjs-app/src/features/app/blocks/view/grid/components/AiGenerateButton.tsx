@@ -1,9 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
+import { FieldType } from '@teable/core';
 import { RefreshCcw } from '@teable/icons';
 import { autoFillCell } from '@teable/openapi';
 import {
   Record,
   TaskStatusCollectionContext,
+  useBaseId,
   useFields,
   useTableId,
   useTableListener,
@@ -20,6 +22,7 @@ import React, {
   useContext,
   useState,
 } from 'react';
+import { StreamingAiCell } from '@/features/app/components/ai/StreamingAiCell';
 
 interface IAIButtonProps {
   gridRef: React.RefObject<IGridRef>;
@@ -31,6 +34,7 @@ interface IAIButtonProps {
 export const AiGenerateButton = forwardRef<{ onScrollHandler: () => void }, IAIButtonProps>(
   (props, ref) => {
     const { gridRef, activeCell, recordMap } = props;
+    const baseId = useBaseId() as string;
     const tableId = useTableId() as string;
     const fields = useFields();
     const permission = useTablePermission();
@@ -41,6 +45,11 @@ export const AiGenerateButton = forwardRef<{ onScrollHandler: () => void }, IAIB
     const [pendingCell, setPendingCell] = useState<{ recordId: string; fieldId: string } | null>(
       null
     );
+    const [streamingCell, setStreamingCell] = useState<{
+      recordId: string;
+      fieldId: string;
+      style: React.CSSProperties;
+    } | null>(null);
 
     const { mutate: mutateGenerate } = useMutation({
       mutationFn: ({ recordId, fieldId }: { recordId: string; fieldId: string }) =>
@@ -94,7 +103,12 @@ export const AiGenerateButton = forwardRef<{ onScrollHandler: () => void }, IAIB
       },
     }));
 
-    const record = activeCell?.rowIndex ? recordMap[activeCell.rowIndex] : undefined;
+    const record = activeCell?.rowIndex != null ? recordMap[activeCell.rowIndex] : undefined;
+
+    const isStreamingField = (fieldId: string) => {
+      const field = fields.find((item) => item.id === fieldId);
+      return field?.type === FieldType.SingleLineText || field?.type === FieldType.LongText;
+    };
 
     const onPositionChanged = useCallback(() => {
       if (!activeCell || !permission['record|update']) {
@@ -141,6 +155,26 @@ export const AiGenerateButton = forwardRef<{ onScrollHandler: () => void }, IAIB
     const onGenerate = () => {
       if (!activeCell || isCellInTaskQueue(activeCell) || isLocalPending) return;
 
+      if (isStreamingField(activeCell.fieldId)) {
+        const bounds = gridRef.current?.getCellBounds([
+          activeCell.columnIndex,
+          activeCell.rowIndex,
+        ]);
+        if (bounds) {
+          setStreamingCell({
+            recordId: activeCell.recordId,
+            fieldId: activeCell.fieldId,
+            style: {
+              left: bounds.x,
+              top: bounds.y,
+              width: bounds.width,
+              height: bounds.height,
+            },
+          });
+        }
+        return;
+      }
+
       props.onGenerate?.();
 
       // Set local pending state immediately
@@ -154,6 +188,33 @@ export const AiGenerateButton = forwardRef<{ onScrollHandler: () => void }, IAIB
         fieldId: activeCell.fieldId,
       });
     };
+
+    const onStreamDone = async (value: string) => {
+      if (!streamingCell) return;
+      const streamRecord = Object.values(recordMap).find(
+        (item) => item.id === streamingCell.recordId
+      );
+      if (streamRecord) {
+        await streamRecord.updateCell(streamingCell.fieldId, value);
+      }
+      setStreamingCell(null);
+    };
+
+    if (streamingCell) {
+      return (
+        <StreamingAiCell
+          baseId={baseId}
+          fieldId={streamingCell.fieldId}
+          tableId={tableId}
+          recordId={streamingCell.recordId}
+          streaming
+          style={streamingCell.style}
+          onDone={(value) => void onStreamDone(value)}
+          onAbort={() => setStreamingCell(null)}
+          onError={() => setStreamingCell(null)}
+        />
+      );
+    }
 
     // Hide button when cell is in task queue (star animation is showing)
     if (!style || isCellInTaskQueue(activeCell)) return null;

@@ -40,6 +40,16 @@ export type AutomationActionType =
 
 export type AutomationRunStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
 
+export type AutomationAdminRunStatus = AutomationRunStatus | 'canceled';
+
+export const AUTOMATION_RUN_STATUSES: readonly AutomationRunStatus[] = [
+  'pending',
+  'running',
+  'succeeded',
+  'failed',
+  'skipped',
+] as const;
+
 export const AUTOMATION_TRIGGER_TYPES: readonly AutomationTriggerType[] = [
   'record_created',
   'record_updated',

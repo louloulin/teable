@@ -17,8 +17,10 @@ const baseRow: IAuditListRow = {
   id: 'row-1',
   createdAt: '2026-08-26T10:00:00.000Z',
   action: 'http_request',
+  resourceType: 'table',
   resourceId: 'tblABC',
   userId: 'usrXYZ',
+  payload: {},
   rootAction: null,
   operationId: null,
 };
@@ -34,7 +36,7 @@ describe('audit-export (R1-T10)', () => {
     const csv = rowsToCsv([baseRow]);
     const lines = csv.split('\r\n').filter((l) => l.length > 0);
     expect(lines).toHaveLength(2);
-    expect(lines[1]).toBe('row-1,2026-08-26T10:00:00.000Z,http_request,tblABC,usrXYZ,,');
+    expect(lines[1]).toContain('row-1,2026-08-26T10:00:00.000Z,http_request,table,tblABC,usrXYZ');
   });
 
   it('CSV quotes cells containing commas', () => {
@@ -65,9 +67,9 @@ describe('audit-export (R1-T10)', () => {
 
   it('CSV converts null cells to empty strings', () => {
     const csv = rowsToCsv([baseRow]);
-    // Two trailing commas for rootAction + operationId (both null).
+    // Payload is serialized before the two null trailing columns.
     // The serializer terminates with CRLF, so we strip it before matching.
-    expect(csv.replace(/\r\n$/, '')).toMatch(/,usrXYZ,,$/);
+    expect(csv.replace(/\r\n$/, '')).toMatch(/,usrXYZ,\{\},,$/);
   });
 
   it('JSON output contains exportedAt + rowCount + rows', () => {

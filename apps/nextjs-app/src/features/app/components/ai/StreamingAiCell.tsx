@@ -50,6 +50,7 @@ export interface IStreamingAiCellProps {
    * flag and revert to the static cell.
    */
   onAbort?: () => void;
+  onError?: (error: Error) => void;
   className?: string;
 }
 
@@ -64,11 +65,13 @@ export const StreamingAiCell = (props: IStreamingAiCellProps) => {
     style,
     onDone,
     onAbort,
+    onError,
     className,
   } = props;
   const {
     streaming: isStreaming,
     value,
+    error,
     done,
     start,
     abort,
@@ -102,6 +105,13 @@ export const StreamingAiCell = (props: IStreamingAiCellProps) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
+
+  useEffect(() => {
+    if (error) {
+      onError?.(error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   if (!streaming) {
     return <>{children}</>;

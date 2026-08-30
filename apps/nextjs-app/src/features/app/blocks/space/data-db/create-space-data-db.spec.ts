@@ -33,9 +33,10 @@ describe('create space data DB helpers', () => {
     expect(canCreateSpaceWithDataDb('byodb', url, { ok: true }, url)).toBe(true);
   });
 
-  it('enables BYODB create UX only for EE builds', () => {
+  it('enables BYODB create UX for enterprise and self-hosted builds', () => {
     expect(isByodbSpaceCreateEnabled('EE')).toBe(true);
+    expect(isByodbSpaceCreateEnabled('SELF_HOSTED')).toBe(true);
     expect(isByodbSpaceCreateEnabled('CLOUD')).toBe(false);
-    expect(isByodbSpaceCreateEnabled(undefined)).toBe(false);
+    expect(isByodbSpaceCreateEnabled(undefined)).toBe(true);
   });
 });

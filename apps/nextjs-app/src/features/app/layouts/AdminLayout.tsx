@@ -1,11 +1,14 @@
 import type { DehydratedState } from '@tanstack/react-query';
 import {
   Code,
+  ClipboardList,
+  Database,
   Download as ImportIcon,
   FileSpreadsheet,
   FileText,
   Key,
   LayoutTemplate as TemplateIcon,
+  MagicAi,
   Settings,
   ShieldUser,
   Webhook as WebhookIcon,
@@ -44,6 +47,42 @@ export const AdminLayout: React.FC<{
       label: tCommon('settings.title'),
       route: '/admin/setting',
       pathTo: '/admin/setting',
+    },
+    {
+      Icon: MagicAi,
+      label: 'AI settings',
+      route: '/admin/ai-setting',
+      pathTo: '/admin/ai-setting',
+    },
+    {
+      Icon: ClipboardList,
+      label: 'Audit log',
+      route: '/admin/audit-log',
+      pathTo: '/admin/audit-log',
+    },
+    {
+      Icon: Key,
+      label: 'License',
+      route: '/admin/license',
+      pathTo: '/admin/license',
+    },
+    {
+      Icon: Database,
+      label: 'Workspace mirror',
+      route: '/admin/workspace-mirror',
+      pathTo: '/admin/workspace-mirror',
+    },
+    {
+      Icon: Database,
+      label: 'Operations',
+      route: '/admin/operations',
+      pathTo: '/admin/operations',
+    },
+    {
+      Icon: ClipboardList,
+      label: 'Automation management',
+      route: '/admin/automation',
+      pathTo: '/admin/automation',
     },
     {
       Icon: TemplateIcon,

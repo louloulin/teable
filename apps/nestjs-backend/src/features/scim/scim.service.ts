@@ -8,10 +8,9 @@
  *     the SettingKey enum, so this PR requires no schema migration).
  *   - The bearer-token verification used by ScimAuthGuard.
  *   - A read-only projection of all instance users into the SCIM User
- *     resource shape used by the controller. Group management is handled
- *     in-memory at this layer because Teable OSS does not model
- *     "groups of users" as a first-class entity yet — adding one would
- *     exceed the Wave 9 build brief.
+ *     resource shape used by the controller. Group management is persisted
+ *     in the existing setting table until Teable models SCIM groups as a
+ *     first-class entity.
  *
  * Token storage: SHA-256(salt + token) at rest. The raw token is only
  * returned once on rotation. Token verification recomputes the hash with the
@@ -26,6 +25,7 @@ import { PrismaService } from '@teable/db-main-prisma';
 import type { IScimGroup, IScimListResponse, IScimUser } from './scim.types';
 
 const SCIM_SETTING_ROW_ID = 'scim:instance-config-v1';
+const SCIM_GROUPS_ROW_ID = 'scim:groups-v1';
 
 interface IScimStoredConfig {
   enabled: boolean;
@@ -96,7 +96,7 @@ export function userToScim(input: {
   id: string;
   externalId: string | null;
   email: string;
-    name: string;
+  name: string;
   active: boolean;
   role: string;
 }): IScimUser {
@@ -279,12 +279,6 @@ const cloneMembers = (members: IScimGroupMemberValue[]) => members.map((m) => ({
 @Injectable()
 export class ScimService {
   private readonly logger = new Logger(ScimService.name);
-
-  // Process-local SCIM Group store. OSS Teable does not yet model SCIM groups
-  // as first-class entities — this in-memory map is the canonical record for
-  // round-tripping between the controller and the SCIM IdP until the group
-  // domain is built out.
-  private readonly groupStore = new Map<string, IScimGroupRecord>();
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -480,14 +474,43 @@ export class ScimService {
     });
   }
 
-  // ── SCIM Group CRUD (in-memory) ───────────────────────────────────────
+  // ── SCIM Group CRUD ───────────────────────────────────────────────────
+
+  private async loadGroups(): Promise<IScimGroupRecord[]> {
+    const row = await this.prisma.setting.findUnique({
+      where: { name: SCIM_GROUPS_ROW_ID },
+    });
+    if (!row?.content) return [];
+    try {
+      const groups = JSON.parse(row.content as string) as IScimGroupRecord[];
+      return Array.isArray(groups)
+        ? groups.map((group) => ({ ...group, members: cloneMembers(group.members ?? []) }))
+        : [];
+    } catch {
+      this.logger.warn('invalid persisted SCIM groups payload; treating it as empty');
+      return [];
+    }
+  }
+
+  private async saveGroups(groups: IScimGroupRecord[]): Promise<void> {
+    await this.prisma.setting.upsert({
+      where: { name: SCIM_GROUPS_ROW_ID },
+      update: { content: JSON.stringify(groups) },
+      create: {
+        name: SCIM_GROUPS_ROW_ID,
+        content: JSON.stringify(groups),
+        createdBy: 'system',
+      },
+    });
+  }
 
   async listGroups(): Promise<IScimGroupRecord[]> {
-    return Array.from(this.groupStore.values());
+    return this.loadGroups();
   }
 
   async findGroupById(id: string): Promise<IScimGroupRecord | null> {
-    return this.groupStore.get(id) ?? null;
+    const groups = await this.loadGroups();
+    return groups.find((group) => group.id === id) ?? null;
   }
 
   async createGroup(input: {
@@ -507,7 +530,8 @@ export class ScimService {
       createdTime: now,
       lastModifiedTime: now,
     };
-    this.groupStore.set(record.id, record);
+    const groups = await this.loadGroups();
+    await this.saveGroups([...groups, record]);
     return record;
   }
 
@@ -519,7 +543,8 @@ export class ScimService {
       members?: IScimGroupMemberInput[];
     }
   ): Promise<IScimGroupRecord> {
-    const existing = this.groupStore.get(id);
+    const groups = await this.loadGroups();
+    const existing = groups.find((group) => group.id === id);
     if (!existing) throw new NotFoundException('Group not found');
     const updated: IScimGroupRecord = {
       ...existing,
@@ -528,12 +553,13 @@ export class ScimService {
       members: input.members ? cloneMembers(input.members) : [],
       lastModifiedTime: new Date().toISOString(),
     };
-    this.groupStore.set(id, updated);
+    await this.saveGroups(groups.map((group) => (group.id === id ? updated : group)));
     return updated;
   }
 
   async patchGroup(id: string, ops: IScimGroupPatchOp[]): Promise<IScimGroupRecord> {
-    const existing = this.groupStore.get(id);
+    const groups = await this.loadGroups();
+    const existing = groups.find((group) => group.id === id);
     if (!existing) throw new NotFoundException('Group not found');
     let working: IScimGroupRecord = {
       ...existing,
@@ -543,14 +569,15 @@ export class ScimService {
       working = this.applyGroupPatchOp(working, op);
     }
     working.lastModifiedTime = new Date().toISOString();
-    this.groupStore.set(id, working);
+    await this.saveGroups(groups.map((group) => (group.id === id ? working : group)));
     return working;
   }
 
   async deleteGroup(id: string): Promise<void> {
-    const existing = this.groupStore.get(id);
+    const groups = await this.loadGroups();
+    const existing = groups.find((group) => group.id === id);
     if (!existing) throw new NotFoundException('Group not found');
-    this.groupStore.delete(id);
+    await this.saveGroups(groups.filter((group) => group.id !== id));
   }
 
   private applyGroupPatchOp(state: IScimGroupRecord, op: IScimGroupPatchOp): IScimGroupRecord {
