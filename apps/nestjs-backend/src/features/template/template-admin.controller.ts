@@ -6,7 +6,17 @@
  * Both controllers delegate to the same `TemplateService`, so writes made
  * via either path show up identically.
  */
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { z } from 'zod';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -72,5 +82,4 @@ export class TemplateAdminController {
   remove(@Param('templateId') templateId: string) {
     return this.service.deleteTemplate(templateId);
   }
-
 }

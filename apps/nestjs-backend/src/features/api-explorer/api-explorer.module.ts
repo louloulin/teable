@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
+import { LicenseModule } from '../license/license.module';
 import { ApiExplorerAdminController } from './api-explorer.admin.controller';
-import {
-  ApiExplorerAuthService,
-  DEFAULT_TEABLE_ROUTES,
-  InMemoryRouteCatalog,
-} from './api-explorer.auth.service';
+import { ApiExplorerAuthService, InMemoryRouteCatalog } from './api-explorer.auth.service';
 import { DEFAULT_API_EXPLORER_OPTIONS } from './api-explorer.defaults';
 import type { IApiExplorerOptions } from './api-explorer.types';
 
@@ -12,6 +9,7 @@ const ROUTE_CATALOG = 'API_EXPLORER_ROUTE_CATALOG';
 const API_EXPLORER_OPTIONS = 'API_EXPLORER_OPTIONS';
 
 @Module({
+  imports: [LicenseModule],
   controllers: [ApiExplorerAdminController],
   providers: [
     InMemoryRouteCatalog,
