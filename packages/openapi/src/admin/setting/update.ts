@@ -301,6 +301,18 @@ export const appConfigSchema = z.object({
   badgeEnabled: z.boolean().optional(),
 });
 
+export const sandboxConfigSchema = z.object({
+  streamIdleTimeoutSec: z.number().int().min(1).max(3600).default(120),
+  idleTimeoutSec: z.number().int().min(1).max(86400).default(1800),
+  concurrentChatLimit: z.number().int().min(1).max(100).default(4),
+  vcpus: z.number().int().min(1).max(64).default(2),
+  memoryMb: z.number().int().min(128).max(262144).default(4096),
+  temporaryDiskMb: z.number().int().min(128).max(1048576).default(10240),
+  thinkingEffort: z.enum(['low', 'medium', 'high']).default('medium'),
+});
+
+export type ISandboxConfig = z.infer<typeof sandboxConfigSchema>;
+
 export type IAppConfig = z.infer<typeof appConfigSchema>;
 
 export const webSearchConfigSchema = z.object({
@@ -387,6 +399,7 @@ export const updateSettingRoSchema = z.object({
   aiConfig: aiConfigVoSchema.optional(),
   enableWaitlist: z.boolean().optional(),
   appConfig: appConfigSchema.optional(),
+  sandboxConfig: sandboxConfigSchema.optional(),
   brandName: z.string().optional(),
   canaryConfig: canaryConfigSchema.optional(),
   notifyMailTransportConfig: mailTransportConfigSchema.nullable().optional(),

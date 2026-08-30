@@ -1,23 +1,12 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 
 import type { IClsStore } from '../../types/cls';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { ResourceMeta } from '../auth/decorators/resource_meta.decorator';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
+import { PERMISSION_MATRIX_CAPABILITY, PermissionFilter } from './permission-matrix.constants';
 import { PermissionMatrixService } from './permission-matrix.service';
-import {
-  PERMISSION_MATRIX_CAPABILITY,
-  PermissionFilter,
-} from './permission-matrix.constants';
 
 const MatrixGuard = LicenseCapabilityGuard.for(PERMISSION_MATRIX_CAPABILITY);
 
@@ -64,6 +53,8 @@ export class PermissionMatrixController {
   ) {}
 
   @Post('roles')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
   async create(@Body() body: ICreateRoleDto) {
     const userId = this.cls.get('user')?.id ?? 'system';
     return this.svc.createRole({
@@ -75,17 +66,23 @@ export class PermissionMatrixController {
   }
 
   @Get('roles')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async list(@Query('baseId') baseId: string) {
     return this.svc.listRoles(baseId);
   }
 
   @Delete('roles/:roleId')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async delete(@Param('roleId') roleId: string, @Query('baseId') baseId: string) {
     await this.svc.deleteRole(baseId, roleId);
     return { ok: true };
   }
 
   @Put('roles/:roleId/enabled')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async setEnabled(
     @Param('roleId') roleId: string,
     @Query('baseId') baseId: string,
@@ -95,6 +92,8 @@ export class PermissionMatrixController {
   }
 
   @Put('roles/:roleId/table-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async setTableAccess(
     @Param('roleId') roleId: string,
     @Query('baseId') baseId: string,
@@ -105,6 +104,8 @@ export class PermissionMatrixController {
   }
 
   @Put('roles/:roleId/field-permission')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async setFieldPermission(
     @Param('roleId') roleId: string,
     @Query('baseId') baseId: string,
@@ -115,6 +116,8 @@ export class PermissionMatrixController {
   }
 
   @Put('roles/:roleId/record-action')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async setRecordAction(
     @Param('roleId') roleId: string,
     @Query('baseId') baseId: string,
@@ -125,6 +128,8 @@ export class PermissionMatrixController {
   }
 
   @Put('roles/:roleId/record-filter')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
   async setRecordFilter(
     @Param('roleId') roleId: string,
     @Query('baseId') baseId: string,
@@ -135,12 +140,16 @@ export class PermissionMatrixController {
   }
 
   @Post('members')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
   async addMember(@Body() body: IAddMemberDto) {
     await this.svc.addMember(body.baseId, body.roleId, body.userId);
     return { ok: true };
   }
 
   @Delete('members')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
   async removeMember(@Body() body: IAddMemberDto) {
     await this.svc.removeMember(body.baseId, body.roleId, body.userId);
     return { ok: true };

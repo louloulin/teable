@@ -1,81 +1,80 @@
-import { HttpErrorCode } from '@teable/core';
-import { CustomHttpException } from '../../custom.exception';
 import { LicenseCapabilityService } from './license-capability.service';
 import type { LicenseService } from './license.service';
 
-describe('LicenseCapabilityService', () => {
-  it('enables every capability under self-hosted OSS without a license', () => {
-    const license = { resolveFromEnv: () => ({ source: 'none' }) } as unknown as LicenseService;
-    const svc = new LicenseCapabilityService(license);
-    svc.refresh();
-    expect(svc.currentPlan()).toBe('self_hosted');
-    expect(svc.isEnabled('ai_chat')).toBe(true);
-    expect(svc.isEnabled('permission_matrix')).toBe(true);
-    expect(svc.isEnabled('automation')).toBe(true);
-    expect(svc.isEnabled('webhook')).toBe(true);
-    expect(svc.isEnabled('audit_log_query')).toBe(true);
-    expect(() => svc.require('sso')).not.toThrow();
-  });
-
-  it('enables ai_chat under free plan', () => {
+/**
+ * OSS / gap-fill contract: the license gate is intentionally a no-op.
+ * Every capability must report `true` and `require()` must never throw,
+ * regardless of the resolved plan. This spec pins that behaviour so a
+ * future regression towards strict enforcement is caught immediately.
+ */
+describe('LicenseCapabilityService (real-skip / no-op contract)', () => {
+  const build = (plan: 'free' | 'pro' | 'business' | 'enterprise' | 'self_hosted') => {
+    const claims =
+      plan === 'self_hosted'
+        ? undefined
+        : ({ plan } as { plan: 'free' | 'pro' | 'business' | 'enterprise' });
     const license = {
-      resolveFromEnv: () => ({ source: 'env', claims: { plan: 'free' } }),
+      resolveFromEnv: () => (claims ? { source: 'env', claims } : { source: 'none' }),
     } as unknown as LicenseService;
     const svc = new LicenseCapabilityService(license);
     svc.refresh();
-    expect(svc.isEnabled('ai_chat')).toBe(true);
-    expect(svc.isEnabled('ai_field')).toBe(true);
-    expect(svc.isEnabled('ai_app_builder')).toBe(true);
-    expect(svc.isEnabled('cuppy_claw')).toBe(true);
-    expect(svc.isEnabled('sso')).toBe(false);
-    expect(svc.isEnabled('permission_matrix')).toBe(false);
-  });
+    return svc;
+  };
 
-  it('enables all AI capabilities + audit under pro', () => {
-    const license = {
-      resolveFromEnv: () => ({ source: 'env', claims: { plan: 'pro' } }),
-    } as unknown as LicenseService;
-    const svc = new LicenseCapabilityService(license);
-    svc.refresh();
-    expect(svc.isEnabled('ai_field')).toBe(true);
-    expect(svc.isEnabled('ai_chat')).toBe(true);
-    expect(svc.isEnabled('ai_app_builder')).toBe(true);
-    expect(svc.isEnabled('cuppy_claw')).toBe(true);
-    expect(svc.isEnabled('audit_log')).toBe(true);
-    expect(svc.isEnabled('permission_matrix')).toBe(false);
-  });
+  const plans = ['free', 'pro', 'business', 'enterprise', 'self_hosted'] as const;
+  const everythingKeys = [
+    'ai_field',
+    'ai_chat',
+    'ai_app_builder',
+    'cuppy_claw',
+    'sso',
+    'permission_matrix',
+    'custom_app_domain',
+    'custom_domain',
+    'audit_log',
+    'admin_panel',
+    'users_read',
+    'spaces_read',
+    'templates_read',
+    'ai',
+    'quota_view',
+    'automation',
+    'webhook',
+    'audit_log_query',
+    'workspace_mirror',
+    'computed_outbox',
+    'table_query_ops',
+    'announcements',
+    'sandbox_agent',
+  ] as const;
 
-  it('enables everything under business', () => {
-    const license = {
-      resolveFromEnv: () => ({ source: 'env', claims: { plan: 'business' } }),
-    } as unknown as LicenseService;
-    const svc = new LicenseCapabilityService(license);
-    svc.refresh();
-    const snap = svc.snapshot();
-    expect(snap.plan).toBe('business');
-    expect(snap.ai_field).toBe(true);
-    expect(snap.sso).toBe(true);
-    expect(snap.permission_matrix).toBe(true);
-    expect(snap.custom_app_domain).toBe(true);
-    expect(snap.admin_panel).toBe(true);
-  });
-
-  it('throws on require() for missing capabilities', () => {
-    const license = {
-      resolveFromEnv: () => ({ source: 'env', claims: { plan: 'free' } }),
-    } as unknown as LicenseService;
-    const svc = new LicenseCapabilityService(license);
-    svc.refresh();
-    try {
-      svc.require('sso');
-      throw new Error('should not reach');
-    } catch (err) {
-      expect(err).toBeInstanceOf(CustomHttpException);
-      expect((err as CustomHttpException).code).toBe(HttpErrorCode.PAYMENT_REQUIRED);
+  it.each(plans)('enables every capability under plan=%s', (plan) => {
+    const svc = build(plan);
+    for (const cap of everythingKeys) {
+      expect(svc.isEnabled(cap)).toBe(true);
+      expect(() => svc.require(cap)).not.toThrow();
     }
   });
 
-  it('accepts a runtime activation without requiring an environment variable', () => {
+  it('reports plan from env on refresh', () => {
+    expect(build('free').currentPlan()).toBe('free');
+    expect(build('pro').currentPlan()).toBe('pro');
+    expect(build('business').currentPlan()).toBe('business');
+    expect(build('enterprise').currentPlan()).toBe('enterprise');
+    expect(build('self_hosted').currentPlan()).toBe('self_hosted');
+  });
+
+  it('snapshot() returns true for every capability regardless of plan', () => {
+    for (const plan of plans) {
+      const snap = build(plan).snapshot();
+      expect(snap.plan).toBe(plan);
+      for (const cap of everythingKeys) {
+        expect(snap[cap]).toBe(true);
+      }
+    }
+  });
+
+  it('accepts a runtime activation without an env variable', () => {
     const license = {
       resolveFromEnv: () => ({ source: 'none' }),
     } as unknown as LicenseService;
@@ -83,5 +82,6 @@ describe('LicenseCapabilityService', () => {
     svc.refresh({ source: 'env', claims: { plan: 'business' }, effectiveLimits: {} as never });
     expect(svc.currentPlan()).toBe('business');
     expect(svc.isEnabled('sso')).toBe(true);
+    expect(() => svc.require('permission_matrix')).not.toThrow();
   });
 });

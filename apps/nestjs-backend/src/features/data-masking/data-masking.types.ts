@@ -18,7 +18,7 @@ export type MaskingStrategy =
 
 export type MaskingScope = 'all' | 'role-based' | 'field-based';
 
-export type MaskingRole = 'admin' | 'editor' | 'viewer' | 'guest' | 'custom';
+export type MaskingRole = 'owner' | 'creator' | 'editor' | 'commenter' | 'viewer';
 
 export interface IRegexRule {
   pattern: string;

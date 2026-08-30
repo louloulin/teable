@@ -35,7 +35,7 @@
     "clean": "rimraf ./out ./coverage ./main ./dist ./tsconfig.tsbuildinfo ./node_modules/.cache .webpack-cache",
     "dev": "nest start --webpackPath ./webpack.dev.js -w",
     "dev:swc": "nest start --webpackPath ./webpack.swc.js -w",
-    "start": "nest start",
+    "start": "node dist/index.js",
     "check-dist": "es-check -v",
     "start-debug": "nest start --webpackPath ./webpack.dev.js --debug -w",
     "check-size": "size-limit --highlight-less",

@@ -12,6 +12,8 @@ import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
 import { InstanceSkillModule } from './features/instance-skills/instance-skill.module';
 import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orchestrator.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
+import { AnnouncementsModule } from './features/announcements/announcements.module';
+import { SandboxAgentModule } from './features/sandbox-agent/sandbox-agent.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
@@ -22,6 +24,8 @@ import { AuditSourceModule } from './features/audit/audit.module';
 import { AuthModule } from './features/auth/auth.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
+import { DatabaseViewModule } from './features/database-view/database-view.module';
+import { GraphModule } from './features/graph/graph.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
 import { BaseShareModule } from './features/base-share/base-share.module';
@@ -72,6 +76,9 @@ import { ShortLinkModule } from './features/short-link/short-link.module';
 import { SmtpModule } from './features/smtp/smtp.module';
 import { SpaceModule } from './features/space/space.module';
 import { SsoModule } from './features/sso/sso.module';
+import { TotpModule } from './features/totp/totp.module';
+import { DataMaskingModule } from './features/data-masking/data-masking.module';
+import { AuditExportModule } from './features/audit-export/audit-export.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TrashModule } from './features/trash/trash.module';
 import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
@@ -112,6 +119,8 @@ export const appModules = {
     ImBridgeModule,
     UndoRedoModule,
     AggregationOpenApiModule,
+    AnnouncementsModule,
+    SandboxAgentModule,
     UserModule,
     ViewPermissionModule,
     AuthModule,
@@ -141,6 +150,9 @@ export const appModules = {
     DomainVerificationModule,
     CustomDomainModule,
     SsoModule,
+    TotpModule,
+    DataMaskingModule,
+    AuditExportModule,
     ScimModule,
     PermissionMatrixModule,
     SettingOpenApiModule,
@@ -148,6 +160,8 @@ export const appModules = {
     OAuthServerModule,
     TrashModule,
     DashboardModule,
+    DatabaseViewModule,
+    GraphModule,
     CommentOpenApiModule,
     OrganizationModule,
     AiModule,

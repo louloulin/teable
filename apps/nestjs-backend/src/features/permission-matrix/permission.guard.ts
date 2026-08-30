@@ -1,14 +1,11 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  SetMetadata,
-} from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, Optional, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { HttpErrorCode } from '@teable/core';
+import { PrismaService } from '@teable/db-main-prisma';
 import { ClsService } from 'nestjs-cls';
 
 import { CustomHttpException } from '../../custom.exception';
-import { HttpErrorCode } from '@teable/core';
 import type { IClsStore } from '../../types/cls';
 import { PermissionMatrixService } from './permission-matrix.service';
 
@@ -35,7 +32,8 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private readonly matrix: PermissionMatrixService,
     private readonly cls: ClsService<IClsStore>,
-    private readonly reflector: Reflector
+    private readonly reflector: Reflector,
+    @Optional() private readonly prisma?: PrismaService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,8 +46,11 @@ export class PermissionGuard implements CanActivate {
     if (!action) return true;
 
     const req = context.switchToHttp().getRequest<Record<string, unknown>>();
-    const { tableId, baseId } = this.readTableContext(req);
-    if (!tableId || !baseId) return true;
+    const { tableId, baseId: requestedBaseId } = this.readTableContext(req);
+    if (!tableId) return true;
+
+    const baseId = requestedBaseId ?? (await this.resolveBaseId(tableId));
+    if (!baseId) return true;
 
     const userId = this.cls.get('user')?.id;
     if (!userId) return true;
@@ -64,6 +65,9 @@ export class PermissionGuard implements CanActivate {
         { meta: { tableId, baseId, action } }
       );
     }
+    if (action === 'update' || action === 'create') {
+      await this.assertFieldEditAllowed(req, tableId, baseId, roles);
+    }
     return true;
   }
 
@@ -77,25 +81,44 @@ export class PermissionGuard implements CanActivate {
   async assertFieldEditAllowed(
     req: Record<string, unknown>,
     tableId: string,
-    baseId: string
+    baseId: string,
+    resolvedRoles?: Awaited<ReturnType<PermissionMatrixService['resolveRolesForUser']>>
   ): Promise<void> {
     const userId = this.cls.get('user')?.id;
     if (!userId) return;
-    const roles = await this.matrix.resolveRolesForUser(baseId, userId);
+    const roles = resolvedRoles ?? (await this.matrix.resolveRolesForUser(baseId, userId));
     if (roles.length === 0) return;
-    const body = (req.body ?? {}) as { fields?: Record<string, unknown> };
-    const fields = body.fields ?? body;
-    if (typeof fields !== 'object' || fields === null) return;
-    for (const fieldId of Object.keys(fields)) {
-      const access = this.matrix.fieldAccess(roles, tableId, fieldId);
-      if (access === 'hidden') {
-        throw new CustomHttpException(
-          `field hidden by permission: ${fieldId}`,
-          HttpErrorCode.RESTRICTED_RESOURCE,
-          { meta: { fieldId, tableId } }
-        );
+    const body = (req.body ?? {}) as {
+      fields?: Record<string, unknown>;
+      record?: { fields?: Record<string, unknown> };
+      records?: Array<{ fields?: Record<string, unknown> }>;
+    };
+    const fieldSets = [
+      body.fields,
+      body.record?.fields,
+      ...(body.records ?? []).map((record) => record.fields),
+    ].filter((fields): fields is Record<string, unknown> => !!fields && typeof fields === 'object');
+    for (const fields of fieldSets) {
+      for (const fieldId of Object.keys(fields)) {
+        const access = this.matrix.fieldAccess(roles, tableId, fieldId);
+        if (access === 'hidden') {
+          throw new CustomHttpException(
+            `field hidden by permission: ${fieldId}`,
+            HttpErrorCode.RESTRICTED_RESOURCE,
+            { meta: { fieldId, tableId } }
+          );
+        }
       }
     }
+  }
+
+  private async resolveBaseId(tableId: string): Promise<string | null> {
+    if (!this.prisma) return null;
+    const table = await this.prisma.tableMeta.findUnique({
+      where: { id: tableId },
+      select: { baseId: true },
+    });
+    return table?.baseId ?? null;
   }
 
   private readTableContext(req: Record<string, unknown>): {

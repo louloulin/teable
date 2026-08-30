@@ -3,11 +3,20 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { getRandomString } from '@teable/core';
 import type { Prisma } from '@teable/db-main-prisma';
 import { PrismaService } from '@teable/db-main-prisma';
-import { SettingKey } from '@teable/openapi';
+import { MailTransporterType, MailType, SettingKey } from '@teable/openapi';
+import { CacheService } from '../../cache/cache.service';
+import { AuthConfig, type IAuthConfig } from '../../configs/auth.config';
+import { MailConfig, type IMailConfig } from '../../configs/mail.config';
+import { second } from '../../utils/second';
 import { AuditScope } from '../audit/audit-scope';
+import { MailSenderService } from '../mail-sender/mail-sender.service';
+import { DataDbBindingService } from '../space/data-db-binding.service';
+import { DataDbPreflightService } from '../space/data-db-preflight.service';
 import { DeleteUserService } from '../user/delete-user/delete-user.service';
 
 /**
@@ -32,7 +41,13 @@ export class AdminOpenApiService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly audit: AuditScope,
-    private readonly deleteUserService: DeleteUserService
+    private readonly deleteUserService: DeleteUserService,
+    @Optional() private readonly cacheService?: CacheService,
+    @Optional() private readonly mailSenderService?: MailSenderService,
+    @Optional() @AuthConfig() private readonly authConfig?: IAuthConfig,
+    @Optional() @MailConfig() private readonly mailConfig?: IMailConfig,
+    @Optional() private readonly dataDbPreflightService?: DataDbPreflightService,
+    @Optional() private readonly dataDbBindingService?: DataDbBindingService
   ) {}
 
   async listUsers(query: { skip: number; take: number; search?: string }) {
@@ -142,6 +157,49 @@ export class AdminOpenApiService {
       },
     });
     return updated;
+  }
+
+  async createPasswordReset(input: { userId: string; requesterId?: string; sendEmail: boolean }) {
+    if (!this.cacheService || !this.mailSenderService || !this.authConfig || !this.mailConfig) {
+      throw new ConflictException('Password reset service is unavailable');
+    }
+    const user = await this.prismaService.user.findFirst({
+      where: { id: input.userId, permanentDeletedTime: null },
+      select: { id: true, name: true, email: true, deletedTime: true, isSystem: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.isSystem) throw new BadRequestException('System users cannot be modified');
+    if (user.deletedTime) throw new BadRequestException('Deleted users cannot be reset');
+    if (user.id === input.requesterId) {
+      throw new BadRequestException('The current administrator cannot be modified');
+    }
+
+    const code = getRandomString(30);
+    const expiresIn = second(this.authConfig.resetPasswordEmailExpiresIn);
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    await this.cacheService.setDetail(
+      `reset-password-email:${code}`,
+      { userId: user.id },
+      expiresIn
+    );
+    const resetPasswordUrl = `${this.mailConfig.origin}/auth/reset-password?code=${code}`;
+    if (input.sendEmail) {
+      const emailOptions = await this.mailSenderService.resetPasswordEmailOptions({
+        name: user.name ?? user.email,
+        email: user.email,
+        resetPasswordUrl,
+      });
+      await this.mailSenderService.sendMail(
+        { to: user.email, ...emailOptions },
+        { type: MailType.ResetPassword, transporterName: MailTransporterType.Notify }
+      );
+    }
+    await this.audit.emitAtomic({
+      action: 'admin.user.password_reset.create',
+      resourceId: user.id,
+      payload: { sendEmail: input.sendEmail, expiresAt },
+    });
+    return { userId: user.id, resetPasswordUrl, expiresAt, emailSent: input.sendEmail };
   }
 
   private async getMutableUser(userId: string, requesterId?: string) {
@@ -277,6 +335,52 @@ export class AdminOpenApiService {
     );
 
     return { list, total, skip, take };
+  }
+
+  async listDataDbSummaries(query: { skip: number; take: number }) {
+    if (!this.dataDbPreflightService) {
+      throw new ConflictException('Data database service is unavailable');
+    }
+    const { skip, take } = query;
+    const where: Prisma.SpaceWhereInput = { deletedTime: null };
+    const [spaces, total] = await Promise.all([
+      this.prismaService.space.findMany({
+        where,
+        orderBy: { createdTime: 'desc' },
+        skip,
+        take,
+        select: { id: true, name: true, createdTime: true },
+      }),
+      this.prismaService.space.count({ where }),
+    ]);
+    const list = await Promise.all(
+      spaces.map(async (space) => ({
+        ...space,
+        dataDb: await this.dataDbPreflightService!.getSummary(space.id, {
+          includeRelatedSpaces: false,
+        }),
+      }))
+    );
+    return { list, total, skip, take };
+  }
+
+  async retestDataDb(spaceId: string) {
+    if (!this.dataDbBindingService || !this.dataDbPreflightService) {
+      throw new ConflictException('Data database service is unavailable');
+    }
+    await this.dataDbBindingService.retestBinding(spaceId);
+    return this.dataDbPreflightService.getSummary(spaceId, { includeRelatedSpaces: false });
+  }
+
+  async updateDataDb(spaceId: string, updatedBy: string, url: string) {
+    if (!this.dataDbBindingService || !this.dataDbPreflightService) {
+      throw new ConflictException('Data database service is unavailable');
+    }
+    await this.dataDbBindingService.updateBindingForSpace(spaceId, updatedBy, {
+      url,
+      targetMode: 'initialize-empty',
+    });
+    return this.dataDbPreflightService.getSummary(spaceId, { includeRelatedSpaces: false });
   }
 
   async updateSpace(input: { spaceId: string; name?: string; autoJoin?: boolean }) {

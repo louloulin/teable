@@ -66,7 +66,7 @@ describe('data-masking.validators', () => {
 
   describe('isValidRole', () => {
     it('accepts admin/editor/viewer/guest/custom', () => {
-      for (const r of ['admin', 'editor', 'viewer', 'guest', 'custom']) {
+      for (const r of ['owner', 'creator', 'editor', 'commenter', 'viewer']) {
         expect(isValidRole(r)).toBe(true);
       }
     });
@@ -161,7 +161,7 @@ describe('data-masking.validators', () => {
           fieldId: 'f1',
           strategy: 'full-redact',
           scope: 'role-based',
-          allowedRoles: ['admin', 'wat'],
+          allowedRoles: ['owner', 'wat'] as never,
         })
       ).toThrow(/role/);
     });
@@ -348,9 +348,9 @@ describe('data-masking.applyPolicy', () => {
     const p = mkPolicy({
       strategy: 'full-redact',
       scope: 'role-based',
-      allowedRoles: ['admin'],
+      allowedRoles: ['owner'],
     });
-    const r = applyPolicy(p, 'secret', 'admin');
+    const r = applyPolicy(p, 'secret', 'owner');
     expect(r.masked).toBe(false);
     expect(r.value).toBe('secret');
   });
@@ -359,7 +359,7 @@ describe('data-masking.applyPolicy', () => {
     const p = mkPolicy({
       strategy: 'full-redact',
       scope: 'role-based',
-      allowedRoles: ['admin'],
+      allowedRoles: ['owner'],
     });
     const r = applyPolicy(p, 'secret', 'viewer');
     expect(r.masked).toBe(true);
@@ -388,7 +388,7 @@ describe('data-masking.applyPolicies', () => {
 
 describe('data-masking.viewerMaySee', () => {
   it('returns false for all scope', () => {
-    expect(viewerMaySee(mkPolicy({ scope: 'all' }), 'admin')).toBe(false);
+    expect(viewerMaySee(mkPolicy({ scope: 'all' }), 'owner')).toBe(false);
   });
 
   it('returns true for role-based + matching role', () => {
@@ -398,6 +398,6 @@ describe('data-masking.viewerMaySee', () => {
   });
 
   it('returns false for field-based scope (per-viewer rules)', () => {
-    expect(viewerMaySee(mkPolicy({ scope: 'field-based' }), 'admin')).toBe(false);
+    expect(viewerMaySee(mkPolicy({ scope: 'field-based' }), 'owner')).toBe(false);
   });
 });

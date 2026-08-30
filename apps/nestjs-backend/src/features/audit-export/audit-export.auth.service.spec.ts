@@ -2,20 +2,20 @@ import { vi } from 'vitest';
 
 import { AuditExportAuthService } from './audit-export.auth.service';
 
-interface MockAuditEvent {
+interface IMockAuditEvent {
   findMany: ReturnType<typeof vi.fn>;
 }
-interface MockSiemWebhook {
+interface IMockSiemWebhook {
   findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 }
-interface MockPrisma {
-  auditEvent: MockAuditEvent;
-  siemWebhook: MockSiemWebhook;
+interface IMockPrisma {
+  auditEvent: IMockAuditEvent;
+  siemWebhook: IMockSiemWebhook;
 }
 
-const buildPrisma = (): MockPrisma => ({
+const buildPrisma = (): IMockPrisma => ({
   auditEvent: {
     findMany: vi.fn(async () => []),
   },
@@ -38,7 +38,7 @@ const sampleEvent = () => ({
 });
 
 describe('AuditExportAuthService (Stage 24)', () => {
-  let prisma: MockPrisma;
+  let prisma: IMockPrisma;
   let svc: AuditExportAuthService;
 
   beforeEach(() => {

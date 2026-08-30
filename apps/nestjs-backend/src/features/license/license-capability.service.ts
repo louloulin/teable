@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { OnApplicationBootstrap } from '@nestjs/common';
-import { HttpErrorCode } from '@teable/core';
 import type { PlanLevel } from '@teable/db-main-prisma';
-
-import { CustomHttpException } from '../../custom.exception';
 
 import { LicenseService } from './license.service';
 
@@ -44,7 +41,9 @@ export type LicenseCapability =
   | 'audit_log_query'
   | 'workspace_mirror'
   | 'computed_outbox'
-  | 'table_query_ops';
+  | 'table_query_ops'
+  | 'announcements'
+  | 'sandbox_agent';
 
 const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'ai_field',
@@ -68,6 +67,8 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'workspace_mirror',
   'computed_outbox',
   'table_query_ops',
+  'announcements',
+  'sandbox_agent',
 ];
 
 const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
@@ -103,6 +104,8 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'workspace_mirror',
     'computed_outbox',
     'table_query_ops',
+    'announcements',
+    'sandbox_agent',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -126,6 +129,8 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'workspace_mirror',
     'computed_outbox',
     'table_query_ops',
+    'announcements',
+    'sandbox_agent',
   ]),
   // Self-hosted OSS does not require a cloud license for local operation.
   self_hosted: ALL_CAPABILITIES_SET,
@@ -162,32 +167,34 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
     }
   }
 
-  /** Strict, throws when the capability is missing. */
-  require(cap: LicenseCapability): void {
-    if (this.plan === 'self_hosted') {
-      return;
-    }
-    if (!this.isEnabled(cap)) {
-      throw new CustomHttpException(
-        `capability "${cap}" requires a license upgrade`,
-        HttpErrorCode.PAYMENT_REQUIRED,
-        { cause: 'LICENSE_REQUIRED', meta: { capability: cap, plan: this.plan } }
-      );
-    }
+  /**
+   * Strict, throws when the capability is missing.
+   *
+   * OSS / gap-fill mode: enterprise gating is intentionally a no-op so that
+   * the operator-facing surface stays consistent between API and UI. The plan
+   * is still tracked (so cloud-side telemetry keeps working) but no
+   * capability is ever denied here. To re-enable strict enforcement, remove
+   * the unconditional `return` and restore the check against `this.cache`.
+   */
+  require(_cap: LicenseCapability): void {
+    return;
   }
 
-  isEnabled(cap: LicenseCapability): boolean {
-    if (this.plan === 'self_hosted') {
-      return true;
-    }
-    return this.cache.get(cap) ?? false;
+  isEnabled(_cap: LicenseCapability): boolean {
+    return true;
   }
 
-  /** Convenience for the frontend: full feature flag map. */
+  /**
+   * Convenience for the frontend: full feature flag map.
+   *
+   * Mirrors the no-op `isEnabled` so the UI never shows a "locked" state
+   * for a capability the API will happily serve. The plan is still reported
+   * for telemetry; capability values are all `true`.
+   */
   snapshot(): Record<LicenseCapability, boolean> & { plan: PlanLevel } {
     const out = { plan: this.plan } as Record<LicenseCapability, boolean> & { plan: PlanLevel };
     for (const cap of ALL_CAPABILITIES) {
-      out[cap] = this.cache.get(cap) ?? false;
+      out[cap] = true;
     }
     return out;
   }

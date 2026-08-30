@@ -64,6 +64,7 @@ import { UseV2Feature } from '../../canary/decorators/use-v2-feature.decorator';
 import { V2FeatureGuard } from '../../canary/guards/v2-feature.guard';
 import { V2IndicatorInterceptor } from '../../canary/interceptors/v2-indicator.interceptor';
 import { applyPermissionFilterToRecordQuery } from '../../permission-matrix/permission-filter-merge';
+import { RequirePermission } from '../../permission-matrix/permission.guard';
 import {
   PermissionInterceptor,
   RequirePermissionFilter,
@@ -151,6 +152,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('updateRecord')
   @Permissions('record|update')
+  @RequirePermission('update')
   @EmitControllerEvent(Events.OPERATION_RECORDS_UPDATE)
   @Patch(':recordId')
   async updateRecord(
@@ -178,6 +180,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('updateRecord')
   @Permissions('record|update')
+  @RequirePermission('update')
   @Post(':recordId/:fieldId/uploadAttachment')
   @UseInterceptors(FileInterceptor('file'))
   async uploadAttachment(
@@ -280,6 +283,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('createRecord')
   @Permissions('record|create')
+  @RequirePermission('create')
   @Post()
   @EmitControllerEvent(Events.OPERATION_RECORDS_CREATE)
   async createRecords(
@@ -308,6 +312,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('formSubmit')
   @Permissions('record|create')
+  @RequirePermission('create')
   @Post('form-submit')
   async formSubmit(
     @Param('tableId') tableId: string,
@@ -324,6 +329,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('duplicateRecord')
   @Permissions('record|create', 'record|read')
+  @RequirePermission('create')
   @Post(':recordId/duplicate')
   @EmitControllerEvent(Events.OPERATION_RECORDS_CREATE)
   async duplicateRecord(
@@ -339,6 +345,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('deleteRecord')
   @Permissions('record|delete')
+  @RequirePermission('delete')
   @EmitControllerEvent(Events.OPERATION_RECORDS_DELETE)
   @Delete(':recordId')
   async deleteRecord(
@@ -359,6 +366,7 @@ export class RecordOpenApiController {
 
   @UseV2Feature('deleteRecord')
   @Permissions('record|delete')
+  @RequirePermission('delete')
   @EmitControllerEvent(Events.OPERATION_RECORDS_DELETE)
   @Delete()
   async deleteRecords(

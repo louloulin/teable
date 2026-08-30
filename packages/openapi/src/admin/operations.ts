@@ -1,4 +1,5 @@
 import { axios } from '../axios';
+import type { IDataDbConnectionSummaryVo } from '../space/data-db';
 
 export interface IAdminUser {
   id: string;
@@ -48,6 +49,16 @@ export const updateAdminUser = async (
   input: { active?: boolean; isAdmin?: boolean }
 ) => axios.patch<IAdminUser>(`/admin/users/${userId}`, input);
 
+export interface IAdminPasswordReset {
+  userId: string;
+  resetPasswordUrl: string;
+  expiresAt: string;
+  emailSent: boolean;
+}
+
+export const createAdminPasswordReset = async (userId: string, input?: { sendEmail?: boolean }) =>
+  axios.post<IAdminPasswordReset>(`/admin/users/${userId}/password-reset`, input ?? {});
+
 export const restoreAdminUser = async (userId: string) =>
   axios.post<IAdminUser>(`/admin/users/${userId}/restore`);
 
@@ -63,6 +74,22 @@ export const permanentlyDeleteAdminUser = async (userId: string) =>
 
 export const listAdminSpaces = async (params?: { skip?: number; take?: number }) =>
   axios.get<IAdminPagedResult<IAdminSpace>>('/admin/spaces', { params });
+
+export interface IAdminDataDbSpace {
+  id: string;
+  name: string;
+  createdTime: string;
+  dataDb: IDataDbConnectionSummaryVo;
+}
+
+export const listAdminDataDb = async (params?: { skip?: number; take?: number }) =>
+  axios.get<IAdminPagedResult<IAdminDataDbSpace>>('/admin/data-db', { params });
+
+export const retestAdminDataDb = async (spaceId: string) =>
+  axios.post<IDataDbConnectionSummaryVo>(`/admin/data-db/${spaceId}/retest`);
+
+export const updateAdminDataDb = async (spaceId: string, input: { url: string }) =>
+  axios.patch<IDataDbConnectionSummaryVo>(`/admin/data-db/${spaceId}`, input);
 
 export const updateAdminSpace = async (
   spaceId: string,

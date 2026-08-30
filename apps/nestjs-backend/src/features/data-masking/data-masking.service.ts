@@ -39,7 +39,7 @@ export function isValidScope(s: string): s is MaskingScope {
 }
 
 export function isValidRole(r: string): r is MaskingRole {
-  return r === 'admin' || r === 'editor' || r === 'viewer' || r === 'guest' || r === 'custom';
+  return r === 'owner' || r === 'creator' || r === 'editor' || r === 'commenter' || r === 'viewer';
 }
 
 export function validateCreateInput(input: ICreatePolicyInput): void {

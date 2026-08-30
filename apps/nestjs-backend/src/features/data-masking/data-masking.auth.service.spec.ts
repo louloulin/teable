@@ -4,6 +4,7 @@ import type { PrismaService } from '@teable/db-main-prisma';
 import { vi } from 'vitest';
 
 import { DataMaskingAuthService } from './data-masking.auth.service';
+import type { IMaskingPolicy } from './data-masking.types';
 
 interface IMockPolicyRow {
   id: string;
@@ -146,13 +147,13 @@ describe('DataMaskingAuthService', () => {
         fieldId: 'f1',
         strategy: 'partial',
         scope: 'role-based',
-        allowedRoles: ['admin', 'editor'],
+        allowedRoles: ['owner', 'editor'],
         partial: { keepPrefix: 1, keepSuffix: 1, mask: '*' },
         label: 'greeting',
       });
 
       const call = mocks.policyCreate.mock.calls[0][0];
-      expect(call.data.allowedRolesJson).toBe('["admin","editor"]');
+      expect(call.data.allowedRolesJson).toBe('["owner","editor"]');
       expect(call.data.partialJson).toBe('{"keepPrefix":1,"keepSuffix":1,"mask":"*"}');
       expect(call.data.regexRulesJson).toBeNull();
       expect(call.data.label).toBe('greeting');
@@ -235,7 +236,7 @@ describe('DataMaskingAuthService', () => {
       mocks.policyFindUnique.mockResolvedValue(mkPolicyRow());
       const svc = new DataMaskingAuthService(prisma);
       await expect(
-        svc.updatePolicy('mp_1', { allowedRoles: ['admin', 'wat'] as never })
+        svc.updatePolicy('mp_1', { allowedRoles: ['owner', 'wat'] as never })
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -243,16 +244,16 @@ describe('DataMaskingAuthService', () => {
       const { prisma, mocks } = mkPrismaMock();
       mocks.policyFindUnique.mockResolvedValue(mkPolicyRow());
       mocks.policyUpdate.mockResolvedValue(
-        mkPolicyRow({ id: 'mp_1', scope: 'role-based', allowedRolesJson: '["admin"]' })
+        mkPolicyRow({ id: 'mp_1', scope: 'role-based', allowedRolesJson: '["owner"]' })
       );
       const svc = new DataMaskingAuthService(prisma);
 
       const out = await svc.updatePolicy('mp_1', {
         scope: 'role-based',
-        allowedRoles: ['admin'],
+        allowedRoles: ['owner'],
       });
       expect(out.scope).toBe('role-based');
-      expect(out.allowedRoles).toEqual(['admin']);
+      expect(out.allowedRoles).toEqual(['owner']);
     });
   });
 
@@ -337,19 +338,19 @@ describe('DataMaskingAuthService', () => {
       const svc = new DataMaskingAuthService(prisma);
       expect(svc.isValidStrategy('hash')).toBe(true);
       expect(svc.isValidStrategy('wat')).toBe(false);
-      expect(svc.isValidRole('admin')).toBe(true);
-      const p = {
+      expect(svc.isValidRole('owner')).toBe(true);
+      const p: IMaskingPolicy = {
         id: 'mp_1',
         baseId: 'b1',
         tableId: 't1',
         fieldId: 'f1',
         strategy: 'hash',
         scope: 'role-based',
-        allowedRoles: ['admin'],
+        allowedRoles: ['owner'],
         createdTime: new Date(),
         updatedTime: new Date(),
-      } as const;
-      expect(svc.viewerMaySee(p, 'admin')).toBe(true);
+      };
+      expect(svc.viewerMaySee(p, 'owner')).toBe(true);
       expect(svc.viewerMaySee(p, 'viewer')).toBe(false);
     });
   });

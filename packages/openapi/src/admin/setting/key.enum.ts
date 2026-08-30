@@ -18,4 +18,5 @@ export enum SettingKey {
   TRASH_CLEANUP_ENABLED_AT = 'trashCleanupEnabledAt',
   IM_CONFIG = 'imConfig',
   INSTANCE_SKILLS = 'instanceSkills',
+  SANDBOX_CONFIG = 'sandboxConfig',
 }

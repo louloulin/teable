@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
 
 import { LicenseModule } from '../license/license.module';
+import { MailSenderModule } from '../mail-sender/mail-sender.module';
+import { SpaceModule } from '../space/space.module';
 import { DeleteUserModule } from '../user/delete-user/delete-user.module';
 import { V2Module } from '../v2/v2.module';
 import { AdminOpenApiController } from './admin-open-api.controller';
@@ -23,7 +25,14 @@ import { AdminTableQueryOpsService } from './admin-table-query-ops.service';
  * can't resolve in the AdminOpenApiModule scope.
  */
 @Module({
-  imports: [PrismaModule, LicenseModule, V2Module, DeleteUserModule],
+  imports: [
+    PrismaModule,
+    LicenseModule,
+    V2Module,
+    DeleteUserModule,
+    SpaceModule,
+    MailSenderModule.register(),
+  ],
   controllers: [AdminOpenApiController],
   providers: [AdminOpenApiService, AdminTableQueryOpsService],
   exports: [AdminOpenApiService],

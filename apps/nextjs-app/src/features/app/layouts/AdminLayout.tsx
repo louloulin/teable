@@ -3,15 +3,18 @@ import {
   Code,
   ClipboardList,
   Database,
+  Building2,
   Download as ImportIcon,
   FileSpreadsheet,
   FileText,
   Key,
   LayoutTemplate as TemplateIcon,
   MagicAi,
+  Server as ServerIcon,
   MessageSquare,
   Settings,
   ShieldUser,
+  Users,
   Webhook as WebhookIcon,
 } from '@teable/icons';
 import type { IUser } from '@teable/sdk';
@@ -56,6 +59,24 @@ export const AdminLayout: React.FC<{
       pathTo: '/admin/ai-setting',
     },
     {
+      Icon: Users,
+      label: 'Users',
+      route: '/admin/users',
+      pathTo: '/admin/users',
+    },
+    {
+      Icon: Building2,
+      label: 'Spaces',
+      route: '/admin/spaces',
+      pathTo: '/admin/spaces',
+    },
+    {
+      Icon: ServerIcon,
+      label: 'Sandbox Agent',
+      route: '/admin/sandbox-agent',
+      pathTo: '/admin/sandbox-agent',
+    },
+    {
       Icon: MagicAi,
       label: 'Skills',
       route: '/admin/skills',
@@ -68,6 +89,12 @@ export const AdminLayout: React.FC<{
       pathTo: '/admin/audit-log',
     },
     {
+      Icon: MessageSquare,
+      label: 'Announcements',
+      route: '/admin/announcements',
+      pathTo: '/admin/announcements',
+    },
+    {
       Icon: Key,
       label: 'License',
       route: '/admin/license',
@@ -78,6 +105,12 @@ export const AdminLayout: React.FC<{
       label: 'Workspace mirror',
       route: '/admin/workspace-mirror',
       pathTo: '/admin/workspace-mirror',
+    },
+    {
+      Icon: Database,
+      label: 'Data databases',
+      route: '/admin/data-db',
+      pathTo: '/admin/data-db',
     },
     {
       Icon: Database,

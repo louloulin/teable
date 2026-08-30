@@ -164,8 +164,10 @@ export async function deliverSiemBatch(input: ISiemDeliverInput): Promise<{
   const body = toJson(filtered);
   const signature = signPayload(input.webhook.secret, body);
   const headers: Record<string, string> = {
+    /* eslint-disable @typescript-eslint/naming-convention */
     'Content-Type': SIEM_HEADERS.contentType,
     'User-Agent': SIEM_HEADERS.userAgent,
+    /* eslint-enable @typescript-eslint/naming-convention */
     [SIEM_HEADERS.signatureHeader]: signature,
     [SIEM_HEADERS.deliveryHeader]: `dlv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
   };

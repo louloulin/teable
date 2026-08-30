@@ -17,6 +17,7 @@ describe('AdminOpenApiController', () => {
   let service: {
     listUsers: ReturnType<typeof vi.fn>;
     updateUser: ReturnType<typeof vi.fn>;
+    createPasswordReset: ReturnType<typeof vi.fn>;
     listSpaces: ReturnType<typeof vi.fn>;
     listPublishedTemplates: ReturnType<typeof vi.fn>;
     getAiSettings: ReturnType<typeof vi.fn>;
@@ -35,6 +36,7 @@ describe('AdminOpenApiController', () => {
     service = {
       listUsers: vi.fn(),
       updateUser: vi.fn(),
+      createPasswordReset: vi.fn(),
       listSpaces: vi.fn(),
       listPublishedTemplates: vi.fn(),
       getAiSettings: vi.fn(),

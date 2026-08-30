@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from '@teable/db-main-prisma';
 
 import { LicenseModule } from '../license/license.module';
-import { PermissionGuard } from './permission.guard';
-import { PermissionInterceptor } from './permission.interceptor';
 import { PermissionMatrixController } from './permission-matrix.controller';
 import { PermissionMatrixService } from './permission-matrix.service';
+import { PermissionGuard } from './permission.guard';
+import { PermissionInterceptor } from './permission.interceptor';
 
 // Stage 5b — re-export the drop-in filter-merge helper so call sites can
 // `import { applyPermissionFilter } from '../permission-matrix/...'` without
@@ -18,7 +19,12 @@ export {
 @Module({
   imports: [PrismaModule, LicenseModule],
   controllers: [PermissionMatrixController],
-  providers: [PermissionMatrixService, PermissionInterceptor, PermissionGuard],
+  providers: [
+    PermissionMatrixService,
+    PermissionInterceptor,
+    PermissionGuard,
+    { provide: APP_GUARD, useExisting: PermissionGuard },
+  ],
   exports: [PermissionMatrixService, PermissionInterceptor, PermissionGuard],
 })
 export class PermissionMatrixModule {}

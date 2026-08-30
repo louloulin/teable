@@ -4,12 +4,12 @@ import { vi } from 'vitest';
 import { TotpAuthService } from './totp.auth.service';
 import { hashBackupCode, generateSecret, totp } from './totp.service';
 
-interface MockBackupCode {
+interface IMockBackupCode {
   id: string;
   codeHash: string;
   usedAt: Date | null;
 }
-interface MockFactor {
+interface IMockFactor {
   id: string;
   userId: string;
   label: string;
@@ -19,25 +19,25 @@ interface MockFactor {
   period: number;
   lastCounter: bigint;
   enabled: boolean;
-  backupCodes: MockBackupCode[];
+  backupCodes: IMockBackupCode[];
 }
-interface MockUserTotpFactor {
+interface IMockUserTotpFactor {
   create: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
 }
-interface MockUserTotpBackupCode {
+interface IMockUserTotpBackupCode {
   update: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
 }
-interface MockPrisma {
-  userTotpFactor: MockUserTotpFactor;
-  userTotpBackupCode: MockUserTotpBackupCode;
+interface IMockPrisma {
+  userTotpFactor: IMockUserTotpFactor;
+  userTotpBackupCode: IMockUserTotpBackupCode;
 }
 
-const buildPrisma = (): MockPrisma => ({
+const buildPrisma = (): IMockPrisma => ({
   userTotpFactor: {
     create: vi.fn(async ({ data }) => data),
     findMany: vi.fn(async () => []),
@@ -52,7 +52,7 @@ const buildPrisma = (): MockPrisma => ({
 });
 
 describe('TotpAuthService (Stage 22)', () => {
-  let prisma: MockPrisma;
+  let prisma: IMockPrisma;
   let svc: TotpAuthService;
 
   beforeEach(() => {

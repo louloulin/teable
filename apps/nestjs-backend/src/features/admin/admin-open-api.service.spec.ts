@@ -20,6 +20,7 @@ class FakePrisma {
     count: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
+    findFirst: vi.fn(),
   };
   space = {
     findMany: vi.fn(),

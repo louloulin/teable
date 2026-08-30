@@ -45,6 +45,7 @@ const usersQuerySchema = z.object({
 const spacesQuerySchema = z.object({
   ...PAGE_QUERY_BASE,
 });
+const dataDbUpdateSchema = z.object({ url: z.string().trim().min(1).max(2048) });
 
 const templatesQuerySchema = z.object({
   ...PAGE_QUERY_BASE,
@@ -104,9 +105,11 @@ const updateUserSchema = z
     message: 'At least one user property is required',
   });
 const deleteUserSchema = z.object({ confirm: z.literal('DELETE') });
+const passwordResetSchema = z.object({ sendEmail: z.boolean().optional().default(false) });
 
 type UsersQuery = z.infer<typeof usersQuerySchema>;
 type SpacesQuery = z.infer<typeof spacesQuerySchema>;
+type DataDbUpdateInput = z.infer<typeof dataDbUpdateSchema>;
 type TemplatesQuery = z.infer<typeof templatesQuerySchema>;
 type QuotaDashboardQuery = z.infer<typeof quotaDashboardQuerySchema>;
 type TableQueryOpsQuery = z.infer<typeof tableQueryOpsQuerySchema>;
@@ -115,6 +118,7 @@ type TableQueryOpsTaskBody = z.infer<typeof tableQueryOpsTaskBodySchema>;
 type AiGenerationTasksQuery = z.infer<typeof aiGenerationTasksQuerySchema>;
 type UpdateUserInput = z.infer<typeof updateUserSchema>;
 type UpdateSpaceInput = z.infer<typeof updateSpaceSchema>;
+type PasswordResetInput = z.infer<typeof passwordResetSchema>;
 
 const guardFor = (cap: LicenseCapability) => LicenseCapabilityGuard.for(cap);
 
@@ -143,6 +147,20 @@ export class AdminOpenApiController {
       userId: params.id,
       requesterId: this.cls.get('user.id'),
       ...input,
+    });
+  }
+
+  @Post('users/:id/password-reset')
+  @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
+  async createPasswordReset(
+    @Param(new ZodValidationPipe(userIdParamSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(passwordResetSchema)) input: PasswordResetInput
+  ) {
+    return this.adminService.createPasswordReset({
+      userId: params.id,
+      requesterId: this.cls.get('user.id'),
+      sendEmail: input.sendEmail,
     });
   }
 
@@ -188,6 +206,30 @@ export class AdminOpenApiController {
   @UseGuards(guardFor('spaces_read'))
   async listSpaces(@Query(new ZodValidationPipe(spacesQuerySchema)) query: SpacesQuery) {
     return this.adminService.listSpaces(query);
+  }
+
+  @Get('data-db')
+  @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|read')
+  async listDataDb(@Query(new ZodValidationPipe(spacesQuerySchema)) query: SpacesQuery) {
+    return this.adminService.listDataDbSummaries(query);
+  }
+
+  @Post('data-db/:id/retest')
+  @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
+  async retestDataDb(@Param(new ZodValidationPipe(spaceIdParamSchema)) params: { id: string }) {
+    return this.adminService.retestDataDb(params.id);
+  }
+
+  @Patch('data-db/:id')
+  @UseGuards(guardFor('admin_panel'))
+  @Permissions('instance|update')
+  async updateDataDb(
+    @Param(new ZodValidationPipe(spaceIdParamSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(dataDbUpdateSchema)) input: DataDbUpdateInput
+  ) {
+    return this.adminService.updateDataDb(params.id, this.cls.get('user.id') ?? '', input.url);
   }
 
   @Patch('spaces/:id')

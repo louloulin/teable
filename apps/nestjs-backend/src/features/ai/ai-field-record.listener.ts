@@ -128,7 +128,9 @@ export class AiFieldRecordListener {
 
   private parseUpdateChanges(raw: RecordUpdateEvent['payload']['record']): IUpdateChange[] {
     const items = Array.isArray(raw) ? raw : [raw];
-    return items.filter((item): item is IUpdateChange => !!item && typeof item.id === 'string');
+    return items
+      .filter((item) => !!item && typeof item.id === 'string')
+      .map((item) => item as unknown as IUpdateChange);
   }
 
   private hasWatchedFieldChange(

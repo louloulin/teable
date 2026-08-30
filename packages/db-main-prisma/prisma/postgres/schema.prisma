@@ -3925,6 +3925,42 @@ model NotificationPreference {
   @@map("notification_preference")
 }
 
+model Announcement {
+  id             String    @id
+  form           String
+  level          String
+  title          String
+  body           String
+  linkText       String?   @map("link_text")
+  linkUrl        String?   @map("link_url")
+  audience       String
+  targetIds      Json      @map("target_ids")
+  startsAt       DateTime  @map("starts_at")
+  endsAt         DateTime  @map("ends_at")
+  withdrawnAt    DateTime? @map("withdrawn_at")
+  createdBy      String    @map("created_by")
+  createdTime    DateTime  @default(now()) @map("created_time")
+  lastModifiedAt DateTime? @updatedAt @map("last_modified_at")
+
+  dismissals AnnouncementDismissal[]
+
+  @@index([startsAt, endsAt, withdrawnAt])
+  @@index([createdTime])
+  @@map("announcement")
+}
+
+model AnnouncementDismissal {
+  id             String       @id
+  announcementId String       @map("announcement_id")
+  userId         String       @map("user_id")
+  dismissedAt    DateTime     @default(now()) @map("dismissed_at")
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, dismissedAt])
+  @@map("announcement_dismissal")
+}
+
 model PresenceSession {
   id              String   @id
   baseId          String   @map("base_id")

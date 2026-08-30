@@ -134,7 +134,10 @@ export class TotpAuthService {
     if (!input.code) return null;
     for (const f of factors) {
       const counter = verifyCode(
-        f as unknown as Pick<ITotpFactorRow, 'secret' | 'algorithm' | 'digits' | 'period' | 'lastCounter'>,
+        f as unknown as Pick<
+          ITotpFactorRow,
+          'secret' | 'algorithm' | 'digits' | 'period' | 'lastCounter'
+        >,
         input.code,
         Date.now()
       );
