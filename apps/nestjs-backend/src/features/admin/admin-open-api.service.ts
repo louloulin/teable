@@ -585,13 +585,43 @@ export class AdminOpenApiService {
       else if (run.status === 'rate-limited') byStatus.rateLimited += 1;
       else if (run.status === 'skipped') byStatus.skipped += 1;
     }
+    const taskSummary = await this.prismaService.aiGenerationTask.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    const taskCounts = { waiting: 0, processing: 0, completed: 0, failed: 0, canceled: 0 };
+    for (const row of taskSummary) {
+      if (row.status in taskCounts) {
+        taskCounts[row.status as keyof typeof taskCounts] = row._count._all;
+      }
+    }
+    const tasks = await this.prismaService.aiGenerationTask.findMany({
+      orderBy: { createdTime: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        spaceId: true,
+        baseId: true,
+        tableId: true,
+        trigger: true,
+        status: true,
+        totalCount: true,
+        completedCount: true,
+        failedCount: true,
+        cancelRequested: true,
+        lastError: true,
+        startedTime: true,
+        finishedTime: true,
+        createdTime: true,
+        updatedTime: true,
+      },
+    });
     return {
       queue: {
-        available: false,
-        waiting: null,
-        processing: null,
-        reason:
-          'AI field generation is event-driven; no persistent queue is currently implemented.',
+        available: true,
+        waiting: taskCounts.waiting,
+        processing: taskCounts.processing,
+        reason: 'AI field generation tasks are persisted and cancellable.',
       },
       summary: {
         configuredFields: fields.length,
@@ -599,9 +629,62 @@ export class AdminOpenApiService {
         errorFields: fields.filter((field) => field.status === 'error').length,
         lastHourRuns: runs.length,
         byStatus,
+        tasks: taskCounts,
       },
       fields,
       recentRuns: runs.slice(0, 100),
+      tasks,
     };
+  }
+
+  async listAiGenerationTasks(input: { status?: string; spaceId?: string; take: number }) {
+    const where: Prisma.AiGenerationTaskWhereInput = {};
+    if (input.status) where.status = input.status;
+    if (input.spaceId) where.spaceId = input.spaceId;
+    return this.prismaService.aiGenerationTask.findMany({
+      where,
+      orderBy: { createdTime: 'desc' },
+      take: input.take,
+      select: {
+        id: true,
+        spaceId: true,
+        baseId: true,
+        tableId: true,
+        trigger: true,
+        status: true,
+        totalCount: true,
+        completedCount: true,
+        failedCount: true,
+        cancelRequested: true,
+        lastError: true,
+        startedTime: true,
+        finishedTime: true,
+        createdTime: true,
+        updatedTime: true,
+      },
+    });
+  }
+
+  async cancelAiGenerationTask(taskId: string) {
+    const result = await this.prismaService.aiGenerationTask.updateMany({
+      where: {
+        id: taskId,
+        status: { in: ['waiting', 'processing'] },
+        cancelRequested: false,
+      },
+      data: { cancelRequested: true },
+    });
+    if (result.count === 0) {
+      const task = await this.prismaService.aiGenerationTask.findUnique({
+        where: { id: taskId },
+        select: { id: true, status: true, cancelRequested: true },
+      });
+      if (!task) throw new NotFoundException('AI generation task not found');
+      return task;
+    }
+    return this.prismaService.aiGenerationTask.findUniqueOrThrow({
+      where: { id: taskId },
+      select: { id: true, status: true, cancelRequested: true },
+    });
   }
 }

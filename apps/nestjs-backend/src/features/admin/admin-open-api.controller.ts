@@ -81,6 +81,12 @@ const tableQueryOpsTaskBodySchema = z.object({
   baseId: z.string().trim().min(1).max(100),
   allowManualIndexExecution: z.boolean().optional().default(false),
 });
+const aiGenerationTasksQuerySchema = z.object({
+  status: z.enum(['waiting', 'processing', 'completed', 'failed', 'canceled']).optional(),
+  spaceId: z.string().trim().min(1).max(100).optional(),
+  take: z.coerce.number().int().min(1).max(1000).optional().default(100),
+});
+const aiGenerationTaskParamSchema = z.object({ id: z.string().trim().min(1).max(100) });
 
 const userIdParamSchema = z.object({ id: z.string().min(1).max(100) });
 const spaceIdParamSchema = z.object({ id: z.string().min(1).max(100) });
@@ -106,6 +112,7 @@ type QuotaDashboardQuery = z.infer<typeof quotaDashboardQuerySchema>;
 type TableQueryOpsQuery = z.infer<typeof tableQueryOpsQuerySchema>;
 type TableQueryOpsRecommendationBody = z.infer<typeof tableQueryOpsRecommendationBodySchema>;
 type TableQueryOpsTaskBody = z.infer<typeof tableQueryOpsTaskBodySchema>;
+type AiGenerationTasksQuery = z.infer<typeof aiGenerationTasksQuerySchema>;
 type UpdateUserInput = z.infer<typeof updateUserSchema>;
 type UpdateSpaceInput = z.infer<typeof updateSpaceSchema>;
 
@@ -275,5 +282,23 @@ export class AdminOpenApiController {
   @Permissions('instance|read')
   async aiGenerationQueueOverview() {
     return this.adminService.getAiGenerationQueueOverview();
+  }
+
+  @Get('ai-generation-queue/tasks')
+  @UseGuards(guardFor('ai'))
+  @Permissions('instance|read')
+  async aiGenerationQueueTasks(
+    @Query(new ZodValidationPipe(aiGenerationTasksQuerySchema)) query: AiGenerationTasksQuery
+  ) {
+    return this.adminService.listAiGenerationTasks(query);
+  }
+
+  @Post('ai-generation-queue/tasks/:id/cancel')
+  @UseGuards(guardFor('ai'))
+  @Permissions('instance|update')
+  async cancelAiGenerationQueueTask(
+    @Param(new ZodValidationPipe(aiGenerationTaskParamSchema)) params: { id: string }
+  ) {
+    return this.adminService.cancelAiGenerationTask(params.id);
   }
 }

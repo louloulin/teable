@@ -2581,6 +2581,28 @@ model AiFieldTemplate {
   @@map("ai_field_template")
 }
 
+model AiGenerationTask {
+  id              String    @id
+  spaceId         String?   @map("space_id")
+  baseId          String    @map("base_id")
+  tableId         String    @map("table_id")
+  trigger         String
+  status          String    @default("waiting")
+  totalCount      Int       @map("total_count")
+  completedCount  Int       @default(0) @map("completed_count")
+  failedCount     Int       @default(0) @map("failed_count")
+  cancelRequested Boolean   @default(false) @map("cancel_requested")
+  lastError       String?   @map("last_error")
+  startedTime     DateTime? @map("started_time")
+  finishedTime    DateTime? @map("finished_time")
+  createdTime     DateTime  @default(now()) @map("created_time")
+  updatedTime     DateTime  @updatedAt @map("updated_time")
+
+  @@index([status, createdTime])
+  @@index([spaceId, status])
+  @@map("ai_generation_task")
+}
+
 model AiBuilderProposal {
   id                String    @id
   baseId            String    @map("base_id")

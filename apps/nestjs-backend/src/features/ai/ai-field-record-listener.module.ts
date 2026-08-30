@@ -7,13 +7,14 @@
  * layer, never the other way around).
  */
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '@teable/db-main-prisma';
 import { RecordModifyModule } from '../record/record-modify/record-modify.module';
 import { TableDomainQueryModule } from '../table-domain';
 import { AiModule } from './ai.module';
 import { AiFieldRecordListener } from './ai-field-record.listener';
 
 @Module({
-  imports: [AiModule, RecordModifyModule, TableDomainQueryModule],
+  imports: [PrismaModule, AiModule, RecordModifyModule, TableDomainQueryModule],
   providers: [AiFieldRecordListener],
   exports: [AiFieldRecordListener],
 })

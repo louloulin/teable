@@ -15,15 +15,19 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { IFieldAIConfig, IRecord, TableDomain } from '@teable/core';
+import { getRandomString, type IFieldAIConfig, type IRecord, type TableDomain } from '@teable/core';
 import { FieldKeyType } from '@teable/core';
+import { PrismaService } from '@teable/db-main-prisma';
+import { Events } from '../../event-emitter/events';
+import {
+  RecordCreateEvent,
+  RecordUpdateEvent,
+} from '../../event-emitter/events/table/record.event';
 import type { IFieldInstance } from '../field/model/factory';
 import { RecordModifyService } from '../record/record-modify/record-modify.service';
 import { TableDomainQueryService } from '../table-domain';
-import { Events } from '../../event-emitter/events';
-import type { RecordCreateEvent, RecordUpdateEvent } from '../../event-emitter/events';
-import { AiService } from './ai.service';
 import { buildAiFieldPrompt, collectAiFieldSourceIds } from './ai-field-prompt.builder';
+import { AiService } from './ai.service';
 
 interface IRecordWithId extends IRecord {
   id: string;
@@ -68,6 +72,7 @@ export class AiFieldRecordListener {
   private readonly logger = new Logger(AiFieldRecordListener.name);
 
   constructor(
+    private readonly prismaService: PrismaService,
     private readonly aiService: AiService,
     private readonly recordModifyService: RecordModifyService,
     private readonly tableDomainQueryService: TableDomainQueryService
@@ -84,17 +89,7 @@ export class AiFieldRecordListener {
 
   @OnEvent(Events.TABLE_RECORD_UPDATE, { async: true })
   async onRecordUpdate(event: RecordUpdateEvent): Promise<void> {
-    const changeList: IUpdateChange[] = [];
-    const raw = event.payload.record;
-    if (Array.isArray(raw)) {
-      for (const item of raw) {
-        if (item && typeof item.id === 'string') {
-          changeList.push(item as IUpdateChange);
-        }
-      }
-    } else if (raw && typeof raw.id === 'string') {
-      changeList.push(raw as IUpdateChange);
-    }
+    const changeList = this.parseUpdateChanges(event.payload.record);
     if (changeList.length === 0) return;
 
     let table: TableDomain | null = null;
@@ -111,16 +106,7 @@ export class AiFieldRecordListener {
     const aiFields = this.collectAiFields(table.fieldList as ReadonlyArray<IFieldInstance>);
     if (aiFields.length === 0) return;
 
-    const watchedIds = new Set<string>();
-    for (const field of aiFields) {
-      for (const id of collectAiFieldSourceIds(field.aiConfig as IFieldAIConfig)) {
-        watchedIds.add(id);
-      }
-    }
-    const dirty = changeList.some((change) =>
-      Object.keys(change.fields ?? {}).some((id) => watchedIds.has(id))
-    );
-    if (!dirty) return;
+    if (!this.hasWatchedFieldChange(changeList, aiFields)) return;
 
     const records: IRecordWithId[] = changeList
       .map((change) => {
@@ -140,6 +126,23 @@ export class AiFieldRecordListener {
     });
   }
 
+  private parseUpdateChanges(raw: RecordUpdateEvent['payload']['record']): IUpdateChange[] {
+    const items = Array.isArray(raw) ? raw : [raw];
+    return items.filter((item): item is IUpdateChange => !!item && typeof item.id === 'string');
+  }
+
+  private hasWatchedFieldChange(
+    changes: IUpdateChange[],
+    aiFields: ReadonlyArray<IFieldInstance>
+  ): boolean {
+    const watchedIds = new Set(
+      aiFields.flatMap((field) => collectAiFieldSourceIds(field.aiConfig as IFieldAIConfig))
+    );
+    return changes.some((change) =>
+      Object.keys(change.fields ?? {}).some((id) => watchedIds.has(id))
+    );
+  }
+
   private async computeAndPersist(
     tableId: string,
     records: IRecordWithId[],
@@ -147,13 +150,8 @@ export class AiFieldRecordListener {
   ): Promise<void> {
     if (records.length === 0) return;
 
-    let table: TableDomain;
-    try {
-      table = await this.tableDomainQueryService.getTableDomainById(tableId);
-    } catch (err) {
-      this.logger.warn(`table lookup failed for ${tableId}: ${(err as Error)?.message ?? err}`);
-      return;
-    }
+    const table = await this.loadTable(tableId);
+    if (!table) return;
     const aiFields = this.collectAiFields(table.fieldList as ReadonlyArray<IFieldInstance>);
     if (aiFields.length === 0) return;
 
@@ -162,6 +160,14 @@ export class AiFieldRecordListener {
       this.logger.warn(`baseId missing for table ${tableId}`);
       return;
     }
+
+    const taskId = await this.createTask({
+      tableId,
+      baseId,
+      phase,
+      totalCount: records.length * aiFields.length,
+    });
+    if (!taskId) return;
 
     const stringify = (field: IFieldInstance, raw: unknown): string => {
       try {
@@ -175,43 +181,29 @@ export class AiFieldRecordListener {
 
     for (const record of records) {
       for (const field of aiFields) {
-        const cfg = field.aiConfig as IFieldAIConfig;
-        const sourceIds = collectAiFieldSourceIds(cfg);
-        const valueMap: Record<string, string> = {};
-        for (const id of sourceIds) {
-          const src = table.fieldList.find((f) => f.id === id) as IFieldInstance | undefined;
-          const raw = record.fields?.[id];
-          if (!src || raw == null) continue;
-          valueMap[id] = stringify(src, raw);
-        }
-        const prompt = buildAiFieldPrompt({ config: cfg, fieldValueById: valueMap });
-        if (prompt == null) continue;
-
-        try {
-          const generated = await this.aiService.generateText(
-            baseId,
-            {
-              prompt,
-              modelKey: cfg.modelKey || undefined,
-            },
-            false
-          );
-          const text = (generated ?? '').toString().trim();
-          if (!text) continue;
-          if (!updatesByRow[record.id]) {
-            updatesByRow[record.id] = { recordId: record.id, fields: {} };
-          }
-          updatesByRow[record.id].fields[field.id] = text;
-        } catch (err) {
-          this.logger.warn(
-            `AI field compute failed table=${tableId} field=${field.id} record=${record.id} phase=${phase}: ${(err as Error)?.message ?? err}`
-          );
-        }
+        if (await this.isTaskCanceled(taskId)) return;
+        await this.processAiField({
+          taskId,
+          baseId,
+          tableId,
+          phase,
+          table,
+          record,
+          field,
+          stringify,
+          updatesByRow,
+        });
       }
     }
 
     const rowUpdates = Object.values(updatesByRow);
-    if (rowUpdates.length === 0) return;
+    if (rowUpdates.length === 0) {
+      await this.prismaService.aiGenerationTask.update({
+        where: { id: taskId },
+        data: { status: 'completed', finishedTime: new Date() },
+      });
+      return;
+    }
 
     try {
       await this.recordModifyService.simpleUpdateRecords(tableId, {
@@ -219,11 +211,138 @@ export class AiFieldRecordListener {
         typecast: false,
         records: rowUpdates.map((row) => ({ id: row.recordId, fields: row.fields })),
       });
+      await this.prismaService.aiGenerationTask.update({
+        where: { id: taskId },
+        data: { status: 'completed', finishedTime: new Date() },
+      });
     } catch (err) {
+      await this.prismaService.aiGenerationTask.update({
+        where: { id: taskId },
+        data: {
+          status: 'failed',
+          finishedTime: new Date(),
+          lastError: (err as Error)?.message ?? String(err),
+        },
+      });
       this.logger.error(
         `AI field persistence failed table=${tableId} phase=${phase}: ${(err as Error)?.message ?? err}`,
         (err as Error)?.stack
       );
     }
+  }
+
+  private async loadTable(tableId: string): Promise<TableDomain | null> {
+    try {
+      return await this.tableDomainQueryService.getTableDomainById(tableId);
+    } catch (err) {
+      this.logger.warn(`table lookup failed for ${tableId}: ${(err as Error)?.message ?? err}`);
+      return null;
+    }
+  }
+
+  private async createTask(input: {
+    tableId: string;
+    baseId: string;
+    phase: 'create' | 'update';
+    totalCount: number;
+  }): Promise<string | null> {
+    const taskId = `aigt_${getRandomString(20)}`;
+    try {
+      const base = await this.prismaService.base.findUnique({
+        where: { id: input.baseId },
+        select: { spaceId: true },
+      });
+      await this.prismaService.aiGenerationTask.create({
+        data: {
+          id: taskId,
+          spaceId: base?.spaceId ?? null,
+          baseId: input.baseId,
+          tableId: input.tableId,
+          trigger: input.phase,
+          totalCount: input.totalCount,
+          status: 'processing',
+          startedTime: new Date(),
+        },
+      });
+      return taskId;
+    } catch (err) {
+      this.logger.warn(
+        `AI generation task creation failed for ${input.tableId}: ${(err as Error)?.message ?? err}`
+      );
+      return null;
+    }
+  }
+
+  private async isTaskCanceled(taskId: string): Promise<boolean> {
+    const task = await this.prismaService.aiGenerationTask.findUnique({
+      where: { id: taskId },
+      select: { cancelRequested: true },
+    });
+    if (!task?.cancelRequested) return false;
+    await this.prismaService.aiGenerationTask.update({
+      where: { id: taskId },
+      data: { status: 'canceled', finishedTime: new Date() },
+    });
+    return true;
+  }
+
+  private async processAiField(input: {
+    taskId: string;
+    baseId: string;
+    tableId: string;
+    phase: 'create' | 'update';
+    table: TableDomain;
+    record: IRecordWithId;
+    field: IFieldInstance;
+    stringify: (field: IFieldInstance, raw: unknown) => string;
+    updatesByRow: Record<string, IRowResult>;
+  }): Promise<void> {
+    const { taskId, baseId, tableId, phase, table, record, field, stringify, updatesByRow } = input;
+    const cfg = field.aiConfig as IFieldAIConfig;
+    const valueMap: Record<string, string> = {};
+    for (const id of collectAiFieldSourceIds(cfg)) {
+      const source = table.fieldList.find((candidate) => candidate.id === id) as
+        | IFieldInstance
+        | undefined;
+      const raw = record.fields?.[id];
+      if (source && raw != null) valueMap[id] = stringify(source, raw);
+    }
+    const prompt = buildAiFieldPrompt({ config: cfg, fieldValueById: valueMap });
+    if (prompt == null) {
+      await this.markTaskCompleted(taskId);
+      return;
+    }
+    try {
+      const generated = await this.aiService.generateText(
+        baseId,
+        { prompt, modelKey: cfg.modelKey || undefined },
+        false
+      );
+      const text = (generated ?? '').toString().trim();
+      if (text) {
+        updatesByRow[record.id] ??= { recordId: record.id, fields: {} };
+        updatesByRow[record.id].fields[field.id] = text;
+      }
+      await this.markTaskCompleted(taskId);
+    } catch (err) {
+      await this.prismaService.aiGenerationTask.update({
+        where: { id: taskId },
+        data: {
+          completedCount: { increment: 1 },
+          failedCount: { increment: 1 },
+          lastError: (err as Error)?.message ?? String(err),
+        },
+      });
+      this.logger.warn(
+        `AI field compute failed table=${tableId} field=${field.id} record=${record.id} phase=${phase}: ${(err as Error)?.message ?? err}`
+      );
+    }
+  }
+
+  private markTaskCompleted(taskId: string) {
+    return this.prismaService.aiGenerationTask.update({
+      where: { id: taskId },
+      data: { completedCount: { increment: 1 } },
+    });
   }
 }

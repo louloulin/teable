@@ -23,6 +23,8 @@ describe('AdminOpenApiController', () => {
     getQuotaDashboard: ReturnType<typeof vi.fn>;
     getTableQueryOpsOverview: ReturnType<typeof vi.fn>;
     getAiGenerationQueueOverview: ReturnType<typeof vi.fn>;
+    listAiGenerationTasks: ReturnType<typeof vi.fn>;
+    cancelAiGenerationTask: ReturnType<typeof vi.fn>;
     restoreUser: ReturnType<typeof vi.fn>;
     deleteUser: ReturnType<typeof vi.fn>;
     permanentlyDeleteUser: ReturnType<typeof vi.fn>;
@@ -39,6 +41,8 @@ describe('AdminOpenApiController', () => {
       getQuotaDashboard: vi.fn(),
       getTableQueryOpsOverview: vi.fn(),
       getAiGenerationQueueOverview: vi.fn(),
+      listAiGenerationTasks: vi.fn(),
+      cancelAiGenerationTask: vi.fn(),
       restoreUser: vi.fn(),
       deleteUser: vi.fn(),
       permanentlyDeleteUser: vi.fn(),
@@ -140,5 +144,20 @@ describe('AdminOpenApiController', () => {
     service.getAiGenerationQueueOverview.mockResolvedValue(result);
     await expect(controller.aiGenerationQueueOverview()).resolves.toEqual(result);
     expect(service.getAiGenerationQueueOverview).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists and cancels AI generation tasks', async () => {
+    service.listAiGenerationTasks.mockResolvedValue([{ id: 'task-1' }]);
+    service.cancelAiGenerationTask.mockResolvedValue({ id: 'task-1', cancelRequested: true });
+
+    await expect(
+      controller.aiGenerationQueueTasks({ status: 'processing', take: 25 })
+    ).resolves.toEqual([{ id: 'task-1' }]);
+    await expect(controller.cancelAiGenerationQueueTask({ id: 'task-1' })).resolves.toEqual({
+      id: 'task-1',
+      cancelRequested: true,
+    });
+    expect(service.listAiGenerationTasks).toHaveBeenCalledWith({ status: 'processing', take: 25 });
+    expect(service.cancelAiGenerationTask).toHaveBeenCalledWith('task-1');
   });
 });

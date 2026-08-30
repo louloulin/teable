@@ -41,6 +41,15 @@ class FakePrisma {
     findMany: vi.fn(),
     count: vi.fn(),
   };
+  aiField = { findMany: vi.fn() };
+  aiFieldRun = { findMany: vi.fn() };
+  aiGenerationTask = {
+    groupBy: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+  };
 }
 
 describe('AdminOpenApiService', () => {
@@ -314,6 +323,53 @@ describe('AdminOpenApiService', () => {
       expect(prisma.quotaHit.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 5, take: 20 })
       );
+    });
+  });
+
+  describe('AI generation queue', () => {
+    it('returns persisted task counts and task rows', async () => {
+      prisma.aiField.findMany.mockResolvedValue([]);
+      prisma.aiGenerationTask.groupBy.mockResolvedValue([
+        { status: 'processing', _count: { _all: 2 } },
+        { status: 'completed', _count: { _all: 3 } },
+      ]);
+      prisma.aiGenerationTask.findMany.mockResolvedValue([{ id: 'task-1', status: 'processing' }]);
+      prisma.aiFieldRun.findMany.mockResolvedValue([]);
+
+      const out = await service.getAiGenerationQueueOverview();
+
+      expect(out.queue).toMatchObject({ available: true, waiting: 0, processing: 2 });
+      expect(out.summary.tasks).toEqual({
+        waiting: 0,
+        processing: 2,
+        completed: 3,
+        failed: 0,
+        canceled: 0,
+      });
+      expect(out.tasks).toEqual([{ id: 'task-1', status: 'processing' }]);
+    });
+
+    it('requests cancellation only for active tasks and is idempotent', async () => {
+      prisma.aiGenerationTask.updateMany.mockResolvedValue({ count: 1 });
+      prisma.aiGenerationTask.findUniqueOrThrow.mockResolvedValue({
+        id: 'task-1',
+        status: 'processing',
+        cancelRequested: true,
+      });
+
+      await expect(service.cancelAiGenerationTask('task-1')).resolves.toEqual({
+        id: 'task-1',
+        status: 'processing',
+        cancelRequested: true,
+      });
+      expect(prisma.aiGenerationTask.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'task-1',
+          status: { in: ['waiting', 'processing'] },
+          cancelRequested: false,
+        },
+        data: { cancelRequested: true },
+      });
     });
   });
 });

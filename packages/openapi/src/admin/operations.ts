@@ -133,10 +133,27 @@ export interface IAdminAiGenerationQueueOverview {
     errorFields: number;
     lastHourRuns: number;
     byStatus: { ok: number; failed: number; rateLimited: number; skipped: number };
+    tasks: {
+      waiting: number;
+      processing: number;
+      completed: number;
+      failed: number;
+      canceled: number;
+    };
   };
   fields: Array<Record<string, unknown>>;
   recentRuns: Array<Record<string, unknown>>;
+  tasks: Array<Record<string, unknown>>;
 }
 
 export const getAdminAiGenerationQueueOverview = async () =>
   axios.get<IAdminAiGenerationQueueOverview>('/admin/ai-generation-queue/overview');
+
+export const listAdminAiGenerationTasks = async (params?: {
+  status?: 'waiting' | 'processing' | 'completed' | 'failed' | 'canceled';
+  spaceId?: string;
+  take?: number;
+}) => axios.get<Array<Record<string, unknown>>>('/admin/ai-generation-queue/tasks', { params });
+
+export const cancelAdminAiGenerationTask = async (taskId: string) =>
+  axios.post<Record<string, unknown>>(`/admin/ai-generation-queue/tasks/${taskId}/cancel`);
