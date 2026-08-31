@@ -1,15 +1,9 @@
 schema: comet.native.v4
 name: stage-12-api-rate-limit-by-plan
 language: zh-CN
-<<<<<<< HEAD
-phase: build
-status: active
-state_version: 2
-=======
 phase: archive
-status: active
-state_version: 9
->>>>>>> comet/stage-12-api-rate-limit-by-plan
+status: done
+state_version: 12
 brief: brief.md
 spec_changes:
   - capability: stage-12-api-rate-limit-by-plan
