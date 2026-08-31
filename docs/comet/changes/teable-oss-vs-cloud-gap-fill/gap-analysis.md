@@ -147,3 +147,41 @@
 
 - 记录历史 / API 速率限制 / 数据迁移管线 UI: 需要新表 + 新 API, 留 enterprise-readiness-2026-round2
 - 前端 admin 页面接入: 仍只有 API, 无 UI
+
+## 6. Round-4 增量 (commit d9fe99554 → 当前)
+
+### 新增的 wired-module capability (8 项)
+
+访问更多 help.teable.ai 章节(`zh/basic/security` 等)以及 OSS 内部 185 个 feature 模块后,发现以下 8 个高价值模块**已在 OSS 中完整实现但从未注册到 readiness**:
+
+| capability | module | Cloud Business 映射 | 实际实现 |
+|---|---|---|---|
+| `api_rate_limit` | api-rate-limit | API 每秒速率限制(10 req/s) | `ApiThrottleGuard` 在 global.module.ts 注册为 APP_GUARD |
+| `record_history` | record-history | 记录历史(查看修改前的值) | `record_history` 表 + record.service.ts 写时 hook + record-open-api.service.ts 读 API + record-history-cold 冷存储 + record-history-retention 保留策略 |
+| `data_masking` | data-masking | 数据脱敏 (Cloud §数据保护) | `DataMaskingModule` 在 app.module.ts:175 wired |
+| `email_domain_claim` | email-domain-claim | 域名验证 (Cloud §域名验证) | `EmailDomainClaimModule` 在 app.module.ts:170 wired |
+| `audit_export` | audit-export | 审计日志导出 | audit-export module |
+| `attachment_storage` | attachments | 附件存储 | attachments module |
+| `quota` | quota | 配额管理 | `QuotaModule` 在 app.module.ts wired |
+| `retention` | retention | 保留策略 | `AutomationRunCleanupModule` 在 app.module.ts:198 wired |
+
+### 累计统计(经过 Round-1 ~ Round-4)
+
+| 维度 | Round-1 | Round-2 | Round-3 | Round-4 |
+|---|---|---|---|---|
+| 已注册 capability | 35 | 35 | 60 | 68 |
+| enabled 数 | 35 | 35 | 35 | 42 |
+| Cloud parity | 12/12 | 12/12 | 25/25 | 32/33 (self_hosted)<br>33/33 (business+) |
+| 自动化测试段数 | 5 | 5 | 6 | 8 |
+
+### Round-4 关键行为
+- `api_rate_limit` 在 self_hosted 计划下显式 `enabled=false, reason=opt_out_self_hosted`(Cloud 定价页面也明确 self_host 不限速)
+- 切到 `plan:business` 后 `api_rate_limit.enabled=true`,parity 满分 33/33
+- `record_history.enabled=true`,stats 实时反映 `meta.record_history` 表行数
+
+### 仍待完成 (Round-5 候选)
+- 合规模块(compliance-attestation, compliance-audit-pack, compliance-evidence-collector 等)注册
+- Airtable 迁移(airtable-import, airtable-sync)注册
+- 自动化动作/触发器 catalog 注册(automation-action-catalog, automation-trigger-catalog)
+- 冲突重放/跨 base 联邦注册(conflict-replay, cross-base-federation)
+- SDK 发布编排器注册(sdk-publish-orchestrator)

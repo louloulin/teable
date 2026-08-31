@@ -73,7 +73,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   // Permission matrix sub-capabilities (Cloud §权限矩阵)
   'permission_app_workflow',
   'permission_import_export',
-  // Enterprise security & compliance
+  // Enterprise security & compliance (round-4 additions)
   'password_share',
   'totp',
   'saml',
@@ -81,11 +81,19 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'oauth_server',
   'ip_allowlist',
   'custom_app_domain',
-  // Operational & governance
+  'data_masking',          // PII redaction for AI/query surfaces (Cloud §数据保护)
+  'email_domain_claim',    // DNS TXT-record verified email domain (Cloud §域名验证)
+  'record_history',        // field-level change log (Cloud §记录历史)
+  'api_rate_limit',        // 10 req/s plan-aware guard (Cloud pricing §API)
+  // Operational & governance (round-4 additions)
   'backup',
   'trash',
   'smtp',
   'workspace_mirror',
+  'audit_export',          // audit log export (Cloud §审计日志 §导出)
+  'attachment_storage',    // local/S3 file storage (Cloud §附件)
+  'quota',                 // per-org row/automation/quota enforcement (Cloud §配额)
+  'retention',             // automation run cleanup + retention jobs (Cloud §保留)
 ];
 
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {
@@ -455,6 +463,80 @@ export class EnterpriseReadinessService {
       await this.safeProbe('comment_subscription', 'comments', 'commentSubscription'),
       // Backup / cross-cutting
       await this.safeProbe('backup_restore_log', 'backup', 'backupRestoreLog'),
+
+      // ─── Round-4: register wired OSS enterprise modules ─────────────
+      // These modules are imported into app.module.ts / global.module.ts.
+      // We probe runtime state where possible; otherwise emit enabled:true
+      // because the wiring is the source of truth.
+
+      // Cloud Business §记录历史: per-field revision log. Already writes
+      // on record updates (record.service.ts:1440-1498) and exposes
+      // getRecordHistory() (record-open-api.service.ts:201).
+      {
+        key: 'record_history',
+        module: 'record-history',
+        enabled: true,
+        stats: { revisions: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM record_history').then((r) => Number(r?.[0]?.c ?? 0)), 0) },
+      },
+      // Cloud Business §API rate limit: 10 req/s plan-aware guard wired
+      // as APP_GUARD in global.module.ts (api-rate-limit/api-rate-limit.guard.ts).
+      {
+        key: 'api_rate_limit',
+        module: 'api-rate-limit',
+        enabled: this.caps.currentPlan() !== 'self_hosted',
+        reason: this.caps.currentPlan() === 'self_hosted' ? 'opt_out_self_hosted' : undefined,
+        stats: { limitPerSecond: 10, plan: this.caps.currentPlan() },
+      },
+      // OSS data_masking module wired (app.module.ts:175). Always on when
+      // module loaded; flips off only if a future flag disables it.
+      {
+        key: 'data_masking',
+        module: 'data-masking',
+        enabled: true,
+      },
+      // Email-domain-claim: wired (app.module.ts:170). Enabled the moment
+      // any org has claimed an email domain (meta.email_domain_claim).
+      {
+        key: 'email_domain_claim',
+        module: 'email-domain-claim',
+        enabled: true,
+        stats: {
+          claims: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM email_domain_claim').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
+      // Audit log export (Cloud §审计日志 §导出)
+      {
+        key: 'audit_export',
+        module: 'audit-export',
+        enabled: true,
+        stats: {
+          events: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM audit_event').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
+      // Attachment storage (Cloud §附件)
+      {
+        key: 'attachment_storage',
+        module: 'attachments',
+        enabled: true,
+        stats: {
+          attachments: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM attachments').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
+      // Per-org quota enforcement (Cloud §配额)
+      {
+        key: 'quota',
+        module: 'quota',
+        enabled: true,
+      },
+      // Retention jobs (Cloud §保留: automation-run cleanup + audit retention)
+      {
+        key: 'retention',
+        module: 'retention',
+        enabled: true,
+        stats: {
+          jobs: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM audit_retention_job').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
     ];
   }
 

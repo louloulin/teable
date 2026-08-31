@@ -173,13 +173,20 @@ log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 # The remaining 25 (BYOK, billing, db-connector, dashboard, ...) flip to
 # enabled the moment a row is inserted into their backing meta table. Section
 # 2.6 confirms registration + presence on disk without requiring seed rows.
-EXPECTED_TOTAL=60
-EXPECTED_ENABLED=35
-EXPECTED_PARITY_SCORE=25
+# Round-3: 25 new enterprise-table probes registered.
+# Round-4: 8 new wired-module probes (api_rate_limit, record_history,
+#          data_masking, email_domain_claim, audit_export,
+#          attachment_storage, quota, retention).
+# Total registered caps: 68. Baseline enabled: 42 (api_rate_limit opt-out
+# in self_hosted; everything else enabled by module wiring).
+# Cloud Business parity: 32/33 (api_rate_limit flips to enabled on
+# non-self_hosted plans, see Section 3).
+EXPECTED_TOTAL=68
+EXPECTED_ENABLED=42
 assert_ok "$([[ "$TOTAL_CAPS" == "$EXPECTED_TOTAL" ]] && echo 0 || echo 1)" \
   "total capabilities registered = $EXPECTED_TOTAL (got total=$TOTAL_CAPS)"
 assert_ok "$([[ "$ENABLED_CAPS" -ge "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
-  "$EXPECTED_ENABLED+/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; >=35 baseline, data may push higher)"
+  "$EXPECTED_ENABLED+/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; >=42 baseline, data may push higher)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
@@ -255,10 +262,13 @@ print('present=' + str('$cap' in body['capabilities']).lower() + ' ' + str(c.get
 done
 log "[OK]   all 25 round-3 enterprise-table capabilities registered with 'no_*_rows_yet' probe"
 
-# Cloud Business parity extended from 12 to 25 keys (license + external)
+# Cloud Business parity now spans 33 keys (license + external + round-4 wired).
+# Default self_hosted plan: 32/33 because api_rate_limit is opt-out for
+# self_hosted (guard short-circuits when plan=self_hosted). Flips to 33/33
+# on any business/enterprise license — see Section 3.
 PARITY_DEFAULT=$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')
-assert_ok "$([[ "$PARITY_DEFAULT" == "25/25" ]] && echo 0 || echo 1)" \
-  "default self_hosted parity = 25/25 (got: $PARITY_DEFAULT)"
+assert_ok "$([[ "$PARITY_DEFAULT" == "32/33" ]] && echo 0 || echo 1)" \
+  "default self_hosted parity = 32/33 (got: $PARITY_DEFAULT; api_rate_limit opt-out)"
 
 # ----- Section 2.7: round-3 capability flips on data -----
 # Insert a demo row into one round-3 enterprise table and re-fetch readiness
@@ -297,6 +307,66 @@ else
   log "[SKIP] comment_subscription seed insert failed (psql unavailable?) - skipping flip-on-data check"
 fi
 
+# ----- Section 2.8: round-4 wired-module capability registration -----
+# Round 4 adds 8 capabilities for OSS-implemented modules:
+#   api_rate_limit (guard wired in global.module.ts)
+#   record_history (write-hook in record.service.ts + read API)
+#   data_masking (data-masking module imported in app.module.ts)
+#   email_domain_claim (email-domain-claim module imported in app.module.ts)
+#   audit_export (audit-export module)
+#   attachment_storage (attachments module)
+#   quota (quota module imported in app.module.ts)
+#   retention (retention module imported in app.module.ts)
+log "=== Section 2.8: round-4 wired-module capability registration ==="
+ROUND4_KEYS="api_rate_limit record_history data_masking email_domain_claim audit_export attachment_storage quota retention"
+for cap in $ROUND4_KEYS; do
+  STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('$cap', {})
+print('present=' + str('$cap' in body['capabilities']).lower() + ' ' + str(c.get('enabled', False)).lower())
+")
+  PRESENT=$(echo "$STATE" | awk '{print $1}')
+  ENABLED=$(echo "$STATE" | awk '{print $2}')
+  if [[ "$PRESENT" != "present=true" ]]; then
+    log "[FAIL] round-4 capability '$cap' missing from readiness map"
+    exit 1
+  fi
+done
+log "[OK]   all 8 round-4 wired-module capabilities registered"
+
+# api_rate_limit must be opt-out on self_hosted
+ARL_STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('api_rate_limit', {})
+print(str(c.get('enabled', False)).lower() + ' ' + str(c.get('reason', '')))
+")
+ARL_ENABLED=$(echo "$ARL_STATE" | awk '{print $1}')
+ARL_REASON=$(echo "$ARL_STATE" | awk '{$1=""; sub(/^ /,""); print}')
+assert_ok "$([[ "$ARL_ENABLED" == "false" && "$ARL_REASON" == "opt_out_self_hosted" ]] && echo 0 || echo 1)" \
+  "api_rate_limit opt-out on self_hosted (got: enabled=$ARL_ENABLED reason=$ARL_REASON)"
+
+# record_history must be enabled and report revision count
+RH_STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('record_history', {})
+print('enabled=' + str(c.get('enabled', False)).lower())
+")
+assert_ok "$([[ "$RH_STATE" == "enabled=true" ]] && echo 0 || echo 1)" \
+  "record_history enabled (got: $RH_STATE)"
+
+# data_masking must be enabled (module wired)
+DM_STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('data_masking', {})
+print('enabled=' + str(c.get('enabled', False)).lower())
+")
+assert_ok "$([[ "$DM_STATE" == "enabled=true" ]] && echo 0 || echo 1)" \
+  "data_masking enabled (got: $DM_STATE)"
+
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="
 stop_backend
@@ -313,8 +383,8 @@ assert_ok "$([[ "$BIZ_LEVEL" == "business" ]] && echo 0 || echo 1)" \
 PARITY="$(echo "$BIZ_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')"
 SCORE="${PARITY%/*}"
 TOTAL="${PARITY##*/}"
-assert_ok "$([[ "$SCORE" -ge 25 ]] && echo 0 || echo 1)" \
-  "cloudBusinessParity score $SCORE/$TOTAL >= 25 (extended Cloud Business parity)"
+assert_ok "$([[ "$SCORE" -ge 33 ]] && echo 0 || echo 1)" \
+  "cloudBusinessParity score $SCORE/$TOTAL >= 33 (full round-4 Cloud Business parity; api_rate_limit flips on license)"
 
 # Assert business-only capabilities flipped to true
 for cap in sso audit_log permission_matrix admin_panel custom_domain; do
