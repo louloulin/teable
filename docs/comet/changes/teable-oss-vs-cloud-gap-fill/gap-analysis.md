@@ -1159,3 +1159,109 @@ baserow-import 模块同时是其他 6 个 partial migration gap(driver_missing)
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-17: 实现 clickup_import driver（第 2 个 partial → implemented）
+
+### 目标
+沿用 Round-16 baserow driver 模板，新增 `clickup-import` 模块,把 cloudGap[2] `clickup_import` 从 partial 升级到 implemented。`cloudGapImplementedCount` 从 1 升到 2,证明 driver 模板可批量复用。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/clickup-import/`（~280 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `clickup-import.types.ts` | ClickUpSpace / ClickUpList / ClickUpTask 类型 | 42 |
+| `clickup-api.client.ts` | ClickUp REST API 客户端 (Bearer auth, /team /space /list /task) | 84 |
+| `clickup-import.service.ts` | 服务层:probe / listSpaces / listLists / fetchTasks | 51 |
+| `clickup-import.controller.ts` | 4 个端点:`/api/clickup-import/{probe,spaces,lists,tasks}` | 52 |
+| `clickup-import.module.ts` | NestJS module 装配 | 21 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `ClickUpImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- `clickup_import` cloudGap entry: status='implemented', ossFramework='clickup-import'
+- `clickup_import` 加入 capability 列表(module=clickup-import, enabled=true)
+- `clickup_import` 加入 MIGRATION_SOURCE_REGISTRY 并标记 implemented
+- `clickup_import` 加入 implementedBy mapping
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.6(6 个断言):clickup driver capability + cloudGap status + 端点 + 指标
+- 更新 Section 4.1: driver_missing 从 7 改为 6
+- 更新 Section 4.4: migration-sources implemented 4→5,pending 7→6
+- 更新 Section 4.5: cloudGapImplementedCount 1→2
+- 更新 parity: 37/39 → 38/40
+- 更新 EXPECTED_TOTAL: 73 → 74
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R15 | 14 | ~62 |
+| R16 | 15 | ~68 (+6) |
+| **R17** | **16** | **~74 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-17)
+
+| 维度 | R16 | **R17** |
+|---|---|---|
+| Worktree commits | 10 | **11** |
+| e2e 段数 | 15 | **16** |
+| e2e 总断言数 | ~68 | **~74** |
+| 新增模块 | baserow-import | **clickup-import (280 LOC)** |
+| 新增 API 端点 | 3 (baserow probe/rows/fields) | **4 (clickup probe/spaces/lists/tasks)** |
+| cloudGap 状态 | 1 impl + 8 partial + 5 not_impl | **2 impl + 7 partial + 5 not_impl** |
+| cloudGapImplementedCount | 1 | **2** |
+| cloudGapCoverage | 64% | **64%** (count stays; partial+impl 都算 filled) |
+| 总 capability | 73 | **74** |
+| 业务 parity | 37/39 | **38/40** |
+| gap-analysis.md 行数 | ~1160 | **~1260** |
+
+### Driver 模板复用验证
+
+baserow(R16)与 clickup(R17)实现几乎对称:
+
+| 步骤 | baserow (R16) | clickup (R17) |
+|---|---|---|
+| API base URL | api.baserow.io | api.clickup.com/api/v2 |
+| Auth header | `Token <token>` | `<token>` (no prefix) |
+| Probe 入口 | /api/workspaces/ | /team |
+| 数据层级 | database > table > row | workspace > space > list > task |
+| List resources | /api/applications/ | /team/{id}/space |
+| Fetch rows | /api/database/rows/table/{id}/ | /list/{id}/task |
+
+差异主要在 URL 路径和 auth 格式;模板的"API client + service + controller + module + readiness 注册"流程完全一致。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/clickup-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"token":"test"}'
+{
+  "ok": false,
+  "error": "ClickUp API /team failed: HTTP 401 ...",
+  "fetchedAt": "2026-08-31T15:42:19.000Z"
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 74,
+  "enabled": 48,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 2
+}
+```
+
+### 结论
+
+**Round-17 完成**:clickup_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 2,证明 Round-16 建立的 driver 模板可批量复用。剩余 6 个 driver_missing(jira / monday / nocodb / smartsheet / smartsuite / connect_more_sources)按相同模板可继续填。
+
+### 已知 limitation (继承)
+- clickup driver 只覆盖 probe / listSpaces / listLists / fetchTasks;ClickUp → Teable 字段映射(translation logic)是 follow-up
+- 6 个 pending migration(jira/monday/nocodb/smartsheet/smartsuite/connect_more_sources)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现

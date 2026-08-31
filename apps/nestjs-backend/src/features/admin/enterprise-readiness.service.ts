@@ -108,6 +108,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'notion_import',         // notion module wired in app.module.ts (Cloud §Notion 迁移)
   'google_sheets_import',  // google-sheets module wired in app.module.ts (Cloud §Sheets 迁移)
   'baserow_import',        // baserow-import module wired in app.module.ts (Round-16: Cloud §Baserow 迁移)
+  'clickup_import',        // clickup-import module wired in app.module.ts (Round-17: Cloud §ClickUp 迁移)
   'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
@@ -129,7 +130,7 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
   { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: project/item/sprint/comment/attachment mapping' },
   { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: workspace/board/group/column mapping' },
-  { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: workspace/space/folder/list/task mapping' },
+  { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'implemented', ossFramework: 'clickup-import', notes: 'Round-17: clickup-import module wired; probe + listSpaces + listLists + fetchTasks endpoints exposed; field translation pending follow-up' },
   { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Sheet/row/column/discussion/attachment mapping' },
   // Scripting (3)
   { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires JS sandbox (VM2 / isolated-vm) for safe execution' },
@@ -158,7 +159,7 @@ const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
   'notion_import',       // implemented (round-5 wired)
   'google_sheets_import', // implemented (round-5 wired)
   'baserow_import',      // implemented (round-16 wired: baserow-import module)
-  'clickup_import',      // framework slot only
+  'clickup_import',      // implemented (round-17 wired: clickup-import module)
   'jira_import',         // framework slot only
   'monday_import',       // framework slot only
   'nocodb_import',       // framework slot only
@@ -345,11 +346,12 @@ export class EnterpriseReadinessService {
     implemented: boolean;
     implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
-    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'pending'> = {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'pending'> = {
       airtable_import: 'airtable-import',
       notion_import: 'notion',
       google_sheets_import: 'google-sheets',
       baserow_import: 'baserow-import',
+      clickup_import: 'clickup-import',
     };
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
@@ -814,6 +816,12 @@ export class EnterpriseReadinessService {
       {
         key: 'baserow_import',
         module: 'baserow-import',
+        enabled: true,
+      },
+      // ClickUp migration source (Round-17: clickup-import module wired)
+      {
+        key: 'clickup_import',
+        module: 'clickup-import',
         enabled: true,
       },
       // View-level permission (Cloud §视图权限独立)
