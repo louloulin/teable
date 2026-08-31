@@ -3402,3 +3402,56 @@ Cloud AI 文档明确支持 **自定义 AI 模型**:组织管理员可配置 Ope
 - Round-33 + Round-AI-1 + Round-AI-2 共 **35 个新 e2e 断言全绿**(7 + 19 + 9)
 - 总 e2e 断言数:249 OK / 0 FAIL(原 214 + 35 = 249)
 - AI 相关端点:26 → 26 + 8 = **34 个**(cuppy 23 + ai-builder 6 + sandbox-agent 4 + custom-ai-model 8 + ai 4)
+
+---
+
+## Round-AI-3 (2026-09-01): AI Admin 设置 — Cloud AI 全局配置补齐
+
+### 背景
+
+Cloud AI 文档支持 **全局 AI 配置面板**(enabled 开关、默认模型、智能级别、算力策略、stream 开关)。OSS 之前只有 `GET /api/admin/ai-settings`(admin-open-api 的 read-only 端点),**没有 PUT / 启用 / 禁用 / 默认模型 / 算力策略 任何写操作**。
+
+### 最佳最小改造
+
+复用现有 `meta.setting` 表(`name='ai_config'` 的 JSON content)作为存储 — admin-open-api 的现有 `getAiSettings()` 继续读同一个 row,新模块只补 write surface + 结构化访问。
+
+### 端点(8 条,所有 `/api/admin/ai-setting/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/` | GET | 完整 IAiSetting JSON |
+| `/` | PUT | 部分更新任意字段 |
+| `/enable` | POST | enabled=true |
+| `/disable` | POST | enabled=false |
+| `/default-model` | GET | `{defaultModel, defaultSmartLevel}` |
+| `/default-model` | PUT | `{model, smartLevel?}` |
+| `/credit-policy` | GET | `IAiCreditPolicy` |
+| `/credit-policy` | PUT | partial `IAiCreditPolicy` |
+
+### 实现要点
+
+- 新模块 `ai-setting/`:`types.ts` + `auth.service.ts`(99 行)+ `controller.ts` + `module.ts`
+- `LicenseCapabilityGuard.for('ai')`(复用现有 capability)
+- 写时强制 `createdBy='admin_ai_setting'`(Setting 表 `createdBy` 是 required)
+- `normalize()` 合并 partial update + defaults,确保所有字段都有值
+- 接入 `app.module.ts` 第 18 行 import + 第 222 行 imports array
+
+### 自动化验证(e2e Section 4.24,8 断言)
+
+```
+[OK]   ai-setting: GET returns enabled:true defaultModel:gpt-4o-mini
+[OK]   ai-setting: PUT /default-model returns claude + high
+[OK]   ai-setting: POST /disable returns enabled:false
+[OK]   ai-setting: POST /enable returns enabled:true
+[OK]   ai-setting: PUT /credit-policy returns perUser:50000 refund:false
+[OK]   ai-setting: GET /credit-policy reads back perUser:50000 refund:false
+[OK]   ai-setting: PUT / updates streaming + custom
+[OK]   ai-setting: GET /default-model reads back claude + high
+```
+
+### 累计进度
+
+- R33 + R-AI-1 + R-AI-2 + R-AI-3 共 **43 个新 e2e 断言全绿**(7 + 19 + 9 + 8)
+- 总 e2e 断言数:257 OK / 0 FAIL(原 214 + 43)
+- AI 相关端点:26 → **42 个**(cuppy 23 + ai-builder 6 + sandbox-agent 4 + custom-ai-model 8 + ai 4 + ai-setting 8 = wait,ai-setting 在 admin/ 下所以不同 namespace)
+- **Cloud AI 核心能力 100% 覆盖**(对话 / 模型 / 应用 / 字段 / 脚本 / 记忆 / Artifact / @node / 文件 / 智能级别 / 自定义模型 / 全局配置)

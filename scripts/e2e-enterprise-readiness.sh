@@ -2728,6 +2728,94 @@ print('null' if d.get('model', 'x') is None else 'present')
 assert_ok "$([[ "$CAM_GONE" == "null" ]] && echo 0 || echo 1)" \
   "custom-ai-model: deleted model returns model:null (got: $CAM_GONE)"
 
+
+# ----- Section 4.24: ai-setting HTTP CRUD (Round-AI-3) -----
+log "=== Section 4.24: ai-setting HTTP CRUD (Round-AI-3, 8 endpoints) ==="
+
+# 1) GET /api/admin/ai-setting — returns default config (enabled + flags)
+sleep 2
+AIS_GET=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/admin/ai-setting" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('enabled='+str(d.get('enabled',False)).lower()+',model='+str(d.get('defaultModel','none')))
+")
+assert_ok "$([[ "$AIS_GET" =~ enabled=true ]] && [[ "$AIS_GET" =~ model=gpt-4o-mini ]] && echo 0 || echo 1)" \
+  "ai-setting: GET returns enabled:true defaultModel:gpt-4o-mini (got: $AIS_GET)"
+
+# 2) PUT /default-model — switch to claude
+sleep 2
+AIS_DM=$(curl -s "${UAUTH[@]}" -X PUT "${BASE_URL}/api/admin/ai-setting/default-model" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"claude-3-5-sonnet","smartLevel":"high"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('model='+str(d.get('defaultModel','none'))+',level='+str(d.get('defaultSmartLevel','none')))
+")
+assert_ok "$([[ "$AIS_DM" =~ model=claude-3-5-sonnet ]] && [[ "$AIS_DM" =~ level=high ]] && echo 0 || echo 1)" \
+  "ai-setting: PUT /default-model returns claude + high (got: $AIS_DM)"
+
+# 3) POST /disable — flip enabled=false
+sleep 2
+AIS_DIS=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/admin/ai-setting/disable" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('enabled', True)).lower())
+")
+assert_ok "$([[ "$AIS_DIS" == "false" ]] && echo 0 || echo 1)" \
+  "ai-setting: POST /disable returns enabled:false (got: $AIS_DIS)"
+
+# 4) POST /enable — flip back to true
+sleep 2
+AIS_ENA=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/admin/ai-setting/enable" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('enabled', False)).lower())
+")
+assert_ok "$([[ "$AIS_ENA" == "true" ]] && echo 0 || echo 1)" \
+  "ai-setting: POST /enable returns enabled:true (got: $AIS_ENA)"
+
+# 5) PUT /credit-policy — refundOnFailure=false + lower perUserDailyCap
+sleep 2
+AIS_CP=$(curl -s "${UAUTH[@]}" -X PUT "${BASE_URL}/api/admin/ai-setting/credit-policy" \
+  -H 'Content-Type: application/json' \
+  -d '{"refundOnFailure":false,"perUserDailyCap":50000}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('perUser='+str(d.get('perUserDailyCap',-1))+',refund='+str(d.get('refundOnFailure',True)).lower())
+")
+assert_ok "$([[ "$AIS_CP" =~ perUser=50000 ]] && [[ "$AIS_CP" =~ refund=false ]] && echo 0 || echo 1)" \
+  "ai-setting: PUT /credit-policy returns perUser:50000 refund:false (got: $AIS_CP)"
+
+# 6) GET /credit-policy — verify persisted
+sleep 2
+AIS_GCP=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/admin/ai-setting/credit-policy" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('perUser='+str(d.get('perUserDailyCap',-1))+',refund='+str(d.get('refundOnFailure',True)).lower())
+")
+assert_ok "$([[ "$AIS_GCP" =~ perUser=50000 ]] && [[ "$AIS_GCP" =~ refund=false ]] && echo 0 || echo 1)" \
+  "ai-setting: GET /credit-policy reads back perUser:50000 refund:false (got: $AIS_GCP)"
+
+# 7) PUT / — full partial update (streamingEnabled + allowCustomModels)
+sleep 2
+AIS_PUT=$(curl -s "${UAUTH[@]}" -X PUT "${BASE_URL}/api/admin/ai-setting" \
+  -H 'Content-Type: application/json' \
+  -d '{"streamingEnabled":false,"allowCustomModels":false}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('streaming='+str(d.get('streamingEnabled',True)).lower()+',custom='+str(d.get('allowCustomModels',True)).lower())
+")
+assert_ok "$([[ "$AIS_PUT" =~ streaming=false ]] && [[ "$AIS_PUT" =~ custom=false ]] && echo 0 || echo 1)" \
+  "ai-setting: PUT / updates streaming + custom (got: $AIS_PUT)"
+
+# 8) GET /default-model — verify smartLevel persisted
+sleep 2
+AIS_GDM=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/admin/ai-setting/default-model" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('model='+str(d.get('defaultModel','none'))+',level='+str(d.get('defaultSmartLevel','none')))
+")
+assert_ok "$([[ "$AIS_GDM" =~ model=claude-3-5-sonnet ]] && [[ "$AIS_GDM" =~ level=high ]] && echo 0 || echo 1)" \
+  "ai-setting: GET /default-model reads back claude + high (got: $AIS_GDM)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"

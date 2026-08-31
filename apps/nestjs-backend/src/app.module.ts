@@ -15,6 +15,7 @@ import { AggregationOpenApiModule } from './features/aggregation/open-api/aggreg
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
+import { AiSettingModule } from './features/ai-setting/ai-setting.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
 import { BaserowImportModule } from './features/baserow-import/baserow-import.module';
@@ -218,6 +219,7 @@ export const appModules = {
     OrganizationModule,
     AiModule,
     AiBuilderModule,
+    AiSettingModule,
     AiFieldRecordListenerModule,
     PluginModule,
     PluginPanelModule,
