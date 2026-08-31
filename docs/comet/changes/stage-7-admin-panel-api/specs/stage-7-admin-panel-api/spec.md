@@ -77,7 +77,7 @@ Query(zod schema):
 - `take?: number`(默认 100,1≤take≤1000,整数)
 - `search?: string`(可选;提供时按 `name` 与 `email` 大小写不敏感 contains)
 
-Prisma:
+Prisma(`users`):
 
 ```ts
 const where = search
@@ -111,7 +111,7 @@ const [list, total] = await prisma.$transaction([
 
 Query:`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
 
-Prisma:
+Prisma(`spaces`):
 
 ```ts
 const [list, total] = await prisma.$transaction([
@@ -129,7 +129,7 @@ const [list, total] = await prisma.$transaction([
 
 Query:`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
 
-Prisma:
+Prisma(`templates`):
 
 ```ts
 const [list, total] = await prisma.$transaction([
@@ -150,7 +150,7 @@ const [list, total] = await prisma.$transaction([
 
 无 query。
 
-Prisma:读 `SettingKey.AI_CONFIG` 行(`name === 'aiConfig'`),返回 content 原值(JSON 解析失败时返回原字符串)。
+Prisma(`ai-settings`):读 `SettingKey.AI_CONFIG` 行(`name === 'aiConfig'`),返回 content 原值(JSON 解析失败时返回原字符串)。
 
 ```ts
 const row = await prisma.setting.findFirst({
@@ -164,7 +164,7 @@ const aiConfig = row?.content ? safeJsonParse(row.content) : null;
 
 Query:`skip?: number`(默认 0)、`take?: number`(默认 50,1≤take≤500)。
 
-Prisma:
+Prisma(`quota-dashboard`):
 
 ```ts
 const [list, total] = await prisma.$transaction([
