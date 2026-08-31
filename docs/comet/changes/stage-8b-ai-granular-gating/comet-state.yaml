@@ -3,7 +3,7 @@ name: stage-8b-ai-granular-gating
 language: zh-CN
 phase: archive
 status: done
-state_version: 8
+state_version: 10
 brief: brief.md
 spec_changes:
   - capability: stage-8b-ai-granular-gating
@@ -15,7 +15,7 @@ workspace:
   target_branch: comet/teable-oss-vs-cloud-gap-fill
   finish: merge
 loop:
-  stage: done
+  stage: archive-ready
   goal_cycle: 2
   iteration: 1
   attempt: 1
