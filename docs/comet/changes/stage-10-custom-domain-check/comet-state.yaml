@@ -3,7 +3,7 @@ name: stage-10-custom-domain-check
 language: zh-CN
 phase: archive
 status: active
-state_version: 25
+state_version: 26
 brief: brief.md
 spec_changes:
   - capability: stage-10-custom-domain-check
@@ -13,7 +13,7 @@ workspace:
   isolation: worktree
   change_branch: comet/stage-10-custom-domain-check
   target_branch: comet/teable-oss-vs-cloud-gap-fill
-  finish: null
+  finish: keep
 loop:
   stage: archive-ready
   goal_cycle: 2
