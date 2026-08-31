@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-12-api-rate-limit-by-plan",
+  "basedOnStateVersion": 7,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-12-api-rate-limit-by-plan",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-12-api-rate-limit-by-plan",
+    "branch": "comet/stage-12-api-rate-limit-by-plan"
+  },
+  "execution": null,
+  "checks": []
+}
