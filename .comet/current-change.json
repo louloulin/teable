@@ -1,6 +1,10 @@
 {
   "schema": "comet.selection.v2",
   "workflow": "native",
+<<<<<<< HEAD
   "change": "stage-11-retention-by-plan",
+=======
+  "change": "stage-12-api-rate-limit-by-plan",
+>>>>>>> comet/stage-12-api-rate-limit-by-plan
   "branch": null
 }
