@@ -109,7 +109,7 @@ const [list, total] = await prisma.$transaction([
 
 #### GET /api/admin/spaces
 
-Query:`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
+Query(`spaces`):`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
 
 Prisma(`spaces`):
 
@@ -127,7 +127,7 @@ const [list, total] = await prisma.$transaction([
 
 #### GET /api/admin/templates
 
-Query:`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
+Query(`templates`):`skip?: number`(默认 0)、`take?: number`(默认 100,1≤take≤1000)。
 
 Prisma(`templates`):
 
