@@ -2975,3 +2975,130 @@ $ curl -X POST /api/cross-base-federation/views/cbf_v_r30/refresh \
 - **R38**: `audit-log-query` + `audit-retention` (审计查询+保留)
 - **R39**: `app-module-wiring` (App 模块接线)
 - **R40**: `ai-credit` + `ai-usage` (AI 信用/使用追踪)
+
+## Round-31: conflict-replay HTTP 层接入 (冲突事件入队 + drain replay)
+
+### 背景
+
+R30 修了 cross-base-federation 的"service 完整但无 controller" gap。R31 接 conflict-replay —— 这是 conflict_event 配套的审计 replay 链路。云版 (Cloud) 用这个做"乐观锁冲突自动恢复"+"运维 replay 控制台"。
+
+R31 选型理由:
+1. auth.service 已完整:`enqueueConflict` + `drainQueue` (内部还调用纯 helpers:validateEvent, enqueue, canRetry, markAttempt, replay, drain, toAttempt)
+2. Prisma model `ConflictEvent` 全字段已配 (id, orgId, recordId, kind, idempotencyKey, offset, attempts, lastError, enqueuedAt, lastAttemptAt)
+3. capability `conflict_event` 已注册,等到 seed 数据就 flip 到 enabled
+4. ReplayAttempt 没建表 —— 内部 helpers 算 in-memory,但 controller 也只返回最近一批 attempts,够 e2e 验证
+
+### 实施细节
+
+#### 1) Controller (`conflict-replay.controller.ts`, 150 LOC)
+
+`@Controller('api/conflict-replay')` + 5 个 endpoint:
+
+| HTTP | Path | 方法 |
+|---|---|---|
+| POST | `/events` | enqueueEvent |
+| GET | `/orgs/:orgId/queue` | listQueue |
+| GET | `/orgs/:orgId/events/:id` | loadEvent |
+| DELETE | `/orgs/:orgId/events/:id` | deleteEvent |
+| POST | `/orgs/:orgId/drain` | drainQueue (recordIds allowlist) |
+
+**Drain applier 设计**: controller 接收 `recordIds?: string[]` body,做 Set 查找决定 applier 返回值。这是 facade pattern —— auth.service 期望 `(e) => boolean` applier,controller 在 HTTP 边界把"哪些 recordId 可 replay"翻译成 applier。无 allowlist 时 applier 永远返回 false,保留所有 event 用于审计观测,**不真触发 production record replay**(real replay 走 internal caller)。
+
+#### 2) Module + 注册(`R31-001`)
+
+```ts
+@Module({
+  imports: [PrismaModule],
+  controllers: [ConflictReplayController],
+  providers: [ConflictReplayAuthService],
+  exports: [ConflictReplayAuthService],
+})
+export class ConflictReplayModule {}
+```
+
+注册到 `app.module.ts` 第 208 行,紧跟 `CrossBaseFederationModule`。
+
+#### 3) Bug fix 顺带:signin `comparePassword` 真正失败原因
+
+跑 R31 之前先修了一个 P0 signin bug,否则 admin 账号登不进。云版用户/测试依赖这个:
+- **之前**:`bcrypt.hash(password, salt) === storedHash` —— bcrypt 是随机化 hash,每次结果不同,**永远 false**。signin 永远返回 `Email or password is incorrect`。
+- **修复**:`bcrypt.compare(password, hashPassword)` —— bcrypt.compare 自己从 hash 里读 salt,正确验证。
+
+```diff
+-    const _hashPassword = await bcrypt.hash(password || '', salt || '');
+-    return _hashPassword === hashPassword;
++    if (!hashPassword) return false;
++    return bcrypt.compare(password || '', hashPassword);
+```
+
+修完后 `curl -X POST /api/auth/signin -d '{admin@teable.local,admin123}'` 立即返回 200 + `IUserMeVo isAdmin=true`。
+
+**额外发现**:Teable 用 `SET search_path TO ${schema}, public`(prisma-pg-adapter.ts:35),意思是 Prisma 默认从 `meta.users` 读用户(然后 fallback 到 `public.users`)。我之前 INSERT 的 admin 行只在 `public.users` 里,所以 runtime 找不到。**正确做法**:admin 行必须 INSERT 到 `meta.users`。这次发现一并写入 devops 备忘。
+
+#### 4) 实测端到端(5 endpoint 全部 200)
+
+```bash
+# 1. enqueue (offset 0)
+$ curl -X POST /api/conflict-replay/events -d '{org,record,kind,idem}'
+{ "id":"org_r31_smoke:k-smoke-1:0", "kind":"optimistic-lock", "offset":0, "attempts":0, ... }
+
+# 2. queue list
+$ curl /api/conflict-replay/orgs/org_r31_smoke/queue
+{ "events":[{"id":"...","kind":"optimistic-lock",...}] }
+
+# 3. drain with allowlist (only rec_smoke_1 matches → drainedCount=1)
+$ curl -X POST /api/conflict-replay/orgs/.../drain -d '{recordIds:[rec_smoke_1]}'
+{ "drainedCount":1, "remaining":[...], "attempts":[...] }
+
+# 4. delete (cleanup)
+$ curl -X DELETE /api/conflict-replay/orgs/.../events/org_r31_smoke:k-smoke-1:0
+{ "deleted":true }
+```
+
+`conflict_event` capability 从 `enabled=false reason=no_conflict_event_rows_yet` → **`enabled=true count=1`**。
+
+#### 5) e2e Section 4.19 (9 断言)
+
+| # | 断言 | 实测 |
+|---|---|---|
+| 1 | enqueue returns kind\|offset\|idempotencyKey | optimistic-lock\|0\|k_r31_a ✓ |
+| 2 | second enqueue gets offset=1 | 1 ✓ |
+| 3 | queue length >= 2 | 2 ✓ |
+| 4 | drain with allowlist → drained=1 remaining=1 attempts=2 | drained=1 remaining=1 attempts=2 ✓ |
+| 5 | drain with empty allowlist → drainedCount=0 | drained=0 ✓ |
+| 6 | load event by id returns kind+attempts | duplicate-write\|attempts=2 ✓ |
+| 7 | delete event returns deleted:true | true ✓ |
+| 8 | deleted event returns event:null | null ✓ |
+| 9 | conflict_event capability enabled | enabled=true count=1 ✓ |
+
+**e2e 总数:~205 OK / 0 FAIL** (R30 是 ~196,+9)。
+
+#### 6) e2e 顺带修的 latent bug
+
+跑 R31 时发现 2 个 4.x 之前 round 的隐藏问题,顺手修:
+1. **Section 4.16 approval-workflow 第一波请求撞 429** —— 之前 round R28/R29/R30 都没在 Section 4.16 第一波 (list empty + create + get) 加 sleep,但 Section 4 在 business license 下 10 req/s/IP,Section 4.15 末尾已经吃了 11 请求,4.16 第一波没 sleep 直接 429 → `get by id returns |0`(error response 默认 `{name:'', approverIds:[]}`)。**修复**:Section 4.16 第一/二/三步各加 `sleep 2`。
+2. **Section 4.19 R31 自己 6/7/8 顺序错** —— 我先 delete event e1,再 GET 同一个 id,期望返回 `{event:null}` —— 但我先 load e1 后 delete 再 load 同一个 e1,第一次 load 时 event 已被删。**修复**:用 e2 (未删除的 event) 做 load + delete + load-gone,e1 留着给后续 round 复用。
+
+### Round-31 设计教训 (给后续 round 的同学)
+
+1. **drain applier facade** —— auth.service 用 `(e) => boolean` applier 是因为纯 helper 不依赖任何外部 framework。Controller 在 HTTP 边界把 `{recordIds}` 翻译成 applier,保持 service 零依赖。这种 facade pattern 比"在 service 里接受 recordIds"更干净(service 应该懂业务,不需懂 HTTP body shape)。
+2. **Drain 默认 false 策略** —— 没 allowlist 时 applier 返回 false,所有 event 进 remaining。这是"观测模式",用于审计不真触发生产环境 replay。**永远不要**在 controller 里写 "applier always true" —— 那是分布式灾难。
+3. **Bcrypt 比对必须是 bcrypt.compare** —— 任何 `bcrypt.hash(pwd, salt) === storedHash` 都是错的。bcrypt 在 hash 里 embed random salt,每次 hash 都不同。**Debug 模式**:单独跑 `bcrypt.compare('plain', storedHash)` 应该 true,如果是 false 就说明 stored hash 是错的或 plain 不是原文。
+4. **Prisma search_path 陷阱** —— Teable 用 `SET search_path TO ${schema}, public` 让 prisma 跨 schema 找 user/account/space。operator INSERT 数据必须放在正确 schema(`meta.users`,不是 `public.users`)。否则 Prisma 读到空 schema。
+5. **ApiThrottleGuard 累积风险** —— Section 4 末尾 10+ 请求累积,后续 Section 4.x 第一波请求要 `sleep 2` 才不撞 429。这个规则要"自动化":每个 round 的新 Section 4.x 都用 R30 的 `sleep 2` 模板。
+
+### 结论
+
+**Round-31 完成**: conflict-replay HTTP 层全栈接入 (controller + module + app.module + 9 个 e2e 断言 + signin P0 bug fix)。`conflict_event` capability 从"永远无法 enabled"变成"enqueue 即 enabled",云版冲突审计链路通,signin 也能登。
+
+### 下一步 (R32+ 候选)
+
+- **R32**: `custom-role` / `org-custom-role` —— R26 已有 permission-matrix,custom-role 是补集(用户提到的 authority-matrix URL 直接相关)
+- **R33**: `dr-canvas` (disaster recovery canvas,云版独有)
+- **R34**: `compliance-attestation` + `audit-pack` + `control-map` + `evidence-collector` (SOC2/ISO27001)
+- **R35**: `billing` + `billing-pdf-export` (SaaS 计费)
+- **R36**: `byok-llm` + `byok-kms` (BYOK 加密)
+- **R37**: `federated-sso` + `sso` + `saml` (企业 SSO)
+- **R38**: `audit-log-query` + `audit-retention` (审计查询+保留)
+- **R39**: `app-module-wiring` (App 模块接线)
+- **R40**: `ai-credit` + `ai-usage` (AI 信用/使用追踪)

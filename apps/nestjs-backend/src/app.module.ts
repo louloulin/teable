@@ -47,6 +47,7 @@ import { CustomDomainModule } from './features/custom-domain/custom-domain.modul
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { DataResidencyModule } from './features/data-residency/data-residency.module';
 import { CrossBaseFederationModule } from './features/cross-base-federation/cross-base-federation.module';
+import { ConflictReplayModule } from './features/conflict-replay/conflict-replay.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -204,6 +205,7 @@ export const appModules = {
     DashboardModule,
     DataResidencyModule,
     CrossBaseFederationModule,
+    ConflictReplayModule,
     DatabaseViewModule,
     GraphModule,
     CommentOpenApiModule,

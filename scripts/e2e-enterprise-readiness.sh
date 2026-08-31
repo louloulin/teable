@@ -83,6 +83,7 @@ cleanup() {
      DELETE FROM meta.federation_event; \
      DELETE FROM meta.federation_source; \
      DELETE FROM meta.federation_view; \
+     DELETE FROM meta.conflict_event; \
      DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
      DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
@@ -1778,6 +1779,7 @@ assert_ok "$([[ "$AW_STRATEGY" == "any-one" ]] && echo 0 || echo 1)" \
   "approval-workflow: strategy echoed back (got: $AW_STRATEGY)"
 
 # 3) Get workflow (round-trip)
+sleep 2
 AW_GET=$(curl -s "${BASE_URL}/api/approval-workflow/$AW_ID" | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
@@ -2127,6 +2129,110 @@ print('enabled=' + str(fe.get('enabled',False)).lower() + ' count=' + str(fe.get
 ")
 assert_ok "$([[ "$CBF_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
   "cross-base-federation capability federation_event enabled (got: $CBF_CAP_LIVE)"
+
+log "=== Section 4.19: conflict-replay HTTP CRUD (Round-31) ==="
+
+# Pre-clean any stale rows for this org_id (cleanup() also handles this at
+# trap EXIT, but Section 2.6 expects empty meta.conflict_event at startup)
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.conflict_event WHERE org_id='org_r31_e2e';" >/dev/null 2>&1 || true
+
+# 1) Enqueue conflict (offset 0 — fresh org)
+sleep 2  # dodge ApiThrottleGuard 429 (Section 4 is under business license)
+CR_E=$(curl -s -X POST "${BASE_URL}/api/conflict-replay/events" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org_r31_e2e","recordId":"rec_r31_a","kind":"optimistic-lock","idempotencyKey":"k_r31_a"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('kind','') + '|' + str(d.get('offset', -1)) + '|' + d.get('idempotencyKey',''))
+")
+assert_ok "$([[ "$CR_E" == "optimistic-lock|0|k_r31_a" ]] && echo 0 || echo 1)" \
+  "conflict-replay: enqueue returns kind|offset|idempotencyKey (got: $CR_E)"
+
+# 2) Enqueue second event (offset 1)
+sleep 2
+CR_E2=$(curl -s -X POST "${BASE_URL}/api/conflict-replay/events" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org_r31_e2e","recordId":"rec_r31_b","kind":"duplicate-write","idempotencyKey":"k_r31_b"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('offset', -1))
+")
+assert_ok "$([[ "$CR_E2" == "1" ]] && echo 0 || echo 1)" \
+  "conflict-replay: second enqueue gets offset=1 (got: $CR_E2)"
+
+# 3) List queue
+sleep 2
+CR_LIST=$(curl -s "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/queue" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(len(d.get('events', [])))
+")
+assert_ok "$([[ "$CR_LIST" -ge 2 ]] && echo 0 || echo 1)" \
+  "conflict-replay: queue length >= 2 (got: $CR_LIST)"
+
+# 4) Drain queue with recordIds allowlist (only rec_r31_a matches → drainedCount=1)
+sleep 2
+CR_DRAIN=$(curl -s -X POST "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/drain" \
+  -H "Content-Type: application/json" \
+  -d '{"recordIds":["rec_r31_a"]}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('drained=' + str(d.get('drainedCount', -1)) + ' remaining=' + str(len(d.get('remaining', []))) + ' attempts=' + str(len(d.get('attempts', []))))
+")
+assert_ok "$([[ "$CR_DRAIN" == "drained=1 remaining=1 attempts=2" ]] && echo 0 || echo 1)" \
+  "conflict-replay: drain with allowlist → drained=1 remaining=1 attempts=2 (got: $CR_DRAIN)"
+
+# 5) Drain with no allowlist (everything fails → drainedCount=0, remaining=1)
+sleep 2
+CR_DRAIN2=$(curl -s -X POST "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/drain" \
+  -H "Content-Type: application/json" \
+  -d '{}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('drained=' + str(d.get('drainedCount', -1)))
+")
+assert_ok "$([[ "$CR_DRAIN2" == "drained=0" ]] && echo 0 || echo 1)" \
+  "conflict-replay: drain with empty allowlist → drainedCount=0 (got: $CR_DRAIN2)"
+
+# 6) Load single event by id (use the second event which is not yet deleted)
+sleep 2
+CR_E2_ID="org_r31_e2e:k_r31_b:1"
+CR_LOAD=$(curl -s "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/events/${CR_E2_ID}" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('kind','') + '|attempts=' + str(d.get('attempts', -1)))
+")
+assert_ok "$([[ "$CR_LOAD" =~ duplicate-write\|attempts= ]] && echo 0 || echo 1)" \
+  "conflict-replay: load event by id returns kind+attempts (got: $CR_LOAD)"
+
+# 7) Delete single event
+sleep 2
+CR_DEL=$(curl -s -X DELETE "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/events/${CR_E2_ID}" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$CR_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "conflict-replay: delete event returns deleted:true (got: $CR_DEL)"
+
+# 8) Deleted event returns event:null
+sleep 2
+CR_GONE=$(curl -s "${BASE_URL}/api/conflict-replay/orgs/org_r31_e2e/events/${CR_E2_ID}" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('null' if d.get('event', 'x') is None else 'present')
+")
+assert_ok "$([[ "$CR_GONE" == "null" ]] && echo 0 || echo 1)" \
+  "conflict-replay: deleted event returns event:null (got: $CR_GONE)"
+
+# 9) Capability flip check (conflict_event)
+sleep 2
+CR_CAP_LIVE=$(curl -sf -H "x-admin-token: ${ADMIN_TOKEN}" "${BASE_URL}/api/admin/enterprise-readiness" | python3 -c "
+import json, sys
+ce = json.load(sys.stdin)['capabilities'].get('conflict_event', {})
+print('enabled=' + str(ce.get('enabled',False)).lower() + ' count=' + str(ce.get('conflictEvent', 0)))
+")
+assert_ok "$([[ "$CR_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
+  "conflict-replay capability conflict_event enabled (got: $CR_CAP_LIVE)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
