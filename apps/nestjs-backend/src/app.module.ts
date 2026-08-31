@@ -21,6 +21,7 @@ import { BaserowImportModule } from './features/baserow-import/baserow-import.mo
 import { ClickUpImportModule } from './features/clickup-import/clickup-import.module';
 import { JiraImportModule } from './features/jira-import/jira-import.module';
 import { MondayImportModule } from './features/monday-import/monday-import.module';
+import { NocoDbImportModule } from './features/nocodb-import/nocodb-import.module';
 import { AnnouncementsModule } from './features/announcements/announcements.module';
 import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
@@ -165,6 +166,7 @@ export const appModules = {
     ClickUpImportModule, // Round-17: minimal clickup driver
     JiraImportModule, // Round-18: minimal jira driver
     MondayImportModule, // Round-19: minimal monday driver (GraphQL)
+    NocoDbImportModule, // Round-20: minimal nocodb driver (REST, xc-token)
     ExportOpenApiModule,
     PinModule,
     SettingAdminOpenApiModule,

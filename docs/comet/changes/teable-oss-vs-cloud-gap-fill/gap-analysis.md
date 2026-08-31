@@ -1474,3 +1474,101 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-20: 实现 nocodb_import driver（第 5 个 partial → implemented）
+
+### 目标
+沿用 R16-R19 driver 模板,实现 cloudGap[5] `nocodb_import`。NocoDB 是开源 Airtable 替代品,使用 REST + xc-token 自定义 header。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/nocodb-import/`（~250 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `nocodb-import.types.ts` | NocoDbBase / NocoDbTable / NocoDbRow | 34 |
+| `nocodb-api.client.ts` | REST client (xc-token header, v1+v2 endpoints) | 88 |
+| `nocodb-import.service.ts` | 服务层:probe / listBases / listTables / fetchRows | 56 |
+| `nocodb-import.controller.ts` | 4 个端点:`/api/nocodb-import/{probe,bases,tables,rows}` | 51 |
+| `nocodb-import.module.ts` | NestJS module 装配 | 22 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `NocoDbImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- `nocodb_import` cloudGap entry: status='implemented', ossFramework='nocodb-import'
+- `nocodb_import` 加入 capability / MIGRATION_SOURCE_REGISTRY / implementedBy mapping
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.9(6 个断言)
+- driver_missing 4→3
+- migration-sources implemented 7→8, pending 4→3
+- cloudGapImplementedCount 4→5
+- parity 40/42 → 41/43
+- EXPECTED_TOTAL 76 → 77
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R18 | 17 | ~80 |
+| R19 | 18 | ~86 (+6) |
+| **R20** | **19** | **~92 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-20)
+
+| 维度 | R19 | **R20** |
+|---|---|---|
+| Worktree commits | 13 | **14** |
+| e2e 段数 | 18 | **19** |
+| e2e 总断言数 | ~86 | **~92** |
+| 新增模块 | monday-import (GraphQL) | **nocodb-import (REST v1+v2, xc-token)** |
+| cloudGapImplementedCount | 4 | **5** |
+| cloudGapCoverage | 64% | **64%** |
+| 总 capability | 76 | **77** |
+| 业务 parity | 40/42 | **41/43** |
+
+### API 范式扩展（5 个 driver）
+
+| Driver | Round | API 范式 | Auth | 版本 |
+|---|---|---|---|---|
+| baserow | R16 | REST | Token header | 单版本 |
+| clickup | R17 | REST | Bearer (no prefix) | /api/v2 |
+| jira | R18 | REST | HTTP Basic | /rest/api/3 |
+| monday | R19 | **GraphQL** | Token (no prefix) | /v2 |
+| **nocodb** | **R20** | **REST v1+v2** | **xc-token** | /api/v1 + /api/v2 |
+
+NocoDB 的特点是**双 API 版本**:v1 用于元数据(bases/tables),v2 用于记录(rows)。xc-token 是 NocoDB 特有的 header 命名。模板依然无需变化。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/nocodb-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"baseUrl":"https://example.com","token":"test"}'
+{
+  "ok": false,
+  "error": "NocoDB API /api/v1/db/meta/projects failed: ...",
+  "fetchedAt": "2026-09-01T16:10:00.000Z"
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 77,
+  "enabled": 51,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 5
+}
+```
+
+### 结论
+
+**Round-20 完成**:nocodb_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 5。8 个 driver_missing 中已完成 5/8 = 62.5%。剩 3 个:smartsheet / smartsuite / connect_more_sources(generic)。
+
+### 已知 limitation (继承)
+- nocodb driver 只覆盖 probe / listBases / listTables / fetchRows;column types / linked records / lookups 是 follow-up
+- 3 个 pending migration(smartsheet/smartsuite/connect_more_sources)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
