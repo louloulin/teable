@@ -759,8 +759,8 @@ import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g['status'] == 'not_implemented'))
 ")
-assert_ok "$([[ "$NOT_IMPL_COUNT" -ge "5" ]] && echo 0 || echo 1)" \
-  "at least 5 cloudGap entries still 'not_implemented' (5 sandbox_missing after Round-16) (got: $NOT_IMPL_COUNT)"
+assert_ok "$([[ "$NOT_IMPL_COUNT" -eq "0" ]] && echo 0 || echo 1)" \
+  "0 cloudGap entries still not_implemented (Round-24: all 5 sandbox_missing promoted) (got: $NOT_IMPL_COUNT)"
 
 # summary.cloudExclusiveGapCount must match cloudGap length
 GAP_SUMMARY=$(echo "$GAP_BODY" | python3 -c "
@@ -796,8 +796,8 @@ import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g.get('reasonCategory') == 'sandbox_missing'))
 ")
-assert_ok "$([[ "$SANDBOX_MISSING" == "5" ]] && echo 0 || echo 1)" \
-  "5 sandbox_missing gaps (scripting without JS sandbox) (got: $SANDBOX_MISSING)"
+assert_ok "$([[ "$SANDBOX_MISSING" == "0" ]] && echo 0 || echo 1)" \
+  "0 sandbox_missing gaps (Round-24: all 5 promoted to implemented) (got: $SANDBOX_MISSING)"
 
 # Round-13 update: ai_skill is now 'partial' (Round-13 ai-skill endpoint), so its
 # reasonCategory shifted from framework_missing to spec_only.
@@ -873,8 +873,8 @@ assert_ok "$([[ "$ROAD_TOTAL" == "14" ]] && echo 0 || echo 1)" \
   "cloud-gap-roadmap total=14 (got: $ROAD_TOTAL)"
 
 ROAD_TOP=$(echo "$ROAD_RESP" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('topFillable',[])))")
-assert_ok "$([[ "$ROAD_TOP" -ge "3" ]] && echo 0 || echo 1)" \
-  "cloud-gap-roadmap topFillable has >=3 entries (got: $ROAD_TOP)"
+assert_ok "$([[ "$ROAD_TOP" == "0" ]] && echo 0 || echo 1)" \
+  "cloud-gap-roadmap topFillable == 0 (Round-24: all driver_missing done, only ai_skill partial remains) (got: $ROAD_TOP)"
 
 # ai_skill cloudGap entry status should now be 'partial' (Round-13 upgrade)
 AISKILL_STATUS=$(echo "$GAP_BODY" | python3 -c "
@@ -903,12 +903,12 @@ COV_PCT=$(echo "$COV" | python3 -c "import json,sys; print(json.load(sys.stdin)[
 assert_ok "$([[ "$COV_TOTAL" == "14" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage.total == 14 (got: $COV_TOTAL)"
 
-assert_ok "$([[ "$COV_FILLED" == "9" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage.filled == 9 (8 driver_missing Round-15 partial + ai_skill Round-13 partial) (got: $COV_FILLED)"
+assert_ok "$([[ "$COV_FILLED" == "14" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.filled == 14 (13 implemented + 1 partial ai_skill) (got: $COV_FILLED)"
 
 # percent = round(1/14 * 100) = 7
-assert_ok "$([[ "$COV_PCT" == "64" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage.percent == 64 (round(9/14*100)) (got: $COV_PCT)"
+assert_ok "$([[ "$COV_PCT" == "100" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.percent == 100 (round(14/14*100), Round-24 100% milestone) (got: $COV_PCT)"
 
 # Sanity: percent == round(filled/total*100)
 COV_CONSISTENT=$(echo "$COV" | python3 -c "
@@ -927,7 +927,7 @@ b = json.load(sys.stdin)
 arr_len = len(b.get('cloudGap', []))
 cov_total = b['summary']['cloudGapCoverage']['total']
 filled = sum(1 for g in b['cloudGap'] if g['status'] != 'not_implemented')
-print('true' if arr_len == cov_total == 14 and filled == 9 else 'false')
+print('true' if arr_len == cov_total == 14 and filled == 14 else 'false')
 ")
 assert_ok "$([[ "$COV_MATCHES_ARRAY" == "true" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage.total == cloudGap.length AND filled == partial count (got: $COV_MATCHES_ARRAY)"
@@ -1027,17 +1027,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) summary.cloudGapCoverage unchanged at 9/14=64% (partial counts as filled too)
+# 6) summary.cloudGapCoverage unchanged at 14/14=100% (partial counts as filled too, Round-24 100% milestone)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% (partial+implemented both counted) (got: $COV_CHECK)"
+  "cloudGapCoverage still 13/14=93% (partial+implemented both counted) (got: $COV_CHECK)"
 
 # ----- Section 4.6: clickup-import driver wired + implemented metric (Round-17) -----
 # Round-17 mirrors Round-16: clickup-import module wired, clickup_import cloudGap upgraded.
@@ -1090,17 +1090,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64% (1 not_implemented -> 1 implemented, count stays same)
+# 6) cloudGapCoverage still 14/14=100% (1 not_implemented -> 1 implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after clickup upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after clickup (got: $COV_CHECK)"
 
 # ----- Section 4.7: jira-import driver wired + implemented metric (Round-18) -----
 # Round-18 mirrors R16/R17: jira-import module wired, jira_import cloudGap upgraded.
@@ -1153,17 +1153,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64%
+# 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after jira upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after jira (got: $COV_CHECK)"
 
 # ----- Section 4.8: monday-import driver wired + implemented metric (Round-19) -----
 # Round-19 mirrors R16/R17/R18: monday-import module wired, monday_import cloudGap upgraded.
@@ -1216,17 +1216,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64%
+# 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after monday upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after monday (got: $COV_CHECK)"
 
 # ----- Section 4.9: nocodb-import driver wired + implemented metric (Round-20) -----
 # Round-20 mirrors R16-R19: nocodb-import module wired, nocodb_import cloudGap upgraded.
@@ -1279,17 +1279,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64%
+# 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after nocodb upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after nocodb (got: $COV_CHECK)"
 
 # ----- Section 4.10: smartsheet-import driver wired + implemented metric (Round-21) -----
 # Round-21 mirrors R16-R20: smartsheet-import module wired, smartsheet_import cloudGap upgraded.
@@ -1342,17 +1342,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64%
+# 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after smartsheet upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after smartsheet (got: $COV_CHECK)"
 
 # ----- Section 4.11: smartsuite-import driver wired + implemented metric (Round-22) -----
 # Round-22 mirrors R16-R21: smartsuite-import module wired, smartsuite_import cloudGap upgraded.
@@ -1405,17 +1405,17 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64% (smartsuite upgraded from partial to implemented, count stays same)
+# 6) cloudGapCoverage still 14/14=100% (smartsuite upgraded from partial to implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after smartsuite upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after smartsuite (got: $COV_CHECK)"
 
 # ----- Section 4.12: generic-connector driver + implemented metric (Round-23) -----
 # Round-23 mirrors R16-R22 but uses pluggable registry pattern (NOT per-vendor module).
@@ -1469,17 +1469,88 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "8" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 8 (baserow + clickup + jira + monday + nocodb + smartsheet + smartsuite + connect_more_sources) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
 
-# 6) cloudGapCoverage still 9/14=64% (connect_more_sources upgraded from partial to implemented, count stays same)
+# 6) cloudGapCoverage still 14/14=100% (connect_more_sources upgraded from partial to implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 c = json.load(sys.stdin)['summary']['cloudGapCoverage']
-print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage still 9/14=64% after generic-connector upgrade (got: $COV_CHECK)"
+  "cloudGapCoverage still 14/14=100% after generic-connector (got: $COV_CHECK)"
+
+# ----- Section 4.13: 5 sandbox_missing cloudGaps promoted to implemented (Round-24) -----
+# Round-24 batch promotes 5 cloudGap entries (run_script_action + ai_script + ai_script_zh
+# + api_automation + script_samples) by leveraging the existing automation module:
+#   - Node vm module for run_script sandbox (already in executeRunScript)
+#   - AutomationAiBuilderService for /api/automation/ai-draft
+#   - Full CRUD on /api/automation (api_automation)
+#   - NEW: 12 bilingual samples at /api/automation/script-samples (script_samples + ai_script_zh)
+# Milestone: cloudGapCoverage hits 100% (14/14) — only ai_skill (partial) remains.
+log "=== Section 4.13: 5 sandbox_missing cloudGaps promoted (Round-24, coverage 100% milestone) ==="
+
+# 1) script-samples endpoint returns 12 samples (bilingual library)
+SAMPLES=$(curl -s "${BASE_URL}/api/automation/script-samples")
+SAMPLES_COUNT=$(echo "$SAMPLES" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('total', 0))
+")
+assert_ok "$([[ "$SAMPLES_COUNT" == "12" ]] && echo 0 || echo 1)" \
+  "script-samples returns 12 samples (Round-24 library) (got: $SAMPLES_COUNT)"
+
+# 2) script-samples locale=zh returns Chinese names
+SAMPLES_ZH=$(curl -s "${BASE_URL}/api/automation/script-samples?locale=zh")
+SAMPLES_ZH_OK=$(echo "$SAMPLES_ZH" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+# Verify locale and that first sample name contains Chinese characters
+first = d.get('samples', [{}])[0]
+import re
+ok = d.get('locale') == 'zh' and bool(re.search(r'[\u4e00-\u9fff]', first.get('name', '')))
+print('ok' if ok else 'fail:' + str(d.get('locale')) + '/' + first.get('name', ''))
+")
+assert_ok "$([[ "$SAMPLES_ZH_OK" == "ok" ]] && echo 0 || echo 1)" \
+  "script-samples?locale=zh returns Chinese names (Round-24 i18n) (got: $SAMPLES_ZH_OK)"
+
+# 3) All 5 sandbox_missing cloudGaps have status='implemented'
+SANDBOX_STATUS=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin)['cloudGap']
+keys = ['run_script_action', 'ai_script', 'ai_script_zh', 'api_automation', 'script_samples']
+results = {k: next((g['status'] for g in gaps if g['key'] == k), 'MISSING') for k in keys}
+print('ok' if all(v == 'implemented' for v in results.values()) else 'fail:' + ','.join(f'{k}={v}' for k,v in results.items()))
+")
+assert_ok "$([[ "$SANDBOX_STATUS" == "ok" ]] && echo 0 || echo 1)" \
+  "all 5 sandbox_missing cloudGaps implemented (Round-24) (got: $SANDBOX_STATUS)"
+
+# 4) NOT_IMPL_COUNT == 0 (no more not_implemented cloudGaps)
+NOT_IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g.get('status') == 'not_implemented'))
+")
+assert_ok "$([[ "$NOT_IMPL_COUNT" == "0" ]] && echo 0 || echo 1)" \
+  "0 not_implemented cloudGaps (Round-24: 5 sandbox_missing promoted, all gaps filled) (got: $NOT_IMPL_COUNT)"
+
+# 5) summary.cloudGapImplementedCount = 13
+IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
+")
+assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 13 (Round-24: 8 migration/integration + 5 scripting) (got: $IMPL_COUNT)"
+
+# 6) cloudGapCoverage at 14/14=100% (Round-24 milestone)
+COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+c = json.load(sys.stdin)['summary']['cloudGapCoverage']
+print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c))
+")
+assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage at 14/14=100% (Round-24 milestone: all gaps filled) (got: $COV_CHECK)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

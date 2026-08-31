@@ -26,6 +26,7 @@ import { AutomationActionCatalogAuthService } from '../automation-action-catalog
 import { AutomationTriggerCatalogAuthService } from '../automation-trigger-catalog/automation-trigger-catalog.auth.service';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AutomationAiBuilderService } from './automation-ai-builder.service';
+import { listScriptSamples } from './script-samples';
 import { AutomationEventListener } from './automation-event.listener';
 import { AutomationRateLimitService } from './automation-rate-limit.service';
 import { AutomationService } from './automation.service';
@@ -76,6 +77,42 @@ export class AutomationController {
       triggerVersion: this.triggerCatalog?.getCatalog().version ?? 1,
       defaultTrigger: this.triggerCatalog?.getCatalog().defaultType ?? 'record_created',
     };
+  }
+
+  /**
+   * Round-24: Sample Script Library endpoint.
+   * Returns 12 ready-to-use JS scripts covering transform / lookup / branch /
+   * http / webhook patterns. Each sample includes bilingual (en + zh) name
+   * and description for the `script_samples` + `ai_script_zh` cloudGap.
+   */
+  @Public()
+  @Get('script-samples')
+  getScriptSamples(
+    @Query('category') category?: string,
+    @Query('locale') locale?: string
+  ): unknown {
+    const loc: 'en' | 'zh' = locale === 'zh' ? 'zh' : 'en';
+    const samples = listScriptSamples({ category, locale: loc });
+    return {
+      total: samples.length,
+      locale: loc,
+      category: category ?? null,
+      samples,
+    };
+  }
+
+  /**
+   * Round-24: Single script sample by id (for the script editor's
+   * "Insert sample" button).
+   */
+  @Public()
+  @Get('script-samples/:id')
+  getScriptSample(@Param('id') id: string, @Query('locale') locale?: string): unknown {
+    const loc: 'en' | 'zh' = locale === 'zh' ? 'zh' : 'en';
+    const samples = listScriptSamples({ locale: loc });
+    const found = samples.find((s) => s.id === id);
+    if (!found) return { error: 'sample not found', id };
+    return found;
   }
 
   @Post('ai-draft')

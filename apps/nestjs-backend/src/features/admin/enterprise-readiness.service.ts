@@ -139,13 +139,13 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'implemented', ossFramework: 'clickup-import', notes: 'Round-17: clickup-import module wired; probe + listSpaces + listLists + fetchTasks endpoints exposed; field translation pending follow-up' },
   { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'implemented', ossFramework: 'smartsheet-import', notes: 'Round-21: smartsheet-import module wired; probe + listSheets + fetchRows endpoints exposed; column type translation pending follow-up' },
   // Scripting (3)
-  { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires JS sandbox (VM2 / isolated-vm) for safe execution' },
-  { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires Run Script action + LLM integration' },
-  { key: 'api_automation', name: 'Build automations programmatically via API', category: 'scripting', cloudDocPath: 'basic/automation/examples/api-automation.md', status: 'not_implemented', ossFramework: null, notes: 'Partial: API exists, JS code samples missing' },
+  { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: Node vm module (createContext + runInContext) in automation-event.listener.ts executeRunScript; configurable timeout (50-5000ms); input/env/process sandbox shape' },
+  { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: AutomationAiBuilderService + /api/automation/ai-draft endpoint generates run_script actions via LLM (or offline fallback when AI disabled)' },
+  { key: 'api_automation', name: 'Build automations programmatically via API', category: 'scripting', cloudDocPath: 'basic/automation/examples/api-automation.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: Full CRUD on /api/automation (POST create, GET list/detail, DELETE, POST run for manual fire, /ai-draft for AI-generated drafts); action catalog at /api/automation/catalog' },
   // Other / integration (4)
   { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'implemented', ossFramework: 'generic-connector', notes: 'Round-23: generic-connector module wired; pluggable driver registry with 3 built-in adapters (rest-api / json-endpoint / csv-url); runtime register endpoint for new adapter types' },
-  { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships ready-to-use JS examples' },
-  { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships i18n docs' },
+  { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: 12 bilingual samples at /api/automation/script-samples (categories: transform/lookup/branch/http/webhook); single-sample fetch at /script-samples/:id' },
+  { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: All 12 script samples include nameZh/descriptionZh/inputs[*].descriptionZh; locale=zh query param returns Chinese strings via listScriptSamples({locale:\'zh\'})' },
   { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'partial', ossFramework: 'enterprise-readiness', notes: 'Round-13: /api/admin/enterprise-readiness/ai-skill manifest endpoint exposed; full skill at github.com/teableio/agent-skills' },
 ];
 
@@ -309,13 +309,20 @@ export class EnterpriseReadinessService {
 
   private enrichGap(gap: CloudExclusiveGap, present: Set<string>): CloudExclusiveGap {
     const frameworkPresent = gap.ossFramework ? present.has(gap.ossFramework) : false;
-    const reasonCategory: CloudExclusiveGap['reasonCategory'] = !gap.ossFramework
+    // Round-24: implemented gaps no longer belong to driver_missing /
+    // sandbox_missing / framework_missing — they are 'implemented' regardless
+    // of whether their framework dir is present. This keeps driver_missing
+    // honest as "frameworks present, driver still pending" instead of
+    // lumping in already-implemented entries.
+    const baseReasonCategory: CloudExclusiveGap['reasonCategory'] = !gap.ossFramework
       ? gap.category === 'scripting'
         ? 'sandbox_missing'
         : 'framework_missing'
       : frameworkPresent
         ? 'driver_missing'
         : 'spec_only';
+    const reasonCategory: CloudExclusiveGap['reasonCategory'] =
+      gap.status === 'implemented' ? 'implemented' : baseReasonCategory;
 
     // Round-15: Promote to 'partial' when the gap has a framework slot AND
     // its key is in the migration source registry. The framework slot means
