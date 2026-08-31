@@ -678,6 +678,81 @@ curl -H 'x-admin-token: $ADMIN_TOKEN' \
 
 这是 "继续完善" + "自动化验证" 的最小改造:不假装实现,只让差距可见;不需要大规模功能开发就能让用户看到 OSS 真实水平。
 
+
+## Round-12: cloudGap 加 framework 检测 + 推荐实现顺序
+
+### 目标
+R11 把 14 个 Cloud gap 暴露在 `cloudGap` API,但运维看到 14 个 `not_implemented` 不知道哪个最容易填。R12 增加:
+- 每个 gap 的 `ossFrameworkPresent` 字段(运行时扫描 `apps/nestjs-backend/src/features/`)
+- 每个 gap 的 `reasonCategory`(`driver_missing` / `sandbox_missing` / `framework_missing` / `spec_only`)
+- 每个 gap 的 `implementationOrder` 字段(1-based 推荐实现顺序)
+- 新方法 `topFillableGaps(n)` 返回最容易填的 N 个
+
+### 改动
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:
+
+| 项 | 改动 |
+|---|---|
+| imports | 加 `import * as fs from 'fs'` + `import * as path from 'path'` |
+| `CloudExclusiveGap` type | 加 3 个可选字段: `ossFrameworkPresent` / `implementationOrder` / `reasonCategory` |
+| `scanOssFrameworks()` | 走 cwd 向上找 monorepo root,然后扫描 `apps/nestjs-backend/src/features/` |
+| `enrichGap()` | 根据 framework 是否存在推断 reasonCategory |
+| `sortByImplementationOrder()` | tier 排序:migration+framework > integration+framework > 其他+framework > 无 framework |
+| `topFillableGaps(n=3)` | 返回最容易填的 N 个 gap |
+| `collectCloudGaps()` | 改为走 enrichGap + sortByImplementationOrder 链 |
+
+### 14 gap 实际分类
+
+| Order | Key | Framework | Present | Reason |
+|---|---|---|---|---|
+| 1 | baserow_import | integration-connector | ✓ | driver_missing |
+| 2 | clickup_import | integration-connector | ✓ | driver_missing |
+| 3 | jira_import | integration-connector | ✓ | driver_missing |
+| 4 | monday_import | integration-connector | ✓ | driver_missing |
+| 5 | nocodb_import | integration-connector | ✓ | driver_missing |
+| 6 | smartsheet_import | integration-connector | ✓ | driver_missing |
+| 7 | smartsuite_import | integration-connector | ✓ | driver_missing |
+| 8 | connect_more_sources | integration-connector | ✓ | driver_missing |
+| 9 | ai_script | (none) | ✗ | sandbox_missing |
+| 10 | ai_script_zh | (none) | ✗ | sandbox_missing |
+| 11 | ai_skill | (none) | ✗ | framework_missing |
+| 12 | api_automation | (none) | ✗ | sandbox_missing |
+| 13 | run_script_action | (none) | ✗ | sandbox_missing |
+| 14 | script_samples | (none) | ✗ | sandbox_missing |
+
+**Top-3 易填(operator 决策助手)**:`baserow_import` / `clickup_import` / `jira_import`(全基于现有 integration-connector 框架)
+
+### e2e 新增 Section 4.1 (5 个断言)
+
+```
+=== Section 4.1: cloudGap framework detection (Round-12) ===
+[OK]   8 driver_missing gaps (framework present; only driver missing)
+[OK]   5 sandbox_missing gaps (scripting without JS sandbox)
+[OK]   1 framework_missing gap (ai_skill)
+[OK]   implementationOrder is dense 1..14
+[OK]   migrations sort before scripting
+```
+
+### 累计统计 (Round-1 ~ Round-12)
+
+| 维度 | R10 | R11 | **R12** |
+|---|---|---|---|
+| Worktree commits | 4 | 5 | **6** |
+| e2e 段数 | 10 | 11 | **12 (加 Section 4.1)** |
+| e2e 总断言数 | ~30 | ~37 | **~42 (+5 framework)** |
+| cloudGap API 字段 | n/a | 7 | **10 (+frameworkPresent/reasonCategory/implementationOrder)** |
+| gap-analysis.md 行数 | 602 | 685 | **~770** |
+
+### 结论
+
+**Round-12 完成**:cloudGap API 从静态列表升级为可操作的优先级面板。运维不再面对 14 个 `not_implemented`,而是可以:
+- 知道 8 个 migration 只差 driver(框架已就绪)
+- 知道 5 个 scripting 需要先建 JS 沙箱(更大工程)
+- 按 `topFillableGaps(3)` 拿到本季度推荐实现的 3 个
+- 14 个排序后的实现顺序作为路线图
+
+这是"最佳最小改造"的代表性例子:不写新功能代码,只把现有信息结构化暴露,价值翻倍。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)

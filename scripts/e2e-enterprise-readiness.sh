@@ -764,6 +764,62 @@ print('true' if arr_len == sum_val == 14 else 'false')
 assert_ok "$([[ "$GAP_SUMMARY" == "true" ]] && echo 0 || echo 1)" \
   "summary.cloudExclusiveGapCount=14 matches cloudGap length (got: $GAP_SUMMARY)"
 
+# ----- Section 4.1: cloudGap framework detection + sort order (Round-12) -----
+# Each cloudGap entry must report:
+#  - ossFrameworkPresent: true iff ossFramework directory exists
+#  - implementationOrder: 1-based position
+#  - reasonCategory: driver_missing | sandbox_missing | framework_missing | spec_only
+# Migrations with integration-connector framework should sort to the top.
+log "=== Section 4.1: cloudGap framework detection (Round-12) ==="
+
+# 8 driver_missing (framework present, no driver) -- 7 migration + 1 integration
+DRIVER_MISSING=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g.get('reasonCategory') == 'driver_missing'))
+")
+assert_ok "$([[ "$DRIVER_MISSING" == "8" ]] && echo 0 || echo 1)" \
+  "8 driver_missing gaps (framework present; only driver missing) (got: $DRIVER_MISSING)"
+
+# 5 sandbox_missing (scripting without JS sandbox)
+SANDBOX_MISSING=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g.get('reasonCategory') == 'sandbox_missing'))
+")
+assert_ok "$([[ "$SANDBOX_MISSING" == "5" ]] && echo 0 || echo 1)" \
+  "5 sandbox_missing gaps (scripting without JS sandbox) (got: $SANDBOX_MISSING)"
+
+# 1 framework_missing (ai_skill)
+FRAMEWORK_MISSING=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g.get('reasonCategory') == 'framework_missing'))
+")
+assert_ok "$([[ "$FRAMEWORK_MISSING" == "1" ]] && echo 0 || echo 1)" \
+  "1 framework_missing gap (ai_skill) (got: $FRAMEWORK_MISSING)"
+
+# implementationOrder must be 1..14 with no gaps
+ORDER_OK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+orders = sorted(g.get('implementationOrder', -1) for g in gaps)
+print('true' if orders == list(range(1, 15)) else 'false')
+")
+assert_ok "$([[ "$ORDER_OK" == "true" ]] && echo 0 || echo 1)" \
+  "implementationOrder is dense 1..14 (got: $ORDER_OK)"
+
+# Migrations (with framework) must sort BEFORE scripting
+SORT_OK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+mig_orders = [g['implementationOrder'] for g in gaps if g['category'] == 'migration']
+scr_orders = [g['implementationOrder'] for g in gaps if g['category'] == 'scripting']
+print('true' if max(mig_orders) < min(scr_orders) else 'false')
+")
+assert_ok "$([[ "$SORT_OK" == "true" ]] && echo 0 || echo 1)" \
+  "migrations sort before scripting (got: $SORT_OK)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"

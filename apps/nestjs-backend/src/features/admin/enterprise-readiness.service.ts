@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { LicenseCapabilityService, type LicenseCapability } from '../license/license-capability.service';
 
@@ -208,16 +210,104 @@ export class EnterpriseReadinessService {
 
   /**
    * Round-11: Surface Cloud-exclusive features that OSS does not currently
-   * implement. The list is static (sourced from help.teable.ai/llms.txt) so
-   * verification is deterministic. Future rounds can graduate entries from
-   * 'not_implemented' to 'partial' as OSS catches up.
+   * implement. Round-12 enriches each entry with runtime framework presence
+   * and a recommended implementation order so operators can prioritize.
    */
   collectCloudGaps(): CloudExclusiveGap[] {
-    return [...CLOUD_EXCLUSIVE_GAPS];
+    const present = this.scanOssFrameworks();
+    return this.sortByImplementationOrder(
+      CLOUD_EXCLUSIVE_GAPS.map((gap) => this.enrichGap(gap, present))
+    );
   }
 
   cloudExclusiveGapCount(): number {
     return CLOUD_EXCLUSIVE_GAPS.length;
+  }
+
+  /**
+   * Round-12: One-shot scan of apps/nestjs-backend/src/features/ to discover
+   * which named frameworks actually exist on disk. Used to flag cloudGap
+   * entries that already have an OSS-side skeleton but only lack a driver.
+   *
+   * Cached after first call (the feature directory does not change at runtime).
+   */
+  private ossFrameworksCache: Set<string> | null = null;
+  private scanOssFrameworks(): Set<string> {
+    if (this.ossFrameworksCache) return this.ossFrameworksCache;
+    // Walk up from cwd to find the monorepo root, then locate features dir.
+    // Backend may run with cwd = apps/nestjs-backend or the repo root depending
+    // on how it was started; both cases must resolve to the same path.
+    let dir = process.cwd();
+    let featuresDir = '';
+    for (let i = 0; i < 6; i++) {
+      const candidate = path.join(dir, 'apps', 'nestjs-backend', 'src', 'features');
+      if (fs.existsSync(candidate)) {
+        featuresDir = candidate;
+        break;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    const found = new Set<string>();
+    try {
+      if (featuresDir) {
+        for (const entry of fs.readdirSync(featuresDir, { withFileTypes: true })) {
+          if (entry.isDirectory()) found.add(entry.name);
+        }
+      }
+    } catch {
+      // best-effort: missing dir means no frameworks known
+    }
+    this.ossFrameworksCache = found;
+    return found;
+  }
+
+  private enrichGap(gap: CloudExclusiveGap, present: Set<string>): CloudExclusiveGap {
+    const frameworkPresent = gap.ossFramework ? present.has(gap.ossFramework) : false;
+    const reasonCategory: CloudExclusiveGap['reasonCategory'] = !gap.ossFramework
+      ? gap.category === 'scripting'
+        ? 'sandbox_missing'
+        : 'framework_missing'
+      : frameworkPresent
+        ? 'driver_missing'
+        : 'spec_only';
+    return { ...gap, ossFrameworkPresent: frameworkPresent, reasonCategory };
+  }
+
+  /**
+   * Round-12: Sort gaps by ease-of-implementation:
+   *   tier 1 - migration with framework present (easiest: copy airtable pattern)
+   *   tier 2 - integration with framework present (medium: register driver)
+   *   tier 3 - any other with framework present
+   *   tier 4 - no framework (hardest: needs new infrastructure)
+   * Within each tier, sort alphabetically by key for stable output.
+   */
+  private sortByImplementationOrder(gaps: CloudExclusiveGap[]): CloudExclusiveGap[] {
+    const tier = (g: CloudExclusiveGap): number => {
+      if (g.ossFrameworkPresent && g.category === 'migration') return 1;
+      if (g.ossFrameworkPresent && g.category === 'integration') return 2;
+      if (g.ossFrameworkPresent) return 3;
+      return 4;
+    };
+    const sorted = [...gaps].sort((a, b) => {
+      const ta = tier(a);
+      const tb = tier(b);
+      if (ta !== tb) return ta - tb;
+      return a.key.localeCompare(b.key);
+    });
+    return sorted.map((g, idx) => ({ ...g, implementationOrder: idx + 1 }));
+  }
+
+  /**
+   * Round-12: Return the top N gaps most likely to be quickly filled, i.e.
+   * migration/integration entries whose ossFramework is already present.
+   * Used by operators planning next-quarter work.
+   */
+  topFillableGaps(n: number = 3): CloudExclusiveGap[] {
+    return this.collectCloudGaps()
+      .filter((g) => g.ossFrameworkPresent && g.reasonCategory === 'driver_missing')
+      .slice(0, n);
   }
 
   /**
