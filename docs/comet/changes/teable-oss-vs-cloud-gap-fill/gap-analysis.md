@@ -595,6 +595,89 @@ bash scripts/e2e-enterprise-readiness.sh
 - 前 8 项用户原始要求(对比分析、差距、完善、自动化、中文、最小改造、学习、URL)中,**7/8 已完成,1/8 受外部认证墙阻挡(app.teable.ai 需登录)**
 - 在 8 项要求内,通过 Round-8 + Round-10 已扩展官方源对账面(pricing + authority-matrix + llms.txt 全文档 + sitemap)
 
+
+## Round-11: cloudGap 段暴露 14 个 Cloud 独占 feature
+
+### 目标
+R10 发现 14 个新 Cloud-exclusive feature,但只停留在文档层。R11 把它们暴露到 `enterprise-readiness` API 中作为 `cloudGap` 段,让运维可以一眼看出 OSS 与 Cloud 的真实差距。
+
+### 改动
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:
+
+| 项 | 改动 |
+|---|---|
+| `CloudExclusiveGap` type | 新增,字段:key/name/category/cloudDocPath/status/ossFramework/notes |
+| `CLOUD_EXCLUSIVE_GAPS` const | 新增,14 条静态记录 |
+| `collectCloudGaps()` | 新增方法,返回 CLOUD_EXCLUSIVE_GAPS 副本 |
+| `cloudExclusiveGapCount()` | 新增方法,返回 14 |
+| `report()` | 增加 `cloudGap` 字段 + `summary.cloudExclusiveGapCount` |
+| `EnterpriseReadinessReport` type | 增加 `cloudGap: CloudExclusiveGap[]` + `cloudExclusiveGapCount: number` |
+
+`scripts/e2e-enterprise-readiness.sh` 新增 Section 4,7 个断言:
+1. cloudGap 数组 = 14 项
+2. 每项必填字段完整
+3. category=migration 计数 = 7
+4. category=scripting 计数 = 5
+5. category=integration 计数 = 2
+6. 所有项 status='not_implemented'
+7. summary.cloudExclusiveGapCount = 14 与 cloudGap.length 一致
+
+旧的 "Section 4 unauth rejected" 重命名为 "Section 5"。
+
+### 14 个 gap 分类
+
+| Category | Count | Items |
+|---|---|---|
+| migration | 7 | baserow/smartsuite/nocodb/jira/monday/clickup/smartsheet |
+| scripting | 5 | run_script_action/ai_script/api_automation/script_samples/ai_script_zh |
+| integration | 2 | connect_more_sources/ai_skill |
+
+### 验证
+```bash
+bash scripts/e2e-enterprise-readiness.sh
+# Section 2.10: 23/23 capability flips
+# Section 4: 7/7 cloudGap assertions
+# Section 5: unauth rejected (401)
+# ALL E2E READINESS ASSERTIONS PASSED
+```
+
+API 调用示例:
+```bash
+curl -H 'x-admin-token: test-token' \
+  http://127.0.0.1:3000/api/admin/enterprise-readiness | jq .cloudGap[0]
+# {
+#   "key": "baserow_import",
+#   "name": "Connect & Migrate Baserow",
+#   "category": "migration",
+#   "cloudDocPath": "basic/ai/connect-everything/migrate-baserow.md",
+#   "status": "not_implemented",
+#   "ossFramework": "integration-connector",
+#   "notes": "Pattern: airtable-import module"
+# }
+```
+
+### 累计统计 (Round-1 ~ Round-11)
+
+| 维度 | R8 | R9 | R10 | **R11** |
+|---|---|---|---|---|
+| Worktree commits | 2 | 3 | 4 | **5** |
+| 官方源验证 | 2 | 2 | 4 | **4** |
+| 真实 gap 数 | 5 | 5 | 19 | **19 (暴露在 API)** |
+| e2e 测试段数 | 10 | 10 | 10 | **11 (加 Section 4 cloudGap)** |
+| Cloud parity | 38/38 | 38/38 | 38/38 | **38/38** |
+| gap-analysis.md 行数 | 474 | 523 | 602 | **~680** |
+
+### 结论
+
+**Round-11 完成**:把 R10 文档化的 14 个 Cloud-exclusive gap 真正暴露在 `enterprise-readiness` API 的 `cloudGap` 段,7 个 e2e 断言守护数据完整性。运维现在可以:
+```bash
+curl -H 'x-admin-token: $ADMIN_TOKEN' \
+  http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary, .cloudGap | length'
+# 38/38 parity, 14 documented Cloud gaps
+```
+
+这是 "继续完善" + "自动化验证" 的最小改造:不假装实现,只让差距可见;不需要大规模功能开发就能让用户看到 OSS 真实水平。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)

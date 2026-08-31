@@ -102,6 +102,36 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
 
+/**
+ * Round-11: Cloud-exclusive features documented in help.teable.ai/llms.txt
+ * but NOT currently implemented in OSS. Tracked explicitly so:
+ *  - readiness API surfaces them as "not_implemented"
+ *  - operators can prioritize
+ *  - e2e can verify gap tracking works
+ *
+ * Source: docs/comet/changes/teable-oss-vs-cloud-gap-fill/gap-analysis.md
+ *         Round-10 section (14 features added 2026-08-31).
+ */
+const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
+  // Connect & Migrate Everything (7)
+  { key: 'baserow_import', name: 'Connect & Migrate Baserow', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-baserow.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
+  { key: 'smartsuite_import', name: 'Connect & Migrate SmartSuite', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsuite.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
+  { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
+  { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: project/item/sprint/comment/attachment mapping' },
+  { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: workspace/board/group/column mapping' },
+  { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: workspace/space/folder/list/task mapping' },
+  { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Sheet/row/column/discussion/attachment mapping' },
+  // Scripting (3)
+  { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires JS sandbox (VM2 / isolated-vm) for safe execution' },
+  { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires Run Script action + LLM integration' },
+  { key: 'api_automation', name: 'Build automations programmatically via API', category: 'scripting', cloudDocPath: 'basic/automation/examples/api-automation.md', status: 'not_implemented', ossFramework: null, notes: 'Partial: API exists, JS code samples missing' },
+  // Other / integration (4)
+  { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Generic connector framework; needs driver registry' },
+  { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships ready-to-use JS examples' },
+  { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships i18n docs' },
+  { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud exposes Teable as an agent-callable skill' },
+];
+
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {
   free: { rows: 1000, attachments: 1_000_000_000, automationRuns: 100, seats: null },
   pro: { rows: 250_000, attachments: 10_000_000_000, automationRuns: 25_000, seats: null },
@@ -153,6 +183,7 @@ export class EnterpriseReadinessService {
     const enabled = Object.values(capabilityMap).filter((c) => c.enabled).length;
     const disabled = total - enabled;
     const parity = this.cloudBusinessParity(capabilityMap);
+    const cloudGap = this.collectCloudGaps();
 
     return {
       instance: {
@@ -163,14 +194,30 @@ export class EnterpriseReadinessService {
       capabilities: capabilityMap,
       quotas,
       integrations,
+      cloudGap,
       summary: {
         total,
         enabled,
         disabled,
         missing: 0,
         cloudBusinessParity: parity,
+        cloudExclusiveGapCount: cloudGap.length,
       },
     };
+  }
+
+  /**
+   * Round-11: Surface Cloud-exclusive features that OSS does not currently
+   * implement. The list is static (sourced from help.teable.ai/llms.txt) so
+   * verification is deterministic. Future rounds can graduate entries from
+   * 'not_implemented' to 'partial' as OSS catches up.
+   */
+  collectCloudGaps(): CloudExclusiveGap[] {
+    return [...CLOUD_EXCLUSIVE_GAPS];
+  }
+
+  cloudExclusiveGapCount(): number {
+    return CLOUD_EXCLUSIVE_GAPS.length;
   }
 
   /**

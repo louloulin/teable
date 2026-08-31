@@ -709,8 +709,63 @@ print('true' if val else 'false')
     "business: capability '$cap' enabled (got: $ENABLED)"
 done
 
-# ----- Section 4: unauthenticated request rejected -----
-log "=== Section 4: unauth rejected ==="
+# ----- Section 4: cloud-exclusive gap tracking (Round-11) -----
+# Verifies the readiness API surfaces the 14 Cloud-exclusive features that
+# OSS does not currently implement. Static list, deterministic verification.
+log "=== Section 4: cloud-exclusive gap tracking (Round-11) ==="
+
+GAP_BODY="$(fetch_readiness)"
+GAP_COUNT=$(echo "$GAP_BODY" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('cloudGap', [])))")
+assert_ok "$([[ "$GAP_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "cloudGap array has 14 entries (got: $GAP_COUNT)"
+
+# Each entry must have required fields
+GAP_STRUCT_OK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+required = {'key','name','category','cloudDocPath','status','ossFramework','notes'}
+ok = all(required.issubset(set(g.keys())) for g in gaps)
+print('true' if ok else 'false')
+")
+assert_ok "$([[ "$GAP_STRUCT_OK" == "true" ]] && echo 0 || echo 1)" \
+  "every cloudGap entry has required fields (got: $GAP_STRUCT_OK)"
+
+# Category breakdown: 7 migration + 5 scripting + 2 integration = 14
+GAP_CATS=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+from collections import Counter
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(dict(Counter(g['category'] for g in gaps)))
+")
+assert_ok "$(echo "$GAP_CATS" | grep -q "'migration': 7" && echo 0 || echo 1)" \
+  "migration count = 7 (got: $GAP_CATS)"
+assert_ok "$(echo "$GAP_CATS" | grep -q "'scripting': 5" && echo 0 || echo 1)" \
+  "scripting count = 5 (got: $GAP_CATS)"
+assert_ok "$(echo "$GAP_CATS" | grep -q "'integration': 2" && echo 0 || echo 1)" \
+  "integration count = 2 (got: $GAP_CATS)"
+
+# All entries must be 'not_implemented' (we don't fake completion)
+GAP_STATUS=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(all(g['status'] == 'not_implemented' for g in gaps))
+")
+assert_ok "$([[ "$GAP_STATUS" == "True" ]] && echo 0 || echo 1)" \
+  "all 14 cloudGap entries status='not_implemented' (got: $GAP_STATUS)"
+
+# summary.cloudExclusiveGapCount must match cloudGap length
+GAP_SUMMARY=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+b = json.load(sys.stdin)
+arr_len = len(b.get('cloudGap', []))
+sum_val = b.get('summary', {}).get('cloudExclusiveGapCount', -1)
+print('true' if arr_len == sum_val == 14 else 'false')
+")
+assert_ok "$([[ "$GAP_SUMMARY" == "true" ]] && echo 0 || echo 1)" \
+  "summary.cloudExclusiveGapCount=14 matches cloudGap length (got: $GAP_SUMMARY)"
+
+# ----- Section 5: unauthenticated request rejected -----
+log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"
 assert_ok "$([[ "$HTTP_CODE" == "401" ]] && echo 0 || echo 1)" \
   "no admin token returns 401 (got: $HTTP_CODE)"
