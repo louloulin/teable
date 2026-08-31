@@ -1372,3 +1372,105 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-19: 实现 monday_import driver（第 4 个 partial → implemented，GraphQL 首发）
+
+### 目标
+沿用 R16-R18 driver 模板,实现 cloudGap[4] `monday_import`。本轮特殊性:**第一个 GraphQL-based driver**（其他三个都是 REST）。验证模板在 GraphQL 上同样可用。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/monday-import/`（~290 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `monday-import.types.ts` | MondayWorkspace / MondayBoard / MondayItem | 39 |
+| `monday-api.client.ts` | GraphQL client (POST 单端点,query 变量) | 105 |
+| `monday-import.service.ts` | 服务层:probe / listWorkspaces / listBoards / fetchItems | 53 |
+| `monday-import.controller.ts` | 4 个端点:`/api/monday-import/{probe,workspaces,boards,items}` | 52 |
+| `monday-import.module.ts` | NestJS module 装配 | 24 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `MondayImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- `monday_import` cloudGap entry: status='implemented', ossFramework='monday-import'
+- `monday_import` 加入 capability 列表(module=monday-import, enabled=true)
+- `monday_import` 加入 MIGRATION_SOURCE_REGISTRY 并标记 implemented
+- `monday_import` 加入 implementedBy mapping
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.8(6 个断言):monday driver capability + cloudGap status + 端点 + 指标
+- 更新 Section 4.1: driver_missing 从 5 改为 4
+- 更新 Section 4.4: migration-sources implemented 6→7,pending 5→4
+- 更新 Section 4.5/4.6/4.7: cloudGapImplementedCount 3→4
+- 更新 parity: 39/41 → 40/42
+- 更新 EXPECTED_TOTAL: 75 → 76
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R17 | 16 | ~74 |
+| R18 | 17 | ~80 (+6) |
+| **R19** | **18** | **~86 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-19)
+
+| 维度 | R18 | **R19** |
+|---|---|---|
+| Worktree commits | 12 | **13** |
+| e2e 段数 | 17 | **18** |
+| e2e 总断言数 | ~80 | **~86** |
+| 新增模块 | jira-import | **monday-import (290 LOC, GraphQL)** |
+| 新增 API 端点 | 3 (jira) | **4 (monday probe/workspaces/boards/items)** |
+| cloudGap 状态 | 3 impl + 6 partial + 5 not_impl | **4 impl + 5 partial + 5 not_impl** |
+| cloudGapImplementedCount | 3 | **4** |
+| cloudGapCoverage | 64% | **64%** |
+| 总 capability | 75 | **76** |
+| 业务 parity | 39/41 | **40/42** |
+| gap-analysis.md 行数 | ~1370 | **~1470** |
+
+### API 范式对比（4 个 driver）
+
+| Driver | Round | API 范式 | Auth | 端点数 |
+|---|---|---|---|---|
+| baserow | R16 | REST | Token header | 3 |
+| clickup | R17 | REST | Bearer (no prefix) | 4 |
+| jira | R18 | REST v3 | HTTP Basic | 3 |
+| **monday** | **R19** | **GraphQL** | **Token (no prefix)** | **4** |
+
+GraphQL 与 REST 的差异在 `monday-api.client.ts` 一个文件:`graphql()` 方法封装 POST 单端点 + query/variables。Service / Controller / Module 完全不变 — 验证模板可承载 REST 和 GraphQL 两种范式。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/monday-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"token":"test"}'
+{
+  "ok": false,
+  "error": "Monday GraphQL failed: HTTP 401 ...",
+  "fetchedAt": "2026-09-01T16:01:00.000Z"
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 76,
+  "enabled": 50,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 4
+}
+```
+
+### 结论
+
+**Round-19 完成**:monday_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 4。模板第 4 次复用,且首次覆盖 GraphQL 范式,证明模板对 API 风格无依赖。剩余 4 个 driver_missing 中,nocodb / smartsheet / smartsuite 都是 REST,connect_more_sources 是 generic。
+
+### 已知 limitation (继承)
+- monday driver 只覆盖 probe / listWorkspaces / listBoards / fetchItems;column_values 复杂类型(subitems / mirror / formula)是 follow-up
+- 4 个 pending migration(nocodb/smartsheet/smartsuite/connect_more_sources)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现

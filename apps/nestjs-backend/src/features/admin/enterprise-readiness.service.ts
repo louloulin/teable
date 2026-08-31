@@ -110,6 +110,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'baserow_import',        // baserow-import module wired in app.module.ts (Round-16: Cloud §Baserow 迁移)
   'clickup_import',        // clickup-import module wired in app.module.ts (Round-17: Cloud §ClickUp 迁移)
   'jira_import',           // jira-import module wired in app.module.ts (Round-18: Cloud §Jira 迁移)
+  'monday_import',         // monday-import module wired in app.module.ts (Round-19: Cloud §monday.com 迁移)
   'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
@@ -130,7 +131,7 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'smartsuite_import', name: 'Connect & Migrate SmartSuite', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsuite.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
   { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
   { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'implemented', ossFramework: 'jira-import', notes: 'Round-18: jira-import module wired; probe + listProjects + fetchIssues endpoints exposed; ADF + custom field translation pending follow-up' },
-  { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: workspace/board/group/column mapping' },
+  { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'implemented', ossFramework: 'monday-import', notes: 'Round-19: monday-import module wired; probe + listWorkspaces + listBoards + fetchItems endpoints exposed; column value translation pending follow-up' },
   { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'implemented', ossFramework: 'clickup-import', notes: 'Round-17: clickup-import module wired; probe + listSpaces + listLists + fetchTasks endpoints exposed; field translation pending follow-up' },
   { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Sheet/row/column/discussion/attachment mapping' },
   // Scripting (3)
@@ -162,7 +163,7 @@ const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
   'baserow_import',      // implemented (round-16 wired: baserow-import module)
   'clickup_import',      // implemented (round-17 wired: clickup-import module)
   'jira_import',         // implemented (round-18 wired: jira-import module)
-  'monday_import',       // framework slot only
+  'monday_import',       // implemented (round-19 wired: monday-import module, GraphQL)
   'nocodb_import',       // framework slot only
   'smartsheet_import',   // framework slot only
   'smartsuite_import',   // framework slot only
@@ -347,13 +348,14 @@ export class EnterpriseReadinessService {
     implemented: boolean;
     implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
-    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'pending'> = {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'pending'> = {
       airtable_import: 'airtable-import',
       notion_import: 'notion',
       google_sheets_import: 'google-sheets',
       baserow_import: 'baserow-import',
       clickup_import: 'clickup-import',
       jira_import: 'jira-import',
+      monday_import: 'monday-import',
     };
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
@@ -830,6 +832,12 @@ export class EnterpriseReadinessService {
       {
         key: 'jira_import',
         module: 'jira-import',
+        enabled: true,
+      },
+      // Monday.com migration source (Round-19: monday-import module wired, GraphQL)
+      {
+        key: 'monday_import',
+        module: 'monday-import',
         enabled: true,
       },
       // View-level permission (Cloud §视图权限独立)
