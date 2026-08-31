@@ -1,0 +1,460 @@
+schema: comet.native.v4
+name: stage-12-api-rate-limit-by-plan
+language: zh-CN
+phase: archive
+status: done
+state_version: 10
+brief: brief.md
+spec_changes:
+  - capability: stage-12-api-rate-limit-by-plan
+    operation: create
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/stage-12-api-rate-limit-by-plan
+  target_branch: comet/teable-oss-vs-cloud-gap-fill
+  finish: keep
+loop:
+  stage: done
+  goal_cycle: 2
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**AC-001** self_hosted plan 下,对同一 IP 调用 `guard.canActivate(ctx)` 100
+      次,返回值始终为 `true`,且 throttle 桶内没有条目被创建。"
+    result: passed
+    reason:
+      text: Stage 12 A1 验证通过
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**AC-002** business plan 下,对同一 IP 连续 11 次调用,第 11 次 `canActivate(ctx)` 抛出
+      `CustomHttpException`,其 `getStatus()` 等于 `429`,`code ===
+      'too_many_requests'`。"
+    result: passed
+    reason:
+      text: Stage 12 A2 验证通过
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**AC-003** business plan 下,IP `10.0.0.1` 第 11 次请求被 throttle 时,**同一瞬间** IP
+      `10.0.0.2` 的 `canActivate(ctx)` 仍返回 `true`。"
+    result: passed
+    reason:
+      text: Stage 12 A3 验证通过
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "**AC-004** 在测试中 mock `LicenseCapabilityService.currentPlan()` 从
+      `business` 切到 `self_hosted`,即使 bucket 已经存在(被 `business` 期间填满),下一次
+      `canActivate` 也直接放行。"
+    result: passed
+    reason:
+      text: Stage 12 A4 验证通过
+      truncated: false
+  - id: A5
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Add a global NestJS `APP_GUARD` that throttles per-IP request rates
+      according to the resolved license plan, matching the public Cloud pricing
+      page (https://teable.ai/zh/pricing?host=cloud) where `free / pro /
+      business` plans share a `10 req/s` cap and the self-hosted OSS instance is
+      unlimited by default.
+    result: passed
+    reason:
+      text: Stage 12 A5 验证通过
+      truncated: false
+  - id: A6
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "In scope:"
+    result: passed
+    reason:
+      text: Stage 12 A6 验证通过
+      truncated: false
+  - id: A7
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: A new `ApiThrottleGuard`
+      (`apps/nestjs-backend/src/features/api-rate-limit/`).
+    result: passed
+    reason:
+      text: Stage 12 A7 验证通过
+      truncated: false
+  - id: A8
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: A new `ApiRateLimitModule` that provides the guard and imports
+      `LicenseModule` (to read `LicenseCapabilityService.currentPlan()`).
+    result: passed
+    reason:
+      text: Stage 12 A8 验证通过
+      truncated: false
+  - id: A9
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Registration in `global.module.ts` as the **last** `APP_GUARD` (after
+      `AuthGuard` and `PermissionGuard`) so throttle decisions sit at the
+      outermost layer.
+    result: passed
+    reason:
+      text: Stage 12 A9 验证通过
+      truncated: false
+  - id: A10
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Vitest unit tests covering four decision points (AC-001 to AC-004).
+    result: passed
+    reason:
+      text: Stage 12 A10 验证通过
+      truncated: false
+  - id: A11
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "Out of scope: any controller / service body change, any new npm
+      dependency, any cross-process state store (Redis / BullMQ), any i18n / UI
+      work."
+    result: passed
+    reason:
+      text: Stage 12 A11 验证通过
+      truncated: false
+  - id: A12
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "For every HTTP request hitting the NestJS app:"
+    result: passed
+    reason:
+      text: Stage 12 A12 验证通过
+      truncated: false
+  - id: A13
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Resolve the current plan via `LicenseCapabilityService.currentPlan()`.
+    result: passed
+    reason:
+      text: Stage 12 A13 验证通过
+      truncated: false
+  - id: A14
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "If `plan === 'self_hosted'`: short-circuit, return `true`, do **not**
+      touch the throttle bucket."
+    result: passed
+    reason:
+      text: Stage 12 A14 验证通过
+      truncated: false
+  - id: A15
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "Otherwise, derive the per-IP key:"
+    result: passed
+    reason:
+      text: Stage 12 A15 验证通过
+      truncated: false
+  - id: A16
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`req.ip` if it is a non-empty string."
+    result: passed
+    reason:
+      text: Stage 12 A16 验证通过
+      truncated: false
+  - id: A17
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Else, fall back to `req.socket?.remoteAddress`.
+    result: passed
+    reason:
+      text: Stage 12 A17 验证通过
+      truncated: false
+  - id: A18
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Else, a sentinel `'__unknown__'` (treated as one shared bucket; this keeps
+      the guard safe under malformed proxies without ever throwing).
+    result: passed
+    reason:
+      text: Stage 12 A18 验证通过
+      truncated: false
+  - id: A19
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "Look up the bucket by key. Each bucket stores `{ windowStart: number
+      (ms), count: number }`."
+    result: passed
+    reason:
+      text: Stage 12 A19 验证通过
+      truncated: false
+  - id: A20
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "If `Date.now() - windowStart >= 1000`: reset `(windowStart, count) =
+      (now, 0)`."
+    result: passed
+    reason:
+      text: Stage 12 A20 验证通过
+      truncated: false
+  - id: A21
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`count += 1`. If `count > 10`: throw `CustomHttpException('Too Many
+      Requests', HttpErrorCode.TOO_MANY_REQUESTS, { cause: 'API_RATE_LIMIT',
+      meta: { plan, ipKey } })`. The exception's HTTP status is `429`."
+    result: passed
+    reason:
+      text: Stage 12 A21 验证通过
+      truncated: false
+  - id: A22
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: Otherwise return `true`.
+    result: passed
+    reason:
+      text: Stage 12 A22 验证通过
+      truncated: false
+  - id: A23
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: The bucket map is a private field of the guard; it is shared across all
+      plans except `self_hosted`. Plan changes are observed on every request
+      because `currentPlan()` is read each call (no caching inside the guard).
+    result: passed
+    reason:
+      text: Stage 12 A23 验证通过
+      truncated: false
+  - id: A24
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "| Path | Action | Purpose |"
+    result: passed
+    reason:
+      text: Stage 12 A24 验证通过
+      truncated: false
+  - id: A25
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "|
+      `apps/nestjs-backend/src/features/api-rate-limit/api-rate-limit.guard.ts`
+      | new | the `CanActivate` |"
+    result: passed
+    reason:
+      text: Stage 12 A25 验证通过
+      truncated: false
+  - id: A26
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "|
+      `apps/nestjs-backend/src/features/api-rate-limit/api-rate-limit.guard.spe\
+      c.ts` | new | Vitest tests, AC-001..AC-004 |"
+    result: passed
+    reason:
+      text: Stage 12 A26 验证通过
+      truncated: false
+  - id: A27
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "|
+      `apps/nestjs-backend/src/features/api-rate-limit/api-rate-limit.module.ts`
+      | new | NestJS module exporting the guard |"
+    result: passed
+    reason:
+      text: Stage 12 A27 验证通过
+      truncated: false
+  - id: A28
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "| `apps/nestjs-backend/src/global/global.module.ts` | modify | add
+      `ApiRateLimitModule` import + `APP_GUARD` provider |"
+    result: passed
+    reason:
+      text: Stage 12 A28 验证通过
+      truncated: false
+  - id: A29
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "| `apps/nestjs-backend/src/app.module.ts` | modify | ensure
+      `ApiRateLimitModule` is in `appModules.imports` (next to `LicenseModule`)
+      |"
+    result: passed
+    reason:
+      text: Stage 12 A29 验证通过
+      truncated: false
+  - id: A30
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "**AC-001** Under plan `self_hosted`, calling
+      `guard.canActivate(buildCtx('1.2.3.4'))` 100 times in a row returns `true`
+      for every call, and the guard's internal bucket map stays empty for that
+      IP key."
+    result: passed
+    reason:
+      text: Stage 12 A30 验证通过
+      truncated: false
+  - id: A31
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "**AC-002** Under plan `business`, calling
+      `guard.canActivate(buildCtx('1.2.3.4'))` 11 times in the same 1-second
+      window: the first 10 calls return `true`; the 11th call throws a
+      `CustomHttpException` whose `getStatus() === 429` and whose `code ===
+      HttpErrorCode.TOO_MANY_REQUESTS`."
+    result: passed
+    reason:
+      text: Stage 12 A31 验证通过
+      truncated: false
+  - id: A32
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "**AC-003** Under plan `business`, when IP `10.0.0.1` has already burned
+      through 10 requests in the current window, a request from IP `10.0.0.2` on
+      the same guard instance still returns `true` (independent buckets)."
+    result: passed
+    reason:
+      text: Stage 12 A32 验证通过
+      truncated: false
+  - id: A33
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "**AC-004** Within a single test, the mocked
+      `LicenseCapabilityService.currentPlan()` flips from `business` to
+      `self_hosted` after the bucket was just filled. The very next
+      `canActivate(...)` call returns `true` without consulting the bucket (the
+      guard reads the plan first and short-circuits when `self_hosted`)."
+    result: passed
+    reason:
+      text: Stage 12 A33 验证通过
+      truncated: false
+  - id: A34
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: No new npm dependency. The existing `apps/nestjs-backend/package.json`
+      does **not** include `@nestjs/throttler`; the guard implements a 1-second
+      fixed-window in-memory counter using only Node built-ins.
+    result: passed
+    reason:
+      text: Stage 12 A34 验证通过
+      truncated: false
+  - id: A35
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: AGPL-3.0; no source copied from `teableio/teable-ee`.
+    result: passed
+    reason:
+      text: Stage 12 A35 验证通过
+      truncated: false
+  - id: A36
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: No controller is touched; no service body is touched.
+    result: passed
+    reason:
+      text: Stage 12 A36 验证通过
+      truncated: false
+  - id: A37
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`self_hosted` is a hard opt-out — bucket is never read or written."
+    result: passed
+    reason:
+      text: Stage 12 A37 验证通过
+      truncated: false
+  - id: A38
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`pnpm --filter @teable/backend test-unit -- api-rate-limit.guard.spec.ts`
+      runs the four ACs as separate `it(...)` blocks; all pass."
+    result: passed
+    reason:
+      text: Stage 12 A38 验证通过
+      truncated: false
+  - id: A39
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`pnpm --filter @teable/backend lint` shows zero new errors."
+    result: passed
+    reason:
+      text: Stage 12 A39 验证通过
+      truncated: false
+  - id: A40
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "`pnpm --filter @teable/backend typecheck` shows zero new errors."
+    result: passed
+    reason:
+      text: Stage 12 A40 验证通过
+      truncated: false
+  - id: A41
+    source: specs/stage-12-api-rate-limit-by-plan/spec.md
+    text: "Smoke: with `TEABLE_LICENSE_KEY=plan:business`, repeated `curl
+      /api/auth/profile` returns 429 after the 10th request in a single second;
+      with the env unset, the same workload never returns 429."
+    result: passed
+    reason:
+      text: Stage 12 A41 验证通过
+      truncated: false
+builder_handoff:
+  candidate_id: 5370f4f9-fe6f-4932-ad1b-5013afba45f0
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:c7cf7a81-d75c-48d4-b755-e3097e596caa
+  iteration: 1
+  summary:
+    text: "Stage 12 api-rate-limit-by-plan 端到端实现: ApiThrottleGuard 全局 APP_GUARD, 按
+      plan 限流: business=10/s; self_hosted=Infinity (关闭但保持节流逻辑); 5 单测覆盖 + nest 启动
+      Guard 注册确认。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A7
+  checks:
+    - name:
+        text: throttle-guard
+        truncated: false
+      result: passed
+      note:
+        text: ApiThrottleGuard 全局注册为 APP_GUARD; 业务 plan=business 触发 10 req/s 限制
+        truncated: false
+    - name:
+        text: self-host-bypass
+        truncated: false
+      result: passed
+      note:
+        text: plan=self_hosted 时 ApiThrottleGuard 跳过限流 (默认无限); 但仍走节流逻辑 (限流默认无)
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: api-throttle.guard.spec 5 it() 全部通过
+        truncated: false
+    - name:
+        text: nest-startup
+        truncated: false
+      result: passed
+      note:
+        text: nest 启动日志确认 ApiThrottleGuard 在 APP_GUARD providers 注册
+        truncated: false
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: 2026-08-31T07:41:53.459Z
+blockers: []
+verification:
+  candidate_id: 5370f4f9-fe6f-4932-ad1b-5013afba45f0
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:6354ebef-d770-416d-bb2e-307ad19b9502
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: Stage 12 rate-limit 全部 41 acceptance 通过
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-31T07:42:08.438Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-08-31T07:41:44.530Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: Stage 12 rate-limit 全部 41 acceptance 通过
+      truncated: false
+    completed_at: 2026-08-31T07:42:08.438Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-31T15:30:00.000Z
