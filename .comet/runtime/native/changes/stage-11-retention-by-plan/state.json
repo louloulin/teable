@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-11-retention-by-plan",
+  "basedOnStateVersion": 9,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-11-retention-by-plan",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-11-retention-by-plan",
+    "branch": "comet/stage-11-retention-by-plan"
+  },
+  "execution": null,
+  "checks": []
+}
