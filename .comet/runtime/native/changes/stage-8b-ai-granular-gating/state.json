@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-8b-ai-granular-gating",
+  "basedOnStateVersion": 8,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-8b-ai-granular-gating",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-8b-ai-granular-gating",
+    "branch": "comet/stage-8b-ai-granular-gating"
+  },
+  "execution": null,
+  "checks": []
+}
