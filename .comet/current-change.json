@@ -2,9 +2,13 @@
   "schema": "comet.selection.v2",
   "workflow": "native",
 <<<<<<< HEAD
+<<<<<<< HEAD
   "change": "stage-4-1-sso-callback",
 =======
   "change": "stage-4-2-sso-state-cleanup",
 >>>>>>> comet/stage-4-2-sso-state-cleanup
+=======
+  "change": "stage-5b-permission-hot-path",
+>>>>>>> comet/stage-5b-permission-hot-path
   "branch": null
 }
