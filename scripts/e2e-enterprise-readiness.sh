@@ -68,6 +68,7 @@ cleanup() {
      DELETE FROM meta.conflict_event WHERE id = 'cfe_round6_demo'; \
      DELETE FROM meta.federation_event WHERE id = 'fe_round6_demo'; \
      DELETE FROM meta.cross_org_admin_grant WHERE id = 'coag_round6_demo'; \
+     DELETE FROM meta.dr_canvas WHERE id = 'drc_round33_demo'; \
      DELETE FROM meta.dr_canvas WHERE id = 'drc_round6_demo'; \
      DELETE FROM meta.billing_credit WHERE id = 'bcr_round6_demo'; \
      DELETE FROM meta.backup_restore_log WHERE id = 'brl_round6_demo';
@@ -2337,6 +2338,295 @@ print('null' if d.get('role', 'x') is None else 'present')
 ")
 assert_ok "$([[ "$OCR_GONE" == "null" ]] && echo 0 || echo 1)" \
   "org-custom-role: deleted role returns role:null (got: $OCR_GONE)"
+
+
+# ----- Section 4.21: dr-canvas HTTP CRUD (Round-33) -----
+log "=== Section 4.21: dr-canvas HTTP CRUD (Round-33) ==="
+
+# 1) PUT canvas
+sleep 2
+DRC_PUT=$(curl -s -X PUT "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo" \
+  -H 'Content-Type: application/json' \
+  -d '{"baseId":"b_e2e_demo","name":"us-eu-replica","canvas":{"nodes":[{"id":"src","kind":"source"}],"edges":[],"version":1},"sourceRegion":"us","destRegion":"eu","createdBy":"u_e2e_demo"}' \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print('nodes='+str(len(d.get('nodes',[]))))")
+assert_ok "$([[ "$DRC_PUT" =~ nodes=1 ]] && echo 0 || echo 1)" \
+  "dr-canvas: PUT canvas returns 1 node (got: $DRC_PUT)"
+
+# 2) GET canvas
+sleep 2
+DRC_GET=$(curl -s "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('nodes='+str(len(d.get('nodes',[]))))
+")
+assert_ok "$([[ "$DRC_GET" =~ nodes=1 ]] && echo 0 || echo 1)" \
+  "dr-canvas: GET canvas returns 1 node (got: $DRC_GET)"
+
+# 3) List canvases for base
+sleep 2
+DRC_LIST=$(curl -s "${BASE_URL}/api/dr-canvas/bases/b_e2e_demo/canvases" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+c = d.get('canvases', [])
+print('count='+str(len(c))+',has_demo='+str(any(x.get('id')=='drc_round33_demo' for x in c)).lower())
+")
+assert_ok "$([[ "$DRC_LIST" =~ count=1 ]] && [[ "$DRC_LIST" =~ has_demo=true ]] && echo 0 || echo 1)" \
+  "dr-canvas: list canvases returns 1 demo (got: $DRC_LIST)"
+
+# 4) Validate canvas (pure helper, no persistence)
+sleep 2
+DRC_VAL=$(curl -s -X POST "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo/validate" \
+  -H 'Content-Type: application/json' \
+  -d '{"canvas":{"nodes":[{"id":"src","kind":"snapshot","ref":"pg_basebackup"},{"id":"dst","kind":"replicate","ref":"full_replicate"},{"id":"rst","kind":"restore","ref":"restore_pitr"}],"edges":[{"from":"src","to":"dst"},{"from":"dst","to":"rst"}],"version":1}}' \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('valid='+str(d.get('ok', False)).lower())
+")
+assert_ok "$([[ "$DRC_VAL" =~ valid=true ]] && echo 0 || echo 1)" \
+  "dr-canvas: validate returns valid:true (got: $DRC_VAL)"
+
+# 5) Plan execution (pure helper)
+sleep 2
+DRC_PLAN=$(curl -s -X POST "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo/plan" \
+  -H 'Content-Type: application/json' \
+  -d '{"canvas":{"nodes":[{"id":"src","kind":"snapshot","ref":"pg_basebackup"},{"id":"dst","kind":"replicate","ref":"full_replicate"},{"id":"rst","kind":"restore","ref":"restore_pitr"}],"edges":[{"from":"src","to":"dst"},{"from":"dst","to":"rst"}],"version":1}}' \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('steps='+str(len(d.get('steps',[]))))
+")
+assert_ok "$([[ "$DRC_PLAN" =~ steps=3 ]] && echo 0 || echo 1)" \
+  "dr-canvas: plan returns 3 steps (got: $DRC_PLAN)"
+
+# 6) DELETE canvas
+sleep 2
+DRC_DEL=$(curl -s -X DELETE "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$DRC_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "dr-canvas: DELETE canvas returns deleted:true (got: $DRC_DEL)"
+
+# 7) GET after delete returns empty
+sleep 2
+DRC_GONE=$(curl -s "${BASE_URL}/api/dr-canvas/canvases/drc_round33_demo" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('null' if d.get('canvas', 'x') is None else 'present')
+")
+assert_ok "$([[ "$DRC_GONE" == "null" ]] && echo 0 || echo 1)" \
+  "dr-canvas: deleted canvas returns canvas:null (got: $DRC_GONE)"
+
+# ----- Section 4.22: cuppy AI conversation cloud-parity (Round-AI-1) -----
+log "=== Section 4.22: cuppy AI conversation cloud-parity (Round-AI-1, 23 endpoints) ==="
+
+# Sign in as admin user to obtain session cookie (cuppy requires user auth, not admin token)
+COOKIE_JAR="/tmp/teable-e2e-cookies.txt"
+UAUTH=(-b "$COOKIE_JAR")
+sleep 2
+SIGNIN_HTTP=$(curl -s -c "$COOKIE_JAR" -o /tmp/teable-e2e-signin.json -w '%{http_code}' \
+  -X POST "${BASE_URL}/api/auth/signin" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@teable.local","password":"admin123"}')
+assert_ok "$([[ "$SIGNIN_HTTP" == "200" ]] && echo 0 || echo 1)" \
+  "cuppy: signin admin user returns 200 (got: HTTP $SIGNIN_HTTP)"
+
+CUPPY_CID="cuppy_e2e_$(date +%s)"
+
+# 1) GET /models
+sleep 2
+MODELS=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/models" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d.get('models', [])
+print('count='+str(len(m))+',has_pro='+str(any(x.get('tier')=='pro' for x in m)).lower())
+")
+assert_ok "$([[ "$MODELS" =~ count=5 ]] && [[ "$MODELS" =~ has_pro=true ]] && echo 0 || echo 1)" \
+  "cuppy: /models returns 5 models including pro tier (got: $MODELS)"
+
+# 2) GET smart-level default (no conversation yet → medium)
+sleep 2
+SL0=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/smart-level" | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('smartLevel', 'none'))
+")
+assert_ok "$([[ "$SL0" == "medium" ]] && echo 0 || echo 1)" \
+  "cuppy: default smart-level is medium (got: $SL0)"
+
+# 3) POST smart-level high
+sleep 2
+SL1=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/smart-level" \
+  -H 'Content-Type: application/json' \
+  -d '{"level":"high"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('level', 'none'))
+")
+assert_ok "$([[ "$SL1" == "high" ]] && echo 0 || echo 1)" \
+  "cuppy: set smart-level returns level:high (got: $SL1)"
+
+# 4) PUT memory
+sleep 2
+MEM_PUT=$(curl -s "${UAUTH[@]}" -X PUT "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/memory" \
+  -H 'Content-Type: application/json' \
+  -d '{"key":"db_schema","value":"orders(id,customer_id,amount)"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('key', 'none'))
+")
+assert_ok "$([[ "$MEM_PUT" == "db_schema" ]] && echo 0 || echo 1)" \
+  "cuppy: PUT memory returns key:db_schema (got: $MEM_PUT)"
+
+# 5) GET memory
+sleep 2
+MEM_GET=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/memory" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d.get('memory', {})
+print('count='+str(d.get('count',0))+',has_db_schema='+str('db_schema' in m).lower())
+")
+assert_ok "$([[ "$MEM_GET" =~ count=1 ]] && [[ "$MEM_GET" =~ has_db_schema=true ]] && echo 0 || echo 1)" \
+  "cuppy: GET memory returns count=1 with db_schema (got: $MEM_GET)"
+
+# 6) POST artifact
+sleep 2
+ART_RAW=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/artifacts" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"SalesChart","kind":"chart","content":"<svg>chart</svg>"}')
+ART_ID=$(echo "$ART_RAW" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id','none'))")
+assert_ok "$([[ "$ART_ID" != "none" ]] && echo 0 || echo 1)" \
+  "cuppy: POST artifact returns id (got: $ART_ID)"
+
+# 7) GET artifacts list
+sleep 2
+ART_LIST=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/artifacts" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+a = d.get('artifacts', [])
+print('count='+str(d.get('count',0))+',has_chart='+str(any(x.get('kind')=='chart' for x in a)).lower())
+")
+assert_ok "$([[ "$ART_LIST" =~ count=1 ]] && [[ "$ART_LIST" =~ has_chart=true ]] && echo 0 || echo 1)" \
+  "cuppy: GET artifacts list returns count=1 with chart (got: $ART_LIST)"
+
+# 8) POST artifact version (append)
+sleep 2
+ART_V2=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/artifacts/$ART_ID/versions" \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"<svg>chart-v2</svg>"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('versions', 0))
+")
+assert_ok "$([[ "$ART_V2" == "2" ]] && echo 0 || echo 1)" \
+  "cuppy: POST artifact version returns versions:2 (got: $ART_V2)"
+
+# 9) Share artifact on
+sleep 2
+ART_SHARE=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/artifacts/$ART_ID/share" \
+  -H 'Content-Type: application/json' \
+  -d '{"on":true}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('shared='+str(d.get('shared', False)).lower())
+")
+assert_ok "$([[ "$ART_SHARE" =~ shared=true ]] && echo 0 || echo 1)" \
+  "cuppy: POST artifact share on returns shared:true (got: $ART_SHARE)"
+
+# 10) POST @-node ref
+sleep 2
+NODE_RAW=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/nodes" \
+  -H 'Content-Type: application/json' \
+  -d '{"kind":"table","refId":"tbl_orders","label":"Orders"}')
+NODE_ID=$(echo "$NODE_RAW" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nodeId','none'))")
+assert_ok "$([[ "$NODE_ID" != "none" ]] && echo 0 || echo 1)" \
+  "cuppy: POST @-node returns nodeId (got: $NODE_ID)"
+
+# 11) GET nodes list
+sleep 2
+NODE_LIST=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/nodes" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+n = d.get('nodes', [])
+print('count='+str(d.get('count',0))+',has_orders='+str(any(x.get('label')=='Orders' for x in n)).lower())
+")
+assert_ok "$([[ "$NODE_LIST" =~ count=1 ]] && [[ "$NODE_LIST" =~ has_orders=true ]] && echo 0 || echo 1)" \
+  "cuppy: GET nodes list returns count=1 with Orders (got: $NODE_LIST)"
+
+# 12) POST file attachment
+sleep 2
+FILE_RAW=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/files" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"report.pdf","mime":"application/pdf","size":12345}')
+FILE_ID=$(echo "$FILE_RAW" | python3 -c "import json,sys; print(json.load(sys.stdin).get('fileId','none'))")
+assert_ok "$([[ "$FILE_ID" != "none" ]] && echo 0 || echo 1)" \
+  "cuppy: POST file returns fileId (got: $FILE_ID)"
+
+# 13) GET files list
+sleep 2
+FILE_LIST=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/files" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+f = d.get('files', [])
+print('count='+str(d.get('count',0))+',has_pdf='+str(any(x.get('name')=='report.pdf' for x in f)).lower())
+")
+assert_ok "$([[ "$FILE_LIST" =~ count=1 ]] && [[ "$FILE_LIST" =~ has_pdf=true ]] && echo 0 || echo 1)" \
+  "cuppy: GET files list returns count=1 with report.pdf (got: $FILE_LIST)"
+
+# 14) POST model pick
+sleep 2
+MODEL_PICK=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/model" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"claude-3-5-sonnet"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('model', 'none'))
+")
+assert_ok "$([[ "$MODEL_PICK" == "claude-3-5-sonnet" ]] && echo 0 || echo 1)" \
+  "cuppy: POST model returns claude-3-5-sonnet (got: $MODEL_PICK)"
+
+# 15) DELETE file
+sleep 2
+FILE_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/files/$FILE_ID" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$FILE_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "cuppy: DELETE file returns deleted:true (got: $FILE_DEL)"
+
+# 16) DELETE node
+sleep 2
+NODE_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/nodes/$NODE_ID" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$NODE_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "cuppy: DELETE node returns deleted:true (got: $NODE_DEL)"
+
+# 17) DELETE artifact
+sleep 2
+ART_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/artifacts/$ART_ID" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$ART_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "cuppy: DELETE artifact returns deleted:true (got: $ART_DEL)"
+
+# 18) DELETE memory key
+sleep 2
+MEM_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID/memory" \
+  -H 'Content-Type: application/json' \
+  -d '{"key":"db_schema"}' | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('cleared', 0))
+")
+assert_ok "$([[ "$MEM_DEL" == "1" ]] && echo 0 || echo 1)" \
+  "cuppy: DELETE memory returns cleared:1 (got: $MEM_DEL)"
+
+# 19) DELETE conversation
+sleep 2
+CONV_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/cuppy/conversations/$CUPPY_CID" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$CONV_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "cuppy: DELETE conversation returns deleted:true (got: $CONV_DEL)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

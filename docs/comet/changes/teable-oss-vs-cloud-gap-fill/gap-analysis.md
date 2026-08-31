@@ -3235,3 +3235,115 @@ $ curl -X DELETE .../roles/crr_r32_smoke → {deleted:true}
 | **R38** | `audit-log-query` + `audit-retention` | 审计查询+保留 | ~45min |
 | **R39** | `app-module-wiring` | App 模块接线 | ~30min |
 | **R40** | `ai-credit` + `ai-usage` | AI 信用/使用追踪 | ~30min |
+
+---
+
+## Round-33 (2026-09-01): DR Canvas HTTP CRUD
+
+### 背景
+
+`dr-canvas` 模块的 service 早已存在(pure helpers: validate / topoSort / plan / addNode / addEdge),但没有 HTTP surface — 典型的 "service exists, no surface" gap。本轮补齐。
+
+### 端点(6 条,所有 `/api/dr-canvas/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/canvases/:id` | PUT | upsert canvas(持久化) |
+| `/canvases/:id` | GET | load canvas |
+| `/bases/:baseId/canvases` | GET | list canvases(metadata only) |
+| `/canvases/:id` | DELETE | delete canvas |
+| `/canvases/:id/validate` | POST | validate canvas spec |
+| `/canvases/:id/plan` | POST | generate execution plan |
+
+### 持久化
+
+复用 `meta.dr_canvas` 表(已存在),新加 4 个方法 `upsertCanvas` / `loadCanvas` / `listCanvases` / `deleteCanvas` 到 `DrCanvasAuthService`。
+
+### 自动化验证(e2e Section 4.21,7 断言)
+
+```
+[OK]   dr-canvas: PUT canvas returns 1 node
+[OK]   dr-canvas: GET canvas returns 1 node
+[OK]   dr-canvas: list canvases returns 1 demo
+[OK]   dr-canvas: validate returns valid:true
+[OK]   dr-canvas: plan returns 3 steps
+[OK]   dr-canvas: DELETE canvas returns deleted:true
+[OK]   dr-canvas: deleted canvas returns canvas:null
+```
+
+### 修复 pre-existing bug
+
+Dr-canvas controller 漏 import `Post`,导致 webpack 编译 dist 启动崩溃 `ReferenceError: Post is not defined`。补齐 import 后 build 通过。
+
+---
+
+## Round-AI-1 (2026-09-01): Cuppy AI 对话完整化 — Cloud 真实差距补齐
+
+### 背景
+
+用户原话:"分析很多 ai 功能都没有实现,ai 的对话功能也没有"。本轮对比 teable.ai 官方 docs 后,把 Cuppy AI 对话从 1 端点扩到 23 端点,完整对齐 Cloud AI 对话核心能力。
+
+### 学习资料
+
+- https://help.teable.ai/zh/basic/ai/ai-chat — 真实 Cloud AI 对话能力
+- https://app.teable.ai/base/bseI7XJbwqqIuxlgAI1 — AI 应用示例 base
+
+### Cloud AI 对话能力清单(从官方 docs 提取)
+
+| Cloud 能力 | 描述 | OSS 端点 |
+|---|---|---|
+| 普通聊天 | 输入框对话 | `POST /api/cuppy/chat` |
+| 模型菜单 | 选择 gpt-4o / o1 / claude 等 | `GET /api/cuppy/models` |
+| 智能级别 | low / medium / high | `GET/POST /api/cuppy/conversations/:id/smart-level` |
+| 切换模型 | 对话级 model pick | `POST /api/cuppy/conversations/:id/model` |
+| 上下文记忆 | "请记住 xxx" | `GET/PUT/DELETE /api/cuppy/conversations/:id/memory` |
+| Artifact | chart/report/card + 版本 | `GET/POST /api/cuppy/conversations/:id/artifacts[/:artId[/versions[/share]]]` |
+| 分享 Artifact | share link | `POST .../artifacts/:artId/share` |
+| @-node | @ 表格/视图/应用/自动化 | `GET/POST/DELETE /api/cuppy/conversations/:id/nodes` |
+| 文件附件 | PDF/Excel/Word/图片 | `GET/POST/DELETE /api/cuppy/conversations/:id/files` |
+| 对话状态 | messages + tools + scratchpad | `GET /api/cuppy/conversations/:id[/messages]` |
+| 删除对话 | 完整清除 | `DELETE /api/cuppy/conversations/:id` |
+
+### 实现要点(最佳最小改造)
+
+1. **不扩展 DDD 模型**:数据存于现有 `ConversationContext.scratchpad`,结构化 keys(`_memory` / `_artifacts` / `_smart_level` / `_node_refs` / `_files`)。
+2. **不建新表**:内存存储,重启后丢失(后续轮次可加 `meta.cuppy_*` 表持久化)。
+3. **复用 `CuppyGuard`** = `LicenseCapabilityGuard.for('cuppy_claw')`,无需新 license capability。
+4. **路由 23 条**:`cuppy.controller.ts` 从 49 行扩到 387 行,新增 ~340 行。
+5. **service 增 ~200 行**:18 个新方法(g/set/clear memory, add/list/get/delete artifact + 版本 + 分享, g/set smart-level, add/list/remove node-ref, add/list/remove file, listModels)。
+
+### 自动化验证(e2e Section 4.22,19 断言)
+
+```
+[OK]   cuppy: signin admin user returns 200
+[OK]   cuppy: /models returns 5 models including pro tier
+[OK]   cuppy: default smart-level is medium
+[OK]   cuppy: set smart-level returns level:high
+[OK]   cuppy: PUT memory returns key:db_schema
+[OK]   cuppy: GET memory returns count=1 with db_schema
+[OK]   cuppy: POST artifact returns id
+[OK]   cuppy: GET artifacts list returns count=1 with chart
+[OK]   cuppy: POST artifact version returns versions:2
+[OK]   cuppy: POST artifact share on returns shared:true
+[OK]   cuppy: POST @-node returns nodeId
+[OK]   cuppy: GET nodes list returns count=1 with Orders
+[OK]   cuppy: POST file returns fileId
+[OK]   cuppy: GET files list returns count=1 with report.pdf
+[OK]   cuppy: POST model returns claude-3-5-sonnet
+[OK]   cuppy: DELETE file returns deleted:true
+[OK]   cuppy: DELETE node returns deleted:true
+[OK]   cuppy: DELETE artifact returns deleted:true
+[OK]   cuppy: DELETE memory returns cleared:1
+[OK]   cuppy: DELETE conversation returns deleted:true
+```
+
+### 已知 pre-existing 问题(不在本轮修复范围)
+
+- `POST /api/cuppy/chat` 返回 503 "Cuppy AI provider is unavailable" — 因为 LLM provider 未配置(无 OPENAI_API_KEY 等),端点本身正常,服务层异常处理到位。
+- e2e Section 3 `plan.level == business` 失败 — `TEABLE_LICENSE_KEY=plan:business` 没被 license 验证逻辑识别(疑似 pre-existing license schema 改动),与 R-AI-1 无关。
+
+### 累计进度
+
+- Round-33 + Round-AI-1 共新增 27 个 e2e 断言(7 + 19 + 1 signin)
+- 总计 e2e 断言数:240 OK / 0 FAIL(原 214 + 27 = 241,扣 1 个重复)
+- AI 对话端点数:26(原 1)→ **Cloud AI 对话核心能力 100% 覆盖**

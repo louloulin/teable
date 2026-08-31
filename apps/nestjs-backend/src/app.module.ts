@@ -49,6 +49,7 @@ import { DataResidencyModule } from './features/data-residency/data-residency.mo
 import { CrossBaseFederationModule } from './features/cross-base-federation/cross-base-federation.module';
 import { ConflictReplayModule } from './features/conflict-replay/conflict-replay.module';
 import { OrgCustomRoleModule } from './features/org-custom-role/org-custom-role.module';
+import { DrCanvasModule } from './features/dr-canvas/dr-canvas.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -208,6 +209,7 @@ export const appModules = {
     CrossBaseFederationModule,
     ConflictReplayModule,
     OrgCustomRoleModule,
+    DrCanvasModule,
     DatabaseViewModule,
     GraphModule,
     CommentOpenApiModule,
