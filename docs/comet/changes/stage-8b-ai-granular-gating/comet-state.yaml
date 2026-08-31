@@ -3,7 +3,7 @@ name: stage-8b-ai-granular-gating
 language: zh-CN
 phase: archive
 status: active
-state_version: 10
+state_version: 11
 brief: brief.md
 spec_changes:
   - capability: stage-8b-ai-granular-gating
