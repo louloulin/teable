@@ -185,3 +185,37 @@
 - 自动化动作/触发器 catalog 注册(automation-action-catalog, automation-trigger-catalog)
 - 冲突重放/跨 base 联邦注册(conflict-replay, cross-base-federation)
 - SDK 发布编排器注册(sdk-publish-orchestrator)
+
+## 7. Round-5 增量 (commit f6fd6eb0c → 当前)
+
+### 新增的 wired-migration/UI capability (5 项,1 项覆盖式重写)
+
+| capability | module | Cloud Business 映射 | 实际实现 |
+|---|---|---|---|
+| `airtable_import` | airtable-import | Airtable 数据迁移 | `AirtableImportModule` 在 app.module.ts wired,probe + meta.airtable_connection 表 |
+| `notion_import` | notion | Notion 迁移 | notion module wired in app.module.ts |
+| `google_sheets_import` | google-sheets | Google Sheets 迁移 | google-sheets module wired in app.module.ts |
+| `view_permission` | view-permission | 视图权限 (Cloud §视图权限独立) | view-permission module wired in app.module.ts |
+| `dashboard` (refresh) | dashboard | 仪表盘 | 改用 raw SQL count 探针,从 round-3 no_rows_yet 路径升级到独立的 wired-module 路径 |
+
+### 累计统计(经过 Round-1 ~ Round-5)
+
+| 维度 | Round-1 | Round-2 | Round-3 | Round-4 | Round-5 |
+|---|---|---|---|---|---|
+| 已注册 capability | 35 | 35 | 60 | 68 | 72 |
+| enabled 数 | 35 | 35 | 35 | 42 | 46 |
+| Cloud parity (self_hosted) | 12/12 | 12/12 | 25/25 | 32/33 | 36/38 |
+| Cloud parity (business+) | 12/12 | 12/12 | 25/25 | 33/33 | **38/38** |
+| 自动化测试段数 | 5 | 5 | 6 | 8 | 9 |
+
+### Round-5 关键里程碑
+- **Cloud Business parity 在 business license 下达到 38/38 满分**(对照官方定价页+帮助文档列出的所有差异化能力)
+- dashboard 翻转行为得到 e2e 验证(从 `no_dashboard_rows_yet` 到 `enabled=true`)
+
+### 仍待完成 (Round-6 候选,低优先级)
+- 合规模块(compliance-attestation 等 5 个 utility-only 模块,无 .module.ts,需要先包装)
+- SDK 发布编排器(sdk-publish-orchestrator)
+- 自动化 catalog(automation-action-catalog, automation-trigger-catalog)
+- 冲突重放/跨 base 联邦(conflict-replay, cross-base-federation)
+- 这些模块当前是 utility libraries(auth.service.ts + .service.ts),不是独立 NestJS 模块;接入 readiness 需要额外包装
+
