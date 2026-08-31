@@ -2122,3 +2122,169 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - **R27: field type translator** (driver records → teable fields,统一 system/date/picklist/status 翻译)
 - **R28: isolated-vm 强化** (替代 vm 模块,处理不可信脚本)
 - **R29: 性能优化** (readiness 缓存 / 静态化 cloudGap 数据 / API rate limit)
+
+## Round-25: ai_skill 从 partial 升级到 implemented (14/14 全部 implemented, 100% 双里程碑)
+
+### 目标
+补齐最后一个 cloudGap gap —— `ai_skill` (Round-13 时只有 manifest 端点,完整 skill 在外部 github.com/teableio/agent-skills 仓库)。R25 设计为 **完全自包含** —— 4 个 inline skill 文件 (SKILL.md / AUTH.md / API.md / EXAMPLES.md) 直接嵌入到 OSS 实例中,AI agent 可独立安装无需外部仓库。
+
+### 调研发现 (现状)
+
+R13 留下的 `ai-skill` endpoint 只返回 manifest (10 capability 列表),**没有真正的 skill 内容**。云端也只是指 `npx skills add https://github.com/teableio/agent-skills` —— 实际上完整 skill 内容在该外部仓。
+
+OSS 用户不能直接 clone 云端仓,且云端仓可能未来变动,所以 R25 决定:**把 4 个核心 skill 文档 inline 到 OSS**。
+
+### 设计:4 个内嵌 skill 文件
+
+每个文件作为 TS string constant 嵌入 `ai-skill.content.ts`,由 webpack bundle 打包。**避免 webpack asset loader 复杂性 + 没有运行时 fs read**(dist/ 没有 .md 源文件)。
+
+| 文件 | 大小 | 内容 |
+|---|---|---|
+| `SKILL.md` | 2.4 KB | 安装说明 + quick-start prompts + 文件索引 |
+| `AUTH.md` | 2.3 KB | Token 类型 + 创建流程 + 错误码表 + CORS + 安全提示 |
+| `API.md` | 5.5 KB | 全部 HTTP endpoint 表 (spaces/bases/tables/records/views/automations/apps/webhooks/enterprise-readiness/public) + 字段类型表 + error codes |
+| `EXAMPLES.md` | 6.4 KB | 10 个分类示例 (discovery / query / create / update / delete / schema / automation / bulk / error / 脚本示例) |
+| **总计** | **16.6 KB** | |
+
+### 改动 (5 文件新增 + 3 文件修改)
+
+**新增 `apps/nestjs-backend/src/features/admin/ai-skill/` (5 文件, 16.8 KB):**
+- `SKILL.md` (2.4 KB) — 安装 + quick-start
+- `AUTH.md` (2.3 KB) — Token + auth
+- `API.md` (5.5 KB) — HTTP endpoints
+- `EXAMPLES.md` (6.4 KB) — bilingual copy-paste 例子
+- `ai-skill.content.ts` (auto-generated, 20 KB) — 内嵌 4 文件为 TS 常量
+- `ai-skill.controller.ts` (50 LOC) — `@Public()` endpoints
+
+**修改 `apps/nestjs-backend/src/features/admin/enterprise-readiness.module.ts`:**
+- 注册 `AiSkillController` 到 controllers array
+
+**修改 `apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:**
+- `ai_skill` cloudGap: `status: 'partial' → 'implemented'`
+- `ossFramework: 'enterprise-readiness'` (不变)
+- `notes`: 更新反映 R25 inline 内容
+
+**修改 `scripts/e2e-enterprise-readiness.sh`:**
+- 全部 9 处 `IMPL_COUNT == 13` → `IMPL_COUNT == 14`
+- `SPEC_ONLY >= 1` → `SPEC_ONLY == 0`
+- `AISKILL_STATUS == partial` → `== implemented`
+- `topFillable` message 更新 ("Round-25: all cloudGaps implemented")
+- 新增 Section 4.14 (6 个断言): files=4 / SKILL.md 头部 / 14/14 all implemented / ai_skill=implemented / EXAMPLES.md >5KB / path traversal blocked
+
+### 4 个 inline skill 文件设计亮点
+
+1. **完全自包含** —— 不依赖外部仓库、不需要 npm、不需要 git clone
+2. **离线工作** —— AI agent 可 `curl` 全部文件后离线使用
+3. **Bilingual** —— 中英文示例对照 (10 个英文 + 部分中文注释)
+4. **覆盖 Round-24+ 新功能** —— examples 包含 `/api/automation/ai-draft` 和 script-samples
+5. **安全** —— path traversal 阻止、文件白名单 (.md only)、content-type text/markdown
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R24 | 23 | ~116 |
+| **R25** | **24** | **~122 (+6)** |
+
+最终运行结果: **148 OK / 0 FAIL / exit=0**
+
+### 累计统计 (Round-1 ~ Round-25)
+
+| 维度 | R24 | **R25** |
+|---|---|---|
+| Worktree commits | 18 | **19** |
+| e2e 段数 | 23 | **24** |
+| e2e 总断言数 | ~116 | **~122 |
+| cloudGapImplementedCount | 13 | **14** ✅ |
+| **cloudGapCoverage** | 14/14 = 100% | **14/14 = 100%** ✅ |
+| **partial gaps** | 1 (ai_skill) | **0** ✅ |
+| **not_implemented gaps** | 0 | **0** ✅ |
+| 总 capability | 80 | **80** |
+| 业务 parity | 44/46 | **44/46** |
+| **新增文档** | 196 LOC script-samples | **17 KB skill files** |
+
+### 100% 双里程碑对比
+
+| 维度 | R24 | R25 |
+|---|---|---|
+| Coverage (filled / total) | 14/14 = 100% | 14/14 = 100% |
+| Implementation count | 13 implemented + 1 partial | **14 implemented + 0 partial** |
+| Reason category distribution | 13 implemented + 1 spec_only | **14 implemented** |
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -s http://127.0.0.1:3000/api/admin/enterprise-readiness/ai-skill/files | jq
+{
+  "total": 4,
+  "files": [
+    {"name":"API.md","size":"5.5 KB","bytes":5603},
+    {"name":"AUTH.md","size":"2.3 KB","bytes":2387},
+    {"name":"EXAMPLES.md","size":"6.4 KB","bytes":6542},
+    {"name":"SKILL.md","size":"2.4 KB","bytes":2459}
+  ]
+}
+
+$ curl -s http://127.0.0.1:3000/api/admin/enterprise-readiness/ai-skill/files/SKILL.md | head -3
+# Teable AI Skill (Self-Hosted)
+
+> Query and update data, manage tables, ...
+
+$ curl -s -o /dev/null -w "%{http_code}\n" ".../files/../etc/passwd"
+404
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 80,
+  "enabled": 54,
+  "cloudBusinessParity": "44/46",
+  "cloudExclusiveGapCount": 14,
+  "cloudGapCoverage": {"filled": 14, "total": 14, "percent": 100},
+  "cloudGapImplementedCount": 14   ← was 13!
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.cloudGap[].status' | sort | uniq -c
+     14 "implemented"   ← was 13 + 1 partial
+```
+
+### AI Agent 安装流程 (示例)
+
+```bash
+# 1. 一次性安装所有 skill 文件到本地
+mkdir -p ~/.teable-skill
+for f in SKILL.md AUTH.md API.md EXAMPLES.md; do
+  curl -sS "https://<host>/api/admin/enterprise-readiness/ai-skill/files/$f" \
+    -o "$HOME/.teable-skill/$f"
+done
+
+# 2. 把 skill 文件路径加入 AI agent 的 prompt
+cat ~/.teable-skill/SKILL.md ~/.teable-skill/AUTH.md ~/.teable-skill/API.md ~/.teable-skill/EXAMPLES.md | pbcopy
+
+# 3. 给 agent 的 prompt
+"Please read my Teable skill at ~/.teable-skill/ (4 files), then help me create a CRM table in my base."
+```
+
+### Round-25 设计教训 (给后续 round 的同学)
+
+1. **webpack bundle 不会自动复制 .md 文件** —— TS source 编译为 .js 没问题,但 .md 静态资源需用 `asset/source` loader 或 **内嵌为 TS constant**。R25 选了内嵌 (简单可靠)。
+2. **路径遍历安全** —— `/files/:name` 必须 explicit 拒绝 `/` + `..` + 非 `.md` 扩展名。R25 的 controller 写了 4 个 check。
+3. **覆盖范围 vs 边界** —— skill 文件覆盖范围有限 (主要是 REST API)。如果未来 OpenAPI 自动生成,可扩展为每次 build 自动 sync。
+
+### 结论
+
+**Round-25 完成**: `ai_skill` 从 partial 升级到 implemented, **14/14 cloudGap 全部 implemented**。**所有 14 个云端专属能力现在 OSS 都有对应**:
+- 8 个 migration/integration (baserow/clickup/jira/monday/nocodb/smartsheet/smartsuite + connect_more_sources generic)
+- 6 个 scripting/integration (run_script_action / ai_script / ai_script_zh / api_automation / script_samples / ai_skill)
+
+### 已知 limitation (继承)
+- 4 个 skill 文件是 hand-written (vs 云端 github.com/teableio/agent-skills 自动维护);需手动 sync 新功能 (e.g. Round-26+ 新 API)
+- Sandbox 使用 Node vm,适合 owner 自写脚本,不硬化对付不可信用户
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
+
+### 下一步 (R26+ 候选)
+- **R26: 前端 admin UI** (nextjs-app: enterprise-readiness dashboard + 5 driver 上传 + samples browser + ai-skill viewer)
+- **R27: field type translator** (driver records → teable fields)
+- **R28: isolated-vm 强化** (替代 Node vm 模块,处理不可信脚本)
+- **R29: OpenAPI 自动 sync** (每次 build 自动 sync skill API.md 与 openapi.json)
+- **R30: AI agent test harness** (用 skill 文件本身测试一个 AI agent 是否能正确完成 5 个任务)

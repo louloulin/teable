@@ -806,8 +806,8 @@ import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g.get('reasonCategory') == 'spec_only'))
 ")
-assert_ok "$([[ "$SPEC_ONLY" -ge "1" ]] && echo 0 || echo 1)" \
-  ">=1 spec_only gap (ai_skill: status=partial but framework dir missing) (got: $SPEC_ONLY)"
+assert_ok "$([[ "$SPEC_ONLY" == "0" ]] && echo 0 || echo 1)" \
+  "0 spec_only gaps (Round-25: ai_skill promoted from partial → implemented) (got: $SPEC_ONLY)"
 
 FRAMEWORK_MISSING=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
@@ -874,7 +874,7 @@ assert_ok "$([[ "$ROAD_TOTAL" == "14" ]] && echo 0 || echo 1)" \
 
 ROAD_TOP=$(echo "$ROAD_RESP" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('topFillable',[])))")
 assert_ok "$([[ "$ROAD_TOP" == "0" ]] && echo 0 || echo 1)" \
-  "cloud-gap-roadmap topFillable == 0 (Round-24: all driver_missing done, only ai_skill partial remains) (got: $ROAD_TOP)"
+  "cloud-gap-roadmap topFillable == 0 (Round-25: all cloudGaps implemented, no driver_missing + no partial) (got: $ROAD_TOP)"
 
 # ai_skill cloudGap entry status should now be 'partial' (Round-13 upgrade)
 AISKILL_STATUS=$(echo "$GAP_BODY" | python3 -c "
@@ -883,8 +883,8 @@ gaps = json.load(sys.stdin).get('cloudGap', [])
 ai = [g for g in gaps if g['key'] == 'ai_skill']
 print(ai[0]['status'] if ai else 'NOT_FOUND')
 ")
-assert_ok "$([[ "$AISKILL_STATUS" == "partial" ]] && echo 0 || echo 1)" \
-  "ai_skill cloudGap upgraded to status='partial' (got: $AISKILL_STATUS)"
+assert_ok "$([[ "$AISKILL_STATUS" == "implemented" ]] && echo 0 || echo 1)" \
+  "ai_skill cloudGap upgraded to status='implemented' (Round-25 from partial) (got: $AISKILL_STATUS)"
 
 # ----- Section 4.3: cloudGapCoverage metric (Round-14) -----
 # summary.cloudGapCoverage = { filled, total, percent }
@@ -1027,8 +1027,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) summary.cloudGapCoverage unchanged at 14/14=100% (partial counts as filled too, Round-24 100% milestone)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1090,8 +1090,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100% (1 not_implemented -> 1 implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1153,8 +1153,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1216,8 +1216,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1279,8 +1279,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1342,8 +1342,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1405,8 +1405,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100% (smartsuite upgraded from partial to implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1469,8 +1469,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 13 (8 migration/integration + 5 scripting: run_script_action + ai_script + ai_script_zh + api_automation + script_samples) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 14 (Round-25: ai_skill promoted; 8 migration/integration + 6 scripting/integration) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 14/14=100% (connect_more_sources upgraded from partial to implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1540,7 +1540,7 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "13" ]] && echo 0 || echo 1)" \
+assert_ok "$([[ "$IMPL_COUNT" == "14" ]] && echo 0 || echo 1)" \
   "summary.cloudGapImplementedCount == 13 (Round-24: 8 migration/integration + 5 scripting) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage at 14/14=100% (Round-24 milestone)
@@ -1551,6 +1551,64 @@ print('true' if c['filled'] == 14 and c['percent'] == 100 else 'false:' + str(c)
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage at 14/14=100% (Round-24 milestone: all gaps filled) (got: $COV_CHECK)"
+
+# ----- Section 4.14: ai_skill promoted to implemented (Round-25, full 100% implemented milestone) -----
+# Round-25 ships 4 inline skill files (SKILL.md / AUTH.md / API.md / EXAMPLES.md) at
+# /api/admin/enterprise-readiness/ai-skill/files. AI agents can now install the full
+# Teable skill directly from the OSS instance without cloning the external repo.
+# Final state: 14/14 cloudGap entries have status='implemented' (no partial, no not_impl).
+log "=== Section 4.14: ai_skill inline files + 14/14 implemented milestone (Round-25) ==="
+
+# 1) ai-skill files endpoint returns 4 files
+SKILL_FILES=$(curl -s "${BASE_URL}/api/admin/enterprise-readiness/ai-skill/files")
+SKILL_FILES_COUNT=$(echo "$SKILL_FILES" | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('total', 0))
+")
+assert_ok "$([[ "$SKILL_FILES_COUNT" == "4" ]] && echo 0 || echo 1)" \
+  "ai-skill/files endpoint returns 4 inline skill files (Round-25) (got: $SKILL_FILES_COUNT)"
+
+# 2) each skill file is fetchable via /files/:name and returns markdown content
+SKILL_MD=$(curl -s "${BASE_URL}/api/admin/enterprise-readiness/ai-skill/files/SKILL.md")
+SKILL_MD_OK=$(echo "$SKILL_MD" | head -1 | grep -c "^# Teable AI Skill" || true)
+assert_ok "$([[ "$SKILL_MD_OK" == "1" ]] && echo 0 || echo 1)" \
+  "ai-skill/files/SKILL.md returns markdown starting with '# Teable AI Skill' (got: $SKILL_MD_OK)"
+
+# 3) all 14 cloudGaps have status='implemented' (no partial, no not_implemented)
+ALL_IMPL=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin)['cloudGap']
+total = len(gaps)
+impl = sum(1 for g in gaps if g['status'] == 'implemented')
+print(f'{impl}/{total}')
+")
+assert_ok "$([[ "$ALL_IMPL" == "14/14" ]] && echo 0 || echo 1)" \
+  "all 14 cloudGap entries implemented (Round-25 milestone: ai_skill promoted) (got: $ALL_IMPL)"
+
+# 4) ai_skill cloudGap entry has status='implemented' (was 'partial' pre-R25)
+AISKILL_IMPL=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin)['cloudGap']
+s = next((g for g in gaps if g['key'] == 'ai_skill'), None)
+print(s['status'] if s else 'MISSING')
+")
+assert_ok "$([[ "$AISKILL_IMPL" == "implemented" ]] && echo 0 || echo 1)" \
+  "ai_skill cloudGap status=implemented (Round-25 upgrade from partial) (got: $AISKILL_IMPL)"
+
+# 5) EXAMPLES.md is large (>5KB) confirming content embedded
+EXAMPLES_BYTES=$(echo "$SKILL_FILES" | python3 -c "
+import json, sys
+files = json.load(sys.stdin).get('files', [])
+e = next((f for f in files if f['name'] == 'EXAMPLES.md'), None)
+print(e['bytes'] if e else 0)
+")
+assert_ok "$([[ $EXAMPLES_BYTES -gt 5000 ]] && echo 0 || echo 1)" \
+  "EXAMPLES.md is >5KB inline (Round-25 content) (got: $EXAMPLES_BYTES bytes)"
+
+# 6) Path traversal blocked (security check)
+TRAVERSAL_CODE=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness/ai-skill/files/../etc/passwd")
+assert_ok "$([[ "$TRAVERSAL_CODE" == "404" ]] && echo 0 || echo 1)" \
+  "path traversal blocked on /files/:name (Round-25 security) (got: $TRAVERSAL_CODE)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
