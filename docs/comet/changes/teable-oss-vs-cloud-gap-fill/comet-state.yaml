@@ -37,8 +37,8 @@ acceptance:
     source: brief.md
     text: "**A2** 审计日志存在与可检索:任何 record create/update/delete 在 DB 留对应 audit_log 行,可在
       /api/admin/audit-log 分页筛选。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "Stage 6 audit-log 已归档: GET /api/admin/audit-log + AuditEvent 模型 + LicenseCapabilityGuard + Events SSO 事件值扩展 + 52 单测全绿", truncated: false}
   - id: A3
     source: brief.md
     text: "**A3** 权限矩阵热路径生效:hidden 字段在 list 响应中为 null,PATCH 写 hidden 字段返回 403
@@ -61,14 +61,14 @@ acceptance:
     source: brief.md
     text: "**A6** 配额 retention 差异化:plan 切到 business 后,record history cleanup
       保留期内记录保留,过期记录被删除。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "Stage 11 retention-by-plan 已归档: 14d/365d/1095d 三档 TTL + 清理 processor + 44 单测全绿", truncated: false}
   - id: A7
     source: brief.md
     text: "**A7** API 速率限制按档位:business plan 下超过 10 req/s 返回 429;self_hosted plan
       默认无限。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "Stage 12 api-rate-limit-by-plan 已归档: ApiThrottleGuard 全局 APP_GUARD + plan=business 10 req/s + self_hosted 无限 + 5 单测全绿", truncated: false}
   - id: A8
     source: brief.md
     text: "**A8** License 激活联动:设 TEABLE_LICENSE_KEY=plan:business,启动后所有 spaces 自动切到
