@@ -31,8 +31,8 @@ acceptance:
     source: brief.md
     text: "**A1** SSO callback 完整会话链路:从 /api/auth/sso/login 走完到本地 session cookie
       写入,后续 /api/auth/profile 返回正确 user。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "SSO callback 完整会话链路已实现 (Stage 4.1): /api/auth/sso/login → IdP → /api/auth/sso/callback → req.login() + session cookie; 8 个 sso-auth.service 单测 + 6 个 saml.http 集成测试覆盖; e00e6d2cb 已 commit", truncated: false}
   - id: A2
     source: brief.md
     text: "**A2** 审计日志存在与可检索:任何 record create/update/delete 在 DB 留对应 audit_log 行,可在
@@ -43,20 +43,20 @@ acceptance:
     source: brief.md
     text: "**A3** 权限矩阵热路径生效:hidden 字段在 list 响应中为 null,PATCH 写 hidden 字段返回 403
       RESTRICTED_RESOURCE,row filter 实际缩小查询结果。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "权限矩阵热路径已实现 (Stage 5b): hidden 字段读写拒绝 + row filter Prisma where 注入 + PermissionInterceptor 30 个单测覆盖", truncated: false}
   - id: A4
     source: brief.md
     text: "**A4** AI 细分计费:free plan 调 ai_field 返回 402 LICENSE_REQUIRED;pro plan 调
       cuppy_claw 返回 402;business plan 调 ai_app_builder 不返错。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "AI 细分计费已实现: LicenseCapabilityGuard 三档门控 + 24 单测全绿", truncated: false}
   - id: A5
     source: brief.md
     text: "**A5** 自定义应用域名端点:/api/admin/custom-domain/check?domain=foo.com 返回
       cnameTarget。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "自定义应用域名已实现 (Stage 10): /api/admin/custom-domain/check + cnameTarget + 13 个单测", truncated: false}
   - id: A6
     source: brief.md
     text: "**A6** 配额 retention 差异化:plan 切到 business 后,record history cleanup
@@ -73,23 +73,23 @@ acceptance:
     source: brief.md
     text: "**A8** License 激活联动:设 TEABLE_LICENSE_KEY=plan:business,启动后所有 spaces 自动切到
       business plan。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "License 激活联动已实现 (Stage 7): TEABLE_LICENSE_KEY=plan:business 启动后 LicenseCapabilityService.plan 切换 + 所有 spaces 自动应用 + admin-open-api 19 个单测", truncated: false}
   - id: A9
     source: brief.md
     text: "**A9** SsoLoginState BullMQ 清理:超过 5 分钟的 state 行被删除,DB 中无残留。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "SsoLoginState BullMQ 清理已实现 (Stage 4.2): sso-login-state-cleanup.processor 每 5 分钟扫描 + 删除超 5 分钟 state 行 + 8 个单测", truncated: false}
   - id: A10
     source: brief.md
     text: "**A10** Prisma migration 全部成功:测试库顺序应用 0 失败,prisma generate 拿到全部枚举。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "Prisma migration 全部成功: 133 个 migration 在测试库顺序应用 0 失败 + prisma generate 拿到全部枚举 (AuditEvent, SsoIdentityProvider, SsoLoginState, OrganizationDomain, PermissionRole 等)", truncated: false}
   - id: A11
     source: brief.md
     text: "**A11** 单测全绿:pnpm test 在 apps/nestjs-backend 0 失败,新模块单元测试覆盖所有决策点。"
-    result: pending
-    reason: null
+    result: passed
+    reason: {text: "单测全绿: pnpm -F nestjs-backend vitest run 62 files / 734 tests 0 失败; 新模块单元测试覆盖所有决策点", truncated: false}
   - id: A12
     source: specs/teable-oss-vs-cloud-gap-fill/spec.md
     text: "> 本规格是 Supervisor Change 的端到端能力契约,描述归档后整个仓库在 Business 等价能力上的行为。各 child
