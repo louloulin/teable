@@ -3,7 +3,7 @@ name: stage-7-admin-panel-api
 language: zh-CN
 phase: archive
 status: active
-state_version: 8
+state_version: 9
 brief: brief.md
 spec_changes:
   - capability: stage-7-admin-panel-api

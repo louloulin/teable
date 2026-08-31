@@ -1,7 +1,7 @@
 {
   "schema": "comet.native.local-execution.v4",
   "change": "stage-7-admin-panel-api",
-  "basedOnStateVersion": 8,
+  "basedOnStateVersion": 9,
   "workspace": {
     "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-7-admin-panel-api",
     "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-7-admin-panel-api",
