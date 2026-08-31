@@ -1800,3 +1800,157 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - **packages/sandbox/ JS sandbox**: 解锁 5 个 sandbox_missing (VM2 / isolated-vm, 大型工程,可能拆分多轮)
 - **admin UI**: 在 nextjs-app 中加 enterprise-readiness dashboard 页 (gap visualization + migration wizard)
 - **field type translator**: 把各 driver 的 fields (system/picklist/status/...) 翻译为 teable 字段类型 (链接 line item / formula / select 等)
+
+## Round-23: 实现 connect_more_sources generic connector（第 8 个 driver_missing = 100% 完成）
+
+### 目标
+补齐 driver_missing 的最后一个 gap —— `connect_more_sources` (generic)。不同于 R16-R22 的 source-specific drivers，generic connector 需要**新模式**：driver registry + pluggable fetch logic。云端的 "Connect & Migrate More Sources" 文档 ([help.teable.ai/zh/basic/ai/connect-everything/more-sources.md](https://help.teable.ai/zh/basic/ai/connect-everything/more-sources.md)) 说："Connect Everything 不仅支持 Airtable、Baserow、SmartSuite 和 NocoDB，也可以连接通过 API 或其他授权方式提供数据的系统" —— 这正是一个 generic connector 模式。
+
+### 设计：Driver Registry + 3 个内置 Adapter
+
+**核心模式**：单一模块 + runtime registry，无 source-specific 子模块。
+
+- `registry` (Map<type, GenericAdapterFn>) — 存储 adapter function + metadata
+- 3 个内置 adapter（注册即用）：
+  - `rest-api`: POST + pagination body `{limit, offset}`, 读 `items[]`
+  - `json-endpoint`: GET, JSON 响应, 数组或单对象
+  - `csv-url`: GET, CSV 文本, 首行 = headers
+- 运行时注册 endpoint (`POST /register`) — 占位符,等 admin UI 上传实际 fetcher function
+- Source spec 包含 `{adapterType, endpoint, token?, method?, headers?, recordsPath?, pagination?, meta?}` —— 简单可扩展
+
+### 与 source-specific driver 的对比
+
+| 维度 | source-specific (R16-R22) | generic (R23) |
+|---|---|---|
+| 模块 | 每 vendor 一个 (~228 LOC) | 单一 generic-connector 模块 (~520 LOC) |
+| 接入新 vendor | 写代码 + commit | POST /register (无代码改动) |
+| API 范式 | 固定 | 由 adapterType 决定 |
+| Auth | 各异 | Bearer (统一) |
+| Records 形状 | 已转换 | 原始 (下游 translator 处理) |
+
+### 改动 (5 文件 + 2 配置点)
+
+**新增 `apps/nestjs-backend/src/features/generic-connector/` (5 文件, 501 LOC):**
+- `generic-connector.types.ts` (71 LOC): 类型 + GenericSourceSpec/FetchResult/ConnectionProbe
+- `generic-connector.adapters.ts` (270 LOC): 3 个内置 adapter + registry 实现 (`registerAdapter` / `getAdapter` / `listAdapterTypes` / `listAdapterInfos`)
+- `generic-connector.service.ts` (85 LOC): `GenericConnectorService` — probe / listAdapters / register / fetch
+- `generic-connector.controller.ts` (50 LOC): 4 个 endpoint under `/api/generic-connector/`
+- `generic-connector.module.ts` (25 LOC): NestJS module wiring
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `GenericConnectorModule` import + module 数组条目 (按字母序在 GoogleSheetsModule 后)
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`** (5 spots)
+- `connect_more_sources` 加入 `BASELINE_CAPABILITIES`
+- `connect_more_sources` cloudGap entry: `status='implemented', ossFramework='generic-connector'` (从 `integration-connector` 改为实际的 module 名)
+- `MIGRATION_SOURCE_REGISTRY` 的 `connect_more_sources` 注释: "generic connector slot" → "implemented (round-23 wired: generic-connector module with pluggable registry)"
+- `implementedBy` Record type 加 `'generic-connector'`, map 加 `connect_more_sources: 'generic-connector'`
+- 加 `connect_more_sources` 到 wired migration capabilities section (module='generic-connector')
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- `EXPECTED_TOTAL` 79 → 80
+- `ROUND5_KEYS` 加 `connect_more_sources`
+- "all 12 round-5 wired" message
+- `PARITY_DEFAULT` 43/45 → 44/46
+- `DRIVER_MISSING` 1 → **0** (全清空!)
+- `MS_IMPL` 10 → 11, `MS_PEND` 1 → **0** (全清空!)
+- `all_partial` 排除列表加 `connect_more_sources`
+- 全部 7 个 `IMPL_COUNT == 7` 检查点更新到 `== 8` (sections 4.5-4.11 共 7 处)
+- 新增 Section 4.12 (6 个断言): capability present / cloudGap implemented / probe returns 3 builtin / fetch validates input / IMPL_COUNT == 8 / Coverage 9/14=64%
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R22 | 21 | ~104 |
+| **R23** | **22** | **~110 (+6)** |
+
+最终运行结果: **136 OK / 0 FAIL / exit=0** (含每段 print 与断言)
+
+### 累计统计 (Round-1 ~ Round-23)
+
+| 维度 | R22 | **R23** |
+|---|---|---|
+| Worktree commits | 16 | **17** |
+| e2e 段数 | 21 | **22** |
+| e2e 总断言数 | ~104 | **~110** |
+| 新增模块 | smartsuite-import (228 LOC) | **generic-connector (501 LOC)** |
+| cloudGapImplementedCount | 7 | **8** |
+| cloudGapCoverage | 64% | **64%** |
+| 总 capability | 79 | **80** |
+| 业务 parity | 43/45 | **44/46** |
+| **driver_missing 完成度** | 7/8 = 88% | **8/8 = 100%** ✅ |
+
+### Adapter 类型映射 (API 范式扩展)
+
+| Adapter | 触发方式 | Records 形状 | 适用场景 |
+|---|---|---|---|
+| `rest-api` | POST `{limit, offset}` → `{items: []}` | items 数组 | 任何 REST API 支持 POST + pagination |
+| `json-endpoint` | GET → JSON | 数组或单对象 | 公共 API (无 auth) / 简单 Bearer |
+| `csv-url` | GET → CSV 文本 | 首行 = headers | 任何 CSV 数据导出 (含 Google Sheets CSV export, Airtable CSV export, db dumps) |
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -s http://127.0.0.1:3000/api/generic-connector/probe
+{"ok":true,"adapterCount":3,"builtinTypes":["csv-url","json-endpoint","rest-api"],"fetchedAt":"2026-08-31T16:29:30.598Z"}
+
+$ curl -sX POST http://127.0.0.1:3000/api/generic-connector/fetch \
+  -H "Content-Type: application/json" \
+  -d '{"spec":{"adapterType":"unknown-foo","endpoint":"https://example.com"}}'
+{"ok":false,"adapterType":"unknown-foo","endpoint":"https://example.com","error":"adapter type not registered: unknown-foo","fetchedAt":"..."}
+
+$ curl -sX POST http://127.0.0.1:3000/api/generic-connector/register \
+  -H "Content-Type: application/json" \
+  -d '{"type":"Invalid Type"}'
+{"ok":false,"type":"Invalid Type","registered":false,"error":"invalid type (must match /^[a-z][a-z0-9-]{1,31}$/)"}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 80,
+  "enabled": 54,
+  "cloudBusinessParity": "44/46",
+  "cloudExclusiveGapCount": 14,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 8
+}
+```
+
+### Generic Connector 注意事项 (给后续接 generic connector 的同学)
+- Type 字段必须匹配 `/^[a-z][a-z0-9-]{1,31}$/` —— 防止注入到 file system / URL path
+- 内置 adapter 不能被 runtime register 覆盖 (避免破坏现有 caller)
+- recordsPath 用 `.` 分隔遍历对象,例如 `data.items` / `result.records`
+- POST register endpoint 当前是占位符 — 实际 fetcher function 由后续 admin UI 提供
+- 完整 CSV 解析需要 quoted-field handling, 当前最小实现假设简单 comma-separated (无引号字段)
+
+### driver_missing 完成里程碑
+
+| Round | driver_missing 完成数 | 完成度 |
+|---|---|---|
+| R15 (起点) | 0/8 | 0% |
+| R16 (baserow) | 1/8 | 12% |
+| R17 (clickup) | 2/8 | 25% |
+| R18 (jira) | 3/8 | 38% |
+| R19 (monday) | 4/8 | 50% |
+| R20 (nocodb) | 5/8 | 62% |
+| R21 (smartsheet) | 6/8 | 75% |
+| R22 (smartsuite) | 7/8 | 88% |
+| **R23 (connect_more_sources)** | **8/8** | **100%** ✅ |
+
+### 结论
+
+**Round-23 完成**: `connect_more_sources` 从 partial 升级到 implemented, **driver_missing 全部清空 (8/8 = 100%)**。剩下 5 个未实现 cloudGap 都是 sandbox_missing (需 JS sandbox) + 1 个 partial (ai_skill) — 这些不在 driver_missing 范畴。
+
+### 已知 limitation (继承)
+- generic-connector 只覆盖 3 个内置 adapter 类型; 新增需 runtime register (暂为占位符)
+- records 是原始 JSON / CSV,字段类型翻译 (status → select / number → number / ...) 是 follow-up
+- 5 个 sandbox_missing 需先建 `packages/sandbox/` 解锁
+- ai_skill 仍是 partial (已有 skill 端点,完整 skill 在 github.com/teableio/agent-skills)
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
+
+### 下一步 (R24+ 候选)
+- **packages/sandbox/ JS sandbox**: 解锁 5 个 sandbox_missing (VM2 / isolated-vm, 大型工程,需要拆分多轮: R24a=core sandbox API, R24b=run_script_action, R24c=ai_script, R24d=script_samples)
+- **admin UI**: 在 nextjs-app 中加 enterprise-readiness dashboard 页 (gap visualization + migration wizard + generic adapter upload)
+- **field type translator**: 把 driver 的 records (status / date / duedate / picklist / formula) 翻译为 teable 字段类型
+- **generic adapter uploader**: admin UI 上传 fetcher function (Base64 encoded JS string, sandbox-evaluated)

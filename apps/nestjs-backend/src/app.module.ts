@@ -51,6 +51,7 @@ import { EmailDomainClaimModule } from './features/email-domain-claim/email-doma
 import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
+import { GenericConnectorModule } from './features/generic-connector/generic-connector.module';
 import { GoogleSheetsModule } from './features/google-sheets/google-sheets.module';
 import { GraphModule } from './features/graph/graph.module';
 import { HealthModule } from './features/health/health.module';
@@ -129,6 +130,7 @@ export const appModules = {
     BaseModule,
     BackupModule,
     GoogleSheetsModule,
+    GenericConnectorModule, // Round-23: generic pluggable driver registry (connect_more_sources)
     BaseNodeModule,
     MapViewModule,
     IntegrityModule,

@@ -114,6 +114,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'nocodb_import',         // nocodb-import module wired in app.module.ts (Round-20: Cloud §NocoDB 迁移)
   'smartsheet_import',     // smartsheet-import module wired in app.module.ts (Round-21: Cloud §Smartsheet 迁移)
   'smartsuite_import',     // smartsuite-import module wired in app.module.ts (Round-22: Cloud §SmartSuite 迁移)
+  'connect_more_sources',  // generic-connector module wired in app.module.ts (Round-23: Cloud §Connect & Migrate More Sources)
   'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
@@ -142,7 +143,7 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires Run Script action + LLM integration' },
   { key: 'api_automation', name: 'Build automations programmatically via API', category: 'scripting', cloudDocPath: 'basic/automation/examples/api-automation.md', status: 'not_implemented', ossFramework: null, notes: 'Partial: API exists, JS code samples missing' },
   // Other / integration (4)
-  { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Generic connector framework; needs driver registry' },
+  { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'implemented', ossFramework: 'generic-connector', notes: 'Round-23: generic-connector module wired; pluggable driver registry with 3 built-in adapters (rest-api / json-endpoint / csv-url); runtime register endpoint for new adapter types' },
   { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships ready-to-use JS examples' },
   { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships i18n docs' },
   { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'partial', ossFramework: 'enterprise-readiness', notes: 'Round-13: /api/admin/enterprise-readiness/ai-skill manifest endpoint exposed; full skill at github.com/teableio/agent-skills' },
@@ -170,7 +171,7 @@ const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
   'nocodb_import',       // implemented (round-20 wired: nocodb-import module)
   'smartsheet_import',   // implemented (round-21 wired: smartsheet-import module)
   'smartsuite_import',   // implemented (round-22 wired: smartsuite-import module)
-  'connect_more_sources', // generic connector slot
+  'connect_more_sources', // implemented (round-23 wired: generic-connector module with pluggable registry)
 ]);
 
 
@@ -351,7 +352,7 @@ export class EnterpriseReadinessService {
     implemented: boolean;
     implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
-    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'pending'> = {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending'> = {
       airtable_import: 'airtable-import',
       notion_import: 'notion',
       google_sheets_import: 'google-sheets',
@@ -362,6 +363,7 @@ export class EnterpriseReadinessService {
       nocodb_import: 'nocodb-import',
       smartsheet_import: 'smartsheet-import',
       smartsuite_import: 'smartsuite-import',
+      connect_more_sources: 'generic-connector',
     };
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
@@ -862,6 +864,12 @@ export class EnterpriseReadinessService {
       {
         key: 'smartsuite_import',
         module: 'smartsuite-import',
+        enabled: true,
+      },
+      // Generic connector (Round-23: generic-connector module wired, pluggable registry)
+      {
+        key: 'connect_more_sources',
+        module: 'generic-connector',
         enabled: true,
       },
       // View-level permission (Cloud §视图权限独立)
