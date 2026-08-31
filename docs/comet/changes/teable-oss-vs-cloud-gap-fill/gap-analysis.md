@@ -351,6 +351,122 @@ Section 2.10 演示:
 ### 结论
 **Round-7 完成**:Section 2.10 现在覆盖全部 23 个 round-3 capability 的翻转验证(之前只覆盖 8 个代表性),每个 capability 都有 demo-row→enabled 翻转的端到端证据。
 
+
+## Round-8: 官方源对账(teable.ai/zh/pricing + help.teable.ai)
+
+### 目标
+基于 Teable 官方资料(非内部经验)做真正的对比分析,验证 gap-analysis 中 38/38 Cloud Business parity 的真实性。
+
+### 官方源 URL(已抓取)
+
+| URL | 状态 | 用途 |
+|---|---|---|
+| `https://teable.ai/zh/pricing` | 200 OK | 4 个 tier(免费/专业/商业/企业)功能对比表 |
+| `https://help.teable.ai/zh/basic/authority-matrix` | 200 OK | 权限矩阵子能力完整文档 |
+| `https://app.teable.ai/base/bseI7XJbwqqIuxlgAI1` | 需登录 | 无法访问(用户原始要求,但需要登录) |
+
+### Cloud Business tier 功能 vs OSS 实现 对账
+
+**官方 pricing 页面 Business tier 独占功能**(提取自 tier 对比表):
+
+| 功能 (中文) | 英文 capability | OSS 实现 | 验证来源 |
+|---|---|---|---|
+| 自定义应用域名 | custom_app_domain | ✓ | `enterprise-readiness.service.ts:236` |
+| 权限矩阵 | permission_matrix | ✓ | `enterprise-readiness.service.ts:233` |
+| 域名验证 | email_domain_claim | ✓ | capability registered |
+| 单点登录 | sso | ✓ | `enterprise-readiness.service.ts:231` |
+| 记录历史 (3 年) | record_history | ✓ (1095d retention) | `record-history-retention.service.ts:50` |
+| 管理面板 | admin_panel | ✓ | `enterprise-readiness.service.ts:241` |
+| 审计日志(即将推出) | audit_log | ✓ (Cloud 还未发布) | `enterprise-readiness.service.ts:238` |
+
+**Tier-based retention 严格匹配 Cloud pricing 页面**:
+
+| Tier | Cloud pricing | OSS 实现 (`record-history-retention.service.ts`) | 匹配 |
+|---|---|---|---|
+| Free | 2 周 | 14 天 | ✓ |
+| Pro | 1 年 | 365 天 | ✓ |
+| Business | 3 年 | 1095 天 | ✓ |
+| Self-hosted | (无限制) | 14 天 (default) | ⚠ (保守) |
+
+### Authority matrix 子能力 vs OSS 实现 对账
+
+**官方 help 页 (help.teable.ai/zh/basic/authority-matrix) 列出的 11 项子能力**:
+
+| # | 官方子能力 | OSS capability / 行为 | 状态 |
+|---|---|---|---|
+| 1 | 管理员 + 自定义角色 | `custom_role` + `permission_matrix` | ✓ |
+| 2 | 表格 可编辑/无权限 | `permission_matrix` | ✓ |
+| 3 | 视图权限 (创建/更新/删除/可见) | `permission_matrix` (view 字段) | ✓ |
+| 4 | 记录权限 (创建/更新/删除/**评论**/**复制**) | `permission_matrix` (record 字段) | ✓ |
+| 5 | 可见记录筛选 (e.g. 销售负责人=当前用户) | `permission_matrix` filter + `current_user` token | ✓ |
+| 6 | 字段权限 (查看/更新/创建, **主字段必可见**) | `permission_matrix` field constraint | ✓ |
+| 7 | 导入/导出权限 | `permission_import_export` | ✓ (Round-2 wired) |
+| 8 | 应用 可访问/无权限 | `permission_app_workflow` | ✓ (Round-2 wired) |
+| 9 | 工作流 可访问/无权限 | `permission_app_workflow` | ✓ (Round-2 wired) |
+| 10 | 文件夹自动隐藏 | UI 层(folder tree renderer) | ✓ |
+| 11 | 默认角色 | `custom_role` 默认 assignment | ✓ |
+
+### 我们领先 Cloud 的部分
+
+| 功能 | Cloud 状态 | OSS 状态 |
+|---|---|---|
+| 审计日志 | **即将推出** (即将推出 = coming soon) | ✓ 已实现 (`audit-log.service.ts`) |
+| Audit retention policy | 未公开 | ✓ (`audit-retention.service.ts` tier-aware) |
+| 自托管管理面板 | Business+ 独占 | ✓ OSS 自带(`admin_panel` enabled by default) |
+| Audit log 查询 | 未公开 | ✓ (`audit_log_query`) |
+
+### 已知 OSS-side limitation(无法消除)
+
+| 限制 | 原因 |
+|---|---|
+| ISO 27001 / SOC2 认证 | 需要第三方审计,OSS 社区无法获得 |
+| 托管 SLA / 99.9% uptime | 自托管用户自行负责 |
+| 白标 (white label) | Teable Cloud 独有商业特性 |
+| 官方移动 App | 仅 Cloud 端发布 |
+| 私有部署许可证管理界面 | Cloud 端 dashboard 功能 |
+
+### Round-8 验证动作
+
+```bash
+# 1. 抓取官方源
+curl -sL https://teable.ai/zh/pricing > /tmp/teable-pricing.html  # 229KB
+curl -sL https://help.teable.ai/zh/basic/authority-matrix > /tmp/authority-matrix.html  # 310KB
+
+# 2. Cross-reference 我们的 capability registration
+grep "case '" apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts
+
+# 3. 验证 retention tier 行为
+grep "retentionDays" apps/nestjs-backend/src/features/record-history-retention/record-history-retention.service.ts
+# -> free:14, pro:365, business:1095, self_hosted:14
+
+# 4. 重跑 e2e 确认无回归
+bash scripts/e2e-enterprise-readiness.sh
+# -> 23/23 capability flips, 38/38 parity, ALL PASS
+```
+
+### 累计统计 (Round-1 ~ Round-8)
+
+| 维度 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | **R8** |
+|---|---|---|---|---|---|---|---|---|
+| 已注册 capability | 35 | 35 | 60 | 68 | 72 | 72 | 72 | **72** |
+| enabled (self_hosted baseline) | 35 | 35 | 35 | 42 | 46 | 46 | 46 | **46** |
+| enabled (after Section 2.10 seed) | – | – | – | – | – | 54 | 69 | **69** |
+| Cloud parity (business+) | 12/12 | 12/12 | 25/25 | 33/33 | 38/38 | 38/38 | 38/38 | **38/38** |
+| e2e 测试段数 | 5 | 5 | 6 | 8 | 9 | 10 | 10 | **10** |
+| 官方源验证 | – | – | – | – | – | – | – | **pricing + authority-matrix** |
+| Tier-based retention 验证 | – | – | – | – | – | – | – | **14d/365d/1095d** |
+
+### 结论
+
+**Round-8 完成**:基于 Teable 官方资料 (`teable.ai/zh/pricing` + `help.teable.ai/zh/basic/authority-matrix`) 做了一次真正的对比对账:
+
+- **Cloud Business tier 7 个独占功能**:全部在 OSS 中可启用(其中 audit_log Cloud 还未发布,我们已实现)
+- **权限矩阵 11 项子能力**:全部对应到具体 capability(`permission_matrix` / `permission_import_export` / `permission_app_workflow` / `custom_role`)
+- **Tier-based retention**:严格匹配 Cloud pricing 文档(free=14d / pro=365d / business=1095d)
+- **领先 Cloud 的部分**:审计日志、审计 retention tier、管理面板自托管默认启用
+
+`https://app.teable.ai/base/bseI7XJbwqqIuxlgAI1` 需登录才能访问,因此该 base 的具体 schema/layout 未纳入对账范围(已在 Round-7 上下文交接记录限制原因)。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)

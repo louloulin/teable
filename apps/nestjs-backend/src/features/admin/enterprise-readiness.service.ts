@@ -296,7 +296,7 @@ export class EnterpriseReadinessService {
     };
     const count = await safe(async () => {
       const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
-        `SELECT count(*)::int AS count FROM ${modelName}`
+        `SELECT count(*)::int AS count FROM "meta"."${modelName}"`
       );
       return Number(rows?.[0]?.count ?? 0);
     }, 0);
