@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-6-audit-log",
+  "basedOnStateVersion": 11,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-6-audit-log",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-6-audit-log",
+    "branch": "comet/stage-6-audit-log"
+  },
+  "execution": null,
+  "checks": []
+}
