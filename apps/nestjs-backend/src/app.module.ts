@@ -45,6 +45,7 @@ import { ConditionalFormatModule } from './features/conditional-format/condition
 import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-prompt-router.module';
 import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
+import { DataResidencyModule } from './features/data-residency/data-residency.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -200,6 +201,7 @@ export const appModules = {
     OAuthServerModule,
     TrashModule,
     DashboardModule,
+    DataResidencyModule,
     DatabaseViewModule,
     GraphModule,
     CommentOpenApiModule,

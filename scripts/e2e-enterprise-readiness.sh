@@ -1855,6 +1855,141 @@ AW_404=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/approval-workfl
 assert_ok "$([[ "$AW_404" == "404" ]] && echo 0 || echo 1)" \
   "approval-workflow: deleted workflow returns 404 (got: $AW_404)"
 
+log "=== Section 4.17: data-residency HTTP CRUD (Round-29) ==="
+
+# 1) Create a region (US)
+DR_REG_US=$(curl -s -X POST "${BASE_URL}/api/data-residency/regions" \
+  -H "Content-Type: application/json" \
+  -d '{"code":"us","displayName":"United States","dataCenterLocation":"us-east-1"}')
+DR_REG_US_CODE=$(echo "$DR_REG_US" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('code',''))
+")
+DR_REG_US_STATUS=$(echo "$DR_REG_US" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status',''))
+")
+assert_ok "$([[ "$DR_REG_US_CODE" == "us" ]] && echo 0 || echo 1)" \
+  "data-residency: create region returns code=us (got: $DR_REG_US_CODE)"
+assert_ok "$([[ "$DR_REG_US_STATUS" == "active" ]] && echo 0 || echo 1)" \
+  "data-residency: new region status is active (got: $DR_REG_US_STATUS)"
+
+# 2) List regions — should include at least our us region
+DR_LIST=$(curl -s "${BASE_URL}/api/data-residency/regions" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+codes = sorted([r.get('code','') for r in d.get('regions',[])])
+print(','.join(codes))
+")
+# us is always present (Section 2.11 cleanup may remove others); just assert us is in the list
+DR_HAS_US=$(echo "$DR_LIST" | grep -c '\bus\b' || true)
+assert_ok "$([[ $DR_HAS_US -ge 1 ]] && echo 0 || echo 1)" \
+  "data-residency: list regions includes us (got: $DR_LIST)"
+
+# 3) Get region by code
+DR_GET=$(curl -s "${BASE_URL}/api/data-residency/regions/us" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('displayName',''))
+")
+assert_ok "$([[ "$DR_GET" == "United States" ]] && echo 0 || echo 1)" \
+  "data-residency: get region by code returns full record (got: $DR_GET)"
+
+# 4) Patch region status (drain) — then re-set back to active so subsequent runs are stable
+DR_DRAIN=$(curl -s -X PATCH "${BASE_URL}/api/data-residency/regions/us" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"draining"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status',''))
+")
+assert_ok "$([[ "$DR_DRAIN" == "draining" ]] && echo 0 || echo 1)" \
+  "data-residency: patch region status to draining (got: $DR_DRAIN)"
+
+# Restore to active (cleanup hygiene so re-runs are stable)
+curl -s -X PATCH "${BASE_URL}/api/data-residency/regions/us" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"active"}' >/dev/null
+
+# 5) Set policy (PUT upsert)
+DR_POL=$(curl -s -X PUT "${BASE_URL}/api/data-residency/policies/org_r29_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"regionCode":"us","locked":false,"updatedBy":"usr_r29_admin"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('regionCode','') + '|' + str(d.get('locked',False)).lower())
+")
+assert_ok "$([[ "$DR_POL" == "us|false" ]] && echo 0 || echo 1)" \
+  "data-residency: set policy upsert returns regionCode=us locked=false (got: $DR_POL)"
+
+# 6) Get policy
+DR_GET_POL=$(curl -s "${BASE_URL}/api/data-residency/policies/org_r29_e2e" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('updatedBy','') + '|' + d.get('regionCode',''))
+")
+assert_ok "$([[ "$DR_GET_POL" == "usr_r29_admin|us" ]] && echo 0 || echo 1)" \
+  "data-residency: get policy returns updatedBy + regionCode (got: $DR_GET_POL)"
+
+# 7) Authorize same-region (us → us, unlocked) → allowed=true
+#    Section 4 runs under business license (10 req/s/IP cap); sleep 1.5 to dodge 429.
+DR_AUTH_OK=$(sleep 2 && curl -s -X POST "${BASE_URL}/api/data-residency/authorize" \
+  -H "Content-Type: application/json" \
+  -d '{"organizationId":"org_r29_e2e","requestRegion":"us"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(str(d.get('allowed',False)).lower() + '|' + d.get('reason',''))
+")
+assert_ok "$([[ "$DR_AUTH_OK" == "true|same-region" ]] && echo 0 || echo 1)" \
+  "data-residency: authorize same-region returns allowed=true|same-region (got: $DR_AUTH_OK)"
+
+# 8) Lock policy then authorize (eu → us, locked) → blocked
+curl -s -X PUT "${BASE_URL}/api/data-residency/policies/org_r29_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"regionCode":"us","locked":true,"updatedBy":"usr_r29_admin"}' >/dev/null
+DR_AUTH_LOCKED=$(sleep 2 && curl -s -X POST "${BASE_URL}/api/data-residency/authorize" \
+  -H "Content-Type: application/json" \
+  -d '{"organizationId":"org_r29_e2e","requestRegion":"eu"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(str(d.get('allowed',False)).lower() + '|' + d.get('reason',''))
+")
+assert_ok "$([[ "$DR_AUTH_LOCKED" == "false|policy-locked" ]] && echo 0 || echo 1)" \
+  "data-residency: locked policy + cross region → false|policy-locked (got: $DR_AUTH_LOCKED)"
+
+# 9) Capability flips to enabled (count >= 1)
+DR_CAP_LIVE=$(curl -sf -H "x-admin-token: ${ADMIN_TOKEN}" "${BASE_URL}/api/admin/enterprise-readiness" | python3 -c "
+import json, sys
+dr = json.load(sys.stdin)['capabilities'].get('data_residency_policy', {})
+print('count=' + str(dr.get('dataResidencyPolicy', 0)) + ' enabled=' + str(dr.get('enabled',False)).lower())
+")
+assert_ok "$([[ "$DR_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
+  "data-residency_policy capability now enabled (got: $DR_CAP_LIVE)"
+
+# 10) Unlock then delete policy (locked policies can't be deleted — see auth.service.deletePolicy)
+curl -s -X PUT "${BASE_URL}/api/data-residency/policies/org_r29_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"regionCode":"us","locked":false,"updatedBy":"usr_r29_admin"}' >/dev/null
+DR_DEL=$(curl -s -X DELETE "${BASE_URL}/api/data-residency/policies/org_r29_e2e" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$DR_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "data-residency: delete policy returns deleted:true (got: $DR_DEL)"
+
+# 11) Sleep 2 to dodge ApiThrottleGuard 429 (Section 4 is under business license)
+sleep 2
+# Get deleted policy → returns null
+DR_GONE=$(curl -s "${BASE_URL}/api/data-residency/policies/org_r29_e2e" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('null' if d.get('policy', 'x') is None else 'present')
+")
+assert_ok "$([[ "$DR_GONE" == "null" ]] && echo 0 || echo 1)" \
+  "data-residency: deleted policy returns policy:null (got: $DR_GONE)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"

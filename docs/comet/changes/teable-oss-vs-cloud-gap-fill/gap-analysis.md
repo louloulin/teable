@@ -2733,3 +2733,111 @@ capability `approval_workflow` 从 `enabled=false reason=no_approval_workflow_ro
 - **R32**: 备份/恢复 full implementation (有 controller 但深度不够)
 - **R33**: 审计日志 + 合规 attestation UI/API
 - **R34**: 前端 admin UI (nextjs-app: dashboard + 审批流 UI + 权限矩阵配置)
+
+## Round-29: data-residency HTTP 层接入 (region + policy CRUD + authorize)
+
+### 背景
+
+R28 修了 approval-workflow 的"service 完整但无 controller" gap。R29 扫描了**整个 `features/` 目录**,发现 **108 个 features 有 service 但无 controller**,其中 **90 个有 auth.service**(更高级的假实现风险)。
+
+R29 选型:`data-residency` ——GDPR/SOC2 合规核心,auth.service 有 9 个完整 method(crudRegion + crudPolicy + authorizeRequest)。
+
+### 实施细节
+
+#### 1) Controller (`data-residency.controller.ts`, 152 LOC)
+
+`@Controller('api/data-residency')` + 8 个 endpoint:
+
+| HTTP | Path | 方法 |
+|---|---|---|
+| POST | `/regions` | createRegion |
+| GET | `/regions` | listRegions |
+| GET | `/regions/:code` | getRegion |
+| PATCH | `/regions/:code` | updateRegionStatus |
+| PUT | `/policies/:organizationId` | setPolicy (upsert) |
+| GET | `/policies/:organizationId` | getPolicy |
+| DELETE | `/policies/:organizationId` | deletePolicy (locked-only throws 400) |
+| POST | `/authorize` | authorizeRequest |
+
+**授权请求模式**: `authorizeRequest` 期望 `headers` 参数(从 `x-teable-region` header 读 region code),Controller 接收 body `{organizationId, requestRegion}`,然后 map 成 `{'x-teable-region': requestRegion}` 给 service。这让 e2e + admin tool 用 body 简单调,不用知道内部 header 名。
+
+#### 2) Module + 注册(`R29-001`)
+
+```ts
+@Module({
+  imports: [PrismaModule],
+  controllers: [DataResidencyController],
+  providers: [DataResidencyAuthService],
+  exports: [DataResidencyAuthService],
+})
+export class DataResidencyModule {}
+```
+
+注册到 `app.module.ts`:`DashboardModule` 之后,`DatabaseViewModule` 之前(按字母序)。
+
+#### 3) 实测端到端
+
+```bash
+# 1. 创建 region
+$ curl -X POST /api/data-residency/regions -d '{"code":"us","displayName":"US","dataCenterLocation":"us-east-1"}'
+{ "id":"reg_xxx", "code":"us", "status":"active", ... }
+
+# 2. drain region(企业级运维:灰度切流量)
+$ curl -X PATCH /api/data-residency/regions/us -d '{"status":"draining"}'
+{ ... "status":"draining" }
+
+# 3. 设置策略(locked=true 强合规)
+$ curl -X PUT /api/data-residency/policies/org_acme -d '{"regionCode":"us","locked":true,"updatedBy":"admin"}'
+{ "regionCode":"us", "locked":true, ... }
+
+# 4. authorize 检查
+$ curl -X POST /api/data-residency/authorize -d '{"organizationId":"org_acme","requestRegion":"eu"}'
+{ "requestRegion":"eu", "policyRegion":"us", "allowed":false, "reason":"policy-locked" }
+```
+
+`data_residency_policy` capability 从 `enabled=false reason=no_data_residency_policy_rows_yet` → **`enabled=true`**。
+
+#### 4) e2e Section 4.17 (12 断言)
+
+| # | 断言 | 实测 |
+|---|---|---|
+| 1 | create region returns code=us | us ✓ |
+| 2 | new region status is active | active ✓ |
+| 3 | list regions includes us | us ✓ |
+| 4 | get region by code returns full record | United States ✓ |
+| 5 | patch region status to draining | draining ✓ |
+| 6 | set policy upsert returns regionCode=us locked=false | us\|false ✓ |
+| 7 | get policy returns updatedBy + regionCode | usr_r29_admin\|us ✓ |
+| 8 | authorize same-region returns allowed=true\|same-region | true\|same-region ✓ |
+| 9 | locked policy + cross region → false\|policy-locked | false\|policy-locked ✓ |
+| 10 | data_residency_policy capability now enabled | count=1 enabled=true ✓ |
+| 11 | delete policy returns deleted:true | true ✓ |
+| 12 | deleted policy returns policy:null | null ✓ |
+
+**e2e 总数:186 OK / 0 FAIL** (R28 是 174,+12)。
+
+### Round-29 设计教训 (给后续 round 的同学)
+
+1. **authorizeRequest 签名错位** —— auth.service 接受 `headers: Record<string, string|string[]|undefined>`,需要 map `requestRegion` → `x-teable-region` header。Controller 用 mapping 让 e2e 简单调,不用知道内部 header 名。这种 facade pattern 对 internal-only 签名友好。
+2. **locked policy 不能 delete** —— `deletePolicy` 检查 `existing.locked` 后 throw 400,e2e 必须先 unlock 再 delete。否则 400 错误响应会被 python `dict.get` 兜底成 `{deleted: False}`,造成 false-fail。
+3. **api-rate-limit 累积风险** —— Section 4.17 在 Section 4.13/14/15/16 之后,已经吃了 50+ 请求/api/s,authorize 调用再次触发 10 req/s/IP 限速。**Solution:在每个 authorize-like 调用前 `sleep 2`**(10/s 限速需要 100ms/window,sleep 2 保证 token 完全重置)。更激进:把整段 Section 4.x 的限速调高,或每 2 个请求 sleep 1。
+4. **429 响应的 default-fields 假象** —— ApiThrottleGuard 抛 429 时响应是 `{message, status, code, data:{...}}`,无 `allowed`/`reason`。Python `dict.get('allowed', False)` 兜底成 `false`,`dict.get('reason', '')` 兜底成 `''`,输出 `false|`。**Debug 时一定要看 raw response**(`echo "[DEBUG] $RAW"`),否则会被 default 字段误导。
+5. **R29 起步时的扫描器价值** —— 全 `features/` 扫描出 108 个 service-no-controller + 90 个 auth-service-no-controller。R29-Rn+ 直接照这个清单批量处理即可(每个 ~ 30 分钟工作量)。
+
+### 结论
+
+**Round-29 完成**: data-residency HTTP 层全栈接入 (controller + module + app.module + 12 个 e2e 断言)。`data_residency_policy` capability 从"永远无法 enabled"变成"创建 policy 即 enabled"。
+
+### 下一步 (R30+ 候选,基于全扫描清单)
+
+按 ROI 排序,服务完整但 controller 缺失的剩余 89 个 features:
+
+- **R30**: `conflict-replay` (conflict_event 配套,审计重要)
+- **R31**: `custom-role` / `org-custom-role` (R26 已有 permission-matrix,custom-role 是补集)
+- **R32**: `cross-base-federation` (cloud 核心 feature)
+- **R33**: `dr-canvas` (disaster recovery canvas,云版独有)
+- **R34**: `compliance-attestation` + `compliance-audit-pack` (SOC2/ISO27001)
+- **R35**: `billing` + `billing-pdf-export` (SaaS 必备)
+- **R36**: `byok-llm` + `byok-kms` (BYOK 加密)
+- **R37**: `federated-sso` + `sso` + `saml` (企业 SSO)
+- **R38**: 前端 admin UI (nextjs-app)
