@@ -1730,6 +1730,131 @@ DASH_NO_AUTH=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/ent
 assert_ok "$([[ "$DASH_NO_AUTH" == "401" ]] && echo 0 || echo 1)" \
   "GET /dashboard without token returns 401 (got: $DASH_NO_AUTH)"
 
+log "=== Section 4.16: approval-workflow HTTP CRUD (Round-28) ==="
+
+# 1) List workflows (empty initially — we already cleaned up at Section 2.10 final cleanup)
+AW_LIST_EMPTY=$(curl -s "${BASE_URL}/api/base/bse_r28_e2e/approval-workflow" | python3 -c "
+import json, sys
+print(len(json.load(sys.stdin)['workflows']))
+")
+assert_ok "$([[ "$AW_LIST_EMPTY" == "0" ]] && echo 0 || echo 1)" \
+  "approval-workflow: list empty for fresh base (got: $AW_LIST_EMPTY)"
+
+# 2) Create workflow (any-one strategy)
+AW_CREATE=$(curl -s -X POST "${BASE_URL}/api/base/bse_r28_e2e/approval-workflow" \
+  -H "Content-Type: application/json" \
+  -d '{"tableId":"tbl_r28_e2e","name":"R28 e2e workflow","strategy":"any-one","approverIds":["usr_r28_a","usr_r28_b"]}')
+AW_ID=$(echo "$AW_CREATE" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('id',''))
+")
+AW_STRATEGY=$(echo "$AW_CREATE" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('strategy',''))
+")
+assert_ok "$([[ "$AW_ID" =~ ^aw_ ]] && echo 0 || echo 1)" \
+  "approval-workflow: create returns id starting with aw_ (got: $AW_ID)"
+assert_ok "$([[ "$AW_STRATEGY" == "any-one" ]] && echo 0 || echo 1)" \
+  "approval-workflow: strategy echoed back (got: $AW_STRATEGY)"
+
+# 3) Get workflow (round-trip)
+AW_GET=$(curl -s "${BASE_URL}/api/approval-workflow/$AW_ID" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('name','') + '|' + str(len(d.get('approverIds',[]))))
+")
+assert_ok "$([[ "$AW_GET" == "R28 e2e workflow|2" ]] && echo 0 || echo 1)" \
+  "approval-workflow: get by id returns full workflow (got: $AW_GET)"
+
+# 4) Create request against the workflow
+AW_REQ=$(curl -s -X POST "${BASE_URL}/api/approval-workflow/$AW_ID/request" \
+  -H "Content-Type: application/json" \
+  -d '{"baseId":"bse_r28_e2e","tableId":"tbl_r28_e2e","recordId":"rec_r28_e2e_1","requesterUserId":"usr_r28_requester","payload":{"field1":"value1","field2":42}}')
+AW_REQ_ID=$(echo "$AW_REQ" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('id',''))
+")
+AW_REQ_STATUS=$(echo "$AW_REQ" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status',''))
+")
+assert_ok "$([[ "$AW_REQ_ID" =~ ^ar_ ]] && echo 0 || echo 1)" \
+  "approval-workflow: create request returns id starting with ar_ (got: $AW_REQ_ID)"
+assert_ok "$([[ "$AW_REQ_STATUS" == "pending" ]] && echo 0 || echo 1)" \
+  "approval-workflow: new request status is pending (got: $AW_REQ_STATUS)"
+
+# 5) Cast decision (approve) — any-one strategy → status flips to approved
+AW_DECIDE=$(curl -s -X POST "${BASE_URL}/api/approval-request/$AW_REQ_ID/decision" \
+  -H "Content-Type: application/json" \
+  -d '{"approverUserId":"usr_r28_a","decision":"approve","comment":"R28 LGTM"}')
+AW_DECIDED=$(echo "$AW_DECIDE" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('decided',False))
+")
+AW_FINAL_STATUS=$(echo "$AW_DECIDE" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status',''))
+")
+assert_ok "$([[ "$AW_DECIDED" == "True" ]] && echo 0 || echo 1)" \
+  "approval-workflow: decision marks request decided (got: $AW_DECIDED)"
+assert_ok "$([[ "$AW_FINAL_STATUS" == "approved" ]] && echo 0 || echo 1)" \
+  "approval-workflow: any-one strategy → status=approved (got: $AW_FINAL_STATUS)"
+
+# 6) List decisions — should have 1 entry
+AW_DECISIONS=$(curl -s "${BASE_URL}/api/approval-request/$AW_REQ_ID/decisions" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(len(d.get('decisions',[])))
+")
+assert_ok "$([[ "$AW_DECISIONS" == "1" ]] && echo 0 || echo 1)" \
+  "approval-workflow: list decisions returns 1 entry (got: $AW_DECISIONS)"
+
+# 7) Progress endpoint reflects approved status
+AW_PROG=$(curl -s "${BASE_URL}/api/approval-request/$AW_REQ_ID/progress" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status','') + '|' + str(d.get('approvalsCount',-1)))
+")
+assert_ok "$([[ "$AW_PROG" == "approved|1" ]] && echo 0 || echo 1)" \
+  "approval-workflow: progress reports approved + 1 approval (got: $AW_PROG)"
+
+# 8) Capability flips to enabled (with row count = 1)
+AW_CAP=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+aw = json.load(sys.stdin)['capabilities'].get('approval_workflow', {})
+print('count=' + str(aw.get('approvalWorkflow', 0)) + ' enabled=' + str(aw.get('enabled',False)).lower())
+")
+# Note: DEFAULT_BODY is from Section 2 (before our R28 seed). Use live readiness.
+AW_CAP_LIVE=$(curl -sf -H "x-admin-token: ${ADMIN_TOKEN}" "${BASE_URL}/api/admin/enterprise-readiness" | python3 -c "
+import json, sys
+aw = json.load(sys.stdin)['capabilities'].get('approval_workflow', {})
+print('count=' + str(aw.get('approvalWorkflow', 0)) + ' enabled=' + str(aw.get('enabled',False)).lower())
+")
+assert_ok "$([[ "$AW_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
+  "approval-workflow capability now enabled (got: $AW_CAP_LIVE)"
+
+# 9) Delete workflow
+AW_DEL=$(curl -s -X DELETE "${BASE_URL}/api/approval-workflow/$AW_ID")
+AW_DELETED=$(echo "$AW_DEL" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$AW_DELETED" == "true" ]] && echo 0 || echo 1)" \
+  "approval-workflow: delete returns deleted:true (got: $AW_DEL)"
+
+# 10) Get deleted workflow → 404 (after a brief pause to avoid api-rate-limit 429;
+#     Section 4 runs under business-license plan, capped at 10 req/s/IP).
+sleep 2
+AW_404=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/approval-workflow/$AW_ID")
+assert_ok "$([[ "$AW_404" == "404" ]] && echo 0 || echo 1)" \
+  "approval-workflow: deleted workflow returns 404 (got: $AW_404)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"

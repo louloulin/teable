@@ -30,6 +30,7 @@ import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuditExportModule } from './features/audit-export/audit-export.module';
 import { AuthModule } from './features/auth/auth.module';
+import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
 import { BaseModule } from './features/base/base.module';
@@ -148,6 +149,7 @@ export const appModules = {
     UserModule,
     ViewPermissionModule,
     AuthModule,
+    ApprovalWorkflowModule,
     AuditSourceModule,
     AutomationModule,
     SpaceModule,
