@@ -131,7 +131,7 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Generic connector framework; needs driver registry' },
   { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships ready-to-use JS examples' },
   { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud ships i18n docs' },
-  { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'not_implemented', ossFramework: null, notes: 'Cloud exposes Teable as an agent-callable skill' },
+  { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'partial', ossFramework: 'enterprise-readiness', notes: 'Round-13: /api/admin/enterprise-readiness/ai-skill manifest endpoint exposed; full skill at github.com/teableio/agent-skills' },
 ];
 
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {

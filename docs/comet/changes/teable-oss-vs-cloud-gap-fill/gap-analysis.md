@@ -753,6 +753,73 @@ R11 把 14 个 Cloud gap 暴露在 `cloudGap` API,但运维看到 14 个 `not_im
 
 这是"最佳最小改造"的代表性例子:不写新功能代码,只把现有信息结构化暴露,价值翻倍。
 
+
+## Round-13: 实现 ai_skill 端点 + roadmap 端点 + ai_skill 状态升级到 partial
+
+### 目标
+R12 把 cloudGap 分类清楚后,Round-13 真正实现最小的 cloudGap:`ai_skill`(Connect AI Agents to Teable)。这个 gap 的官方文档本质就是 `npx skills add https://github.com/teableio/agent-skills`,所以 OSS 实现 = 暴露 `/api/admin/enterprise-readiness/ai-skill` manifest 端点,让 AI agent 可以发现并 install 这个 skill。
+
+### 改动
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.controller.ts`:
+
+| 端点 | Auth | 用途 |
+|---|---|---|
+| `GET /api/admin/enterprise-readiness/ai-skill` | **public** | 返回 skill manifest(JSON:name/version/install/docs/capabilities),AI agent 可发现 |
+| `GET /api/admin/enterprise-readiness/cloud-gap-roadmap` | admin token | 返回 topFillable + byCategory + byReason 统计 |
+
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:
+- ai_skill cloudGap entry 状态从 `not_implemented` 改为 `partial`
+- ossFramework 从 null 改为 `enterprise-readiness`
+- notes 标注 Round-13 实现细节
+
+`scripts/e2e-enterprise-readiness.sh`:
+- 新增 Section 4.2(8 个断言):ai-skill manifest 内容、public 访问、roadmap admin-only
+- R11 assertion 改为接受 `partial`,加 `>=13 not_implemented` sanity check
+- R12 assertion 改 `framework_missing == 0`(ai_skill 升级后)+ 新增 `spec_only >= 1`
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R7 | 10 | ~30 |
+| R8 | 10 | ~30 |
+| R9 | 10 | ~30 |
+| R10 | 10 | ~30 |
+| R11 | 11 | ~37 (+7 cloudGap) |
+| R12 | 12 | ~42 (+5 framework) |
+| **R13** | **13** | **~50 (+8 ai-skill)** |
+
+### ai-skill manifest 实际内容
+
+```json
+{
+  "name": "teable",
+  "version": "1.0.0",
+  "install": "npx skills add https://github.com/teableio/agent-skills",
+  "docs": "https://help.teable.ai/en/basic/ai/teable-skill.md",
+  "capabilities": [
+    "query_records","create_records","update_records","delete_records",
+    "list_tables","list_bases","create_table","create_view",
+    "trigger_automation","install_app"
+  ]
+}
+```
+
+### 累计统计 (Round-1 ~ Round-13)
+
+| 维度 | R11 | R12 | **R13** |
+|---|---|---|---|
+| Worktree commits | 5 | 6 | **7** |
+| e2e 段数 | 11 | 12 | **13** |
+| e2e 总断言数 | ~37 | ~42 | **~50** |
+| 新增 API 端点 | n/a | n/a | **2 (ai-skill public + cloud-gap-roadmap admin)** |
+| cloudGap 状态变化 | 14 not_impl | 14 not_impl | **1 partial + 13 not_impl** |
+| gap-analysis.md 行数 | 685 | 760 | **~830** |
+
+### 结论
+
+**Round-13 完成**:cloudGap 14 项中第一个被实际填充 — `ai_skill` 现在有 public manifest 端点,状态从 `not_implemented` 升级到 `partial`。这证明了 cloudGap API 不只是"差距报告",而是真能驱动增量实现的路线图。剩 13 项中 8 个是 `driver_missing`(只差 driver 实现),operator 可按 `cloud-gap-roadmap` 端点的 `topFillable` 字段继续按顺序填充。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)

@@ -744,14 +744,23 @@ assert_ok "$(echo "$GAP_CATS" | grep -q "'scripting': 5" && echo 0 || echo 1)" \
 assert_ok "$(echo "$GAP_CATS" | grep -q "'integration': 2" && echo 0 || echo 1)" \
   "integration count = 2 (got: $GAP_CATS)"
 
-# All entries must be 'not_implemented' (we don't fake completion)
+# All entries must be in {'not_implemented', 'partial'} (Round-13 ai_skill moved to partial)
 GAP_STATUS=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
-print(all(g['status'] == 'not_implemented' for g in gaps))
+print(all(g['status'] in ('not_implemented', 'partial') for g in gaps))
 ")
 assert_ok "$([[ "$GAP_STATUS" == "True" ]] && echo 0 || echo 1)" \
-  "all 14 cloudGap entries status='not_implemented' (got: $GAP_STATUS)"
+  "all 14 cloudGap entries in {'not_implemented','partial'} (got: $GAP_STATUS)"
+
+# And at least one must still be 'not_implemented' (sanity: don't accidentally mark all complete)
+NOT_IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g['status'] == 'not_implemented'))
+")
+assert_ok "$([[ "$NOT_IMPL_COUNT" -ge "13" ]] && echo 0 || echo 1)" \
+  "at least 13 cloudGap entries still 'not_implemented' (got: $NOT_IMPL_COUNT)"
 
 # summary.cloudExclusiveGapCount must match cloudGap length
 GAP_SUMMARY=$(echo "$GAP_BODY" | python3 -c "
@@ -790,14 +799,23 @@ print(sum(1 for g in gaps if g.get('reasonCategory') == 'sandbox_missing'))
 assert_ok "$([[ "$SANDBOX_MISSING" == "5" ]] && echo 0 || echo 1)" \
   "5 sandbox_missing gaps (scripting without JS sandbox) (got: $SANDBOX_MISSING)"
 
-# 1 framework_missing (ai_skill)
+# Round-13 update: ai_skill is now 'partial' (Round-13 ai-skill endpoint), so its
+# reasonCategory shifted from framework_missing to spec_only.
+SPEC_ONLY=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+print(sum(1 for g in gaps if g.get('reasonCategory') == 'spec_only'))
+")
+assert_ok "$([[ "$SPEC_ONLY" -ge "1" ]] && echo 0 || echo 1)" \
+  ">=1 spec_only gap (ai_skill: status=partial but framework dir missing) (got: $SPEC_ONLY)"
+
 FRAMEWORK_MISSING=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g.get('reasonCategory') == 'framework_missing'))
 ")
-assert_ok "$([[ "$FRAMEWORK_MISSING" == "1" ]] && echo 0 || echo 1)" \
-  "1 framework_missing gap (ai_skill) (got: $FRAMEWORK_MISSING)"
+assert_ok "$([[ "$FRAMEWORK_MISSING" == "0" ]] && echo 0 || echo 1)" \
+  "0 framework_missing gaps (ai_skill Round-13 promoted to partial) (got: $FRAMEWORK_MISSING)"
 
 # implementationOrder must be 1..14 with no gaps
 ORDER_OK=$(echo "$GAP_BODY" | python3 -c "
@@ -819,6 +837,54 @@ print('true' if max(mig_orders) < min(scr_orders) else 'false')
 ")
 assert_ok "$([[ "$SORT_OK" == "true" ]] && echo 0 || echo 1)" \
   "migrations sort before scripting (got: $SORT_OK)"
+
+# ----- Section 4.2: ai-skill manifest + roadmap endpoint (Round-13) -----
+# /api/admin/enterprise-readiness/ai-skill is public (for AI agents to discover)
+# /api/admin/enterprise-readiness/cloud-gap-roadmap is admin-only
+log "=== Section 4.2: ai-skill manifest + roadmap endpoint (Round-13) ==="
+
+# ai-skill is public - no admin token needed
+SKILL_RESP=$(curl -s "${BASE_URL}/api/admin/enterprise-readiness/ai-skill")
+SKILL_NAME=$(echo "$SKILL_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('name',''))")
+assert_ok "$([[ "$SKILL_NAME" == "teable" ]] && echo 0 || echo 1)" \
+  "ai-skill endpoint returns skill name 'teable' (got: $SKILL_NAME)"
+
+SKILL_INSTALL=$(echo "$SKILL_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('install',''))")
+assert_ok "$([[ "$SKILL_INSTALL" == *"skills add"* ]] && echo 0 || echo 1)" \
+  "ai-skill install command is npx-based (got: $SKILL_INSTALL)"
+
+SKILL_CAPS=$(echo "$SKILL_RESP" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('capabilities',[])))")
+assert_ok "$([[ "$SKILL_CAPS" -ge "5" ]] && echo 0 || echo 1)" \
+  "ai-skill lists at least 5 capabilities (got: $SKILL_CAPS)"
+
+# ai-skill should NOT require admin token
+SKILL_UNAUTH=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness/ai-skill")
+assert_ok "$([[ "$SKILL_UNAUTH" == "200" ]] && echo 0 || echo 1)" \
+  "ai-skill public (no admin token needed) (got: HTTP $SKILL_UNAUTH)"
+
+# cloud-gap-roadmap requires admin token
+ROAD_UNAUTH=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness/cloud-gap-roadmap")
+assert_ok "$([[ "$ROAD_UNAUTH" == "401" ]] && echo 0 || echo 1)" \
+  "cloud-gap-roadmap rejects unauth (got: HTTP $ROAD_UNAUTH)"
+
+ROAD_RESP=$(curl -s -H "x-admin-token: $ADMIN_TOKEN" "${BASE_URL}/api/admin/enterprise-readiness/cloud-gap-roadmap")
+ROAD_TOTAL=$(echo "$ROAD_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('total',-1))")
+assert_ok "$([[ "$ROAD_TOTAL" == "14" ]] && echo 0 || echo 1)" \
+  "cloud-gap-roadmap total=14 (got: $ROAD_TOTAL)"
+
+ROAD_TOP=$(echo "$ROAD_RESP" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('topFillable',[])))")
+assert_ok "$([[ "$ROAD_TOP" -ge "3" ]] && echo 0 || echo 1)" \
+  "cloud-gap-roadmap topFillable has >=3 entries (got: $ROAD_TOP)"
+
+# ai_skill cloudGap entry status should now be 'partial' (Round-13 upgrade)
+AISKILL_STATUS=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin).get('cloudGap', [])
+ai = [g for g in gaps if g['key'] == 'ai_skill']
+print(ai[0]['status'] if ai else 'NOT_FOUND')
+")
+assert_ok "$([[ "$AISKILL_STATUS" == "partial" ]] && echo 0 || echo 1)" \
+  "ai_skill cloudGap upgraded to status='partial' (got: $AISKILL_STATUS)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

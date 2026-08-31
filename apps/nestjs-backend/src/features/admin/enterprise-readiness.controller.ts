@@ -32,4 +32,81 @@ export class EnterpriseReadinessController {
     }
     return this.readiness.report();
   }
+
+  /**
+   * Round-13: AI-agent skill manifest endpoint. Exposes this OSS instance
+   * as a tool-callable skill for external AI agents. Mirrors Cloud's
+   * teableio/agent-skills GitHub repo: discoverable manifest, installable
+   * via `npx skills add https://github.com/teableio/agent-skills`.
+   *
+   * Public (no admin token) so AI agents can discover it without
+   * credentials - they still need a Teable API token to actually mutate
+   * data, which the skill installs during setup.
+   */
+  @Public()
+  @Get('ai-skill')
+  @HttpCode(200)
+  async aiSkill(): Promise<{
+    name: string;
+    description: string;
+    version: string;
+    install: string;
+    docs: string;
+    capabilities: string[];
+  }> {
+    return {
+      name: 'teable',
+      description:
+        'Query and update data, manage tables, and create automations or apps from your AI agent.',
+      version: '1.0.0',
+      install: 'npx skills add https://github.com/teableio/agent-skills',
+      docs: 'https://help.teable.ai/en/basic/ai/teable-skill.md',
+      capabilities: [
+        'query_records',
+        'create_records',
+        'update_records',
+        'delete_records',
+        'list_tables',
+        'list_bases',
+        'create_table',
+        'create_view',
+        'trigger_automation',
+        'install_app',
+      ],
+    };
+  }
+
+  /**
+   * Round-13: Cloud-gap roadmap endpoint. Returns the cloudGap entries
+   * sorted by ease-of-implementation, with framework presence + reason
+   * classification. Operators use this to plan next-quarter OSS work.
+   */
+  @Public()
+  @Get('cloud-gap-roadmap')
+  @HttpCode(200)
+  async cloudGapRoadmap(
+    @Headers('x-admin-token') adminToken: string | undefined,
+  ): Promise<{
+    topFillable: ReturnType<EnterpriseReadinessService['topFillableGaps']>;
+    total: number;
+    byCategory: Record<string, number>;
+    byReason: Record<string, number>;
+  }> {
+    if (!adminToken || adminToken !== process.env.TEABLE_ADMIN_TOKEN) {
+      throw new UnauthorizedException('admin token required');
+    }
+    const all = this.readiness.collectCloudGaps();
+    const byCategory: Record<string, number> = {};
+    const byReason: Record<string, number> = {};
+    for (const g of all) {
+      byCategory[g.category] = (byCategory[g.category] ?? 0) + 1;
+      byReason[g.reasonCategory ?? 'spec_only'] = (byReason[g.reasonCategory ?? 'spec_only'] ?? 0) + 1;
+    }
+    return {
+      topFillable: this.readiness.topFillableGaps(5),
+      total: all.length,
+      byCategory,
+      byReason,
+    };
+  }
 }
