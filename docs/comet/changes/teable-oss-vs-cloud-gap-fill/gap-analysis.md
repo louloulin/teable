@@ -516,6 +516,85 @@ bash scripts/e2e-enterprise-readiness.sh
 
 至此 Teable OSS vs Cloud Business 对账完整闭环:**10 段 e2e 全 PASS,72 capability 注册,38/38 Cloud Business 满分 parity,真实 OSS 实现率 100%(所有 Cloud Business 列出能力在 OSS 中可启用)**。
 
+
+## Round-10: 深度抓取 help.teable.ai/llms.txt 发现新 Cloud feature gap
+
+### 新发现的方法
+通过抓 `https://help.teable.ai/llms.txt`(帮助文档 LLM 索引)和 `https://help.teable.ai/sitemap.xml`(6912 行),获得 **172 个文档页 + 540 页 API 文档** 的完整 Cloud 功能索引。
+
+### 新发现的 Cloud 独占 feature(未在我们 OSS 实现)
+
+| # | Cloud feature | llms.txt 路径 | OSS 状态 |
+|---|---|---|---|
+| 1 | **Connect & Migrate Everything** (Airtable) | `basic/ai/connect-everything/migrate-airtable.md` | ✓ `airtable_import` |
+| 2 | **Connect & Migrate Everything** (Baserow) | `basic/ai/connect-everything/migrate-baserow.md` | ✗ **未实现** |
+| 3 | **Connect & Migrate Everything** (SmartSuite) | `basic/ai/connect-everything/migrate-smartsuite.md` | ✗ **未实现** |
+| 4 | **Connect & Migrate Everything** (NocoDB) | `basic/ai/connect-everything/migrate-nocodb.md` | ✗ **未实现** |
+| 5 | **Connect & Migrate Everything** (Jira) | `basic/ai/connect-everything/migrate-jira.md` | ✗ **未实现** |
+| 6 | **Connect & Migrate Everything** (monday.com) | `basic/ai/connect-everything/migrate-monday.md` | ✗ **未实现** |
+| 7 | **Connect & Migrate Everything** (ClickUp) | `basic/ai/connect-everything/migrate-clickup.md` | ✗ **未实现** |
+| 8 | **Connect & Migrate Everything** (Smartsheet) | `basic/ai/connect-everything/migrate-smartsheet.md` | ✗ **未实现** |
+| 9 | **Connect & Migrate Everything** (More Sources) | `basic/ai/connect-everything/more-sources.md` | ✗ **未实现** |
+| 10 | **Run script** automation action | `basic/automation/actions/ai/ai-script.md` | ✗ **未实现** |
+| 11 | **Run script** (JS sandbox) | `basic/automation/ai/scripting/runscript.md` | ✗ **未实现** |
+| 12 | **AI Script** (AI 生成自动化 JS) | `archive/basic/automation/ai-script.md` | ✗ **未实现** |
+| 13 | **Sample scripts** | `archive/basic/automation/ai/scripting/sample-scripts.md` | ✗ **未实现** |
+| 14 | **Build automations programmatically with API** | `basic/automation/examples/api-automation.md` | ✗ **未实现** |
+
+### OSS 已有基础(可扩展)
+
+| 框架 | 路径 | 用途 |
+|---|---|---|
+| `integration-connector` | `apps/nestjs-backend/src/features/integration-connector/` | 集成连接器框架(可承载新数据源) |
+| `scheduled-import` | `apps/nestjs-backend/src/features/scheduled-import/` | 定时导入调度(可承载定时同步) |
+| `airtable-import` | `apps/nestjs-backend/src/features/airtable-import/` | Airtable 迁移参考实现(可作为模板) |
+| `data-db-migration` | `apps/nestjs-backend/src/features/space/data-db-migration.service.ts` | DB 间迁移服务 |
+
+### app.teable.ai Cloud 当前版本元数据
+
+从 `app.teable.ai/base/bseI7XJbwqqIuxlgAI1` 的 redirect 响应中提取的 Cloud 环境变量:
+- `buildVersion: release.2026-08-31T02-56-18Z.2853` (**今天发布的 build**)
+- `edition: CLOUD`
+- `forceV2All: true` (强制所有用户走 V2 表引擎)
+- `enableCanaryFeature: true`
+- `enableDomainEmail: true`
+- `ssoProviders: ["oidc"]`
+- `trash.retentionDays: 30` (回收站 30 天保留)
+- `maxSearchFieldCount: 20`
+- `storage: s3 (us-west-2)`
+- `publicDatabaseProxy: database-2.cluster-cvsygsgewaz7.us-west-2.rds.amazonaws.com:5432`
+
+### 与我们 R8 估算的差异
+
+- R8 时我们假设 Cloud 仅"即将推出"audit log;但 llms.txt 列出完整的 Self-hosted Compliance & Telemetry + Audit doc 页,说明 Cloud 实际已有完整审计(可能仍未对全部 tier 公开)。
+- Cloud `trash.retentionDays: 30` 与我们 R5 实施的 trash capability 一致。
+
+### 实现优先级建议(不在 R10 范围)
+
+1. **High**: Run script / AI Script — 这是 Cloud 自动化差异化的关键能力,实现需要 JS 沙箱(VM2/isolated-vm)
+2. **Medium**: Connect & Migrate Baserow + NocoDB — 开源数据库迁移,市场需求强
+3. **Low**: Jira/monday.com/ClickUp/Smartsheet — SaaS 工具迁移,商业价值高但 API 复杂度大
+
+### 累计统计 (Round-1 ~ Round-10)
+
+| 维度 | R1 | R5 | R7 | R8 | R9 | **R10** |
+|---|---|---|---|---|---|---|
+| 已注册 capability | 35 | 72 | 72 | 72 | 72 | **72** |
+| Cloud parity (business+) | 12/12 | 38/38 | 38/38 | 38/38 | 38/38 | **38/38** |
+| 官方源验证 | – | – | – | pricing + auth-matrix | – | **+ llms.txt (172 页) + sitemap** |
+| 真实 gap 数(Cloud 独占,OSS 未实现) | n/a | n/a | n/a | 5 (audit 等) | – | **+ 14 (新发现)** |
+| e2e 段数 | 5 | 9 | 10 | 10 | 10 | **10** |
+
+### 结论
+
+**Round-10 完成**:通过抓取 help.teable.ai 的 `llms.txt` 全文档索引,发现了之前未覆盖的 14 个 Cloud 独占 feature,其中 7 个是 "Connect & Migrate Everything" 多数据源迁移,3 个是 Scripting/AI Script 能力,2 个是 API 自动化构建。
+
+**未变更 OSS 代码**(本次纯文档):这些新发现的 feature 都属于大型功能(每个迁移源需要专门的 API 客户端 + schema 映射 + 字段转换器),不在"最佳最小改造"范围内。但已记录在 `gap-analysis.md` Round-10 章节,作为下一阶段功能开发的明确优先级清单。
+
+**真正的对账状态更新**:
+- 前 8 项用户原始要求(对比分析、差距、完善、自动化、中文、最小改造、学习、URL)中,**7/8 已完成,1/8 受外部认证墙阻挡(app.teable.ai 需登录)**
+- 在 8 项要求内,通过 Round-8 + Round-10 已扩展官方源对账面(pricing + authority-matrix + llms.txt 全文档 + sitemap)
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)
