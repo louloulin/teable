@@ -140,4 +140,24 @@ export class EnterpriseReadinessController {
       sources,
     };
   }
+
+  /**
+   * Round-27: Operator dashboard summary endpoint.
+   * Aggregates cloudGap / capability / driver health / AI skill / authority
+   * matrix / parity + actionable recommendations into a single response
+   * suitable for a frontend admin UI or curl-based ops check.
+   *
+   * Auth: admin token. Pure aggregator — does not mutate state.
+   */
+  @Public()
+  @Get('dashboard')
+  @HttpCode(200)
+  async dashboard(
+    @Headers('x-admin-token') adminToken: string | undefined,
+  ): Promise<unknown> {
+    if (!adminToken || adminToken !== process.env.TEABLE_ADMIN_TOKEN) {
+      throw new UnauthorizedException('admin token required');
+    }
+    return this.readiness.buildDashboardSummary();
+  }
 }

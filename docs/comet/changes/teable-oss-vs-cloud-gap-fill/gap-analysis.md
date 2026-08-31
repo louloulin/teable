@@ -2437,3 +2437,159 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - **R29: isolated-vm 强化** (替代 Node vm 模块,处理不可信脚本)
 - **R30: OpenAPI 自动 sync** (每次 build 重新生成 API.md,跟实际 openapi schema 同步)
 - **R31: 性能优化** (readiness 缓存 / 静态化 cloudGap 数据)
+
+## Round-27: enterprise-readiness dashboard 汇总 endpoint (admin 运维可视化前置)
+
+### 背景
+
+R1-R26 把 enterprise-readiness 后端完整化:
+- 14/14 cloudGap 全 implemented (R25)
+- 11/11 migration driver wired (R23)
+- 6/6 authority-matrix domain wired (R26)
+- post-seed self_hosted parity 45/46 (R26)
+
+但所有这些指标散落在 5 个 endpoint (`/`, `/ai-skill`, `/cloud-gap-roadmap`, `/migration-sources`, 各 driver 子路由)。运维/前端要拼装完整状态需要 N 次 HTTP 调用 + 客户端聚合。
+
+R27 目标: **一个 GET 返回完整的 dashboard summary**,供:
+1. 运维 curl 健康检查 (人工)
+2. 未来 admin UI 单页 dashboard (前端)
+3. 监控 / 告警系统 JSON 喂入
+
+### 实施细节
+
+#### 1) Service 层 `buildDashboardSummary()` (R27-001)
+
+文件: `apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`
+
+在已有 `report()` 数据基础上,纯函数式聚合 9 个维度:
+
+```ts
+async buildDashboardSummary(): Promise<{
+  generatedAt, plan, cloudGap, capability,
+  driverHealth, aiSkill, authorityMatrix, parity, recommendations
+}>
+```
+
+- 复用 `report()` 结果,不重新查 DB
+- `cloudGap`: total/implemented/partial/notImplemented + coveragePercent + byCategory + byReasonCategory + implementedKeys + recentImplementations
+- `capability`: total/enabled/disabled + enabledPercent + disabledByReason + topDisabled (top 8)
+- `driverHealth`: totalDrivers/wiredDrivers/wiredDriverKeys + genericAdapterTypes + sampleLibraryCount
+- `aiSkill`: manifestEndpoint + inlineFileCount + inlineFiles (name + bytes) — 通过 fs.statSync 探测 4 个 .md 文件
+- `authorityMatrix`: schemaDomains/wiredDomains/coveragePercent (硬编码 6/6 from R26)
+- `parity`: defaultSelfHosted / maxSelfHosted / businessLicense 三阶段对比
+- `recommendations`: 基于当前 state 的 actionable insight (3-4 条)
+
+**Ai-skill 文件路径修复 (R27-001 fix)**:
+原代码 `path.join(process.cwd(), 'apps/nestjs-backend/src/features/admin/ai-skill')` 在 backend cwd=`apps/nestjs-backend` 下会拼成错误的 `apps/nestjs-backend/apps/nestjs-backend/...`。修复为多候选路径: `__dirname/../../src/features/admin/ai-skill`、`process.cwd()/src/features/admin/ai-skill`、`__dirname/ai-skill`、`process.cwd()/apps/...`。修后 inlineFileCount 从 0 → 4。
+
+#### 2) Controller `GET /dashboard` (R27-002)
+
+文件: `apps/nestjs-backend/src/features/admin/enterprise-readiness.controller.ts`
+
+```ts
+@Public()
+@Get('dashboard')
+@HttpCode(200)
+async dashboard(@Headers('x-admin-token') adminToken: string | undefined) {
+  if (!adminToken || adminToken !== process.env.TEABLE_ADMIN_TOKEN) {
+    throw new UnauthorizedException('admin token required');
+  }
+  return this.readiness.buildDashboardSummary();
+}
+```
+
+跟其他 4 个 admin endpoint 模式一致:`@Public()` 公开路由 + `x-admin-token` header 校验 + `UnauthorizedException`。
+
+#### 3) 端到端验证 (Section 4.15)
+
+文件: `scripts/e2e-enterprise-readiness.sh` (Section 4.15 新增 11 断言)
+
+| # | 断言 | 实测 |
+|---|---|---|
+| 1 | GET /dashboard 返回 200 | 200 ✓ |
+| 2 | body 包含 8 个顶层 key | generatedAt/plan/cloudGap/capability/driverHealth/aiSkill/authorityMatrix/parity/recommendations ✓ |
+| 3 | cloudGap.coveragePercent == 100 | 100 ✓ |
+| 4 | capability.enabled/total 格式正确 | 71/80 ✓ |
+| 5 | driverHealth.wiredDrivers == totalDrivers | 11/11 ✓ |
+| 6 | authorityMatrix.coveragePercent == 100 | 100 ✓ |
+| 7 | parity.businessLicense == 46/46 | 46/46 ✓ |
+| 8 | recommendations 数组 >= 1 | 1 ✓ |
+| 9 | aiSkill.inlineFileCount == 4 | 4 ✓ |
+| 10 | plan.level 是 self_hosted/business | business (Section 3 后) ✓ |
+| 11 | GET /dashboard 无 token 返回 401 | 401 ✓ |
+
+### 实测响应示例
+
+```json
+{
+  "generatedAt": "2026-08-31T17:29:29.000Z",
+  "plan": {"level": "business", "label": "Business", "licenseSource": "env:TEABLE_LICENSE_KEY"},
+  "cloudGap": {
+    "total": 14, "implemented": 14, "partial": 0, "notImplemented": 0,
+    "coveragePercent": 100,
+    "byCategory": {"migration": 7, "integration": 2, "scripting": 5},
+    "byReasonCategory": {"implemented": 14},
+    "implementedKeys": [...14 keys...],
+    "recentImplementations": [...14 entries with Round-N notes...]
+  },
+  "capability": {
+    "total": 80, "enabled": 71, "disabled": 9, "enabledPercent": 89,
+    "disabledByReason": {"opt_out_self_hosted": 1, ...},
+    "topDisabled": [...]
+  },
+  "driverHealth": {
+    "totalDrivers": 11, "wiredDrivers": 11,
+    "wiredDriverKeys": [...11 keys...],
+    "genericAdapterTypes": ["rest-api", "json-endpoint", "csv-url"],
+    "sampleLibraryCount": 12
+  },
+  "aiSkill": {
+    "manifestEndpoint": true, "inlineFileCount": 4,
+    "inlineFiles": [
+      {"name": "API.md", "bytes": 5606},
+      {"name": "AUTH.md", "bytes": 2396},
+      {"name": "EXAMPLES.md", "bytes": 6689},
+      {"name": "SKILL.md", "bytes": 2470}
+    ]
+  },
+  "authorityMatrix": {
+    "schemaDomains": [6 entries], "wiredDomains": [6 entries], "coveragePercent": 100
+  },
+  "parity": {
+    "defaultSelfHosted": "45/46",
+    "maxSelfHosted": "45/46",
+    "businessLicense": "46/46"
+  },
+  "recommendations": [
+    "9 capabilities are data-driven gates — flip to enabled by creating your first row..."
+  ]
+}
+```
+
+### Round-27 设计教训 (给后续 round 的同学)
+
+1. **纯聚合模式** —— `buildDashboardSummary` 是 100% 派生数据,不重新查 DB,不写入 state。前端可以高频轮询(<1s 间隔)。
+2. **路径处理要 fallback 多路径** —— 单 `__dirname` 假设在编译后部署 dist/ 时会失效。多路径 fallback + 排序 (开发路径优先) 是 robust 做法。
+3. **f-string in bash heredoc 是陷阱** —— 第一次 Section 4.15 用了 `print(f"{c['enabled']}/...")` 在 `python3 -c "..."` 内层。bash 把 `"..."` 拆开,导致 Python 收到 `print(f{...})` 引发 SyntaxError。**改用 `str(c['enabled']) + '/' + str(c['total'])`** 或 `python3 -c '...'` 单引号外层。
+4. **Section 4 在 Section 3 之后** —— Section 3 重启 backend 用 `TEABLE_LICENSE_KEY=plan:business`,所以 Section 4.x 的 plan.level 是 `business` 不是 `self_hosted`。Section 4.15 的 plan.level 断言应该接受两者任一。
+5. **最佳最小改造** —— 复用 `report()` 数据源,不重写。`buildDashboardSummary` 调用 `report()` 一次,前端聚合逻辑搬到后端,减少 round-trip。
+
+### 结论
+
+**Round-27 完成**: enterprise-readiness `/dashboard` endpoint 全栈实现 (service 聚合 + controller endpoint + 11 个 e2e 断言)。
+
+**e2e 总数**: 161 OK / 0 FAIL (R26: 150,本轮 +11)。所有历史断言向后兼容通过。
+
+**下一步价值**:
+- 前端 admin UI 可以单 fetch 拿到完整状态
+- 监控告警系统可以 JSON 喂入
+- 运维 curl 一次性健康检查 (`curl -H "x-admin-token: $T" /dashboard | jq .cloudGap.coveragePercent`)
+- 推荐建议可作为 next-step guide (e.g. flip data-driven gates)
+
+### 下一步 (R28+ 候选, 重新排序)
+
+- **R28**: 前端 admin UI (nextjs-app: dashboard 页面 + 5 driver 上传 + samples browser + ai-skill viewer + 权限矩阵配置界面) — **R27 已就绪**
+- **R29**: field type translator (driver records → teable fields,统一 system/date/picklist/status 翻译)
+- **R30**: isolated-vm 强化 (替代 Node vm 模块,处理不可信脚本)
+- **R31**: OpenAPI 自动 sync (每次 build 重新生成 API.md,跟实际 openapi schema 同步)
+- **R32**: readiness 缓存 (5s TTL,减少 round-trip)

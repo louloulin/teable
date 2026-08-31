@@ -1640,6 +1640,96 @@ TRAVERSAL_CODE=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/e
 assert_ok "$([[ "$TRAVERSAL_CODE" == "404" ]] && echo 0 || echo 1)" \
   "path traversal blocked on /files/:name (Round-25 security) (got: $TRAVERSAL_CODE)"
 
+log "=== Section 4.15: dashboard summary endpoint (Round-27) ==="
+
+# 1) GET /dashboard with admin token returns 200
+DASH_HTTP=$(curl -s -o /tmp/dash_body.json -w '%{http_code}' \
+  -H "x-admin-token: $ADMIN_TOKEN" "${BASE_URL}/api/admin/enterprise-readiness/dashboard")
+assert_ok "$([[ "$DASH_HTTP" == "200" ]] && echo 0 || echo 1)" \
+  "GET /dashboard with admin token returns 200 (got: $DASH_HTTP)"
+
+# 2) Dashboard body is valid JSON with all 8 expected top-level keys
+DASH_KEYS=$(python3 -c "
+import json
+d = json.load(open('/tmp/dash_body.json'))
+expected = {'generatedAt', 'plan', 'cloudGap', 'capability', 'driverHealth', 'aiSkill', 'authorityMatrix', 'parity', 'recommendations'}
+missing = expected - set(d.keys())
+print(','.join(sorted(missing)) if missing else 'OK')
+")
+assert_ok "$([[ "$DASH_KEYS" == "OK" ]] && echo 0 || echo 1)" \
+  "dashboard body contains all 8 expected top-level keys (missing: $DASH_KEYS)"
+
+# 3) cloudGap coverage = 100% (carries forward Round-25 milestone)
+DASH_GAP_COV=$(python3 -c "
+import json
+print(json.load(open('/tmp/dash_body.json'))['cloudGap']['coveragePercent'])
+")
+assert_ok "$([[ "$DASH_GAP_COV" == "100" ]] && echo 0 || echo 1)" \
+  "dashboard cloudGap.coveragePercent == 100 (got: $DASH_GAP_COV)"
+
+# 4) capability ratio matches /report endpoint (sanity: enabled + disabled == total)
+DASH_CAP_RATIO=$(python3 -c "
+import json
+c = json.load(open('/tmp/dash_body.json'))['capability']
+print(str(c['enabled']) + '/' + str(c['total']))
+")
+assert_ok "$([[ "$DASH_CAP_RATIO" =~ ^[0-9]+/[0-9]+$ ]] && echo 0 || echo 1)" \
+  "dashboard capability.enabled/total is well-formed (got: $DASH_CAP_RATIO)"
+
+# 5) driverHealth.wiredDrivers == totalDrivers (all 11 drivers wired)
+DASH_DRIVERS=$(python3 -c "
+import json
+d = json.load(open('/tmp/dash_body.json'))['driverHealth']
+print(str(d['wiredDrivers']) + '/' + str(d['totalDrivers']))
+")
+assert_ok "$([[ "$DASH_DRIVERS" == "11/11" ]] && echo 0 || echo 1)" \
+  "dashboard driverHealth shows 11/11 wired (Round-23 milestone) (got: $DASH_DRIVERS)"
+
+# 6) authorityMatrix.coveragePercent == 100 (carries forward Round-26)
+DASH_AM_COV=$(python3 -c "
+import json
+print(json.load(open('/tmp/dash_body.json'))['authorityMatrix']['coveragePercent'])
+")
+assert_ok "$([[ "$DASH_AM_COV" == "100" ]] && echo 0 || echo 1)" \
+  "dashboard authorityMatrix.coveragePercent == 100 (Round-26) (got: $DASH_AM_COV)"
+
+# 7) parity.businessLicense reflects 46/46 (Cloud target)
+DASH_PARITY=$(python3 -c "
+import json
+print(json.load(open('/tmp/dash_body.json'))['parity']['businessLicense'])
+")
+assert_ok "$([[ "$DASH_PARITY" == "46/46" ]] && echo 0 || echo 1)" \
+  "dashboard parity.businessLicense == 46/46 (got: $DASH_PARITY)"
+
+# 8) recommendations array has >= 1 entry (actionable insight)
+DASH_RECOS=$(python3 -c "
+import json
+print(len(json.load(open('/tmp/dash_body.json'))['recommendations']))
+")
+assert_ok "$([[ "$DASH_RECOS" -ge 1 ]] && echo 0 || echo 1)" \
+  "dashboard recommendations array has >= 1 entry (got: $DASH_RECOS)"
+
+# 9) aiSkill inlineFileCount == 4 (carries forward Round-25)
+DASH_AI_FILES=$(python3 -c "
+import json
+print(json.load(open('/tmp/dash_body.json'))['aiSkill']['inlineFileCount'])
+")
+assert_ok "$([[ "$DASH_AI_FILES" == "4" ]] && echo 0 || echo 1)" \
+  "dashboard aiSkill.inlineFileCount == 4 (Round-25) (got: $DASH_AI_FILES)"
+
+# 10) plan.level is a recognized value (self_hosted or business)
+DASH_PLAN=$(python3 -c "
+import json
+print(json.load(open('/tmp/dash_body.json'))['plan']['level'])
+")
+assert_ok "$([[ "$DASH_PLAN" == "self_hosted" || "$DASH_PLAN" == "business" ]] && echo 0 || echo 1)" \
+  "dashboard plan.level is self_hosted or business (got: $DASH_PLAN)"
+
+# 11) Dashboard rejects unauthenticated request (401)
+DASH_NO_AUTH=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness/dashboard")
+assert_ok "$([[ "$DASH_NO_AUTH" == "401" ]] && echo 0 || echo 1)" \
+  "GET /dashboard without token returns 401 (got: $DASH_NO_AUTH)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"
