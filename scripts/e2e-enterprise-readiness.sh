@@ -74,6 +74,15 @@ cleanup() {
       DELETE FROM meta.backup_snapshot WHERE id = 'snp_round6_demo'; \
      DELETE FROM meta.airtable_connection WHERE id = 'airc_round6_demo'; \
      DELETE FROM meta.permission_role_import_export WHERE id = 'prie_round26_demo'; \
+     DELETE FROM meta.data_residency_policy; \
+     DELETE FROM meta.region WHERE code IN ('us','eu','ap'); \
+     DELETE FROM meta.approval_request; \
+     DELETE FROM meta.approval_decision; \
+     DELETE FROM meta.approval_workflow; \
+     DELETE FROM meta.federation_refresh; \
+     DELETE FROM meta.federation_event; \
+     DELETE FROM meta.federation_source; \
+     DELETE FROM meta.federation_view; \
      DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
      DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
@@ -189,6 +198,21 @@ start_backend "" || exit 1
 
 DEFAULT_BODY="$(fetch_readiness)"
 assert_ok $? "GET /api/admin/enterprise-readiness returns 200"
+
+# Round-26 seed (permission_role_import_export must exist for Section 2.5
+# probe to flip permission_import_export capability to enabled). Earlier
+# rounds inserted this seed in Section 2.10, but the cleanup() trap at
+# exit deletes it — so re-runs of the e2e script would otherwise see
+# permission_import_export as disabled at Section 2.5.
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "INSERT INTO meta.permission_role (id, name, base_id, organization_id, created_by, updated_at) \
+   VALUES ('pr_round13_demo', 'Round13 demo role', 'bse_round13_demo', 'org_round13_demo', 'usr_demo', now()) \
+   ON CONFLICT DO NOTHING; \
+   INSERT INTO meta.permission_role_import_export (id, role_id, table_id, can_import, can_export) \
+   VALUES ('prie_round26_demo', 'pr_round13_demo', 'tbl_demo', true, true) \
+   ON CONFLICT DO NOTHING;" >/dev/null 2>&1 || true
+# Re-fetch so DEFAULT_BODY reflects the seed (Section 2.5 probes count > 0).
+DEFAULT_BODY="$(fetch_readiness)"
 
 DEFAULT_LEVEL="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["plan"]["level"])')"
 assert_ok "$([[ "$DEFAULT_LEVEL" == "self_hosted" ]] && echo 0 || echo 1)" \
@@ -560,12 +584,6 @@ COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -
    VALUES ('acr_round6_demo', 'cnv_round6_demo', 1, '{}'::jsonb, 'h_round6', 'usr_round6_demo', now()) \
    ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.automation_canvas_revision;" 2>&1 | tail -1)
 [[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[automation_canvas_revision]="$COUNT" || true
-
-# 14c. permission_role_import_export (Round-26 seed for permission_import_export capability flip)
-PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
-  "INSERT INTO meta.permission_role_import_export (id, role_id, table_id, can_import, can_export) \
-   VALUES ('prie_round26_demo', 'pr_round13_demo', 'tbl_demo', true, true) \
-   ON CONFLICT DO NOTHING;" >/dev/null 2>&1 || true
 
 # 14a. automation (parent row required by automation_secret FK)
 COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
@@ -1989,6 +2007,126 @@ print('null' if d.get('policy', 'x') is None else 'present')
 ")
 assert_ok "$([[ "$DR_GONE" == "null" ]] && echo 0 || echo 1)" \
   "data-residency: deleted policy returns policy:null (got: $DR_GONE)"
+
+log "=== Section 4.18: cross-base-federation HTTP CRUD (Round-30) ==="
+
+# 1) Upsert view
+sleep 2  # dodge ApiThrottleGuard 429 (Section 4 is under business license)
+CBF_V=$(curl -s -X PUT "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org_r30_e2e","name":"R30 federation","description":"e2e test","refreshMode":"interval","refreshIntervalSeconds":300}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('id','') + '|' + d.get('name','') + '|' + d.get('status',''))
+")
+CBF_V_ID=$(echo "$CBF_V" | cut -d'|' -f1)
+CBF_V_NAME=$(echo "$CBF_V" | cut -d'|' -f2)
+CBF_V_STATUS=$(echo "$CBF_V" | cut -d'|' -f3)
+assert_ok "$([[ "$CBF_V_ID" == "cbf_v_r30_e2e" && "$CBF_V_NAME" == "R30 federation" && "$CBF_V_STATUS" == "draft" ]] && echo 0 || echo 1)" \
+  "cross-base-federation: upsert view returns id|name|status (got: $CBF_V)"
+
+# 2) Load view
+sleep 2
+CBF_LOAD=$(curl -s "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('refreshMode','') + '|' + str(d.get('refreshIntervalSeconds', -1)))
+")
+assert_ok "$([[ "$CBF_LOAD" == "interval|300" ]] && echo 0 || echo 1)" \
+  "cross-base-federation: load view returns refreshMode|intervalSeconds (got: $CBF_LOAD)"
+
+# 3) List views in org
+sleep 2
+CBF_LIST=$(curl -s "${BASE_URL}/api/cross-base-federation/orgs/org_r30_e2e/views" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+ids = sorted([v.get('id','') for v in d.get('views',[])])
+print(','.join(ids))
+")
+assert_ok "$([[ "$CBF_LIST" =~ cbf_v_r30_e2e ]] && echo 0 || echo 1)" \
+  "cross-base-federation: list views includes cbf_v_r30_e2e (got: $CBF_LIST)"
+
+# 4) Upsert source
+sleep 2
+CBF_S=$(curl -s -X PUT "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e/sources/cbf_s_r30_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"baseId":"bse_r30_src","kind":"table","targetId":"tbl_r30","alias":"src1"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('alias','') + '|' + d.get('kind','') + '|' + d.get('targetId',''))
+")
+assert_ok "$([[ "$CBF_S" == "src1|table|tbl_r30" ]] && echo 0 || echo 1)" \
+  "cross-base-federation: upsert source returns alias|kind|targetId (got: $CBF_S)"
+
+# 5) List sources for view
+sleep 2
+CBF_SRC_LIST=$(curl -s "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e/sources" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+aliases = sorted([s.get('alias','') for s in d.get('sources',[])])
+print(','.join(aliases))
+")
+assert_ok "$([[ "$CBF_SRC_LIST" =~ src1 ]] && echo 0 || echo 1)" \
+  "cross-base-federation: list sources includes src1 (got: $CBF_SRC_LIST)"
+
+# 6) Record event
+sleep 2
+CBF_E=$(curl -s -X POST "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e/events" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"cbf_e_r30_e2e","sourceId":"cbf_s_r30_e2e","kind":"row.created","summary":"1 row"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('kind','') + '|' + str(d.get('processed', True)).lower() + '|' + d.get('sourceId',''))
+")
+assert_ok "$([[ "$CBF_E" == "row.created|false|cbf_s_r30_e2e" ]] && echo 0 || echo 1)" \
+  "cross-base-federation: record event returns kind|processed|sourceId (got: $CBF_E)"
+
+# 7) List pending events
+sleep 2
+CBF_E_LIST=$(curl -s "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e/events" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+kinds = sorted([e.get('kind','') for e in d.get('events',[])])
+print(','.join(kinds))
+")
+assert_ok "$([[ "$CBF_E_LIST" =~ row.created ]] && echo 0 || echo 1)" \
+  "cross-base-federation: list pending events includes row.created (got: $CBF_E_LIST)"
+
+# 8) Run refresh (consumes pending events; returns done with eventsConsumed>0)
+sleep 2
+CBF_REFRESH=$(curl -s -X POST "${BASE_URL}/api/cross-base-federation/views/cbf_v_r30_e2e/refresh" \
+  -H "Content-Type: application/json" \
+  -d '{"triggeredBy":"usr_r30_admin"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status','') + '|' + str(d.get('eventsConsumed', -1)))
+")
+CBF_REFRESH_STATUS=$(echo "$CBF_REFRESH" | cut -d'|' -f1)
+CBF_REFRESH_CONSUMED=$(echo "$CBF_REFRESH" | cut -d'|' -f2)
+assert_ok "$([[ "$CBF_REFRESH_STATUS" == "done" && "$CBF_REFRESH_CONSUMED" -ge 1 ]] && echo 0 || echo 1)" \
+  "cross-base-federation: run refresh returns done with eventsConsumed>=1 (got: $CBF_REFRESH)"
+
+# 9) Persist refresh (manual upsert)
+sleep 2
+CBF_PERSIST=$(curl -s -X PUT "${BASE_URL}/api/cross-base-federation/refreshes/cbf_refresh_r30_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"viewId":"cbf_v_r30_e2e","status":"done","eventsConsumed":3,"rowsWritten":30}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('status','') + '|' + str(d.get('eventsConsumed', -1)) + '|' + str(d.get('rowsWritten', -1)))
+")
+assert_ok "$([[ "$CBF_PERSIST" == "done|3|30" ]] && echo 0 || echo 1)" \
+  "cross-base-federation: persist refresh returns done|3|30 (got: $CBF_PERSIST)"
+
+# 10) Capability flips to enabled (federation_event)
+sleep 2
+CBF_CAP_LIVE=$(curl -sf -H "x-admin-token: ${ADMIN_TOKEN}" "${BASE_URL}/api/admin/enterprise-readiness" | python3 -c "
+import json, sys
+fe = json.load(sys.stdin)['capabilities'].get('federation_event', {})
+print('enabled=' + str(fe.get('enabled',False)).lower() + ' count=' + str(fe.get('federationEvent', 0)))
+")
+assert_ok "$([[ "$CBF_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
+  "cross-base-federation capability federation_event enabled (got: $CBF_CAP_LIVE)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

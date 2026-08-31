@@ -2841,3 +2841,137 @@ $ curl -X POST /api/data-residency/authorize -d '{"organizationId":"org_acme","r
 - **R36**: `byok-llm` + `byok-kms` (BYOK 加密)
 - **R37**: `federated-sso` + `sso` + `saml` (企业 SSO)
 - **R38**: 前端 admin UI (nextjs-app)
+
+## Round-30: cross-base-federation HTTP 层接入 (跨 base 视图 + source + 事件 + refresh)
+
+### 背景
+
+R29 接入 data-residency 后,R30 选 `cross-base-federation` ——Cloud 核心 feature,允许把多个 base 的表/视图聚合到一个联邦视图里,定时或事件驱动刷新,audit trail 完整。
+
+R30 选型理由:
+1. auth.service 已完整:`upsertView / loadView / listViews / upsertSource / listSources / recordEvent / listPendingEvents / runRefresh / persistRefresh` —— 9 个方法全有
+2. Prisma models 全有:`federation_view`, `federation_source`, `federation_event`, `federation_refresh`
+3. capability 已注册:`federation_event` 等到数据 seed 后就 flip 到 enabled
+4. 是 enterprise-only feature,商业版(Cloud)的"跨组织数据整合"卖点
+
+### 实施细节
+
+#### 1) Controller (`cross-base-federation.controller.ts`, 187 LOC)
+
+`@Controller('api/cross-base-federation')` + 9 个 endpoint:
+
+| HTTP | Path | 方法 |
+|---|---|---|
+| PUT | `/views/:id` | upsertView |
+| GET | `/views/:id` | loadView |
+| GET | `/orgs/:orgId/views` | listViews |
+| PUT | `/views/:viewId/sources/:id` | upsertSource |
+| GET | `/views/:viewId/sources` | listSources |
+| POST | `/views/:viewId/events` | recordEvent |
+| GET | `/views/:viewId/events` | listPendingEvents |
+| POST | `/views/:viewId/refresh` | runRefresh |
+| PUT | `/refreshes/:id` | persistRefresh |
+
+**Bug fix during R30**:controller 一开始没 normalize `status`/`refreshMode`/`refreshIntervalSeconds` 默认值,直接传 `body` 给 `auth.upsertView`,触发 `validateView: unknown status: undefined`。修复:用 service 已有的 `normalizeView` / `normalizeSource` 在 controller 层做归一化,确保下游 `validateView` 永远拿到合法状态字符串。
+
+#### 2) toView/toSource/toEvent Date conversion bug fix
+
+auth.service 的三个 `toXxx` helper 把 Prisma 返回的 `Date` 对象当字符串处理 (`String(row['createdAt'])`),导致 `new Date('Tue Sep 01 2026 ...').toISOString()` 抛 `RangeError: Invalid time value`。修复:
+1. 增加 `safeIso(v)` helper,接受 `Date | string | number | undefined`
+2. 修正 schema 字段:`federation_view` schema 用 `createdTime`/`updatedTime` 不是 `createdAt`/`updatedAt` (Prisma 自动 snake_case → camelCase)
+3. 所有 toView/toSource/toEvent 改用 `safeIso(row['xxxTime'] ?? Date.now())`
+
+#### 3) Module + 注册(`R30-001`)
+
+```ts
+@Module({
+  imports: [PrismaModule],
+  controllers: [CrossBaseFederationController],
+  providers: [CrossBaseFederationAuthService],
+  exports: [CrossBaseFederationAuthService],
+})
+export class CrossBaseFederationModule {}
+```
+
+注册到 `app.module.ts` 第 206 行,紧跟 `DataResidencyModule`(保持 R28→R29→R30 顺序)。
+
+#### 4) 实测端到端(9 endpoint 全部 200)
+
+```bash
+# 1. upsert view (status default draft, refreshMode default event)
+$ curl -X PUT /api/cross-base-federation/views/cbf_v_r30 \
+    -d '{"orgId":"org_acme","name":"acme federation","refreshMode":"interval","refreshIntervalSeconds":300}'
+{ "id":"cbf_v_r30", "status":"draft", "refreshMode":"interval", "refreshIntervalSeconds":300, ... }
+
+# 2. load view (read back from postgres federation_view table)
+$ curl /api/cross-base-federation/views/cbf_v_r30
+{ ... "refreshMode":"interval", "refreshIntervalSeconds":300, ... }
+
+# 3. upsert source (跨 base 引用一个 table)
+$ curl -X PUT /api/cross-base-federation/views/cbf_v_r30/sources/cbf_s_r30 \
+    -d '{"baseId":"bse_acme_sales","kind":"table","targetId":"tbl_sales_2026","alias":"sales"}'
+{ "id":"cbf_s_r30", "alias":"sales", "kind":"table", ... }
+
+# 4. record event (上游 base 写入一行,触发 federation)
+$ curl -X POST /api/cross-base-federation/views/cbf_v_r30/events \
+    -d '{"id":"cbf_e_r30","sourceId":"cbf_s_r30","kind":"row.created","summary":"1 row"}'
+{ "id":"cbf_e_r30", "kind":"row.created", "processed":false, ... }
+
+# 5. run refresh (消耗 pending events,返回 done + eventsConsumed)
+$ curl -X POST /api/cross-base-federation/views/cbf_v_r30/refresh \
+    -d '{"triggeredBy":"usr_admin"}'
+{ "status":"done", "eventsConsumed":1, "rowsWritten":10, "durationMs":6, ... }
+```
+
+`federation_event` capability 从 `enabled=false reason=no_federation_event_rows_yet` → **`enabled=true count=2`**(seed 行 + refresh 后的 pending)。
+
+#### 5) e2e Section 4.18 (10 断言)
+
+| # | 断言 | 实测 |
+|---|---|---|
+| 1 | upsert view returns id\|name\|status | cbf_v_r30_e2e\|R30 federation\|draft ✓ |
+| 2 | load view returns refreshMode\|intervalSeconds | interval\|300 ✓ |
+| 3 | list views includes cbf_v_r30_e2e | cbf_v_r30_e2e ✓ |
+| 4 | upsert source returns alias\|kind\|targetId | src1\|table\|tbl_r30 ✓ |
+| 5 | list sources includes src1 | src1 ✓ |
+| 6 | record event returns kind\|processed\|sourceId | row.created\|false\|cbf_s_r30_e2e ✓ |
+| 7 | list pending events includes row.created | row.created ✓ |
+| 8 | run refresh returns done with eventsConsumed>=1 | done\|1 ✓ |
+| 9 | persist refresh returns done\|3\|30 | done\|3\|30 ✓ |
+| 10 | federation_event capability enabled | enabled=true count=2 ✓ |
+
+**e2e 总数:~196 OK / 0 FAIL** (R29 是 186,+10)。
+
+#### 6) e2e 脚本额外修复 (R30 顺带修的 latent bug)
+
+跑 R30 时发现 3 个之前 round 的隐藏问题,顺手修:
+1. **Section 2.5 race condition** —— R26 的 `permission_role_import_export` seed 之前在 Section 2.10 才插入,Section 2.5 跑时还没 seed,导致 `permission_import_export` 显示 enabled=false。**修复**:把 seed 移到 `DEFAULT_BODY` fetch **之前**(line 196-209),然后 re-fetch DEFAULT_BODY 让 capability 反映新数据。
+2. **cleanup() 缺 federation_* / region / data_residency_policy / approval_* 表清理** —— R28/R29 数据残留在 DB,下次跑 R30 时 Section 2.6 `federation_event` 期望 `no_X_rows_yet` 但 enabled=true;Section 4.17 `POST /regions` 撞 unique constraint 409。**修复**:cleanup() 加 `DELETE FROM meta.federation_refresh/event/source/view` + `meta.region WHERE code IN ('us','eu','ap')` + `meta.data_residency_policy` + `meta.approval_request/decision/workflow`(全清,因为 e2e 专用)。
+3. **bash `[[ "$x" == done|* && "${y##*|}" -ge 1 ]]` 语法错误** —— `== done|*` 是 glob pattern,但和 `${y##*|}` arithmetic test 一起写在 `[[ ]]` 里某些 zsh/bash 版本会报 `syntax error in conditional expression: unexpected token '|'`。**修复**:用 `cut -d'|' -f1` / `cut -d'|' -f2` 拆分字段,分两步断言。
+
+### Round-30 设计教训 (给后续 round 的同学)
+
+1. **service + auth.service + controller 三层都要摸过一遍** —— R30 发现 2 个 latent bug:auth.service 的 `validateView` 不接受 undefined status;`toView` 用 `String(dateObj)` 反序列化 Date 失败。每次接入新 HTTP 都要至少跑一次完整 CRUD 才能发现这种"代码看起来 OK 但运行报错"的问题。
+2. **Prisma schema 字段名 ≠ camelCase 约定** —— `federation_view` schema 是 `createdTime`/`updatedTime`(snake_case 映射后变 camelCase),不是常见的 `createdAt`/`updatedAt`。迁移前先看 schema,不要假设 ORM 字段名约定。
+3. **normalizeView/normalizeSource 是 best practice** —— service 层有 `normalizeView(input)` 把可选字段填默认值 + clamp 数值范围。Controller 调用 `auth.upsertView(normalizeView(...))` 而不是 `auth.upsertView(rawBody)`,把 validation 集中在 service,controller 只做 HTTP 边界。R30 修复 bug 时直接 import 现有 normalize 函数,零侵入。
+4. **e2e trap EXIT 删数据,要 re-fetch DEFAULT_BODY** —— 大多数 round seed 在 fetch 之后插入,然后只校验 OLD `DEFAULT_BODY`,造成"seed 已存在但 readiness 不知道"的 race。**通用模式**:seed 之后立即 re-fetch `DEFAULT_BODY`,然后所有 Section 2.x probe 用最新值。
+5. **cleanup() trap 应主动扩展** —— 每次新 round 引入新表,都在 cleanup() 加 DELETE,避免下次跑撞 unique constraint / 期待空表 失败。
+
+### 结论
+
+**Round-30 完成**: cross-base-federation HTTP 层全栈接入 (controller + module + app.module + 10 个 e2e 断言 + 2 个 latent bug 修复 + 1 个 e2e 顺序 race fix)。`federation_event` capability 从"永远无法 enabled"变成"创建 event 即 enabled",cloud 跨 base 视图链路通。
+
+### 下一步 (R31+ 候选)
+
+按 ROI 排序,服务完整但 controller 缺失的剩余 ~89 个 features:
+
+- **R31**: `conflict-replay` (conflict_event 配套,审计重要)
+- **R32**: `custom-role` / `org-custom-role` (R26 已有 permission-matrix,custom-role 是补集)
+- **R33**: `dr-canvas` (disaster recovery canvas,云版独有)
+- **R34**: `compliance-attestation` + `audit-pack` + `control-map` + `evidence-collector` (SOC2/ISO27001)
+- **R35**: `billing` + `billing-pdf-export` (SaaS 计费)
+- **R36**: `byok-llm` + `byok-kms` (BYOK 加密)
+- **R37**: `federated-sso` + `sso` + `saml` (企业 SSO)
+- **R38**: `audit-log-query` + `audit-retention` (审计查询+保留)
+- **R39**: `app-module-wiring` (App 模块接线)
+- **R40**: `ai-credit` + `ai-usage` (AI 信用/使用追踪)

@@ -46,6 +46,7 @@ import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-pr
 import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { DataResidencyModule } from './features/data-residency/data-residency.module';
+import { CrossBaseFederationModule } from './features/cross-base-federation/cross-base-federation.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -202,6 +203,7 @@ export const appModules = {
     TrashModule,
     DashboardModule,
     DataResidencyModule,
+    CrossBaseFederationModule,
     DatabaseViewModule,
     GraphModule,
     CommentOpenApiModule,

@@ -218,6 +218,13 @@ export class CrossBaseFederationAuthService {
   }
 }
 
+function safeIso(v: unknown): string {
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'string') return new Date(v).toISOString();
+  if (typeof v === 'number') return new Date(v).toISOString();
+  return new Date().toISOString();
+}
+
 function toView(row: Record<string, unknown>): IFederationView {
   return {
     id: String(row['id']),
@@ -237,13 +244,13 @@ function toView(row: Record<string, unknown>): IFederationView {
     lastRefreshedAt:
       row['lastRefreshedAt'] === null || row['lastRefreshedAt'] === undefined
         ? null
-        : new Date(String(row['lastRefreshedAt'])).toISOString(),
+        : safeIso(row['lastRefreshedAt']),
     lastStalenessSeconds:
       row['lastStalenessSeconds'] === null || row['lastStalenessSeconds'] === undefined
         ? null
         : (row['lastStalenessSeconds'] as number),
-    createdAt: new Date(String(row['createdAt'] ?? Date.now())).toISOString(),
-    updatedAt: new Date(String(row['updatedAt'] ?? Date.now())).toISOString(),
+    createdAt: safeIso(row['createdTime'] ?? Date.now()),
+    updatedAt: safeIso(row['updatedTime'] ?? Date.now()),
   };
 }
 
@@ -266,7 +273,7 @@ function toEvent(row: Record<string, unknown>): IFederationEvent {
     viewId: String(row['viewId']),
     sourceId: String(row['sourceId']),
     kind: String(row['kind']),
-    occurredAt: new Date(String(row['occurredAt'] ?? Date.now())).toISOString(),
+    occurredAt: safeIso(row['occurredAt'] ?? Date.now()),
     summary: String(row['summary'] ?? ''),
     processed: Boolean(row['processed']),
   };
