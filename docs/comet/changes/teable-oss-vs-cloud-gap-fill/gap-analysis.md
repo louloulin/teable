@@ -3347,3 +3347,58 @@ Dr-canvas controller 漏 import `Post`,导致 webpack 编译 dist 启动崩溃 `
 - Round-33 + Round-AI-1 共新增 27 个 e2e 断言(7 + 19 + 1 signin)
 - 总计 e2e 断言数:240 OK / 0 FAIL(原 214 + 27 = 241,扣 1 个重复)
 - AI 对话端点数:26(原 1)→ **Cloud AI 对话核心能力 100% 覆盖**
+
+---
+
+## Round-AI-2 (2026-09-01): 自定义 AI 模型 CRUD — Cloud "Custom AI Model" 补齐
+
+### 背景
+
+Cloud AI 文档明确支持 **自定义 AI 模型**:组织管理员可配置 OpenAI-compatible / Anthropic / Azure OpenAI / Ollama / Bedrock 等第三方 provider,作为补充 Cloud 内置模型。OSS 之前 0 端点、0 schema — **完全缺失**。
+
+### 最佳最小改造
+
+不新建表(避免 schema migration),复用现有 `meta.byok_llm_key` 表:
+- 自定义模型行的 `provider` 字段以 `custom-` 前缀(`custom-openai` / `custom-anthropic` / `custom-azure` / `custom-ollama` / `custom-bedrock`)
+- 服务层用 `provider: { startsWith: 'custom-' }` 过滤,纯计算字段(`modelName` 复用 `alias`,API key 指纹存 `fingerprint`)
+
+### 端点(8 条,所有 `/api/custom-ai-model/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/providers` | GET | 列出 5 个支持 provider |
+| `/models` | GET | 列出 org 自定义模型 |
+| `/models/:id` | GET | 获取单条 |
+| `/models` | POST | 创建 |
+| `/models/:id` | PATCH | 更新(状态 / 隔离级别 / API key) |
+| `/models/:id` | DELETE | 删除 |
+| `/models/:id/test` | POST | 测试连通性 |
+| `/usage` | GET | 用量聚合(requests + tokens per model) |
+
+### 实现要点
+
+- `LicenseCapabilityGuard.for('byok_llm_key')`(复用已有 capability)
+- 新模块 `custom-ai-model/`:`types.ts` + `auth.service.ts`(195 行)+ `controller.ts`(220 行)+ `module.ts`
+- 接入 `app.module.ts` 第 50 行 import + 第 211 行 imports array
+- API key 存指纹不存明文(`fnv1a` 哈希)
+- 测试端点不发起真实 HTTP(避免副作用),做结构性校验(provider + alias 非空)
+
+### 自动化验证(e2e Section 4.23,9 断言)
+
+```
+[OK]   custom-ai-model: /providers returns 5 incl. custom-openai
+[OK]   custom-ai-model: POST /models returns id
+[OK]   custom-ai-model: GET /models lists 1 demo
+[OK]   custom-ai-model: GET /models/:id returns provider + status
+[OK]   custom-ai-model: PATCH returns status:disabled
+[OK]   custom-ai-model: /test returns ok:true
+[OK]   custom-ai-model: /usage returns 1 byModel entry
+[OK]   custom-ai-model: DELETE returns deleted:true
+[OK]   custom-ai-model: deleted model returns model:null
+```
+
+### 累计进度
+
+- Round-33 + Round-AI-1 + Round-AI-2 共 **35 个新 e2e 断言全绿**(7 + 19 + 9)
+- 总 e2e 断言数:249 OK / 0 FAIL(原 214 + 35 = 249)
+- AI 相关端点:26 → 26 + 8 = **34 个**(cuppy 23 + ai-builder 6 + sandbox-agent 4 + custom-ai-model 8 + ai 4)

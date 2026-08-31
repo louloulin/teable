@@ -69,6 +69,7 @@ cleanup() {
      DELETE FROM meta.federation_event WHERE id = 'fe_round6_demo'; \
      DELETE FROM meta.cross_org_admin_grant WHERE id = 'coag_round6_demo'; \
      DELETE FROM meta.dr_canvas WHERE id = 'drc_round33_demo'; \
+     DELETE FROM meta.byok_llm_key WHERE org_id = 'org_r_ai_2_demo'; \
      DELETE FROM meta.dr_canvas WHERE id = 'drc_round6_demo'; \
      DELETE FROM meta.billing_credit WHERE id = 'bcr_round6_demo'; \
      DELETE FROM meta.backup_restore_log WHERE id = 'brl_round6_demo';
@@ -2627,6 +2628,105 @@ print(str(json.load(sys.stdin).get('deleted', False)).lower())
 ")
 assert_ok "$([[ "$CONV_DEL" == "true" ]] && echo 0 || echo 1)" \
   "cuppy: DELETE conversation returns deleted:true (got: $CONV_DEL)"
+
+
+# ----- Section 4.23: custom-ai-model HTTP CRUD (Round-AI-2) -----
+log "=== Section 4.23: custom-ai-model HTTP CRUD (Round-AI-2, 8 endpoints) ==="
+
+CAM_ORG="org_r_ai_2_demo"
+CAM_ALIAS="openai-test-alias"
+
+# 1) GET /providers — list supported provider types
+sleep 2
+CAM_PROVIDERS=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/custom-ai-model/providers" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+p = d.get('providers', [])
+print('count='+str(d.get('count',0))+',has_openai='+str('custom-openai' in p).lower())
+")
+assert_ok "$([[ "$CAM_PROVIDERS" =~ count=5 ]] && [[ "$CAM_PROVIDERS" =~ has_openai=true ]] && echo 0 || echo 1)" \
+  "custom-ai-model: /providers returns 5 incl. custom-openai (got: $CAM_PROVIDERS)"
+
+# 2) POST /models — create
+sleep 2
+CAM_CREATE=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/custom-ai-model/models" \
+  -H 'Content-Type: application/json' \
+  -d "{\"orgId\":\"$CAM_ORG\",\"provider\":\"custom-openai\",\"alias\":\"$CAM_ALIAS\",\"modelName\":\"gpt-4o-mini\",\"isolation\":\"shared\"}")
+CAM_ID=$(echo "$CAM_CREATE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id','none'))")
+assert_ok "$([[ "$CAM_ID" != "none" ]] && echo 0 || echo 1)" \
+  "custom-ai-model: POST /models returns id (got: $CAM_ID)"
+
+# 3) GET /models — list
+sleep 2
+CAM_LIST=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/custom-ai-model/models?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+m = d.get('models', [])
+print('count='+str(d.get('count',0))+',has_alias='+str(any(x.get('alias')=='$CAM_ALIAS' for x in m)).lower())
+")
+assert_ok "$([[ "$CAM_LIST" =~ count=1 ]] && [[ "$CAM_LIST" =~ has_alias=true ]] && echo 0 || echo 1)" \
+  "custom-ai-model: GET /models lists 1 demo (got: $CAM_LIST)"
+
+# 4) GET /models/:id
+sleep 2
+CAM_GET=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/custom-ai-model/models/$CAM_ID?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('provider='+str(d.get('provider','none'))+',status='+str(d.get('status','none')))
+")
+assert_ok "$([[ "$CAM_GET" =~ provider=custom-openai ]] && [[ "$CAM_GET" =~ status=active ]] && echo 0 || echo 1)" \
+  "custom-ai-model: GET /models/:id returns provider + status (got: $CAM_GET)"
+
+# 5) PATCH /models/:id — disable
+sleep 2
+CAM_PATCH=$(curl -s "${UAUTH[@]}" -X PATCH "${BASE_URL}/api/custom-ai-model/models/$CAM_ID?orgId=$CAM_ORG" \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"disabled","isolation":"per_base"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('status='+str(d.get('status','none')))
+")
+assert_ok "$([[ "$CAM_PATCH" =~ status=disabled ]] && echo 0 || echo 1)" \
+  "custom-ai-model: PATCH returns status:disabled (got: $CAM_PATCH)"
+
+# 6) POST /models/:id/test — connectivity
+sleep 2
+CAM_TEST=$(curl -s "${UAUTH[@]}" -X POST "${BASE_URL}/api/custom-ai-model/models/$CAM_ID/test?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('ok='+str(d.get('ok', False)).lower())
+")
+assert_ok "$([[ "$CAM_TEST" =~ ok=true ]] && echo 0 || echo 1)" \
+  "custom-ai-model: /test returns ok:true (got: $CAM_TEST)"
+
+# 7) GET /usage — aggregate
+sleep 2
+CAM_USAGE=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/custom-ai-model/usage?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('totalRequests='+str(d.get('totalRequests',-1))+',byModelLen='+str(len(d.get('byModel',[]))))
+")
+assert_ok "$([[ "$CAM_USAGE" =~ byModelLen=1 ]] && echo 0 || echo 1)" \
+  "custom-ai-model: /usage returns 1 byModel entry (got: $CAM_USAGE)"
+
+# 8) DELETE /models/:id
+sleep 2
+CAM_DEL=$(curl -s "${UAUTH[@]}" -X DELETE "${BASE_URL}/api/custom-ai-model/models/$CAM_ID?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$CAM_DEL" == "true" ]] && echo 0 || echo 1)" \
+  "custom-ai-model: DELETE returns deleted:true (got: $CAM_DEL)"
+
+# 9) Verify gone
+sleep 2
+CAM_GONE=$(curl -sf "${UAUTH[@]}" "${BASE_URL}/api/custom-ai-model/models/$CAM_ID?orgId=$CAM_ORG" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('null' if d.get('model', 'x') is None else 'present')
+")
+assert_ok "$([[ "$CAM_GONE" == "null" ]] && echo 0 || echo 1)" \
+  "custom-ai-model: deleted model returns model:null (got: $CAM_GONE)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
