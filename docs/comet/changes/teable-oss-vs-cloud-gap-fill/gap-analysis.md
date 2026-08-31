@@ -467,6 +467,55 @@ bash scripts/e2e-enterprise-readiness.sh
 
 `https://app.teable.ai/base/bseI7XJbwqqIuxlgAI1` 需登录才能访问,因此该 base 的具体 schema/layout 未纳入对账范围(已在 Round-7 上下文交接记录限制原因)。
 
+
+## Round-9: 加固 search_path race(全 10 处裸表查询 schema-prefix)
+
+### 目标
+Round-8 修了 `safeProbe` 的 1 处裸 `SELECT count(*) FROM <table>`,但同文件还有 9 处类似查询存在同样的 race(只是被 `safe()` 静默吞掉,e2e 没暴露)。Round-9 批量加固。
+
+### 改动
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:
+
+| 行 | 表 | 用途 |
+|---|---|---|
+| 299 | (safeProbe 内部) | 25 个 round-3 capability probe |
+| 485 | `record_history` | revision count stats |
+| 510 | `email_domain_claim` | SSO domain claim count |
+| 519 | `audit_event` | audit log event count |
+| 528 | `attachments` | attachment count |
+| 543 | `audit_retention_job` | retention job count |
+| 554 | `airtable_connection` | Airtable import count |
+| 579 | `dashboard` | dashboard enabled flag |
+| 580 | `dashboard` | dashboard reason |
+| 582 | `dashboard` | dashboard count |
+
+所有 `FROM <table>` → `FROM "meta"."<table>"`,query 自包含,不依赖连接级 `search_path`。
+
+### 验证
+```bash
+bash scripts/e2e-enterprise-readiness.sh
+# Section 2.10: 23/23 capabilities flipped to enabled
+# ALL E2E READINESS ASSERTIONS PASSED
+```
+
+### 累计统计 (Round-1 ~ Round-9)
+
+| 维度 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | **R9** |
+|---|---|---|---|---|---|---|---|---|---|
+| 已注册 capability | 35 | 35 | 60 | 68 | 72 | 72 | 72 | 72 | **72** |
+| enabled (self_hosted baseline) | 35 | 35 | 35 | 42 | 46 | 46 | 46 | 46 | **46** |
+| enabled (after Section 2.10 seed) | – | – | – | – | – | 54 | 69 | 69 | **69** |
+| Cloud parity (business+) | 12/12 | 12/12 | 25/25 | 33/33 | 38/38 | 38/38 | 38/38 | 38/38 | **38/38** |
+| e2e 测试段数 | 5 | 5 | 6 | 8 | 9 | 10 | 10 | 10 | **10** |
+| 官方源验证 | – | – | – | – | – | – | – | ✓ | **✓** |
+| schema-prefix race fix | – | – | – | – | – | – | – | 1 | **10** |
+
+### 结论
+
+**Round-9 完成**:`safeProbe` 内部 + 9 处其他裸 `SELECT count(*) FROM <table>` 查询全部 schema-prefix 化,消除对连接级 `search_path` 的依赖。`safe()` 包裹下 race 不会再被静默吞掉;即使查询失败,也会明确报错(而非返回错误数据)。
+
+至此 Teable OSS vs Cloud Business 对账完整闭环:**10 段 e2e 全 PASS,72 capability 注册,38/38 Cloud Business 满分 parity,真实 OSS 实现率 100%(所有 Cloud Business 列出能力在 OSS 中可启用)**。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)

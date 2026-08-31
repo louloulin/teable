@@ -482,7 +482,7 @@ export class EnterpriseReadinessService {
         key: 'record_history',
         module: 'record-history',
         enabled: true,
-        stats: { revisions: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM record_history').then((r) => Number(r?.[0]?.c ?? 0)), 0) },
+        stats: { revisions: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."record_history"').then((r) => Number(r?.[0]?.c ?? 0)), 0) },
       },
       // Cloud Business §API rate limit: 10 req/s plan-aware guard wired
       // as APP_GUARD in global.module.ts (api-rate-limit/api-rate-limit.guard.ts).
@@ -507,7 +507,7 @@ export class EnterpriseReadinessService {
         module: 'email-domain-claim',
         enabled: true,
         stats: {
-          claims: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM email_domain_claim').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          claims: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."email_domain_claim"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
       // Audit log export (Cloud §审计日志 §导出)
@@ -516,7 +516,7 @@ export class EnterpriseReadinessService {
         module: 'audit-export',
         enabled: true,
         stats: {
-          events: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM audit_event').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          events: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."audit_event"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
       // Attachment storage (Cloud §附件)
@@ -525,7 +525,7 @@ export class EnterpriseReadinessService {
         module: 'attachments',
         enabled: true,
         stats: {
-          attachments: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM attachments').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          attachments: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."attachments"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
       // Per-org quota enforcement (Cloud §配额)
@@ -540,7 +540,7 @@ export class EnterpriseReadinessService {
         module: 'retention',
         enabled: true,
         stats: {
-          jobs: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM audit_retention_job').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          jobs: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."audit_retention_job"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
 
@@ -551,7 +551,7 @@ export class EnterpriseReadinessService {
         module: 'airtable-import',
         enabled: true,
         stats: {
-          connections: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM airtable_connection').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          connections: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."airtable_connection"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
       // Notion migration source (notion module wired)
@@ -576,10 +576,10 @@ export class EnterpriseReadinessService {
       {
         key: 'dashboard',
         module: 'dashboard',
-        enabled: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => Number(r?.[0]?.c ?? 0) > 0), false),
-        reason: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => (Number(r?.[0]?.c ?? 0) === 0 ? 'no_dashboard_rows_yet' : undefined)), 'no_dashboard_rows_yet'),
+        enabled: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."dashboard"').then((r) => Number(r?.[0]?.c ?? 0) > 0), false),
+        reason: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."dashboard"').then((r) => (Number(r?.[0]?.c ?? 0) === 0 ? 'no_dashboard_rows_yet' : undefined)), 'no_dashboard_rows_yet'),
         stats: {
-          dashboards: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+          dashboards: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM "meta"."dashboard"').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
     ];
