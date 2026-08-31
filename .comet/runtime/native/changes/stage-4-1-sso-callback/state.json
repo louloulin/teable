@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-4-1-sso-callback",
+  "basedOnStateVersion": 9,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-4-1-sso-callback",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-4-1-sso-callback",
+    "branch": "comet/stage-4-1-sso-callback"
+  },
+  "execution": null,
+  "checks": []
+}
