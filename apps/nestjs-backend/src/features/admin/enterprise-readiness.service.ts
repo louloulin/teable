@@ -94,6 +94,12 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'attachment_storage',    // local/S3 file storage (Cloud §附件)
   'quota',                 // per-org row/automation/quota enforcement (Cloud §配额)
   'retention',             // automation run cleanup + retention jobs (Cloud §保留)
+  // Round-5 wired migration/UI capabilities
+  'airtable_import',       // airtable-import module wired in app.module.ts (Cloud §迁移)
+  'notion_import',         // notion module wired in app.module.ts (Cloud §Notion 迁移)
+  'google_sheets_import',  // google-sheets module wired in app.module.ts (Cloud §Sheets 迁移)
+  'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
+  'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
 
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {
@@ -535,6 +541,45 @@ export class EnterpriseReadinessService {
         enabled: true,
         stats: {
           jobs: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM audit_retention_job').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
+
+      // ─── Round-5: register wired migration/UI modules ────────────────
+      // Airtable migration source (airtable-import module wired)
+      {
+        key: 'airtable_import',
+        module: 'airtable-import',
+        enabled: true,
+        stats: {
+          connections: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM airtable_connection').then((r) => Number(r?.[0]?.c ?? 0)), 0),
+        },
+      },
+      // Notion migration source (notion module wired)
+      {
+        key: 'notion_import',
+        module: 'notion',
+        enabled: true,
+      },
+      // Google Sheets migration source (google-sheets module wired)
+      {
+        key: 'google_sheets_import',
+        module: 'google-sheets',
+        enabled: true,
+      },
+      // View-level permission (Cloud §视图权限独立)
+      {
+        key: 'view_permission',
+        module: 'view-permission',
+        enabled: true,
+      },
+      // Dashboard: probe (no_rows_yet flips on first row)
+      {
+        key: 'dashboard',
+        module: 'dashboard',
+        enabled: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => Number(r?.[0]?.c ?? 0) > 0), false),
+        reason: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => (Number(r?.[0]?.c ?? 0) === 0 ? 'no_dashboard_rows_yet' : undefined)), 'no_dashboard_rows_yet'),
+        stats: {
+          dashboards: await safe(() => this.prisma.$queryRawUnsafe<Array<{ c: string | number }>>('SELECT count(*)::int AS c FROM dashboard').then((r) => Number(r?.[0]?.c ?? 0)), 0),
         },
       },
     ];

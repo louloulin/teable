@@ -177,16 +177,19 @@ log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 # Round-4: 8 new wired-module probes (api_rate_limit, record_history,
 #          data_masking, email_domain_claim, audit_export,
 #          attachment_storage, quota, retention).
-# Total registered caps: 68. Baseline enabled: 42 (api_rate_limit opt-out
-# in self_hosted; everything else enabled by module wiring).
-# Cloud Business parity: 32/33 (api_rate_limit flips to enabled on
-# non-self_hosted plans, see Section 3).
-EXPECTED_TOTAL=68
-EXPECTED_ENABLED=42
+# Round-5 adds 4 more wired-module probes (airtable_import,
+# notion_import, google_sheets_import, view_permission) for a total of
+# 72 capabilities. Baseline enabled: 46 (api_rate_limit opt-out in
+# self_hosted, dashboard no_rows_yet; rest wired-enable).
+# Cloud Business parity: 36/38 (api_rate_limit + dashboard no_rows_yet).
+# Flips to 38/38 once api_rate_limit enables on license and any dashboard
+# row exists.
+EXPECTED_TOTAL=72
+EXPECTED_ENABLED=46
 assert_ok "$([[ "$TOTAL_CAPS" == "$EXPECTED_TOTAL" ]] && echo 0 || echo 1)" \
   "total capabilities registered = $EXPECTED_TOTAL (got total=$TOTAL_CAPS)"
 assert_ok "$([[ "$ENABLED_CAPS" -ge "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
-  "$EXPECTED_ENABLED+/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; >=42 baseline, data may push higher)"
+  "$EXPECTED_ENABLED+/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; >=46 baseline, data may push higher)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
@@ -267,8 +270,8 @@ log "[OK]   all 25 round-3 enterprise-table capabilities registered with 'no_*_r
 # self_hosted (guard short-circuits when plan=self_hosted). Flips to 33/33
 # on any business/enterprise license — see Section 3.
 PARITY_DEFAULT=$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')
-assert_ok "$([[ "$PARITY_DEFAULT" == "32/33" ]] && echo 0 || echo 1)" \
-  "default self_hosted parity = 32/33 (got: $PARITY_DEFAULT; api_rate_limit opt-out)"
+assert_ok "$([[ "$PARITY_DEFAULT" == "36/38" ]] && echo 0 || echo 1)" \
+  "default self_hosted parity = 36/38 (got: $PARITY_DEFAULT; api_rate_limit opt-out + dashboard no_rows_yet)"
 
 # ----- Section 2.7: round-3 capability flips on data -----
 # Insert a demo row into one round-3 enterprise table and re-fetch readiness
@@ -303,6 +306,37 @@ print('enabled=' + str(c.get('enabled', False)).lower())
   # Clean up the demo row so subsequent runs start from baseline
   PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
     "DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%';" >/dev/null 2>&1 || true
+
+  # Round-5: also seed a dashboard row so the dashboard capability flips
+  # to enabled (will be cleaned up at end of section).
+  DASH_RESULT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+    "INSERT INTO meta.dashboard (id, name, base_id, created_by, created_time) \
+     VALUES ('dsh_e2e_demo_$(date +%s)', 'E2E Demo Dashboard', 'bse_e2e_demo', 'usr_e2e_demo', now()) \
+     ON CONFLICT (id) DO NOTHING; \
+     SELECT count(*) FROM meta.dashboard;" 2>&1) || DASH_RESULT=""
+  if echo "$DASH_RESULT" | grep -qE '^[0-9]+$'; then
+    DASH_COUNT=$(echo "$DASH_RESULT" | tail -1)
+    log "[OK]   demo row inserted into meta.dashboard (count=$DASH_COUNT)"
+    # Re-fetch readiness and assert dashboard flipped to enabled
+    REFETCH2_BODY="$(fetch_readiness)"
+    DASH_STATE=$(echo "$REFETCH2_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('dashboard', {})
+print(str(c.get('enabled', False)).lower())
+")
+    assert_ok "$([[ "$DASH_STATE" == "true" ]] && echo 0 || echo 1)" \
+      "round-5 capability 'dashboard' flipped to enabled after row insert (got: enabled=$DASH_STATE)"
+    # NOTE: dashboard demo row is NOT cleaned up here. Section 3 (business
+    # license) needs it for parity=38/38. Cleaned at end of e2e.
+    log "[INFO] dashboard demo row kept for Section 3 (cleaned at e2e end)"
+    if false; then
+    PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+      "DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
+    fi
+  else
+    log "[SKIP] dashboard seed insert failed - dashboard flip check skipped"
+  fi
 else
   log "[SKIP] comment_subscription seed insert failed (psql unavailable?) - skipping flip-on-data check"
 fi
@@ -367,6 +401,34 @@ print('enabled=' + str(c.get('enabled', False)).lower())
 assert_ok "$([[ "$DM_STATE" == "enabled=true" ]] && echo 0 || echo 1)" \
   "data_masking enabled (got: $DM_STATE)"
 
+# ----- Section 2.9: round-5 wired migration/UI modules -----
+# Round 5 surfaces 4 wired modules that map to Cloud Business capabilities:
+#   airtable_import (airtable-import module wired in app.module.ts)
+#   notion_import (notion module wired in app.module.ts)
+#   google_sheets_import (google-sheets module wired in app.module.ts)
+#   view_permission (view-permission module wired in app.module.ts)
+log "=== Section 2.9: round-5 wired migration/UI modules ==="
+ROUND5_KEYS="airtable_import notion_import google_sheets_import view_permission"
+for cap in $ROUND5_KEYS; do
+  STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('$cap', {})
+print(str('$cap' in body['capabilities']).lower() + ' ' + str(c.get('enabled', False)).lower())
+")
+  PRESENT=$(echo "$STATE" | awk '{print $1}')
+  ENABLED=$(echo "$STATE" | awk '{print $2}')
+  if [[ "$PRESENT" != "true" ]]; then
+    log "[FAIL] round-5 capability '$cap' missing from readiness map"
+    exit 1
+  fi
+  if [[ "$ENABLED" != "true" ]]; then
+    log "[FAIL] round-5 capability '$cap' should be enabled (wired), got: enabled=$ENABLED"
+    exit 1
+  fi
+done
+log "[OK]   all 4 round-5 wired migration/UI capabilities registered + enabled"
+
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="
 stop_backend
@@ -383,8 +445,8 @@ assert_ok "$([[ "$BIZ_LEVEL" == "business" ]] && echo 0 || echo 1)" \
 PARITY="$(echo "$BIZ_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')"
 SCORE="${PARITY%/*}"
 TOTAL="${PARITY##*/}"
-assert_ok "$([[ "$SCORE" -ge 33 ]] && echo 0 || echo 1)" \
-  "cloudBusinessParity score $SCORE/$TOTAL >= 33 (full round-4 Cloud Business parity; api_rate_limit flips on license)"
+assert_ok "$([[ "$SCORE" -ge 38 ]] && echo 0 || echo 1)" \
+  "cloudBusinessParity score $SCORE/$TOTAL >= 38 (full round-5 Cloud Business parity; api_rate_limit + dashboard flip on license/data)"
 
 # Assert business-only capabilities flipped to true
 for cap in sso audit_log permission_matrix admin_panel custom_domain; do
@@ -405,5 +467,10 @@ assert_ok "$([[ "$HTTP_CODE" == "401" ]] && echo 0 || echo 1)" \
   "no admin token returns 401 (got: $HTTP_CODE)"
 
 stop_backend
+# Final cleanup: remove any demo dashboard rows so subsequent runs start clean
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%';" >/dev/null 2>&1 || true
 log "=== ALL E2E READINESS ASSERTIONS PASSED ==="
 exit 0
