@@ -1463,6 +1463,24 @@ model PermissionRoleNode {
   @@index([roleId, nodeType])
   @@map("permission_role_node")
 }
+model PermissionRoleImportExport {
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  tableId   String   @map("table_id")
+  // Cloud Business §权限矩阵 §导入/导出权限 is a separate axis (not part of
+  // recordAction). canImport gates CSV/Excel import endpoints; canExport gates
+  // CSV export endpoint per role per table.
+  canImport Boolean  @default(false) @map("can_import")
+  canExport Boolean  @default(false) @map("can_export")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  role PermissionRole @relation("PermissionRoleImportExportToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, tableId])
+  @@index([roleId])
+  @@map("permission_role_import_export")
+}
 
 model PermissionRoleMember {
   id        String   @id @default(cuid())
@@ -1490,6 +1508,7 @@ model PermissionRole {
 
   members       PermissionRoleMember[]          @relation("PermissionRoleMemberToPermissionRole")
   nodes         PermissionRoleNode[]            @relation("PermissionRoleNodeToPermissionRole")
+  importExports PermissionRoleImportExport[]     @relation("PermissionRoleImportExportToPermissionRole")
   fieldPerms    PermissionRoleFieldPermission[] @relation("PermissionRoleFieldPermissionToPermissionRole")
   recordActions PermissionRoleRecordAction[]    @relation("PermissionRoleRecordActionToPermissionRole")
   recordFilters PermissionRoleRecordFilter[]    @relation("PermissionRoleRecordFilterToPermissionRole")

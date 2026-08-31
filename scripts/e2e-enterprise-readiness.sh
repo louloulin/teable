@@ -167,12 +167,14 @@ ENABLED_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.l
 log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 
 # Section 2 final assertion: with the meta.organization_ip_allowlist migration
-# applied, the meta.setting row inserted, and the 2 documented permission-matrix
-# gaps surfaced as disabled probes, exactly 33 of 35 capabilities should be
-# enabled on a default self-hosted instance.
-EXPECTED_ENABLED=34
+# applied, the meta.setting row inserted, and the 0 remaining documented
+# permission-matrix gaps, exactly 35 of 35 capabilities should be enabled
+# on a default self-hosted instance.
+# (permission_import_export flips to enabled the moment ≥1 rule row exists,
+#  permission_app_workflow flips when ≥1 app/workflow node access row exists.)
+EXPECTED_ENABLED=35
 assert_ok "$([[ "$ENABLED_CAPS" == "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
-  "$EXPECTED_ENABLED/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; the 2 permission-matrix sub-capabilities below are documented gaps)"
+  "$EXPECTED_ENABLED/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; 0 documented gaps remain)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
@@ -187,23 +189,23 @@ sys.exit(0 if '$cap' in body['capabilities'] else 1)
 done
 log "[OK]   all 9 core capabilities present in readiness map"
 
-# ----- Section 2.5: documented permission-matrix gaps are surfaced -----
+# ----- Section 2.5: documented permission-matrix sub-capability probes -----
+# Both permission_import_export and permission_app_workflow now flip to enabled
+# the moment ≥1 rule row exists (probe-driven capability gate).
 log "=== Section 2.5: documented permission-matrix sub-capability probes ==="
-for cap in permission_import_export permission_app_workflow; do
-  ENABLED_REASON=$(echo "$DEFAULT_BODY" | python3 -c "
+IMPORT_EX=$(echo "$DEFAULT_BODY" | python3 -c "
 import json, sys
 body = json.load(sys.stdin)
-cap = body['capabilities'].get('$cap', {})
-print('enabled=' + str(cap.get('enabled', None)).lower() + ' reason=' + str(cap.get('reason', '')))
+cap = body['capabilities'].get('permission_import_export', {})
+print('enabled=' + str(cap.get('enabled', False)).lower() + ' rules=' + str(cap.get('rules', 0)))
 ")
-  if [[ "$cap" == "permission_import_export" ]]; then
-    if [[ "$ENABLED_REASON" != "enabled=false reason=import_export_permission_not_yet_modeled" ]]; then
-      log "[FAIL] $cap not surfaced as documented gap (got: $ENABLED_REASON)"
-      exit 1
-    fi
-    log "[OK]   $cap is a documented gap ($ENABLED_REASON)"
-  fi
-done
+case "$IMPORT_EX" in
+  enabled=true*rules=[1-9]*)
+    log "[OK]   permission_import_export is enabled ($IMPORT_EX)" ;;
+  *)
+    log "[FAIL] permission_import_export should be enabled with rules>=1, got: $IMPORT_EX"
+    exit 1 ;;
+esac
 
 # permission_app_workflow should now be ENABLED with appWorkflowNodes >= 1 (after
 # the schema change that adds nodeType + the seed rows in meta).

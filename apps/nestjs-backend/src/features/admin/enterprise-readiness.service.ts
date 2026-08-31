@@ -270,6 +270,13 @@ export class EnterpriseReadinessService {
         }),
       0
     );
+    const importExportCount = await safe(
+      () =>
+        (this.prisma as unknown as {
+          permissionRoleImportExport: { count: () => Promise<number> };
+        }).permissionRoleImportExport.count(),
+      0
+    );
 
     return [
       {
@@ -320,11 +327,15 @@ export class EnterpriseReadinessService {
       //     migration 20260831130000; enabled once ≥1 app/workflow row exists)
       //   ✗ 'permission_import_export' — Cloud §导入/导出权限 (independent axis);
       //     still not modeled in schema.
+      // permission_import_export flips to enabled when ≥1 row exists in
+      // permission_role_import_export. Schema landed in migration
+      // 20260831140000_add_permission_role_import_export.
       {
         key: 'permission_import_export',
         module: 'permission-matrix',
-        enabled: false,
-        reason: 'import_export_permission_not_yet_modeled',
+        enabled: importExportCount > 0,
+        reason: importExportCount === 0 ? 'no_import_export_rules_yet' : undefined,
+        stats: { rules: importExportCount },
       },
       // permission_app_workflow now flips to enabled when ≥1 app/workflow node
       // row exists. The schema-side support landed in

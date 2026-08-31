@@ -144,6 +144,31 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     });
     this.invalidate(baseId);
   }
+  // ─── import / export gate (Cloud Business §权限矩阵 §导入/导出权限) ─────
+  // Independent axis from recordAction. canImport gates CSV/Excel import
+  // endpoints; canExport gates CSV export endpoint per role per table.
+
+  async setImportExport(
+    baseId: string,
+    roleId: string,
+    tableId: string,
+    canImport: boolean,
+    canExport: boolean
+  ) {
+    await this.assertRole(baseId, roleId);
+    await this.prisma.permissionRoleImportExport.upsert({
+      where: { roleId_tableId: { roleId, tableId } },
+      create: {
+        id: `prie_${randomBytes(10).toString('hex')}`,
+        roleId,
+        tableId,
+        canImport,
+        canExport,
+      },
+      update: { canImport, canExport },
+    });
+    this.invalidate(baseId);
+  }
 
   // ─── field permissions ──────────────────────────────────────────────────
 
