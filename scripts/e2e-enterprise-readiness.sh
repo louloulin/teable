@@ -86,9 +86,27 @@ print(body if body is not None else '')
 " "$1" "$2"
 }
 
+# Pre-flight: ensure port is free so we don't collide with a tmux-managed backend
+ensure_port_free() {
+  for _ in {1..10}; do
+    if ! lsof -i :"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      return 0
+    fi
+    local victim
+    victim="$(lsof -ti :"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)"
+    if [[ -n "$victim" ]]; then
+      log "Killing stale process on port $PORT (pid=$victim)"
+      kill -9 "$victim" 2>/dev/null || true
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 start_backend() {
   local extra_env="$1"
   log "Starting backend with: $extra_env"
+  ensure_port_free || { log "[FAIL] port $PORT still busy after kill attempts"; return 1; }
   # shellcheck disable=SC2086
   env $extra_env \
     TEABLE_ADMIN_TOKEN="$ADMIN_TOKEN" \
@@ -147,6 +165,12 @@ assert_ok "$([[ "$DEFAULT_LEVEL" == "self_hosted" ]] && echo 0 || echo 1)" \
 TOTAL_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["total"])')"
 ENABLED_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["enabled"])')"
 log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
+
+# Section 2 final assertion: with the meta.organization_ip_allowlist migration
+# applied and the meta.setting row inserted, all 33 capabilities should be
+# enabled on a default self-hosted instance.
+assert_ok "$([[ "$ENABLED_CAPS" == "$TOTAL_CAPS" ]] && echo 0 || echo 1)" \
+  "all $TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
