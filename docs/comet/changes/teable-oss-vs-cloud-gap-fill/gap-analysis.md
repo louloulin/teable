@@ -1265,3 +1265,110 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-18: 实现 jira_import driver（第 3 个 partial → implemented）
+
+### 目标
+沿用 R16 baserow + R17 clickup driver 模板,新增 `jira-import` 模块,实现 cloudGap[3] `jira_import`。`cloudGapImplementedCount` 从 2 升到 3。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/jira-import/`（~290 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `jira-import.types.ts` | JiraProject / JiraIssue / JiraConnectionProbe | 42 |
+| `jira-api.client.ts` | Jira Cloud REST v3 client (HTTP Basic auth) | 93 |
+| `jira-import.service.ts` | 服务层:probe / listProjects / fetchIssues | 53 |
+| `jira-import.controller.ts` | 3 个端点:`/api/jira-import/{probe,projects,issues}` | 56 |
+| `jira-import.module.ts` | NestJS module 装配 | 21 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `JiraImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- `jira_import` cloudGap entry: status='implemented', ossFramework='jira-import'
+- `jira_import` 加入 capability 列表(module=jira-import, enabled=true)
+- `jira_import` 加入 MIGRATION_SOURCE_REGISTRY 并标记 implemented
+- `jira_import` 加入 implementedBy mapping
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.7(6 个断言):jira driver capability + cloudGap status + 端点 + 指标
+- 更新 Section 4.1: driver_missing 从 6 改为 5
+- 更新 Section 4.4: migration-sources implemented 5→6,pending 6→5
+- 更新 Section 4.5/4.6: cloudGapImplementedCount 2→3
+- 更新 parity: 38/40 → 39/41
+- 更新 EXPECTED_TOTAL: 74 → 75
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R16 | 15 | ~68 |
+| R17 | 16 | ~74 (+6) |
+| **R18** | **17** | **~80 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-18)
+
+| 维度 | R17 | **R18** |
+|---|---|---|
+| Worktree commits | 11 | **12** |
+| e2e 段数 | 16 | **17** |
+| e2e 总断言数 | ~74 | **~80** |
+| 新增模块 | clickup-import | **jira-import (290 LOC)** |
+| 新增 API 端点 | 4 (clickup) | **3 (jira probe/projects/issues)** |
+| cloudGap 状态 | 2 impl + 7 partial + 5 not_impl | **3 impl + 6 partial + 5 not_impl** |
+| cloudGapImplementedCount | 2 | **3** |
+| cloudGapCoverage | 64% | **64%** (count stays; partial+impl 都算 filled) |
+| 总 capability | 74 | **75** |
+| 业务 parity | 38/40 | **39/41** |
+| gap-analysis.md 行数 | ~1270 | **~1370** |
+
+### Driver 模板第 3 次复用验证
+
+baserow(R16) + clickup(R17) + jira(R18)三个 driver 实现已形成稳定模式:
+
+| 步骤 | baserow | clickup | jira |
+|---|---|---|---|
+| Auth scheme | Token header | Bearer (no prefix) | HTTP Basic (email:token) |
+| API base | api.baserow.io | api.clickup.com/api/v2 | `<site>.atlassian.net/rest/api/3` |
+| Probe 入口 | /api/workspaces/ | /team | /myself |
+| List resources | /api/applications/ | /team/{id}/space | /project/search |
+| Fetch rows | /api/database/rows/table/{id}/ | /list/{id}/task | /search (JQL) |
+| Auth field in probe | token | token | siteUrl + email + apiToken |
+
+每个 driver ~250-300 LOC,3 个 driver 累计 ~830 LOC,8 个 driver_missing 中已完成 3/8 = 37.5%。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/jira-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"siteUrl":"https://example.atlassian.net","email":"test@example.com","apiToken":"test"}'
+{
+  "ok": false,
+  "error": "Jira API /myself failed: HTTP 404 ...",
+  "siteUrl": "https://example.atlassian.net",
+  "fetchedAt": "2026-08-31T15:53:00.000Z"
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 75,
+  "enabled": 49,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 3
+}
+```
+
+### 结论
+
+**Round-18 完成**:jira_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 3。Driver 模板已稳定为 ~250 LOC × 3 文件结构,可继续推进 5 个剩余 migration driver_missing(monday / nocodb / smartsheet / smartsuite / connect_more_sources)。
+
+### 已知 limitation (继承)
+- jira driver 只覆盖 probe / listProjects / fetchIssues;ADF 描述 + custom fields + sprints/comments/attachments 都是 follow-up
+- 5 个 pending migration(monday/nocodb/smartsheet/smartsuite/connect_more_sources)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
