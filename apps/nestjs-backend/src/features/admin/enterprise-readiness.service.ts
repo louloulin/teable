@@ -38,6 +38,12 @@ export type EnterpriseReadinessReport = {
     disabled: number;
     missing: number;
     cloudBusinessParity: string;
+    cloudExclusiveGapCount: number;
+    cloudGapCoverage: {
+      filled: number;
+      total: number;
+      percent: number;
+    };
   };
 };
 
@@ -186,6 +192,7 @@ export class EnterpriseReadinessService {
     const disabled = total - enabled;
     const parity = this.cloudBusinessParity(capabilityMap);
     const cloudGap = this.collectCloudGaps();
+    const cloudGapCoverage = this.cloudGapCoverage();
 
     return {
       instance: {
@@ -204,6 +211,7 @@ export class EnterpriseReadinessService {
         missing: 0,
         cloudBusinessParity: parity,
         cloudExclusiveGapCount: cloudGap.length,
+        cloudGapCoverage,
       },
     };
   }
@@ -308,6 +316,19 @@ export class EnterpriseReadinessService {
     return this.collectCloudGaps()
       .filter((g) => g.ossFrameworkPresent && g.reasonCategory === 'driver_missing')
       .slice(0, n);
+  }
+
+  /**
+   * Round-14: Compute Cloud gap coverage metrics. An entry counts as
+   * 'filled' when its status moved past 'not_implemented' (i.e. 'partial').
+   * Operators can track this number over time as OSS catches up.
+   */
+  cloudGapCoverage(): { filled: number; total: number; percent: number } {
+    const gaps = this.collectCloudGaps();
+    const total = gaps.length;
+    const filled = gaps.filter((g) => g.status !== 'not_implemented').length;
+    const percent = total === 0 ? 0 : Math.round((filled / total) * 100);
+    return { filled, total, percent };
   }
 
   /**

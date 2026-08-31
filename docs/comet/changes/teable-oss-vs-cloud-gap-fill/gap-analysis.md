@@ -825,3 +825,78 @@ R12 把 cloudGap 分类清楚后,Round-13 真正实现最小的 cloudGap:`ai_ski
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)
 - Cloud 独有营销特性(ISO 27001 认证、托管 SLA、白标)无法在 OSS 中实现
 
+
+
+## Round-14: cloudGapCoverage 指标 + 运维可视化进度
+
+### 目标
+R13 把第一个 cloudGap(`ai_skill`)实现到 partial 后,运维需要一种**量化方式**追踪 closure 进度。Round-14 在 summary 中新增 `cloudGapCoverage` 指标(filled/total/percent),让任何 HTTP 客户端/监控系统/dashboard 都能实时看到 Cloud 独占功能的覆盖进度。这是"最佳最小改造"的又一次体现:不写新功能代码,只把"已经填了几格"这个最直接的运营 KPI 暴露出来。
+
+### 改动
+`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:
+
+```typescript
+type Summary = {
+  total: number;
+  enabled: number;
+  disabled: number;
+  missing: number;
+  cloudBusinessParity: string;
+  cloudExclusiveGapCount: number;
+  cloudGapCoverage: { filled: number; total: number; percent: number };
+};
+
+cloudGapCoverage(): { filled: number; total: number; percent: number } {
+  const filled = this.collectCloudGaps().filter(g => g.status !== 'not_implemented').length;
+  const total = this.collectCloudGaps().length;
+  return {
+    filled,
+    total,
+    percent: Math.round((filled / total) * 100),
+  };
+}
+```
+
+`scripts/e2e-enterprise-readiness.sh`:
+- 新增 Section 4.3(5 个断言):验证 coverage.total == cloudGap.length、filled == partial 计数、percent 公式正确、一致性
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R12 | 12 | ~42 |
+| R13 | 13 | ~50 (+8 ai-skill) |
+| **R14** | **13** | **~55 (+5 coverage)** |
+
+### 累计统计 (Round-1 ~ Round-14)
+
+| 维度 | R13 | **R14** |
+|---|---|---|
+| Worktree commits | 7 | **8** |
+| e2e 段数 | 13 | **13** |
+| e2e 总断言数 | ~50 | **~55** |
+| 新增 API 字段 | 2 端点 | **1 指标 (cloudGapCoverage)** |
+| cloudGap 状态变化 | 1 partial + 13 not_impl | **1 partial + 13 not_impl (同 R13)** |
+| gap-analysis.md 行数 | ~830 | **~870** |
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness \
+  | jq '.summary.cloudGapCoverage'
+{
+  "filled": 1,
+  "total": 14,
+  "percent": 7
+}
+```
+
+### 结论
+
+**Round-14 完成**:cloudGapCoverage 指标已上线。当前 **1/14 = 7%** 覆盖,operator 可在每次新增 partial 后看到数字自动增长。下一步(Round-15+)按 `topFillable` 顺序继续填充:8 个 `driver_missing`(framework 已就绪,只差 driver)和 5 个 `sandbox_missing`(需要先建 JS 沙箱基础设施)。
+
+### 已知 limitation (继承)
+- 前端 admin UI 未实现(目前只有 `/api/admin/*` API)
+- 8 个 driver_missing gap 需要逐一实现 source-specific 适配器
+- 5 个 sandbox_missing gap 需要先实现 JS 沙箱(`packages/sandbox/*`)
+- Cloud 独有营销特性无法在 OSS 中实现

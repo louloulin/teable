@@ -886,6 +886,52 @@ print(ai[0]['status'] if ai else 'NOT_FOUND')
 assert_ok "$([[ "$AISKILL_STATUS" == "partial" ]] && echo 0 || echo 1)" \
   "ai_skill cloudGap upgraded to status='partial' (got: $AISKILL_STATUS)"
 
+# ----- Section 4.3: cloudGapCoverage metric (Round-14) -----
+# summary.cloudGapCoverage = { filled, total, percent }
+# filled counts entries with status != 'not_implemented'
+# percent = round(filled/total * 100)
+log "=== Section 4.3: cloudGapCoverage metric (Round-14) ==="
+
+COV=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+print(json.dumps(json.load(sys.stdin)['summary']['cloudGapCoverage']))
+")
+COV_FILLED=$(echo "$COV" | python3 -c "import json,sys; print(json.load(sys.stdin)['filled'])")
+COV_TOTAL=$(echo "$COV" | python3 -c "import json,sys; print(json.load(sys.stdin)['total'])")
+COV_PCT=$(echo "$COV" | python3 -c "import json,sys; print(json.load(sys.stdin)['percent'])")
+
+assert_ok "$([[ "$COV_TOTAL" == "14" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.total == 14 (got: $COV_TOTAL)"
+
+assert_ok "$([[ "$COV_FILLED" == "1" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.filled == 1 (ai_skill Round-13 partial) (got: $COV_FILLED)"
+
+# percent = round(1/14 * 100) = 7
+assert_ok "$([[ "$COV_PCT" == "7" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.percent == 7 (round(1/14*100)) (got: $COV_PCT)"
+
+# Sanity: percent == round(filled/total*100)
+COV_CONSISTENT=$(echo "$COV" | python3 -c "
+import json, sys
+c = json.load(sys.stdin)
+expect = 0 if c['total'] == 0 else round(c['filled'] / c['total'] * 100)
+print('true' if c['percent'] == expect else 'false')
+")
+assert_ok "$([[ "$COV_CONSISTENT" == "true" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.percent consistent with filled/total (got: $COV_CONSISTENT)"
+
+# cross-check with cloudGap array length
+COV_MATCHES_ARRAY=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+b = json.load(sys.stdin)
+arr_len = len(b.get('cloudGap', []))
+cov_total = b['summary']['cloudGapCoverage']['total']
+filled = sum(1 for g in b['cloudGap'] if g['status'] != 'not_implemented')
+print('true' if arr_len == cov_total == 14 and filled == 1 else 'false')
+")
+assert_ok "$([[ "$COV_MATCHES_ARRAY" == "true" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.total == cloudGap.length AND filled == partial count (got: $COV_MATCHES_ARRAY)"
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"
