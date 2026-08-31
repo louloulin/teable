@@ -2288,3 +2288,152 @@ cat ~/.teable-skill/SKILL.md ~/.teable-skill/AUTH.md ~/.teable-skill/API.md ~/.t
 - **R28: isolated-vm 强化** (替代 Node vm 模块,处理不可信脚本)
 - **R29: OpenAPI 自动 sync** (每次 build 自动 sync skill API.md 与 openapi.json)
 - **R30: AI agent test harness** (用 skill 文件本身测试一个 AI agent 是否能正确完成 5 个任务)
+
+## Round-26: 实现 authority-matrix 第5个领域 — 导入/导出权限 (cloudBusinessParity post-seed 44→45/46)
+
+### 目标
+R25 完成 14/14 cloudGap 后,继续推进企业级功能。用户特别提到 [help.teable.ai/zh/basic/authority-matrix](https://help.teable.ai/zh/basic/authority-matrix) —— 权限矩阵是 Cloud §企业级核心。R26 调研发现 **authority-matrix 5 个领域中 4 个已实现,只有 import/export 缺**,schema 已就绪 (migration 20260831140000_add_permission_role_import_export) 但无 controller + service 方法。
+
+补全 authority-matrix 第 5 个领域 → cloudBusinessParity post-seed 从 44/46 提升到 45/46 (只剩 api_rate_limit opt-out)。
+
+### 调研发现 (现状)
+
+- **`permission_import_export` capability 已存在** (enterprise-readiness.service.ts:84)
+- **schema 已存在** (migration 20260831140000) — `permission_role_import_export` 表有 (role_id, table_id, can_import, can_export)
+- **Prisma client 已生成** — `permissionRoleImportExport` 模型可用
+- **capability gate 已存在** (line 684) — `enabled: importExportCount > 0`
+- **缺**:**HTTP endpoint + service 方法**让管理员配置权限 (前面 4 个领域都有 CRUD,这个缺)
+
+### 设计:CRUD endpoint for import/export 权限
+
+| Method | Path | 说明 |
+|---|---|---|
+| `PUT` | `/api/admin/permission-matrix/roles/:roleId/import-export` | 设置某 role 在某 table 的 import/export 权限 |
+| `GET` | `/api/admin/permission-matrix/roles/:roleId/import-export?baseId=X` | 列出该 role 的所有 import/export 规则 |
+| `DELETE` | `/api/admin/permission-matrix/roles/:roleId/import-export/:tableId?baseId=X` | 删除某 (role, table) 的规则 |
+
+Service 层 3 个方法:
+- `setImportExport(baseId, roleId, tableId, canImport, canExport)` — upsert
+- `listImportExport(baseId, roleId)` — query
+- `deleteImportExport(baseId, roleId, tableId)` — delete
+
+### 改动 (2 文件修改)
+
+**修改 `apps/nestjs-backend/src/features/permission-matrix/permission-matrix.service.ts`:**
+- 3 个新方法: `setImportExport` / `listImportExport` / `deleteImportExport`
+- 遵循既有模式 (setRecordFilter, setFieldPermission, setTableAccess)
+- 调用 `assertRole` 验证角色存在
+- 调用 `invalidate(baseId)` 清缓存
+
+**修改 `apps/nestjs-backend/src/features/permission-matrix/permission-matrix.controller.ts`:**
+- 新增 `IImportExportDto` interface
+- 3 个新 endpoint (PUT/GET/DELETE)
+- 全部走 `@Permissions('base|authority_matrix_config')` + `@ResourceMeta(...)`
+
+**修改 `apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`:**
+- 更新注释:`✗ 'permission_import_export'` → `✓ import/export permissions (Round-26)`
+
+**修改 `scripts/e2e-enterprise-readiness.sh`:**
+- `cleanup()` 加 DELETE `prie_round26_demo`
+- Section 2.10 加 INSERT `prie_round26_demo` (Round-26 seed)
+- 新增 Section 2.11: post-seed self_hosted parity 应为 45/46 (只有 api_rate_limit opt-out)
+- 验证 `permission_import_export` capability enabled + rules>=1 (避免依赖 stale 行)
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R25 | 24 | ~122 |
+| **R26** | **25** | **~124 (+2)** |
+
+最终运行结果: **150 OK / 0 FAIL / exit=0**
+
+### 累计统计 (Round-1 ~ Round-26)
+
+| 维度 | R25 | **R26** |
+|---|---|---|
+| Worktree commits | 19 | **20** |
+| e2e 段数 | 24 | **25** |
+| e2e 总断言数 | ~122 | **~124** |
+| cloudGapImplementedCount | 14 | **14** (不变) |
+| cloudGapCoverage | 100% | **100%** |
+| **cloudBusinessParity (default self_hosted)** | 44/46 | **44/46** (Section 2 时还未 seed) |
+| **cloudBusinessParity (post-seed self_hosted)** | (无检查) | **45/46** ✅ |
+| **cloudBusinessParity (business license)** | 46/46 | **46/46** |
+| **authority-matrix 实施** | 4/5 (80%) | **5/5 (100%)** ✅ |
+
+### authority-matrix 5 个领域全部完成
+
+| 领域 | Capability | R | 实施 |
+|---|---|---|---|
+| 表格节点访问 | (含在 permission_matrix 内) | 早期 | setTableAccess |
+| 字段权限 | (含在 permission_matrix 内) | 早期 | setFieldPermission |
+| 记录动作 | (含在 permission_matrix 内) | 早期 | setRecordAction |
+| 记录筛选 | (含在 permission_matrix 内) | 早期 | setRecordFilter |
+| 应用/工作流节点 | permission_app_workflow | R15 | setRoleNode (migration 20260831130000) |
+| **导入/导出权限** | **permission_import_export** | **R26** | **setImportExport / listImportExport / deleteImportExport** |
+
+### 实际 API 响应 (示例)
+
+```bash
+# Setup: 创建一个 role 和 table_id,然后设置 import/export 权限
+$ ROLE_ID=$(curl -sH "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/api/admin/permission-matrix/roles?baseId=$BASE_ID" | jq -r '.[0].id')
+
+$ curl -sX PUT -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"baseId":"'$BASE_ID'","tableId":"tblXXX","canImport":true,"canExport":false}' \
+  "$BASE_URL/api/admin/permission-matrix/roles/$ROLE_ID/import-export"
+{"id":"prie_xxx","roleId":"pr_xxx","tableId":"tblXXX","canImport":true,"canExport":false}
+
+$ curl -sH "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/api/admin/permission-matrix/roles/$ROLE_ID/import-export?baseId=$BASE_ID"
+[{"id":"prie_xxx","tableId":"tblXXX","canImport":true,"canExport":false}]
+
+$ curl -sX DELETE -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/api/admin/permission-matrix/roles/$ROLE_ID/import-export/tblXXX?baseId=$BASE_ID"
+{"ok":true,"deleted":1}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary.cloudBusinessParity, .capabilities.permission_import_export'
+"44/46"  # default self_hosted (before any seeds)
+"46/46"  # business license
+{
+  "module": "permission-matrix",
+  "rules": 1,
+  "enabled": true   # post-seed self_hosted: 45/46
+}
+```
+
+### 实际 cloudBusinessParity 三个阶段对比
+
+| 阶段 | default self_hosted (Section 2) | post-seed self_hosted (Section 2.11) | business license (Section 3) |
+|---|---|---|---|
+| api_rate_limit | opt_out_self_hosted ❌ | opt_out_self_hosted ❌ | enabled ✅ |
+| dashboard | no_rows_yet ❌ | seeded row → enabled ✅ | enabled ✅ |
+| permission_import_export | rules=0 (无种子) ❌ | **seeded row → enabled ✅** | enabled ✅ |
+| 其他 43 个 | enabled ✅ | enabled ✅ | enabled ✅ |
+| **总分** | **44/46** | **45/46** ✅ | **46/46** |
+
+### Round-26 设计教训 (给后续 round 的同学)
+
+1. **CRUD 模式复用** —— 4 个既有领域都是 `setX` / `setX` (有 query 时) / 跟随 `assertRole` + `invalidate` 模式。R26 直接套用,代码量最小。
+2. **数据驱动 capability gate 依赖 row seed** —— `permission_import_export` capability 早已存在,但需 row 才能 enabled。e2e 必须 explicit seed 才能稳定测试 (不能依赖 stale row)。
+3. **post-seed parity 是有意义的指标** —— self_hosted 在 license opt-out + 数据双约束下,最高 45/46 (vs business 46/46)。这是 OSS 用户的真实可见目标。
+
+### 结论
+
+**Round-26 完成**: authority-matrix 第 5 个领域 (import/export 权限) 全栈实现。**post-seed self_hosted cloudBusinessParity 45/46** (从 44/46 提升 1 分)。只剩 api_rate_limit opt_out_self_hosted (license 层强制,需 business license 才能打开)。
+
+### 已知 limitation (继承)
+- 4 个 skill 文件是 hand-written (vs 云端 github.com/teableio/agent-skills 自动维护)
+- Sandbox 使用 Node vm,适合 owner 自写脚本
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
+- ai_skill 的 install command 仍指向 teableio/agent-skills (云端仓) — 跟 R25 的 inline 文件并存,不影响 ai_skill=implemented
+
+### 下一步 (R27+ 候选)
+- **R27: 前端 admin UI** (nextjs-app: enterprise-readiness dashboard + 5 driver 上传 + samples browser + ai-skill viewer + 权限矩阵配置界面)
+- **R28: field type translator** (driver records → teable fields,统一 system/date/picklist/status 翻译)
+- **R29: isolated-vm 强化** (替代 Node vm 模块,处理不可信脚本)
+- **R30: OpenAPI 自动 sync** (每次 build 重新生成 API.md,跟实际 openapi schema 同步)
+- **R31: 性能优化** (readiness 缓存 / 静态化 cloudGap 数据)

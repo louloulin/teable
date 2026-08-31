@@ -235,6 +235,61 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     this.invalidate(baseId);
   }
 
+  /**
+   * Round-26: Import/Export permission gate (Cloud Business §权限矩阵 §导入/导出权限).
+   * canImport gates CSV/Excel import endpoints; canExport gates CSV export
+   * endpoints per role per table. Independent axis from recordAction.
+   */
+  async setImportExport(
+    baseId: string,
+    roleId: string,
+    tableId: string,
+    canImport: boolean,
+    canExport: boolean
+  ): Promise<{ id: string; roleId: string; tableId: string; canImport: boolean; canExport: boolean }> {
+    await this.assertRole(baseId, roleId);
+    const id = `prie_${randomBytes(10).toString('hex')}`;
+    const row = await this.prisma.permissionRoleImportExport.upsert({
+      where: { roleId_tableId: { roleId, tableId } },
+      create: { id, roleId, tableId, canImport, canExport },
+      update: { canImport, canExport },
+    });
+    this.invalidate(baseId);
+    return {
+      id: row.id,
+      roleId: row.roleId,
+      tableId: row.tableId,
+      canImport: row.canImport,
+      canExport: row.canExport,
+    };
+  }
+
+  async listImportExport(
+    baseId: string,
+    roleId: string
+  ): Promise<Array<{ id: string; tableId: string; canImport: boolean; canExport: boolean }>> {
+    await this.assertRole(baseId, roleId);
+    const rows = await this.prisma.permissionRoleImportExport.findMany({
+      where: { roleId },
+      orderBy: { tableId: 'asc' },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      tableId: r.tableId,
+      canImport: r.canImport,
+      canExport: r.canExport,
+    }));
+  }
+
+  async deleteImportExport(baseId: string, roleId: string, tableId: string): Promise<{ ok: boolean; deleted: number }> {
+    await this.assertRole(baseId, roleId);
+    const { count } = await this.prisma.permissionRoleImportExport.deleteMany({
+      where: { roleId, tableId },
+    });
+    this.invalidate(baseId);
+    return { ok: true, deleted: count };
+  }
+
   // ─── members ───────────────────────────────────────────────────────────
 
   async addMember(baseId: string, roleId: string, userId: string) {

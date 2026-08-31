@@ -73,6 +73,7 @@ cleanup() {
      DELETE FROM meta.backup_restore_log WHERE id = 'brl_round6_demo';
       DELETE FROM meta.backup_snapshot WHERE id = 'snp_round6_demo'; \
      DELETE FROM meta.airtable_connection WHERE id = 'airc_round6_demo'; \
+     DELETE FROM meta.permission_role_import_export WHERE id = 'prie_round26_demo'; \
      DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
      DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
@@ -560,6 +561,12 @@ COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -
    ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.automation_canvas_revision;" 2>&1 | tail -1)
 [[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[automation_canvas_revision]="$COUNT" || true
 
+# 14c. permission_role_import_export (Round-26 seed for permission_import_export capability flip)
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "INSERT INTO meta.permission_role_import_export (id, role_id, table_id, can_import, can_export) \
+   VALUES ('prie_round26_demo', 'pr_round13_demo', 'tbl_demo', true, true) \
+   ON CONFLICT DO NOTHING;" >/dev/null 2>&1 || true
+
 # 14a. automation (parent row required by automation_secret FK)
 COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
   "INSERT INTO meta.automation (id, base_id, name, enabled, created_by, created_time) \
@@ -665,6 +672,29 @@ print(str(c.get('enabled', False)).lower())
   fi
 done
 log "[OK]   round-6 bulk seed-flip: $SEED_FLIPPED/$SEED_TOTAL capabilities flipped to enabled"
+
+# ----- Section 2.11: post-seed self_hosted parity (Round-26) -----
+# After all data-driven capability gates have flipped (dashboard + permission_import_export),
+# self_hosted parity should reach 45/46 (only api_rate_limit opt-out remains).
+log "=== Section 2.11: post-seed self_hosted parity = 45/46 (Round-26) ==="
+POST_SEED_BODY="$(fetch_readiness)"
+POST_PARITY=$(echo "$POST_SEED_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')
+assert_ok "$([[ "$POST_PARITY" == "45/46" ]] && echo 0 || echo 1)" \
+  "post-seed self_hosted parity = 45/46 (only api_rate_limit opt-out remains) (got: $POST_PARITY)"
+
+# Verify permission_import_export capability flips to enabled with the seed
+PIE_CAP=$(echo "$POST_SEED_BODY" | python3 -c "
+import json, sys
+cap = json.load(sys.stdin)['capabilities'].get('permission_import_export', {})
+print('enabled=' + str(cap.get('enabled', False)).lower() + ' rules=' + str(cap.get('rules', 0)))
+")
+case "$PIE_CAP" in
+  enabled=true*rules=[1-9]*)
+    log "[OK]   permission_import_export enabled with rule row (Round-26 seed) ($PIE_CAP)" ;;
+  *)
+    log "[FAIL] permission_import_export should be enabled with rules>=1, got: $PIE_CAP"
+    exit 1 ;;
+esac
 
 # Cleanup all round-6 demo rows
 PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \

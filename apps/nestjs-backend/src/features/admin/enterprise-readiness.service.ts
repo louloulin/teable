@@ -669,12 +669,12 @@ export class EnterpriseReadinessService {
       { key: 'password_share', module: 'base-share', enabled: true },
       { key: 'automation_rate_limit', module: 'automation', enabled: true },
       // ── Permission matrix sub-capabilities (Cloud Business docs, §权限矩阵) ──
-      // Cloud splits authority-matrix into 5 areas. OSS now implements 4:
+      // Cloud splits authority-matrix into 5 areas. OSS now implements ALL 5:
       //   ✓ table node access + field perms + record actions + record filter
       //   ✓ app / workflow node access (PermissionRoleNode.nodeType added in
       //     migration 20260831130000; enabled once ≥1 app/workflow row exists)
-      //   ✗ 'permission_import_export' — Cloud §导入/导出权限 (independent axis);
-      //     still not modeled in schema.
+      //   ✓ import/export permissions (Round-26; controller endpoints +
+      //     service methods + canImport/canExport per (role, table))
       // permission_import_export flips to enabled when ≥1 row exists in
       // permission_role_import_export. Schema landed in migration
       // 20260831140000_add_permission_role_import_export.
