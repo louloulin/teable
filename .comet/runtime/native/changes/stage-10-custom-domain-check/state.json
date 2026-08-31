@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-10-custom-domain-check",
+  "basedOnStateVersion": 25,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/stage-10-custom-domain-check",
+    "worktreeRoot": "/Users/louloulin/appx/stage-10-custom-domain-check",
+    "branch": "comet/stage-10-custom-domain-check"
+  },
+  "execution": null,
+  "checks": []
+}
