@@ -9,6 +9,7 @@ import type { ICacheConfig } from './configs/cache.config';
 import { ConfigModule } from './configs/config.module';
 import { AccessTokenModule } from './features/access-token/access-token.module';
 import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
+import { EnterpriseReadinessModule } from './features/admin/enterprise-readiness.module';
 import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orchestrator.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
@@ -151,6 +152,7 @@ export const appModules = {
     NotionModule,
     AccessTokenModule,
     AdminOpenApiModule,
+    EnterpriseReadinessModule,
     InstanceSkillModule,
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
