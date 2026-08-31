@@ -56,10 +56,10 @@ export class LocalAuthService {
   private async comparePassword(
     password: string,
     hashPassword: string | null,
-    salt: string | null
+    _salt: string | null
   ) {
-    const _hashPassword = await bcrypt.hash(password || '', salt || '');
-    return _hashPassword === hashPassword;
+    if (!hashPassword) return false;
+    return bcrypt.compare(password || '', hashPassword);
   }
 
   private async getUserByIdOrThrow(userId: string) {
