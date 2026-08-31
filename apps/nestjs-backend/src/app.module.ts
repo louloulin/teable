@@ -17,6 +17,7 @@ import { AiModule } from './features/ai/ai.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
+import { BaserowImportModule } from './features/baserow-import/baserow-import.module';
 import { AnnouncementsModule } from './features/announcements/announcements.module';
 import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
@@ -157,6 +158,7 @@ export const appModules = {
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
+    BaserowImportModule, // Round-16: minimal baserow driver
     ExportOpenApiModule,
     PinModule,
     SettingAdminOpenApiModule,

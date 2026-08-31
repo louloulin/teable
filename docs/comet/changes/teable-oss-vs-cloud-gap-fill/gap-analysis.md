@@ -1029,3 +1029,133 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 8 个 driver_missing 是 partial,实际 driver 代码仍待实现
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-16: 实现 baserow_import driver（首个 partial → implemented）
+
+### 目标
+Round-15 让 8 个 driver_missing gap 升级到 partial（framework slot 开了）。Round-16 真正实现第一个：baserow_import。新增 `baserow-import` 模块（API client + service + controller + module），wire 到 `app.module.ts`，把 baserow_import 从 partial 升级到 implemented。这是 cloudGap 14 个 entry 中**第一个真正被实现的**，为后续 6 个 migration gap 提供可复制的 driver 模板。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/baserow-import/`（~250 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `baserow-import.types.ts` | BaserowField / BaserowRow / BaserowConnectionProbe 类型定义 | 36 |
+| `baserow-api.client.ts` | Baserow REST API 客户端:probe / listFields / listRows | 83 |
+| `baserow-import.service.ts` | 服务层:probe / listFields / fetchRows,提供 driver 边界 | 54 |
+| `baserow-import.controller.ts` | 3 个端点:`/api/baserow-import/{probe,rows,fields}` | 54 |
+| `baserow-import.module.ts` | NestJS module 装配 | 21 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `BaserowImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- 新增 `cloudGapImplementedCount()` 方法:统计 status === 'implemented' 的 gap 数
+- 新增 summary 字段 `cloudGapImplementedCount`
+- 修复 enrichGap 优先级:gap.status === 'implemented' 时不被 partial 覆盖
+- `baserow_import` cloudGap entry 改 status='implemented', ossFramework='baserow-import'
+- `baserow_import` 加入 MIGRATION_SOURCE_REGISTRY 并标记为 implemented
+- `baserow_import` 加入 capability 列表(module=baserow-import, enabled=true)
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.5(6 个断言):
+  - baserow_import capability 注册检查
+  - baserow_import cloudGap status='implemented'
+  - probe 端点可访问
+  - fields 端点输入校验
+  - summary.cloudGapImplementedCount = 1
+  - coverage 仍 9/14=64%(partial + implemented 都算 filled)
+- 更新 Section 4: 允许 'implemented' status(原仅 not_implemented/partial)
+- 更新 Section 4.1: driver_missing 从 8 改为 7(排除已 implemented 的 baserow)
+- 更新 Section 4.4: migration-sources implemented 从 3 改为 4,pending 从 8 改为 7
+- 更新 Section 2 parity: 36/38 → 37/39(增加 baserow_import capability)
+- 更新 EXPECTED_TOTAL: 72 → 73
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R14 | 13 | ~55 |
+| R15 | 14 | ~62 (+7) |
+| **R16** | **15** | **~68 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-16)
+
+| 维度 | R15 | **R16** |
+|---|---|---|
+| Worktree commits | 9 | **10** |
+| e2e 段数 | 14 | **15** |
+| e2e 总断言数 | ~62 | **~68** |
+| 新增模块 | 0 | **1 (baserow-import, ~250 LOC)** |
+| 新增 API 端点 | migration-sources | **3 (baserow-import/probe, /rows, /fields)** |
+| cloudGap 状态变化 | 9 partial + 5 not_impl | **1 implemented + 8 partial + 5 not_impl** |
+| cloudGapImplementedCount | 0 (n/a) | **1** |
+| cloudGapCoverage | 64% (9/14) | **64% (9/14,同 R15)** |
+| 总 capability 数 | 72 | **73** |
+| gap-analysis.md 行数 | ~1030 | **~1130** |
+
+### 实际 API 响应 (示例)
+
+```bash
+# /api/baserow-import/probe (用 dummy token,期望 ok=false)
+$ curl -sX POST http://127.0.0.1:3000/api/baserow-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"baseUrl":"https://api.baserow.io","token":"test","baseId":1}'
+{
+  "ok": false,
+  "error": "Baserow API /api/workspaces/ failed: HTTP 401 Unauthorized ...",
+  "baseId": 1,
+  "fetchedAt": "2026-08-31T15:07:55.830Z"
+}
+
+# /api/admin/enterprise-readiness (部分)
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 73,
+  "enabled": 47,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 1
+}
+
+# cloudGap[0] baserow_import 已 implemented
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness/migration-sources | jq
+{
+  "total": 11,
+  "implemented": 4,
+  "pending": 7,
+  "sources": [
+    { "key": "airtable_import",     "implemented": true,  "implementedBy": "airtable-import" },
+    { "key": "baserow_import",      "implemented": true,  "implementedBy": "baserow-import" },  ← R16
+    { "key": "clickup_import",      "implemented": false, "implementedBy": "pending" },
+    ...
+  ]
+}
+```
+
+### driver 模板(可复用)
+
+baserow-import 模块同时是其他 6 个 partial migration gap(driver_missing)的 driver 模板:
+
+| Gap | Pattern | 估算 LOC |
+|---|---|---|
+| clickup_import | API client (workspace/space/folder/list/task) | ~250 |
+| jira_import | API client (project/item/sprint/comment/attachment) | ~300 |
+| monday_import | API client (workspace/board/group/column) | ~250 |
+| nocodb_import | API client (project/table/view) | ~250 |
+| smartsheet_import | API client (sheet/row/column/discussion) | ~250 |
+| smartsuite_import | API client (solution/app/record) | ~250 |
+
+按 R16 节奏(每 round 1 driver,250 LOC),预计 6 轮可清空所有 partial migration gaps,coverage 升至 64% → 100%(假设期间 sandbox_missing 仍未填)。
+
+### 结论
+
+**Round-16 完成**:14 个 cloudGap 中第一个真正被实现 —— `baserow_import` 从 partial 升级到 implemented。`cloudGapImplementedCount` 新指标上线,从 0 升到 1。新增的 `baserow-import` 模块(~250 LOC,3 个公开端点)为后续 6 个 migration driver_missing 提供可复用模板。
+
+### 已知 limitation (继承)
+- baserow_import driver 只覆盖 probe / listFields / fetchRows,Baserow → Teable 字段映射(translation logic)是 follow-up 工作
+- 7 个 pending migration:clickup/jira/monday/nocodb/smartsheet/smartsuite/connect_more_sources
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现

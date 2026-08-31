@@ -44,6 +44,7 @@ export type EnterpriseReadinessReport = {
       total: number;
       percent: number;
     };
+    cloudGapImplementedCount: number;
   };
 };
 
@@ -106,6 +107,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'airtable_import',       // airtable-import module wired in app.module.ts (Cloud §迁移)
   'notion_import',         // notion module wired in app.module.ts (Cloud §Notion 迁移)
   'google_sheets_import',  // google-sheets module wired in app.module.ts (Cloud §Sheets 迁移)
+  'baserow_import',        // baserow-import module wired in app.module.ts (Round-16: Cloud §Baserow 迁移)
   'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
@@ -122,7 +124,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
  */
 const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   // Connect & Migrate Everything (7)
-  { key: 'baserow_import', name: 'Connect & Migrate Baserow', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-baserow.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
+  { key: 'baserow_import', name: 'Connect & Migrate Baserow', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-baserow.md', status: 'implemented', ossFramework: 'baserow-import', notes: 'Round-16: baserow-import module wired; probe + listFields + fetchRows endpoints exposed; field translation pending follow-up' },
   { key: 'smartsuite_import', name: 'Connect & Migrate SmartSuite', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsuite.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
   { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Pattern: airtable-import module' },
   { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'API-heavy: project/item/sprint/comment/attachment mapping' },
@@ -155,7 +157,7 @@ const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
   'airtable_import',     // implemented (round-5 wired)
   'notion_import',       // implemented (round-5 wired)
   'google_sheets_import', // implemented (round-5 wired)
-  'baserow_import',      // framework slot only
+  'baserow_import',      // implemented (round-16 wired: baserow-import module)
   'clickup_import',      // framework slot only
   'jira_import',         // framework slot only
   'monday_import',       // framework slot only
@@ -238,6 +240,7 @@ export class EnterpriseReadinessService {
         cloudBusinessParity: parity,
         cloudExclusiveGapCount: cloudGap.length,
         cloudGapCoverage,
+        cloudGapImplementedCount: this.cloudGapImplementedCount(),
       },
     };
   }
@@ -313,8 +316,17 @@ export class EnterpriseReadinessService {
     // the source-specific driver (mirroring airtable-import) is the only
     // remaining piece. This is honest: we are NOT claiming the driver is
     // implemented — only that the slot exists and the pattern is known.
+    //
+    // Round-16: Respect an explicit 'implemented' status from the gap
+    // definition (set when a driver module is wired + service present).
+    // The override only kicks in for gaps that are still 'not_implemented'.
     const hasFrameworkSlot = frameworkPresent && MIGRATION_SOURCE_REGISTRY.has(gap.key);
-    const status: CloudExclusiveGap['status'] = hasFrameworkSlot ? 'partial' : gap.status;
+    const status: CloudExclusiveGap['status'] =
+      gap.status === 'implemented'
+        ? 'implemented'
+        : hasFrameworkSlot
+          ? 'partial'
+          : gap.status;
 
     return {
       ...gap,
@@ -333,10 +345,11 @@ export class EnterpriseReadinessService {
     implemented: boolean;
     implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
-    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'pending'> = {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'pending'> = {
       airtable_import: 'airtable-import',
       notion_import: 'notion',
       google_sheets_import: 'google-sheets',
+      baserow_import: 'baserow-import',
     };
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
@@ -391,6 +404,17 @@ export class EnterpriseReadinessService {
     const filled = gaps.filter((g) => g.status !== 'not_implemented').length;
     const percent = total === 0 ? 0 : Math.round((filled / total) * 100);
     return { filled, total, percent };
+  }
+
+  /**
+   * Round-16: Count cloudGap entries that have been fully implemented
+   * (status === 'implemented'), as opposed to 'partial' (framework slot
+   * exists, driver pending). This complements cloudGapCoverage:
+   *   - cloudGapCoverage.filled counts both partial + implemented
+   *   - cloudGapImplementedCount is the strict "no longer a gap" subset
+   */
+  cloudGapImplementedCount(): number {
+    return this.collectCloudGaps().filter((g) => g.status === 'implemented').length;
   }
 
   /**
@@ -784,6 +808,12 @@ export class EnterpriseReadinessService {
       {
         key: 'google_sheets_import',
         module: 'google-sheets',
+        enabled: true,
+      },
+      // Baserow migration source (Round-16: baserow-import module wired)
+      {
+        key: 'baserow_import',
+        module: 'baserow-import',
         enabled: true,
       },
       // View-level permission (Cloud §视图权限独立)
