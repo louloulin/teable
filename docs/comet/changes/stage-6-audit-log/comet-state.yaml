@@ -13,7 +13,7 @@ workspace:
   isolation: worktree
   change_branch: comet/stage-6-audit-log
   target_branch: comet/teable-oss-vs-cloud-gap-fill
-  finish: keep
+  finish: merge
 loop:
   stage: done
   goal_cycle: 2
