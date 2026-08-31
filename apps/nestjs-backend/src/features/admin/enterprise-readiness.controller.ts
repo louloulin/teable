@@ -109,4 +109,35 @@ export class EnterpriseReadinessController {
       byReason,
     };
   }
+
+  /**
+   * Round-15: Migration source registry endpoint. Returns the list of
+   * external systems the integration-connector framework recognizes as
+   * migration sources, with their per-source implementation status.
+   *
+   * Auth: admin token (operators only). Use this to track which migration
+   * drivers are still pending vs already wired.
+   */
+  @Public()
+  @Get('migration-sources')
+  @HttpCode(200)
+  async migrationSources(
+    @Headers('x-admin-token') adminToken: string | undefined,
+  ): Promise<{
+    total: number;
+    implemented: number;
+    pending: number;
+    sources: Array<{ key: string; implemented: boolean; implementedBy: string }>;
+  }> {
+    if (!adminToken || adminToken !== process.env.TEABLE_ADMIN_TOKEN) {
+      throw new UnauthorizedException('admin token required');
+    }
+    const sources = this.readiness.migrationSourceRegistry();
+    return {
+      total: sources.length,
+      implemented: sources.filter((s) => s.implemented).length,
+      pending: sources.filter((s) => !s.implemented).length,
+      sources,
+    };
+  }
 }

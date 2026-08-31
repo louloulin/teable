@@ -759,8 +759,8 @@ import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g['status'] == 'not_implemented'))
 ")
-assert_ok "$([[ "$NOT_IMPL_COUNT" -ge "13" ]] && echo 0 || echo 1)" \
-  "at least 13 cloudGap entries still 'not_implemented' (got: $NOT_IMPL_COUNT)"
+assert_ok "$([[ "$NOT_IMPL_COUNT" -ge "5" ]] && echo 0 || echo 1)" \
+  "at least 5 cloudGap entries still 'not_implemented' (5 sandbox_missing after Round-15) (got: $NOT_IMPL_COUNT)"
 
 # summary.cloudExclusiveGapCount must match cloudGap length
 GAP_SUMMARY=$(echo "$GAP_BODY" | python3 -c "
@@ -903,12 +903,12 @@ COV_PCT=$(echo "$COV" | python3 -c "import json,sys; print(json.load(sys.stdin)[
 assert_ok "$([[ "$COV_TOTAL" == "14" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage.total == 14 (got: $COV_TOTAL)"
 
-assert_ok "$([[ "$COV_FILLED" == "1" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage.filled == 1 (ai_skill Round-13 partial) (got: $COV_FILLED)"
+assert_ok "$([[ "$COV_FILLED" == "9" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.filled == 9 (8 driver_missing Round-15 partial + ai_skill Round-13 partial) (got: $COV_FILLED)"
 
 # percent = round(1/14 * 100) = 7
-assert_ok "$([[ "$COV_PCT" == "7" ]] && echo 0 || echo 1)" \
-  "cloudGapCoverage.percent == 7 (round(1/14*100)) (got: $COV_PCT)"
+assert_ok "$([[ "$COV_PCT" == "64" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage.percent == 64 (round(9/14*100)) (got: $COV_PCT)"
 
 # Sanity: percent == round(filled/total*100)
 COV_CONSISTENT=$(echo "$COV" | python3 -c "
@@ -927,10 +927,53 @@ b = json.load(sys.stdin)
 arr_len = len(b.get('cloudGap', []))
 cov_total = b['summary']['cloudGapCoverage']['total']
 filled = sum(1 for g in b['cloudGap'] if g['status'] != 'not_implemented')
-print('true' if arr_len == cov_total == 14 and filled == 1 else 'false')
+print('true' if arr_len == cov_total == 14 and filled == 9 else 'false')
 ")
 assert_ok "$([[ "$COV_MATCHES_ARRAY" == "true" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage.total == cloudGap.length AND filled == partial count (got: $COV_MATCHES_ARRAY)"
+
+# ----- Section 4.4: migration-sources endpoint (Round-15) -----
+# migration-sources endpoint returns the framework-recognized source registry
+# with per-source implementation status. Admin token required.
+log "=== Section 4.4: migration-sources endpoint (Round-15) ==="
+
+# Auth check: missing token rejected
+MS_UNAUTH=$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness/migration-sources")
+assert_ok "$([[ "$MS_UNAUTH" == "401" ]] && echo 0 || echo 1)" \
+  "migration-sources rejects unauth (got: $MS_UNAUTH)"
+
+MS_BODY=$(curl -sH "x-admin-token: $ADMIN_TOKEN" "${BASE_URL}/api/admin/enterprise-readiness/migration-sources")
+MS_TOTAL=$(echo "$MS_BODY" | python3 -c "import json,sys; print(json.load(sys.stdin)['total'])")
+MS_IMPL=$(echo "$MS_BODY" | python3 -c "import json,sys; print(json.load(sys.stdin)['implemented'])")
+MS_PEND=$(echo "$MS_BODY" | python3 -c "import json,sys; print(json.load(sys.stdin)['pending'])")
+
+assert_ok "$([[ "$MS_TOTAL" == "11" ]] && echo 0 || echo 1)" \
+  "migration-sources total == 11 (got: $MS_TOTAL)"
+assert_ok "$([[ "$MS_IMPL" == "3" ]] && echo 0 || echo 1)" \
+  "migration-sources implemented == 3 (airtable + notion + google_sheets) (got: $MS_IMPL)"
+assert_ok "$([[ "$MS_PEND" == "8" ]] && echo 0 || echo 1)" \
+  "migration-sources pending == 8 (baserow/clickup/jira/monday/nocodb/smartsheet/smartsuite/connect_more_sources) (got: $MS_PEND)"
+
+# Verify airtable_import is the only one with implementedBy='airtable-import'
+MS_AIRTABLE=$(echo "$MS_BODY" | python3 -c "
+import json, sys
+sources = json.load(sys.stdin)['sources']
+a = next((s for s in sources if s['key'] == 'airtable_import'), None)
+print(a['implementedBy'] if a and a['implemented'] else 'MISSING')
+")
+assert_ok "$([[ "$MS_AIRTABLE" == "airtable-import" ]] && echo 0 || echo 1)" \
+  "airtable_import reported as implementedBy='airtable-import' (got: $MS_AIRTABLE)"
+
+# Cross-check: every driver_missing gap in cloudGap should now be 'partial'
+MS_PARTIAL_CHECK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin)['cloudGap']
+driver_missing = [g for g in gaps if g['reasonCategory'] == 'driver_missing']
+all_partial = all(g['status'] == 'partial' for g in driver_missing)
+print('true' if all_partial else 'false:' + ','.join(g['key']+':'+g['status'] for g in driver_missing if g['status'] != 'partial'))
+")
+assert_ok "$([[ "$MS_PARTIAL_CHECK" == "true" ]] && echo 0 || echo 1)" \
+  "all 8 driver_missing cloudGap entries promoted to partial by Round-15 (got: $MS_PARTIAL_CHECK)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

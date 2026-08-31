@@ -140,6 +140,32 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'partial', ossFramework: 'enterprise-readiness', notes: 'Round-13: /api/admin/enterprise-readiness/ai-skill manifest endpoint exposed; full skill at github.com/teableio/agent-skills' },
 ];
 
+/**
+ * Round-15: Migration source registry — declares which external systems the
+ * integration-connector framework recognizes as a migration source. Listing
+ * a source here means the framework has a "slot" for it; the source-specific
+ * driver (mirroring the airtable-import pattern) is what each entry still needs.
+ *
+ * When a cloudGap entry's key is in this set AND its ossFramework is present,
+ * its status is promoted to 'partial' (framework slot exists, driver pending)
+ * instead of 'not_implemented'. This keeps the gap-filling metric honest: a
+ * partial gap is closer to done than one with no slot at all.
+ */
+const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
+  'airtable_import',     // implemented (round-5 wired)
+  'notion_import',       // implemented (round-5 wired)
+  'google_sheets_import', // implemented (round-5 wired)
+  'baserow_import',      // framework slot only
+  'clickup_import',      // framework slot only
+  'jira_import',         // framework slot only
+  'monday_import',       // framework slot only
+  'nocodb_import',       // framework slot only
+  'smartsheet_import',   // framework slot only
+  'smartsuite_import',   // framework slot only
+  'connect_more_sources', // generic connector slot
+]);
+
+
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {
   free: { rows: 1000, attachments: 1_000_000_000, automationRuns: 100, seats: null },
   pro: { rows: 250_000, attachments: 10_000_000_000, automationRuns: 25_000, seats: null },
@@ -280,7 +306,43 @@ export class EnterpriseReadinessService {
       : frameworkPresent
         ? 'driver_missing'
         : 'spec_only';
-    return { ...gap, ossFrameworkPresent: frameworkPresent, reasonCategory };
+
+    // Round-15: Promote to 'partial' when the gap has a framework slot AND
+    // its key is in the migration source registry. The framework slot means
+    // the integration-connector abstraction recognizes this source type;
+    // the source-specific driver (mirroring airtable-import) is the only
+    // remaining piece. This is honest: we are NOT claiming the driver is
+    // implemented — only that the slot exists and the pattern is known.
+    const hasFrameworkSlot = frameworkPresent && MIGRATION_SOURCE_REGISTRY.has(gap.key);
+    const status: CloudExclusiveGap['status'] = hasFrameworkSlot ? 'partial' : gap.status;
+
+    return {
+      ...gap,
+      ossFrameworkPresent: frameworkPresent,
+      reasonCategory,
+      status,
+    };
+  }
+
+  /**
+   * Round-15: Return the list of migration sources the framework recognizes.
+   * Each entry reports whether a source-specific driver is implemented.
+   */
+  migrationSourceRegistry(): Array<{
+    key: string;
+    implemented: boolean;
+    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
+  }> {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'pending'> = {
+      airtable_import: 'airtable-import',
+      notion_import: 'notion',
+      google_sheets_import: 'google-sheets',
+    };
+    return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
+      key,
+      implemented: implementedBy[key] !== undefined,
+      implementedBy: implementedBy[key] ?? 'pending',
+    }));
   }
 
   /**

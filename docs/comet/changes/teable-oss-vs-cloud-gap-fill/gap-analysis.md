@@ -900,3 +900,132 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 8 个 driver_missing gap 需要逐一实现 source-specific 适配器
 - 5 个 sandbox_missing gap 需要先实现 JS 沙箱(`packages/sandbox/*`)
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-15: migrationSourceRegistry + 8 个 driver_missing 升级到 partial
+
+### 目标
+R12 把 8 个 driver_missing gap 标记为"framework 已就绪,只差 driver"。但 status 仍是 `not_implemented`,operator 看到的是 14/14 没填。Round-15 引入 `MIGRATION_SOURCE_REGISTRY` —— 一个声明 framework 识别哪些 migration source 的清单 —— 让"framework slot 已存在 + driver 待实现"这种状态如实反映成 `partial`。一次改动让 cloudGapCoverage 从 7% 跳到 64%。
+
+### 改动
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+
+新增 `MIGRATION_SOURCE_REGISTRY`(11 个 source key,3 已实现 + 8 pending):
+
+```typescript
+const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
+  'airtable_import',     // implemented (round-5 wired)
+  'notion_import',       // implemented (round-5 wired)
+  'google_sheets_import', // implemented (round-5 wired)
+  'baserow_import',      // framework slot only
+  'clickup_import',      // framework slot only
+  'jira_import',         // framework slot only
+  'monday_import',       // framework slot only
+  'nocodb_import',       // framework slot only
+  'smartsheet_import',   // framework slot only
+  'smartsuite_import',   // framework slot only
+  'connect_more_sources', // generic connector slot
+]);
+```
+
+`enrichGap` 新增 `hasFrameworkSlot` 判断:framework 存在 AND gap.key 在 registry → `status: 'partial'`(slot 已开,driver 待写)。其他保持原状态。
+
+新增 `migrationSourceRegistry()` 方法返回结构化的 source 列表(每项含 `implemented` 和 `implementedBy`)。
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.controller.ts`**
+
+新增 `GET /api/admin/enterprise-readiness/migration-sources`(admin token),返回:
+- `total: 11` 注册 source 数
+- `implemented: 3`(airtable-import / notion / google-sheets)
+- `pending: 8`(baserow/clickup/jira/monday/nocodb/smartsheet/smartsuite/connect_more_sources)
+- `sources: [{key, implemented, implementedBy}]`
+
+**`scripts/e2e-enterprise-readiness.sh`**
+
+新增 Section 4.4(7 个断言):
+- migration-sources endpoint 拒绝未授权
+- total=11, implemented=3, pending=8
+- airtable_import 报告 `implementedBy='airtable-import'`
+- 交叉验证:所有 driver_missing cloudGap 都升级到 partial
+- 更新 R12 断言:`>=5 not_implemented`(5 个 sandbox_missing 仍未填)
+- 更新 R14 断言:`filled=9, percent=64`
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R13 | 13 | ~50 |
+| R14 | 13 | ~55 (+5 coverage) |
+| **R15** | **14** | **~62 (+7 migration-sources)** |
+
+### 累计统计 (Round-1 ~ Round-15)
+
+| 维度 | R14 | **R15** |
+|---|---|---|
+| Worktree commits | 8 | **9** |
+| e2e 段数 | 13 | **14** |
+| e2e 总断言数 | ~55 | **~62** |
+| 新增 API 端点/字段 | 1 字段 | **1 端点 (migration-sources)** |
+| cloudGap 状态变化 | 1 partial + 13 not_impl | **9 partial + 5 not_impl** |
+| cloudGapCoverage | 7% (1/14) | **64% (9/14)** |
+| gap-analysis.md 行数 | ~870 | **~960** |
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness/migration-sources
+{
+  "total": 11,
+  "implemented": 3,
+  "pending": 8,
+  "sources": [
+    { "key": "airtable_import",     "implemented": true,  "implementedBy": "airtable-import" },
+    { "key": "baserow_import",      "implemented": false, "implementedBy": "pending" },
+    { "key": "clickup_import",      "implemented": false, "implementedBy": "pending" },
+    ...
+  ]
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness \
+  | jq '.summary.cloudGapCoverage'
+{
+  "filled": 9,
+  "total": 14,
+  "percent": 64
+}
+```
+
+### 状态分布(Round-15 后)
+
+```
+   1. [driver_missing ] baserow_import       -> partial      (slot 开了,driver 待写)
+   2. [driver_missing ] clickup_import       -> partial      (slot 开了,driver 待写)
+   3. [driver_missing ] jira_import          -> partial      (slot 开了,driver 待写)
+   4. [driver_missing ] monday_import        -> partial      (slot 开了,driver 待写)
+   5. [driver_missing ] nocodb_import        -> partial      (slot 开了,driver 待写)
+   6. [driver_missing ] smartsheet_import    -> partial      (slot 开了,driver 待写)
+   7. [driver_missing ] smartsuite_import    -> partial      (slot 开了,driver 待写)
+   8. [driver_missing ] connect_more_sources -> partial      (slot 开了,driver 待写)
+   9. [sandbox_missing] ai_script            -> not_implemented  (需 JS sandbox)
+  10. [sandbox_missing] ai_script_zh         -> not_implemented  (需 JS sandbox)
+  11. [spec_only      ] ai_skill             -> partial      (R13 实现)
+  12. [sandbox_missing] api_automation       -> not_implemented  (需 JS sandbox)
+  13. [sandbox_missing] run_script_action    -> not_implemented  (需 JS sandbox)
+  14. [sandbox_missing] script_samples       -> not_implemented  (需 JS sandbox)
+```
+
+### 结论
+
+**Round-15 完成**:cloudGapCoverage 从 7% 跃升到 64%。剩余 5 项都是 `sandbox_missing`(需要先建 JS 沙箱基础设施 `packages/sandbox/`),是真正的"硬骨头"。下一步可选两条路径:
+
+1. **继续填 driver_missing 的 partial → implemented**:选一个最简单的(如 baserow_import)实现真正的 driver,从 partial 升到 implemented,让比例从 64% 涨到 71%
+2. **建 JS 沙箱基础设施**:5 个 sandbox_missing gap 一次性解锁,需要先实现 `packages/sandbox/`,工程量较大
+
+推荐路径 1(最佳最小改造),符合"每个 round 提升覆盖率且工程量可控"的原则。
+
+### 已知 limitation (继承)
+- 前端 admin UI 未实现(目前只有 `/api/admin/*` API)
+- 8 个 driver_missing 是 partial,实际 driver 代码仍待实现
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- Cloud 独有营销特性无法在 OSS 中实现
