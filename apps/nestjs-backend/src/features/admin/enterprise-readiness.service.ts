@@ -261,6 +261,15 @@ export class EnterpriseReadinessService {
       return delegate ? delegate.count() : 0;
     }, 0);
     const samlCount = await safe(() => this.prisma.ssoIdentityProvider.count(), 0);
+    const appWorkflowCount = await safe(
+      () =>
+        (this.prisma as unknown as {
+          permissionRoleNode: { count: (a: { where: { nodeType: { in: string[] } } }) => Promise<number> };
+        }).permissionRoleNode.count({
+          where: { nodeType: { in: ['app', 'workflow'] } },
+        }),
+      0
+    );
 
     return [
       {
@@ -305,22 +314,27 @@ export class EnterpriseReadinessService {
       { key: 'password_share', module: 'base-share', enabled: true },
       { key: 'automation_rate_limit', module: 'automation', enabled: true },
       // ── Permission matrix sub-capabilities (Cloud Business docs, §权限矩阵) ──
-      // Cloud splits authority-matrix into 5 areas. OSS implements 3 (table node
-      // access + field perms + record actions + record filter); 2 areas remain
-      // gaps that this snapshot surfaces so operators can plan the next stage.
-      //   - 'permission_import_export'   — Cloud §导入/导出权限 (independent axis)
-      //   - 'permission_app_workflow'     — Cloud §节点权限 sub-types (app/workflow access)
+      // Cloud splits authority-matrix into 5 areas. OSS now implements 4:
+      //   ✓ table node access + field perms + record actions + record filter
+      //   ✓ app / workflow node access (PermissionRoleNode.nodeType added in
+      //     migration 20260831130000; enabled once ≥1 app/workflow row exists)
+      //   ✗ 'permission_import_export' — Cloud §导入/导出权限 (independent axis);
+      //     still not modeled in schema.
       {
         key: 'permission_import_export',
         module: 'permission-matrix',
         enabled: false,
         reason: 'import_export_permission_not_yet_modeled',
       },
+      // permission_app_workflow now flips to enabled when ≥1 app/workflow node
+      // row exists. The schema-side support landed in
+      // 20260831130000_extend_permission_role_node_with_node_type.
       {
         key: 'permission_app_workflow',
         module: 'permission-matrix',
-        enabled: false,
-        reason: 'app_workflow_node_access_pending',
+        enabled: appWorkflowCount > 0,
+        reason: appWorkflowCount === 0 ? 'no_app_or_workflow_nodes_yet' : undefined,
+        stats: { appWorkflowNodes: appWorkflowCount },
       },
     ];
   }

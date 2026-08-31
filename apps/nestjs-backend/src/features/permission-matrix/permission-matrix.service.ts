@@ -103,7 +103,11 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     return updated;
   }
 
-  // ─── node (table) settings ──────────────────────────────────────────────
+  // ─── node access (table / app / workflow) ──────────────────────────────
+  // Cloud Business §权限矩阵 splits "节点权限" into three sub-types. For
+  // backwards compat the legacy setTableAccess() writes to the (table, tableId)
+  // shape; setNodeAccess() writes to the (nodeType, nodeId) shape so app and
+  // workflow permissions can be modeled on the same table.
 
   async setTableAccess(
     baseId: string,
@@ -111,10 +115,31 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     tableId: string,
     access: 'none' | 'editable'
   ) {
+    return this.setNodeAccess(baseId, roleId, 'table', tableId, access);
+  }
+
+  async setNodeAccess(
+    baseId: string,
+    roleId: string,
+    nodeType: 'table' | 'app' | 'workflow',
+    nodeId: string,
+    access: 'none' | 'editable'
+  ) {
     await this.assertRole(baseId, roleId);
+    // New unique key is (roleId, nodeType, nodeId) — see migration
+    // 20260831130000_extend_permission_role_node_with_node_type.
     await this.prisma.permissionRoleNode.upsert({
-      where: { roleId_tableId: { roleId, tableId } },
-      create: { id: `prn_${randomBytes(10).toString('hex')}`, roleId, tableId, access },
+      where: {
+        roleId_nodeType_nodeId: { roleId, nodeType, nodeId },
+      } as unknown as { roleId_tableId: { roleId: string; tableId: string } },
+      create: {
+        id: `prn_${randomBytes(10).toString('hex')}`,
+        roleId,
+        nodeType,
+        nodeId,
+        tableId: nodeType === 'table' ? nodeId : `${nodeType}_${nodeId}`,
+        access,
+      },
       update: { access },
     });
     this.invalidate(baseId);

@@ -170,7 +170,7 @@ log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 # applied, the meta.setting row inserted, and the 2 documented permission-matrix
 # gaps surfaced as disabled probes, exactly 33 of 35 capabilities should be
 # enabled on a default self-hosted instance.
-EXPECTED_ENABLED=33
+EXPECTED_ENABLED=34
 assert_ok "$([[ "$ENABLED_CAPS" == "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
   "$EXPECTED_ENABLED/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; the 2 permission-matrix sub-capabilities below are documented gaps)"
 
@@ -196,13 +196,30 @@ body = json.load(sys.stdin)
 cap = body['capabilities'].get('$cap', {})
 print('enabled=' + str(cap.get('enabled', None)).lower() + ' reason=' + str(cap.get('reason', '')))
 ")
-  if [[ "$ENABLED_REASON" != "enabled=false reason=import_export_permission_not_yet_modeled" ]] && \
-     [[ "$ENABLED_REASON" != "enabled=false reason=app_workflow_node_access_pending" ]]; then
-    log "[FAIL] capability '$cap' not surfaced as documented gap (got: $ENABLED_REASON)"
-    exit 1
+  if [[ "$cap" == "permission_import_export" ]]; then
+    if [[ "$ENABLED_REASON" != "enabled=false reason=import_export_permission_not_yet_modeled" ]]; then
+      log "[FAIL] $cap not surfaced as documented gap (got: $ENABLED_REASON)"
+      exit 1
+    fi
+    log "[OK]   $cap is a documented gap ($ENABLED_REASON)"
   fi
-  log "[OK]   capability '$cap' is a documented gap ($ENABLED_REASON)"
 done
+
+# permission_app_workflow should now be ENABLED with appWorkflowNodes >= 1 (after
+# the schema change that adds nodeType + the seed rows in meta).
+APPWF=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+cap = body['capabilities'].get('permission_app_workflow', {})
+print('enabled=' + str(cap.get('enabled', False)).lower() + ' appWorkflowNodes=' + str(cap.get('appWorkflowNodes', 0)))
+")
+case "$APPWF" in
+  enabled=true*appWorkflowNodes=[1-9]*)
+    log "[OK]   permission_app_workflow is enabled ($APPWF)" ;;
+  *)
+    log "[FAIL] permission_app_workflow should be enabled with appWorkflowNodes >= 1, got: $APPWF"
+    exit 1 ;;
+esac
 
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="

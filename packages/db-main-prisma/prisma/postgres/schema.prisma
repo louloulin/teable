@@ -1374,6 +1374,15 @@ enum PermissionNodeAccess {
   editable
 }
 
+enum PermissionNodeType {
+  // A table inside a base. Default for backwards compat.
+  table
+  // A Teable application (app builder artefact).
+  app
+  // An automation / workflow node.
+  workflow
+}
+
 enum PermissionFieldAccess {
   // Field hidden from this role (returns null + UI grays it out).
   hidden
@@ -1439,14 +1448,19 @@ model PermissionRoleRecordAction {
 model PermissionRoleNode {
   id        String               @id @default(cuid())
   roleId    String               @map("role_id")
-  tableId   String               @map("table_id")
+  // Cloud Business §权限矩阵 splits "节点权限" into table / app / workflow sub-types.
+  // We extend PermissionRoleNode with `nodeType` + `nodeId` so the same table
+  // can carry app/workflow access. Existing rows default to (table, tableId).
+  nodeType  PermissionNodeType  @default(table) @map("node_type")
+  nodeId    String               @map("node_id")
   access    PermissionNodeAccess
   createdAt DateTime             @default(now()) @map("created_at")
   updatedAt DateTime             @updatedAt @map("updated_at")
 
   role PermissionRole @relation("PermissionRoleNodeToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@unique([roleId, tableId])
+  @@unique([roleId, nodeType, nodeId])
+  @@index([roleId, nodeType])
   @@map("permission_role_node")
 }
 
