@@ -1,0 +1,44 @@
+- generic [ref=f21e2]:
+  - main [ref=f21e4]:
+    - generic [ref=f21e5]:
+      - generic [ref=f21e7]:
+        - generic [ref=f21e8]:
+          - paragraph [ref=f21e15]: Teable
+          - button [ref=f21e17] [cursor=pointer]
+        - generic [ref=f21e20]:
+          - list [ref=f21e22]:
+            - listitem [ref=f21e23]:
+              - link [ref=f21e24] [cursor=pointer]:
+                - /url: /space
+                - paragraph [ref=f21e28]: 所有空间
+            - listitem [ref=f21e29]:
+              - link [ref=f21e30] [cursor=pointer]:
+                - /url: /space/shared-base
+                - paragraph [ref=f21e34]: 分享给我的
+            - listitem [ref=f21e35]:
+              - link [ref=f21e36] [cursor=pointer]:
+                - /url: /admin/setting
+                - paragraph [ref=f21e39]: 系统管理
+            - listitem [ref=f21e40]:
+              - link [ref=f21e41] [cursor=pointer]:
+                - /url: /space/trash
+                - paragraph [ref=f21e44]: 回收站
+          - generic [ref=f21e46]:
+            - button [ref=f21e48] [cursor=pointer]
+            - generic [ref=f21e51]:
+              - list
+        - generic [ref=f21e53]:
+          - button "a admin" [ref=f21e54] [cursor=pointer]:
+            - generic [ref=f21e55]: a
+            - paragraph [ref=f21e57]: admin
+          - button [ref=f21e58] [cursor=pointer]
+      - generic [ref=f21e61]:
+        - heading "所有空间" [level=1] [ref=f21e63]
+        - generic [ref=f21e66]:
+          - heading "Hi admin！" [level=3] [ref=f21e67]
+          - paragraph [ref=f21e68]: 创建您的第一个空间，开始您的数据协作之旅
+          - button "创建空间" [ref=f21e69] [cursor=pointer]
+          - img "no spaces" [ref=f21e71]
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"

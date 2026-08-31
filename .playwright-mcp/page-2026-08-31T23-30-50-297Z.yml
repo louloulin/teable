@@ -1,0 +1,31 @@
+- generic [active] [ref=f23e1]:
+  - blockquote [ref=f23e2]:
+    - heading [level=2] [ref=f23e3]: Documentation Index
+    - paragraph [ref=f23e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f23e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f23e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f23e7]:
+    - link "Skip to main content" [ref=f23e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f23e10]:
+      - banner [ref=f23e11]:
+        - generic [ref=f23e17]:
+          - link "Teable home page light logo" [ref=f23e19] [cursor=pointer]:
+            - /url: https://teable.ai
+            - generic [ref=f23e20]: Teable home page
+            - img "light logo" [ref=f23e21]
+          - button "Open search" [ref=f23e23] [cursor=pointer]:
+            - generic [ref=f23e24]: Search...
+            - generic [ref=f23e29]: ⌘K
+          - generic [ref=f23e30]:
+            - navigation "Main":
+              - list
+            - button "Change theme preference" [ref=f23e32] [cursor=pointer]
+      - main [ref=f23e38]:
+        - generic [ref=f23e43]:
+          - generic [ref=f23e44]: "404"
+          - heading "Page Not Found" [level=1] [ref=f23e45]
+  - alert [ref=f23e51]

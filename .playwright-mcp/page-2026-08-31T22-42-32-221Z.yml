@@ -1,0 +1,896 @@
+- generic [active] [ref=f3e1]:
+  - blockquote [ref=f3e2]:
+    - heading [level=2] [ref=f3e3]: Documentation Index
+    - paragraph [ref=f3e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f3e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f3e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f3e7]:
+    - link "跳转到主要内容" [ref=f3e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f3e10]:
+      - banner [ref=f3e11]:
+        - generic [ref=f3e13]:
+          - paragraph [ref=f3e15]:
+            - text: 🚀 Teable 现已支持阿拉伯语、意大利语和西班牙语！查看
+            - link "更新日志" [ref=f3e16] [cursor=pointer]:
+              - /url: /zh/changelog#2026-08-25
+            - text: 了解详情。
+          - button "关闭横幅" [ref=f3e17] [cursor=pointer]
+        - generic [ref=f3e23]:
+          - generic [ref=f3e26]:
+            - generic [ref=f3e27]:
+              - link "Teable home page light logo" [ref=f3e28] [cursor=pointer]:
+                - /url: https://teable.ai
+                - generic [ref=f3e29]: Teable home page
+                - img "light logo" [ref=f3e30]
+              - button "简体中文" [ref=f3e31] [cursor=pointer]
+            - button "打开搜索" [ref=f3e36] [cursor=pointer]:
+              - generic [ref=f3e37]: 搜索...
+              - generic [ref=f3e42]: ⌘K
+            - generic [ref=f3e43]:
+              - navigation "Main" [ref=f3e44]:
+                - list [ref=f3e45]:
+                  - listitem [ref=f3e46]:
+                    - link "支持" [ref=f3e47] [cursor=pointer]:
+                      - /url: https://community.teable.ai/
+              - button "Change theme preference" [ref=f3e51] [cursor=pointer]
+          - generic [ref=f3e57]:
+            - link "功能文档" [ref=f3e58] [cursor=pointer]:
+              - /url: /zh/basic/ai/overview
+            - link "私有化部署" [ref=f3e60] [cursor=pointer]:
+              - /url: /zh/deploy/activate
+            - link "API 文档" [ref=f3e62] [cursor=pointer]:
+              - /url: /zh/api-doc/overview
+            - link "安全" [ref=f3e64] [cursor=pointer]:
+              - /url: /zh/basic/security
+            - link "更新日志" [ref=f3e66] [cursor=pointer]:
+              - /url: /zh/changelog
+      - generic [ref=f3e68]:
+        - navigation "Pages" [ref=f3e69]:
+          - generic [ref=f3e72]:
+            - generic [ref=f3e73]:
+              - heading "AI" [level=3] [ref=f3e75]
+              - list [ref=f3e76]:
+                - listitem [ref=f3e77]:
+                  - link "概览" [ref=f3e78] [cursor=pointer]:
+                    - /url: /zh/basic/ai/overview
+                - listitem [ref=f3e82]:
+                  - link "AI 对话" [ref=f3e83] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                - listitem [ref=f3e87]:
+                  - button "应用构建器" [expanded] [ref=f3e88] [cursor=pointer]
+                  - list [ref=f3e93]:
+                    - listitem [ref=f3e94]:
+                      - link "应用构建器" [ref=f3e95] [cursor=pointer]:
+                        - /url: /zh/basic/ai/app-builder
+                    - listitem [ref=f3e99]:
+                      - link "应用构建器最佳实践" [ref=f3e100] [cursor=pointer]:
+                        - /url: /zh/basic/ai/app-builder-practical-guide
+                - listitem [ref=f3e104]:
+                  - link "AI 字段" [ref=f3e105] [cursor=pointer]:
+                    - /url: /zh/basic/field/ai/ai-field
+                - listitem [ref=f3e109]:
+                  - link "自定义 AI 模型" [ref=f3e110] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                - listitem [ref=f3e114]:
+                  - link "将 AI Agent 连接到 Teable" [ref=f3e115] [cursor=pointer]:
+                    - /url: /zh/basic/ai/teable-skill
+                - listitem [ref=f3e119]:
+                  - button "Connect & Migrate Everything" [ref=f3e120] [cursor=pointer]
+            - generic [ref=f3e125]:
+              - heading "空间" [level=3] [ref=f3e127]
+              - list [ref=f3e128]:
+                - listitem [ref=f3e129]:
+                  - link "概览" [ref=f3e130] [cursor=pointer]:
+                    - /url: /zh/basic/space
+                - listitem [ref=f3e134]:
+                  - link "空间邀请" [ref=f3e135] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-invite
+                - listitem [ref=f3e139]:
+                  - link "数据库邀请" [ref=f3e140] [cursor=pointer]:
+                    - /url: /zh/basic/space/base-invite
+                - listitem [ref=f3e144]:
+                  - link "协作权限明细" [ref=f3e145] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                - listitem [ref=f3e149]:
+                  - link "账单与订阅" [ref=f3e150] [cursor=pointer]:
+                    - /url: /zh/basic/space/billing
+                - listitem [ref=f3e154]:
+                  - link "IM 集成" [ref=f3e155] [cursor=pointer]:
+                    - /url: /zh/basic/space/im-integration
+            - generic [ref=f3e159]:
+              - heading "自动化" [level=3] [ref=f3e161]
+              - list [ref=f3e162]:
+                - listitem [ref=f3e163]:
+                  - link "概览" [ref=f3e164] [cursor=pointer]:
+                    - /url: /zh/basic/automation
+                - listitem [ref=f3e168]:
+                  - button "触发器" [ref=f3e169] [cursor=pointer]
+                - listitem [ref=f3e174]:
+                  - button "操作" [ref=f3e175] [cursor=pointer]
+                - listitem [ref=f3e180]:
+                  - button "示例" [ref=f3e181] [cursor=pointer]
+            - generic [ref=f3e186]:
+              - heading "数据库" [level=3] [ref=f3e188]
+              - list [ref=f3e189]:
+                - listitem [ref=f3e190]:
+                  - link "概览" [ref=f3e191] [cursor=pointer]:
+                    - /url: /zh/basic/base
+                - listitem [ref=f3e195]:
+                  - button "表格" [ref=f3e196] [cursor=pointer]
+                - listitem [ref=f3e201]:
+                  - button "字段" [ref=f3e202] [cursor=pointer]
+                - listitem [ref=f3e207]:
+                  - button "记录" [ref=f3e208] [cursor=pointer]
+                - listitem [ref=f3e213]:
+                  - button "视图" [ref=f3e214] [cursor=pointer]
+            - generic [ref=f3e219]:
+              - heading "权限矩阵" [level=3] [ref=f3e221]
+              - list [ref=f3e222]:
+                - listitem [ref=f3e223]:
+                  - button "权限矩阵" [ref=f3e224] [cursor=pointer]
+            - generic [ref=f3e229]:
+              - heading "SSO" [level=3] [ref=f3e231]
+              - list [ref=f3e232]:
+                - listitem [ref=f3e233]:
+                  - link "单点登录 (SSO)" [ref=f3e234] [cursor=pointer]:
+                    - /url: /zh/basic/sso/overview
+                - listitem [ref=f3e238]:
+                  - link "Azure Entra ID SSO" [ref=f3e239] [cursor=pointer]:
+                    - /url: /zh/basic/sso/azure-entra-id
+                - listitem [ref=f3e243]:
+                  - link "Okta SSO" [ref=f3e244] [cursor=pointer]:
+                    - /url: /zh/basic/sso/okta
+                - listitem [ref=f3e248]:
+                  - link "Google Workspace SSO" [ref=f3e249] [cursor=pointer]:
+                    - /url: /zh/basic/sso/google-workspace
+                - listitem [ref=f3e253]:
+                  - link "Auth0 SSO" [ref=f3e254] [cursor=pointer]:
+                    - /url: /zh/basic/sso/auth0
+                - listitem [ref=f3e258]:
+                  - link "OneLogin SSO" [ref=f3e259] [cursor=pointer]:
+                    - /url: /zh/basic/sso/onelogin
+                - listitem [ref=f3e263]:
+                  - link "Authentik SSO" [ref=f3e264] [cursor=pointer]:
+                    - /url: /zh/basic/sso/authentik
+                - listitem [ref=f3e268]:
+                  - link "飞书" [ref=f3e269] [cursor=pointer]:
+                    - /url: /zh/basic/sso/feishu
+            - generic [ref=f3e273]:
+              - heading "横向对比" [level=3] [ref=f3e275]
+              - list [ref=f3e276]:
+                - listitem [ref=f3e277]:
+                  - link "Teable VS Excel" [ref=f3e278] [cursor=pointer]:
+                    - /url: /zh/compare/teable-vs-excel
+        - main [ref=f3e282]:
+          - generic [ref=f3e284]:
+            - generic [ref=f3e285]:
+              - heading "应用构建器" [level=1] [ref=f3e288]
+              - paragraph [ref=f3e290]: 利用 AI 将您的数据转化为定制化的网络应用。
+            - generic [ref=f3e291]:
+              - note "注意" [ref=f3e292]:
+                - generic [ref=f3e296]: 云端版本所有方案可用；私有部署版本需要商业版及以上方案。
+              - generic [ref=f3e297]: Teable 应用构建器 (App Builder) 允许您在不编写代码的情况下，将数据库转化为功能齐全、定制化的 Web 应用程序。结合数据结构的力量和 AI 驱动的设计，您可以在几分钟内发布内部工具、客户门户和数据仪表板。
+              - heading "导航到标题 概览" [level=2] [ref=f3e298]:
+                - link "导航到标题" [ref=f3e299] [cursor=pointer]:
+                  - /url: "#概览"
+                - generic [ref=f3e304] [cursor=pointer]: 概览
+              - generic [ref=f3e305]: 应用构建器（App Builder）遵循 “Prompt to App”（提示词即应用）的工作流。您描述想要的内容，AI 为您构建应用结构、页面和逻辑。然后，您可以使用可视化编辑器或代码微调每一个细节。
+              - note "注意" [ref=f3e306]:
+                - generic [ref=f3e311]:
+                  - text: 应用构建器用于创建自定义界面和独立应用。如果需要在数据库内部进行交互式数据分析和临时提问，请使用
+                  - link "AI 对话" [ref=f3e312] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                  - text: 。
+              - heading "导航到标题 创建应用" [level=2] [ref=f3e313]:
+                - link "导航到标题" [ref=f3e314] [cursor=pointer]:
+                  - /url: "#创建应用"
+                - generic [ref=f3e319] [cursor=pointer]: 创建应用
+              - generic [ref=f3e320]: 主要有两种创建应用的方式：
+              - list [ref=f3e321]:
+                - listitem [ref=f3e322]:
+                  - strong [ref=f3e323]: 从数据库创建
+                  - text: ：在数据库中，点击 ”+ 创建” 选择 “新应用” 生成一个链接到当前数据的应用。
+                - listitem [ref=f3e324]:
+                  - strong [ref=f3e325]: 从对话创建
+                  - text: ：打开 AI Chat 并说 “为这个客户表创建一个 CRM 应用”。
+              - heading "导航到标题 应用编辑器界面" [level=2] [ref=f3e326]:
+                - link "导航到标题" [ref=f3e327] [cursor=pointer]:
+                  - /url: "#应用编辑器界面"
+                - generic [ref=f3e332] [cursor=pointer]: 应用编辑器界面
+              - generic [ref=f3e333]: 应用构建器为非技术用户和开发者提供了双重界面。
+              - generic [ref=f3e334]:
+                - img "应用构建器编辑器界面" [ref=f3e337]
+                - generic:
+                  - 'button "Expand image: 应用构建器编辑器界面"'
+              - heading "导航到标题 1. 对话界面 (AI 驱动)" [level=3] [ref=f3e338]:
+                - link "导航到标题" [ref=f3e339] [cursor=pointer]:
+                  - /url: "#1-对话界面-ai-驱动"
+                - generic [ref=f3e344] [cursor=pointer]: 1. 对话界面 (AI 驱动)
+              - generic [ref=f3e345]: 这是您的应用控制中心。
+              - list [ref=f3e346]:
+                - listitem [ref=f3e347]:
+                  - strong [ref=f3e348]: 自然语言编辑
+                  - text: ：描述您想做的更改，如
+                  - emphasis [ref=f3e349]: “把标题改成蓝色”
+                  - text: 或
+                  - emphasis [ref=f3e350]: “添加一个新记录提交表单”
+                  - text: 。
+                - listitem [ref=f3e351]:
+                  - strong [ref=f3e352]: 智能路由
+                  - text: ：AI 能够理解您指的是哪个组件或页面，并直接对其进行修改。
+                - listitem [ref=f3e353]:
+                  - strong [ref=f3e354]: 集成连接
+                  - text: ：当应用任务需要访问第三方账号时，应用构建器会在对话面板中显示类似
+                  - strong [ref=f3e355]: 连接 Slack
+                  - text: 的卡片。点击
+                  - strong [ref=f3e356]: 连接
+                  - text: 可通过 OAuth 授权；点击
+                  - strong [ref=f3e357]: 跳过
+                  - text: 会取消本次授权，AI 会在不使用该连接的情况下继续处理可完成的部分。
+                - listitem [ref=f3e358]:
+                  - strong [ref=f3e359]: 技能
+                  - text: ：打开
+                  - strong [ref=f3e360]: +
+                  - text: 菜单，选择
+                  - strong [ref=f3e361]: 技能
+                  - text: ，可以管理当前应用对话可用的技能。这里添加的 App 技能只在当前应用中可用；应用所属数据库和空间中共用的技能，在这里也能直接使用。在输入框中输入
+                  - code [ref=f3e362]: /
+                  - text: ，可以选择已启用的技能。
+                - listitem [ref=f3e363]:
+                  - strong [ref=f3e364]: 文件管理
+                  - text: ：打开
+                  - strong [ref=f3e365]: +
+                  - text: →
+                  - strong [ref=f3e366]: 更多
+                  - text: →
+                  - strong [ref=f3e367]: 文件管理
+                  - text: ，可以查看当前应用沙箱中的文件，用于预览支持的文件类型、下载生成文件，或删除不再需要的文件和文件夹。
+                - listitem [ref=f3e368]:
+                  - strong [ref=f3e369]: 清除对话历史
+                  - text: ：如果当前对话已经跑偏，可点击面板右下角的
+                  - strong [ref=f3e370]: 清除对话
+                  - text: ，重新开始一个新的会话。这样会丢失当前对话的历史上下文，但不会删除应用本身。首次使用会弹出确认，并可选择下次不再提示。
+              - heading "导航到标题 2. 实时预览面板" [level=3] [ref=f3e371]:
+                - link "导航到标题" [ref=f3e372] [cursor=pointer]:
+                  - /url: "#2-实时预览面板"
+                - generic [ref=f3e377] [cursor=pointer]: 2. 实时预览面板
+              - list [ref=f3e378]:
+                - listitem [ref=f3e379]:
+                  - strong [ref=f3e380]: 多设备模拟
+                  - text: ：使用顶部的切换器在
+                  - strong [ref=f3e381]: 桌面
+                  - text: 、
+                  - strong [ref=f3e382]: 平板
+                  - text: 和
+                  - strong [ref=f3e383]: 移动
+                  - text: 视图之间切换。
+                - listitem [ref=f3e384]:
+                  - strong [ref=f3e385]: 生成中预览
+                  - text: ：应用构建器生成应用时，你可以在预览面板看到界面逐步成形。
+                - listitem [ref=f3e386]:
+                  - strong [ref=f3e387]: 即时反馈
+                  - text: ：应用构建器完成修改后，预览会刷新为最新保存的版本。
+              - generic [ref=f3e388]: 可以使用预览底部的浮动工具栏进行定点修改：
+              - list [ref=f3e389]:
+                - listitem [ref=f3e390]:
+                  - text: 选择
+                  - strong [ref=f3e391]: 选择要修改的元素
+                  - text: ，再点击预览中的元素。应用构建器会把该元素添加到对话输入框中。补充修改要求并发送后，AI 会针对这个元素修改应用。
+                - listitem [ref=f3e392]:
+                  - text: 选择
+                  - strong [ref=f3e393]: 直接编辑文本
+                  - text: ，再点击预览中的静态文本并输入新内容。可以连续修改多处文本，再点击
+                  - strong [ref=f3e394]: 保存
+                  - text: ；点击
+                  - strong [ref=f3e395]: 放弃修改
+                  - text: 可以撤销尚未保存的文本修改。
+              - generic [ref=f3e396]:
+                - text: 从数据读取或由应用计算的动态文本不能直接编辑。请选中对应元素，再通过对话描述修改要求。AI 生成期间，元素选择和文本编辑会暂停。按
+                - code [ref=f3e397]: Esc
+                - text: 可以退出任一模式。
+              - heading "导航到标题 3. 开发者模式 (代码编辑器)" [level=3] [ref=f3e398]:
+                - link "导航到标题" [ref=f3e399] [cursor=pointer]:
+                  - /url: "#3-开发者模式-代码编辑器"
+                - generic [ref=f3e404] [cursor=pointer]: 3. 开发者模式 (代码编辑器)
+              - generic [ref=f3e405]: 为了实现无限的定制能力，我们提供了直接访问代码的权限。
+              - list [ref=f3e406]:
+                - listitem [ref=f3e407]:
+                  - strong [ref=f3e408]: Monaco Editor
+                  - text: ：浏览器中类似 VS Code 的编码体验。
+                - listitem [ref=f3e409]:
+                  - strong [ref=f3e410]: React 组件
+                  - text: ：直接编辑底层 React 代码、Tailwind CSS 类和逻辑。
+                - listitem [ref=f3e411]:
+                  - strong [ref=f3e412]: 文件树
+                  - text: ：完整浏览项目文件结构。
+              - heading "导航到标题 下载代码" [level=4] [ref=f3e413]:
+                - link "导航到标题" [ref=f3e414] [cursor=pointer]:
+                  - /url: "#下载代码"
+                - generic [ref=f3e419] [cursor=pointer]: 下载代码
+              - generic [ref=f3e420]: 您可以随时将整个应用下载为 ZIP 压缩包：
+              - list [ref=f3e421]:
+                - listitem [ref=f3e422]:
+                  - text: 切换到编辑器中的
+                  - strong [ref=f3e423]: Code
+                  - text: 标签页。
+                - listitem [ref=f3e424]:
+                  - text: 点击标签栏中的
+                  - strong [ref=f3e425]:
+                    - code [ref=f3e426]: ...
+                  - text: 菜单。
+                - listitem [ref=f3e427]:
+                  - text: 选择
+                  - strong [ref=f3e428]: 下载代码
+                  - text: ，包含所有源文件的 ZIP 压缩包将保存到您的电脑。
+              - generic [ref=f3e429]:
+                - text: 如果应用使用了自定义环境变量，下载的压缩包可能包含根目录
+                - code [ref=f3e430]: .env
+                - text: 文件。分享 ZIP 前请先检查其中内容。
+              - heading "导航到标题 导入代码" [level=4] [ref=f3e431]:
+                - link "导航到标题" [ref=f3e432] [cursor=pointer]:
+                  - /url: "#导入代码"
+                - generic [ref=f3e437] [cursor=pointer]: 导入代码
+              - generic [ref=f3e438]: 您可以通过导入 ZIP 来更新应用代码：
+              - list [ref=f3e439]:
+                - listitem [ref=f3e440]:
+                  - text: 切换到编辑器中的
+                  - strong [ref=f3e441]: Code
+                  - text: 标签页。
+                - listitem [ref=f3e442]:
+                  - text: 点击标签栏中的
+                  - strong [ref=f3e443]:
+                    - code [ref=f3e444]: ...
+                  - text: 菜单。
+                - listitem [ref=f3e445]:
+                  - text: 选择
+                  - strong [ref=f3e446]: 导入代码
+                  - text: ，导入不超过 20 MB 的 ZIP。
+              - note "注意" [ref=f3e447]:
+                - list [ref=f3e452]:
+                  - listitem [ref=f3e453]:
+                    - text: 仅需包含源代码文件，
+                    - code [ref=f3e454]: node_modules
+                    - text: 、
+                    - code [ref=f3e455]: .next
+                    - text: 等构建产物会被自动忽略。
+                  - listitem [ref=f3e456]: ZIP 会替换现有项目。未放入 ZIP 的现有文件，会从新版本中移除。
+                  - listitem [ref=f3e457]: 如果 ZIP 中包含一个公共外层文件夹，Teable 会自动剥离这一层。你可以直接压缩最外层项目文件夹。
+                  - listitem [ref=f3e458]:
+                    - text: 导入的项目根目录必须包含
+                    - code [ref=f3e459]: package.json
+                    - text: 。
+                  - listitem [ref=f3e460]:
+                    - text: ZIP 根目录中的
+                    - code [ref=f3e461]: .env
+                    - text: 会导入应用的
+                    - strong [ref=f3e462]: 密钥管理
+                    - text: 。其他
+                    - code [ref=f3e463]: .env*
+                    - text: 变体（如
+                    - code [ref=f3e464]: .env.local
+                    - text: ）会被忽略。
+              - generic [ref=f3e465]:
+                - img "应用构建器代码编辑器" [ref=f3e468]
+                - generic:
+                  - 'button "Expand image: 应用构建器代码编辑器"'
+              - heading "导航到标题 密钥管理" [level=4] [ref=f3e469]:
+                - link "导航到标题" [ref=f3e470] [cursor=pointer]:
+                  - /url: "#密钥管理"
+                - generic [ref=f3e475] [cursor=pointer]: 密钥管理
+              - generic [ref=f3e476]:
+                - text: 不要把 API Key、访问凭证和应用运行所需的配置直接写进源码。需要让应用读取这些值时，在应用构建器对话面板中打开
+                - strong [ref=f3e477]: +
+                - text: 菜单，选择
+                - strong [ref=f3e478]: 密钥管理
+                - text: 。
+              - region "Scrollable table" [ref=f3e479]:
+                - table [ref=f3e481]:
+                  - rowgroup [ref=f3e482]:
+                    - row [ref=f3e483]:
+                      - columnheader "细节" [ref=f3e484]
+                      - columnheader "行为" [ref=f3e485]
+                  - rowgroup [ref=f3e486]:
+                    - row [ref=f3e487]:
+                      - cell "生效范围" [ref=f3e488]
+                      - cell "应用密钥可用于应用预览环境和已发布应用" [ref=f3e489]
+                    - row [ref=f3e490]:
+                      - cell "代码读取" [ref=f3e491]
+                      - cell [ref=f3e492]:
+                        - text: 服务端代码可通过
+                        - code [ref=f3e493]: process.env.MY_API_KEY
+                        - text: 等环境变量读取
+                    - row [ref=f3e494]:
+                      - cell "已保存的值" [ref=f3e495]
+                      - cell "保存后不会明文展示；需要修改时，输入新值覆盖" [ref=f3e496]
+                    - row [ref=f3e497]:
+                      - cell "Key 格式" [ref=f3e498]
+                      - cell "Key 需要以大写字母开头，只能包含大写字母、数字和下划线" [ref=f3e499]
+              - generic [ref=f3e500]: 新增、删除或修改密钥值后，应用预览环境会使用新值；已发布应用需要重新发布后才会使用。只修改密钥描述，不需要重新发布。
+              - heading "导航到标题 管理应用文件" [level=4] [ref=f3e501]:
+                - link "导航到标题" [ref=f3e502] [cursor=pointer]:
+                  - /url: "#管理应用文件"
+                - generic [ref=f3e507] [cursor=pointer]: 管理应用文件
+              - generic [ref=f3e508]:
+                - text: 应用构建器会把上传文件、生成结果和运行时文件保存在应用沙箱中。在对话面板中打开
+                - strong [ref=f3e509]: +
+                - text: →
+                - strong [ref=f3e510]: 更多
+                - text: →
+                - strong [ref=f3e511]: 文件管理
+                - text: ，可以查看这些文件。支持的文件类型可直接预览，也可以下载文件，或删除不再需要的文件和文件夹。
+              - heading "导航到标题 为应用添加 AI 功能" [level=4] [ref=f3e512]:
+                - link "导航到标题" [ref=f3e513] [cursor=pointer]:
+                  - /url: "#为应用添加-ai-功能"
+                - generic [ref=f3e518] [cursor=pointer]: 为应用添加 AI 功能
+              - generic [ref=f3e519]: 当应用需要总结记录、分类请求、生成回复，或为应用用户回答问题时，可以添加 AI 功能。
+              - generic [ref=f3e520]:
+                - text: 你可以直接告诉应用构建器你想做什么，比如“给工单添加 AI 回复助手”或“总结每条表单提交内容”。应用构建器可以帮你开启
+                - strong [ref=f3e521]: AI 访问
+                - text: ，并添加对应功能所需的代码。
+              - note "信息" [ref=f3e522]:
+                - generic [ref=f3e526]: 应用构建器添加好 AI 功能后，应用预览会使用新版本；已发布应用需要重新发布后才会使用。
+              - heading "导航到标题 与 GitHub 同步代码" [level=2] [ref=f3e528]:
+                - link "导航到标题" [ref=f3e529] [cursor=pointer]:
+                  - /url: "#与-github-同步代码"
+                - generic [ref=f3e534] [cursor=pointer]: 与 GitHub 同步代码
+              - note "注意" [ref=f3e535]:
+                - generic [ref=f3e539]: 云端 Business 及以上套餐可用。
+              - generic [ref=f3e540]: 需要在 Pull Request 里评审代码、在 Teable 之外留一份代码，或者用本地编辑器改应用时，可以把应用绑定到一个私有 GitHub 仓库。绑定后应用与仓库双向同步：应用每产生一个新版本就推送到 GitHub，你推送到 GitHub 的提交也会变成新的应用版本。
+              - heading "导航到标题 连接账号并创建仓库" [level=3] [ref=f3e541]:
+                - link "导航到标题" [ref=f3e542] [cursor=pointer]:
+                  - /url: "#连接账号并创建仓库"
+                - generic [ref=f3e547] [cursor=pointer]: 连接账号并创建仓库
+              - generic [ref=f3e548]:
+                - text: 先至少生成一次应用。应用还没有代码时，GitHub 按钮显示
+                - strong [ref=f3e549]: 生成应用后即可连接 GitHub
+                - text: ，点击无效。
+              - list [ref=f3e550]:
+                - listitem [ref=f3e551]:
+                  - generic [ref=f3e553]: "1"
+                  - generic [ref=f3e556]:
+                    - paragraph [ref=f3e557]: 打开 GitHub 面板
+                    - generic [ref=f3e558]:
+                      - text: 点击应用顶部的 GitHub 图标，打开
+                      - strong [ref=f3e559]: GitHub 同步
+                      - text: ，需要该应用的编辑权限。
+                - listitem [ref=f3e560]:
+                  - generic [ref=f3e562]: "2"
+                  - generic [ref=f3e565]:
+                    - paragraph [ref=f3e566]: 连接账号
+                    - generic [ref=f3e567]:
+                      - text: 点击
+                      - strong [ref=f3e568]: 连接 GitHub
+                      - text: ，在弹出窗口里完成安装，可以选择个人账号或你有管理权限的组织。如果浏览器拦截了弹窗，请允许弹窗后重试。
+                - listitem [ref=f3e569]:
+                  - generic [ref=f3e571]: "3"
+                  - generic [ref=f3e574]:
+                    - paragraph [ref=f3e575]: 选择账号
+                    - generic [ref=f3e576]:
+                      - text: 在
+                      - strong [ref=f3e577]: GitHub 账号
+                      - text: 中选择已连接的账号，点击
+                      - strong [ref=f3e578]: +
+                      - text: 可以再连接一个。
+                - listitem [ref=f3e579]:
+                  - generic [ref=f3e581]: "4"
+                  - generic [ref=f3e584]:
+                    - paragraph [ref=f3e585]: 填写仓库名称
+                    - generic [ref=f3e586]:
+                      - strong [ref=f3e587]: 仓库名称
+                      - text: 会用应用名预填。名称仅可包含字母、数字、
+                      - code [ref=f3e588]: .
+                      - text: 、
+                      - code [ref=f3e589]: "-"
+                      - text: 和
+                      - code [ref=f3e590]: _
+                      - text: ，最多 100 个字符。
+                - listitem [ref=f3e591]:
+                  - generic [ref=f3e593]: "5"
+                  - generic [ref=f3e596]:
+                    - paragraph [ref=f3e597]: 创建并绑定
+                    - generic [ref=f3e598]:
+                      - text: 点击
+                      - strong [ref=f3e599]: 创建仓库并绑定
+                      - text: 。个人账号会再弹出一个窗口，需要你授权本次创建。
+              - generic [ref=f3e600]:
+                - text: Teable 会新建一个私有仓库，把当前应用代码提交到
+                - code [ref=f3e601]: main
+                - text: 分支，同时附上一个 README，指回 Teable 中的应用并说明两边如何同步。应用无法绑定到已有仓库。
+              - generic [ref=f3e602]:
+                - text: 连接默认只有创建者本人可用。想让协作者在同一个组织账号下建仓库，选中该连接并打开
+                - strong [ref=f3e603]: 允许其他成员使用此连接
+                - text: ，其他有应用编辑权限的成员就能在这个组织下为自己的应用创建仓库。个人账号的连接无法共享，因为 GitHub 要求由账号本人授权才能建仓库。
+              - heading "导航到标题 同步如何进行" [level=3] [ref=f3e604]:
+                - link "导航到标题" [ref=f3e605] [cursor=pointer]:
+                  - /url: "#同步如何进行"
+                - generic [ref=f3e610] [cursor=pointer]: 同步如何进行
+              - region "Scrollable table" [ref=f3e611]:
+                - table [ref=f3e613]:
+                  - rowgroup [ref=f3e614]:
+                    - row [ref=f3e615]:
+                      - columnheader "方向" [ref=f3e616]
+                      - columnheader "行为" [ref=f3e617]
+                  - rowgroup [ref=f3e618]:
+                    - row [ref=f3e619]:
+                      - cell "应用 → GitHub" [ref=f3e620]
+                      - cell [ref=f3e621]:
+                        - text: 每个新的应用版本都会推送到仓库的
+                        - code [ref=f3e622]: main
+                        - text: 分支。
+                    - row [ref=f3e623]:
+                      - cell "GitHub → 应用" [ref=f3e624]
+                      - cell [ref=f3e625]:
+                        - text: 推送到
+                        - code [ref=f3e626]: main
+                        - text: 的提交会生成一个新的应用版本，对话面板会给出一条同步说明，正在打开的预览会加载新代码。
+              - generic [ref=f3e627]: 环境变量文件不会被推送，详见下面的「环境变量与本地开发」。
+              - generic [ref=f3e628]: 面板会在仓库名旁显示当前状态：
+              - region "Scrollable table" [ref=f3e629]:
+                - table [ref=f3e631]:
+                  - rowgroup [ref=f3e632]:
+                    - row [ref=f3e633]:
+                      - columnheader "状态" [ref=f3e634]
+                      - columnheader "含义" [ref=f3e635]
+                      - columnheader "处理方式" [ref=f3e636]
+                  - rowgroup [ref=f3e637]:
+                    - row [ref=f3e638]:
+                      - cell [ref=f3e639]:
+                        - strong [ref=f3e640]: 已同步
+                      - cell "仓库内容与最新的应用版本一致。" [ref=f3e641]
+                      - cell "无需处理。" [ref=f3e642]
+                    - row [ref=f3e643]:
+                      - cell [ref=f3e644]:
+                        - strong [ref=f3e645]: 同步中
+                      - cell "有一次推送正在进行。" [ref=f3e646]
+                      - cell "等待即可，面板会自动更新。" [ref=f3e647]
+                    - row [ref=f3e648]:
+                      - cell [ref=f3e649]:
+                        - strong [ref=f3e650]: 冲突
+                      - cell [ref=f3e651]:
+                        - code [ref=f3e652]: main
+                        - text: 分支上有 Teable 不知道的提交，无法自动合并。
+                      - cell [ref=f3e653]:
+                        - text: 在 GitHub 上合并
+                        - code [ref=f3e654]: teable-sync
+                        - text: 分支，见下文。
+                    - row [ref=f3e655]:
+                      - cell [ref=f3e656]:
+                        - strong [ref=f3e657]: 已暂停
+                      - cell "GitHub App 被卸载或被暂停，同步已停止。" [ref=f3e658]
+                      - cell "面板会说明具体原因。解除暂停后同步会自动恢复。" [ref=f3e659]
+                    - row [ref=f3e660]:
+                      - cell [ref=f3e661]:
+                        - strong [ref=f3e662]: 错误
+                      - cell "上一次同步失败。" [ref=f3e663]
+                      - cell [ref=f3e664]:
+                        - text: 在面板中查看原因，点击
+                        - strong [ref=f3e665]: 重试
+                        - text: 。
+              - heading "导航到标题 处理冲突" [level=3] [ref=f3e666]:
+                - link "导航到标题" [ref=f3e667] [cursor=pointer]:
+                  - /url: "#处理冲突"
+                - generic [ref=f3e672] [cursor=pointer]: 处理冲突
+              - generic [ref=f3e673]:
+                - text: Teable 不会强制覆盖你的分支。两边历史分叉时，Teable 把最新的应用版本放在
+                - code [ref=f3e674]: teable-sync
+                - text: 分支上，并把状态标记为
+                - strong [ref=f3e675]: 冲突
+                - text: 。在 GitHub 上把
+                - code [ref=f3e676]: teable-sync
+                - text: 合并进
+                - code [ref=f3e677]: main
+                - text: ，这次合并会作为新的应用版本同步回来，状态也随之回到
+                - strong [ref=f3e678]: 已同步
+                - text: 。冲突期间新的应用版本会继续推进
+                - code [ref=f3e679]: teable-sync
+                - text: 分支，所以合并它拿到的始终是最新代码。
+              - heading "导航到标题 环境变量与本地开发" [level=3] [ref=f3e680]:
+                - link "导航到标题" [ref=f3e681] [cursor=pointer]:
+                  - /url: "#环境变量与本地开发"
+                - generic [ref=f3e686] [cursor=pointer]: 环境变量与本地开发
+              - generic [ref=f3e687]:
+                - text: 仓库里只有源码。Teable 不会推送任何以
+                - code [ref=f3e688]: .env
+                - text: 开头的文件，项目根目录、子目录、提交历史里都没有。环境变量的值存放在应用的
+                - strong [ref=f3e689]: 密钥管理
+                - text: 中，不会进入 git。仓库的
+                - code [ref=f3e690]: .gitignore
+                - text: 里已经写好了
+                - code [ref=f3e691]: .env*
+                - text: ，本地克隆后也不会误提交。
+              - generic [ref=f3e692]: 在本地运行应用：
+              - list [ref=f3e693]:
+                - listitem [ref=f3e694]:
+                  - generic [ref=f3e696]: "1"
+                  - generic [ref=f3e699]:
+                    - paragraph [ref=f3e700]: 克隆并安装
+                    - generic [ref=f3e701]:
+                      - text: 克隆仓库，执行
+                      - code [ref=f3e702]: pnpm install
+                      - text: 。
+                - listitem [ref=f3e703]:
+                  - generic [ref=f3e705]: "2"
+                  - generic [ref=f3e708]:
+                    - paragraph [ref=f3e709]: 取环境变量
+                    - generic [ref=f3e710]:
+                      - text: 在 GitHub 面板点击
+                      - strong [ref=f3e711]: 复制本地环境变量
+                      - text: ，把剪贴板内容粘贴到项目根目录的
+                      - code [ref=f3e712]: .env
+                      - text: 文件中。
+                - listitem [ref=f3e713]:
+                  - generic [ref=f3e715]: "3"
+                  - generic [ref=f3e718]:
+                    - paragraph [ref=f3e719]: 启动
+                    - generic [ref=f3e720]:
+                      - text: 执行
+                      - code [ref=f3e721]: pnpm dev
+                      - text: 。
+              - generic [ref=f3e722]: 复制出来的内容与应用在 Teable 沙箱中拿到的一致：你自己配置的密钥，加上平台注入的接口地址、访问令牌和 AI 访问相关变量。
+              - note "警告" [ref=f3e723]:
+                - generic [ref=f3e728]:
+                  - text: 文件里的
+                  - code [ref=f3e729]: TEABLE_APP_TOKEN
+                  - text: 可以访问应用的数据，所以只有拥有应用编辑权限的成员才能复制。切勿提交这个文件，也不要粘贴到 issue 或 Pull Request 里。
+              - generic [ref=f3e730]:
+                - text: 新增或修改密钥请在 Teable 的
+                - strong [ref=f3e731]: 密钥管理
+                - text: 中操作，不要改本地文件。把
+                - code [ref=f3e732]: .env
+                - text: 提交到 GitHub 不会新增或更新密钥。密钥改动后，重新复制一次环境变量，覆盖本地的
+                - code [ref=f3e733]: .env
+                - text: 。
+              - heading "导航到标题 解除绑定" [level=3] [ref=f3e734]:
+                - link "导航到标题" [ref=f3e735] [cursor=pointer]:
+                  - /url: "#解除绑定"
+                - generic [ref=f3e740] [cursor=pointer]: 解除绑定
+              - generic [ref=f3e741]: 点击仓库名旁的删除图标并确认。同步随即停止，GitHub 上的仓库和代码都会保留。之后再次绑定同一个应用会创建一个新仓库，不会连回原来那个。
+              - heading "导航到标题 发布与管理" [level=2] [ref=f3e742]:
+                - link "导航到标题" [ref=f3e743] [cursor=pointer]:
+                  - /url: "#发布与管理"
+                - generic [ref=f3e748] [cursor=pointer]: 发布与管理
+              - heading "导航到标题 发布您的应用" [level=3] [ref=f3e749]:
+                - link "导航到标题" [ref=f3e750] [cursor=pointer]:
+                  - /url: "#发布您的应用"
+                - generic [ref=f3e755] [cursor=pointer]: 发布您的应用
+              - generic [ref=f3e756]:
+                - text: 当应用准备就绪时，点击右上角的
+                - strong [ref=f3e757]: 发布
+                - text: 按钮（箭头图标）。
+              - list [ref=f3e758]:
+                - listitem [ref=f3e759]:
+                  - strong [ref=f3e760]: 公开链接
+                  - text: ：Teable 会为您的应用生成一个安全的、可公开访问的 URL。
+                - listitem [ref=f3e761]:
+                  - strong [ref=f3e762]: 自定义域名
+                  - text: ：支持绑定您自己的域名。
+                - listitem [ref=f3e763]:
+                  - strong [ref=f3e764]: 展示品牌标识
+                  - text: ：在
+                  - strong [ref=f3e765]: 发布
+                  - text: 菜单中控制已发布应用是否显示
+                  - strong [ref=f3e766]: Build with Teable
+                  - text: 标识。发布后修改此设置，需要点击
+                  - strong [ref=f3e767]: 重新发布
+                  - text: 才会生效。
+                - listitem [ref=f3e768]:
+                  - strong [ref=f3e769]: 取消发布
+                  - text: ：已发布应用可在发布菜单中点击
+                  - strong [ref=f3e770]: 取消发布
+                  - text: ，让公开链接暂时下线。
+                - listitem [ref=f3e771]:
+                  - strong [ref=f3e772]: 应用配置变更
+                  - text: ：发布菜单提示
+                  - strong [ref=f3e773]: 运行配置已修改，重新发布后在线上生效
+                  - text: 或
+                  - strong [ref=f3e774]: 品牌标识设置已修改，重新发布后在线上生效
+                  - text: 时，点击
+                  - strong [ref=f3e775]: 重新发布
+                  - text: 。
+                - listitem [ref=f3e776]:
+                  - strong [ref=f3e777]: 访问已发布 App
+                  - text: ：应用发布后，
+                  - strong [ref=f3e778]: 发布
+                  - text: 按钮旁的图标会在新标签页中打开线上应用。
+              - note "信息" [ref=f3e779]:
+                - generic [ref=f3e783]:
+                  - text: 关闭
+                  - strong [ref=f3e784]: Build with Teable
+                  - text: 标识需要商业版及以上方案。
+              - generic [ref=f3e785]:
+                - img "发布应用菜单" [ref=f3e788]
+                - generic:
+                  - 'button "Expand image: 发布应用菜单"'
+              - heading "导航到标题 取消发布应用" [level=3] [ref=f3e789]:
+                - link "导航到标题" [ref=f3e790] [cursor=pointer]:
+                  - /url: "#取消发布应用"
+                - generic [ref=f3e795] [cursor=pointer]: 取消发布应用
+              - generic [ref=f3e796]:
+                - text: 要让已发布应用暂时下线，打开
+                - strong [ref=f3e797]: 发布
+                - text: 菜单，点击
+                - strong [ref=f3e798]: 取消发布
+                - text: 。确认后，公开应用链接将无法访问。
+              - generic [ref=f3e799]:
+                - img "发布菜单中的取消发布按钮" [ref=f3e802]
+                - generic:
+                  - 'button "Expand image: 发布菜单中的取消发布按钮"'
+              - generic [ref=f3e803]: 取消发布不会删除应用或编辑历史。您可以继续编辑应用，并在之后重新发布。
+              - heading "导航到标题 自定义域名" [level=3] [ref=f3e804]:
+                - link "导航到标题" [ref=f3e805] [cursor=pointer]:
+                  - /url: "#自定义域名"
+                - generic [ref=f3e810] [cursor=pointer]: 自定义域名
+              - note "注意" [ref=f3e811]:
+                - generic [ref=f3e815]: 自定义域名需要商业版及以上方案。
+              - generic [ref=f3e816]:
+                - text: 在
+                - strong [ref=f3e817]: 自定义域名
+                - text: 中可以为已发布应用绑定访问域名。建议使用子域名，例如
+                - code [ref=f3e818]: app.yourdomain.com
+                - text: 。输入域名后，Teable 会显示需要添加的 DNS 记录；在域名服务商处添加记录，等待生效后回到 Teable 完成验证。
+              - generic [ref=f3e819]:
+                - text: 也可以使用
+                - code [ref=f3e820]: teable.app
+                - text: 下可用的子域名，并编辑
+                - code [ref=f3e821]: teable.app
+                - text: 前缀，例如
+                - code [ref=f3e822]: your-name.teable.app
+                - text: 。
+              - generic [ref=f3e823]:
+                - img "自定义域名设置" [ref=f3e826]
+                - generic:
+                  - 'button "Expand image: 自定义域名设置"'
+              - heading "导航到标题 自定义站点信息" [level=3] [ref=f3e827]:
+                - link "导航到标题" [ref=f3e828] [cursor=pointer]:
+                  - /url: "#自定义站点信息"
+                - generic [ref=f3e833] [cursor=pointer]: 自定义站点信息
+              - generic [ref=f3e834]:
+                - text: 在
+                - strong [ref=f3e835]: 发布
+                - text: 菜单中打开
+                - strong [ref=f3e836]: 自定义站点信息
+                - text: ，可以设置已发布应用的浏览器标签页图标、站点标题和描述。编辑时弹窗会实时预览这三项的整体效果。
+              - region "Scrollable table" [ref=f3e837]:
+                - table [ref=f3e839]:
+                  - rowgroup [ref=f3e840]:
+                    - row [ref=f3e841]:
+                      - columnheader "设置项" [ref=f3e842]
+                      - columnheader "作用" [ref=f3e843]
+                  - rowgroup [ref=f3e844]:
+                    - row [ref=f3e845]:
+                      - cell [ref=f3e846]:
+                        - strong [ref=f3e847]: 网站图标
+                      - cell "浏览器标签页显示的图标。支持上传 PNG、JPEG、WebP、SVG 或 ICO 文件，大小不超过 5MB，建议尺寸 32×32。移除已上传的文件即可恢复默认的 Teable 图标。" [ref=f3e848]
+                    - row [ref=f3e849]:
+                      - cell [ref=f3e850]:
+                        - strong [ref=f3e851]: 标题
+                      - cell "站点标题，最多 120 个字符。" [ref=f3e852]
+                    - row [ref=f3e853]:
+                      - cell [ref=f3e854]:
+                        - strong [ref=f3e855]: 描述
+                      - cell "页面元信息中的站点描述，最多 500 个字符。" [ref=f3e856]
+              - generic [ref=f3e857]: 留空的字段会保留应用构建器生成的原值。保存后改动会应用到应用预览环境；已发布应用需要重新发布后才会生效。
+              - heading "导航到标题 应用登录" [level=3] [ref=f3e858]:
+                - link "导航到标题" [ref=f3e859] [cursor=pointer]:
+                  - /url: "#应用登录"
+                - generic [ref=f3e864] [cursor=pointer]: 应用登录
+              - generic [ref=f3e865]:
+                - text: 在应用顶部点击
+                - strong [ref=f3e866]: 添加登录
+                - text: ，可以要求访问者登录后再使用应用。配置后，该按钮会变为
+                - strong [ref=f3e867]: 登录设置
+                - text: 。
+              - img "应用登录设置" [ref=f3e871]
+              - generic [ref=f3e872]: 启用登录时：
+              - list [ref=f3e873]:
+                - listitem [ref=f3e874]:
+                  - text: 选择登录用户的存储位置。可以创建
+                  - strong [ref=f3e875]: 用户
+                  - text: 表，也可以复用已有的、包含邮箱字段的表。每位登录用户会作为一条记录保存，同一用户表可被多个应用复用。
+                - listitem [ref=f3e876]:
+                  - text: 至少选择一种登录方式，例如
+                  - strong [ref=f3e877]: 邮箱验证码
+                  - text: 、
+                  - strong [ref=f3e878]: Google
+                  - text: 或
+                  - strong [ref=f3e879]: Teable
+                  - text: 。可选方式取决于实例的认证配置。
+                - listitem [ref=f3e880]:
+                  - text: 设置访问控制：
+                  - strong [ref=f3e881]: 所有人可注册
+                  - text: 、
+                  - strong [ref=f3e882]: 允许的邮箱域名
+                  - text: 或
+                  - strong [ref=f3e883]: 仅邀请用户
+                  - text: 。
+              - generic [ref=f3e884]: 登录配置会在应用预览环境重新加载后生效。要让已发布应用使用新的登录配置，需要重新发布应用。
+              - heading "导航到标题 版本历史与回滚" [level=3] [ref=f3e885]:
+                - link "导航到标题" [ref=f3e886] [cursor=pointer]:
+                  - /url: "#版本历史与回滚"
+                - generic [ref=f3e891] [cursor=pointer]: 版本历史与回滚
+              - generic [ref=f3e892]: Teable 自动跟踪每一次部署。
+              - list [ref=f3e893]:
+                - listitem [ref=f3e894]:
+                  - text: 点击
+                  - strong [ref=f3e895]: 历史
+                  - text: 按钮（时钟图标）查看所有已部署的版本列表。
+                - listitem [ref=f3e896]:
+                  - strong [ref=f3e897]: 一键回滚
+                  - text: ：如果新的更新出现问题，您可以即时将线上应用恢复到任何之前的稳定版本。
+              - generic [ref=f3e898]:
+                - img "应用版本历史" [ref=f3e901]
+                - generic:
+                  - 'button "Expand image: 应用版本历史"'
+              - heading "导航到标题 自动修复 (Auto-fix)" [level=3] [ref=f3e902]:
+                - link "导航到标题" [ref=f3e903] [cursor=pointer]:
+                  - /url: "#自动修复-auto-fix"
+                - generic [ref=f3e908] [cursor=pointer]: 自动修复 (Auto-fix)
+              - generic [ref=f3e909]: 如果您的自定义代码导致构建错误，部署将会失败。
+              - list [ref=f3e910]:
+                - listitem [ref=f3e911]:
+                  - text: Teable 在错误日志旁提供了一个
+                  - strong [ref=f3e912]: Auto-fix (自动修复)
+                  - text: 按钮。
+                - listitem [ref=f3e913]: 点击它，AI 将分析编译错误并自动修补代码以解决问题。
+              - heading "导航到标题 删除应用" [level=3] [ref=f3e914]:
+                - link "导航到标题" [ref=f3e915] [cursor=pointer]:
+                  - /url: "#删除应用"
+                - generic [ref=f3e920] [cursor=pointer]: 删除应用
+              - generic [ref=f3e921]:
+                - text: 要删除应用，请点击顶部的
+                - strong [ref=f3e922]: 设置
+                - text: (齿轮图标) 按钮，然后选择
+                - strong [ref=f3e923]: 删除
+                - text: 。
+              - heading "导航到标题 最佳实践" [level=2] [ref=f3e924]:
+                - link "导航到标题" [ref=f3e925] [cursor=pointer]:
+                  - /url: "#最佳实践"
+                - generic [ref=f3e930] [cursor=pointer]: 最佳实践
+              - generic [ref=f3e931]:
+                - text: 应用构建器的构建技巧、提示词写法、版本回退建议和常见问题，请参考
+                - link "应用构建器最佳实践" [ref=f3e932] [cursor=pointer]:
+                  - /url: /zh/basic/ai/app-builder-practical-guide
+                - text: 。
+              - heading "导航到标题 常见问题" [level=2] [ref=f3e933]:
+                - link "导航到标题" [ref=f3e934] [cursor=pointer]:
+                  - /url: "#常见问题"
+                - generic [ref=f3e939] [cursor=pointer]: 常见问题
+              - generic [ref=f3e940]:
+                - group [ref=f3e941]:
+                  - paragraph [ref=f3e946] [cursor=pointer]: 清除对话历史会删除应用吗？
+                - group [ref=f3e947]:
+                  - paragraph [ref=f3e952] [cursor=pointer]: 如何下载或导入应用代码？
+                - group [ref=f3e953]:
+                  - paragraph [ref=f3e958] [cursor=pointer]: 登录配置什么时候会对线上应用生效？
+                - group [ref=f3e959]:
+                  - paragraph [ref=f3e964] [cursor=pointer]: 应用如何在运行时调用 AI 模型？
+                - group [ref=f3e965]:
+                  - paragraph [ref=f3e970] [cursor=pointer]: 如何回滚应用到之前的版本？
+                - group [ref=f3e971]:
+                  - paragraph [ref=f3e976] [cursor=pointer]: 为什么提示 Agent 正在其他对话中执行？
+                - group [ref=f3e977]:
+                  - paragraph [ref=f3e982] [cursor=pointer]: 应用构建器运行失败时如何返还算力？
+                - group [ref=f3e983]:
+                  - paragraph [ref=f3e988] [cursor=pointer]: 私有化部署需要在哪里配置应用构建器？
+            - generic [ref=f3e989]: 最后修改于 2026年8月18日
+            - generic [ref=f3e991]:
+              - paragraph [ref=f3e992]: 此页面对您有帮助吗？
+              - generic [ref=f3e994]:
+                - button "是" [ref=f3e995] [cursor=pointer]
+                - button "否" [ref=f3e1000] [cursor=pointer]
+            - navigation "Pagination" [ref=f3e1005]:
+              - 'link "上一页: AI 对话" [ref=f3e1006] [cursor=pointer]':
+                - /url: /zh/basic/ai/ai-chat
+                - generic [ref=f3e1009]: AI 对话
+              - 'link "下一页: 应用构建器最佳实践" [ref=f3e1010] [cursor=pointer]':
+                - /url: /zh/basic/ai/app-builder-practical-guide
+                - generic [ref=f3e1011]: 应用构建器最佳实践
+            - link "技术支持 This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=f3e1017] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=teablecn
+              - generic [ref=f3e1018]: 技术支持
+              - generic [ref=f3e1028]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=f3e1029]

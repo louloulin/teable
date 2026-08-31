@@ -188,4 +188,229 @@ export class AgentOrchestratorService {
     const baseId = inbound.provider_meta?.baseId;
     return typeof baseId === 'string' && baseId.length > 0 ? baseId : undefined;
   }
+  // ───────────────────────── R-AI-1: Cloud AI 对话能力补齐 ─────────────────────────
+  // Cuppy 对话状态分四个维度,全部复用 scratchpad 作为内存存储,不扩展 DDD 模型:
+  //   scratchpad['_memory']     = Record<key, {value, createdAt}>
+  //   scratchpad['_artifacts']  = Array<{id, name, kind, content, versions, createdAt}>
+  //   scratchpad['_smart_level'] = 'low' | 'medium' | 'high'
+  //   scratchpad['_node_refs']  = Array<{nodeId, kind, refId, label}>
+  //   scratchpad['_files']      = Array<{fileId, name, mime, size, createdAt}>
+  // 这是 best-minimal 改造,后续若需持久化可加 meta.cuppy_* 表。
+
+  private ensureCtx(conversationId: string, userId: string): ConversationContext {
+    return this.store.loadOrCreate(conversationId, userId);
+  }
+
+  private now(): string {
+    return new Date().toISOString();
+  }
+
+  private randId(): string {
+    return Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+  }
+
+  /** Memory management (Cloud '记忆' feature). */
+  getMemory(conversationId: string): Record<string, { value: string; createdAt: string }> {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return {};
+    const mem = (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
+    return mem;
+  }
+
+  setMemory(conversationId: string, userId: string, key: string, value: string): { key: string; createdAt: string } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const mem = (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
+    const createdAt = this.now();
+    mem[key] = { value, createdAt };
+    ctx.scratchpad['_memory'] = mem;
+    this.store.setScratchpad(ctx, '_memory', mem);
+    return { key, createdAt };
+  }
+
+  clearMemory(conversationId: string, userId: string, key?: string): { cleared: number } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    if (!key) {
+      const before = Object.keys((ctx.scratchpad['_memory'] as object) || {}).length;
+      ctx.scratchpad['_memory'] = {};
+      this.store.setScratchpad(ctx, '_memory', {});
+      return { cleared: before };
+    }
+    const mem = (ctx.scratchpad['_memory'] as Record<string, unknown>) || {};
+    const had = key in mem;
+    delete mem[key];
+    ctx.scratchpad['_memory'] = mem;
+    this.store.setScratchpad(ctx, '_memory', mem);
+    return { cleared: had ? 1 : 0 };
+  }
+
+  /** Artifact management (Cloud 'Artifact' feature — chart/report/card with versions). */
+  listArtifacts(conversationId: string): Array<{ id: string; name: string; kind: string; versions: number; createdAt: string; shared: boolean }> {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return [];
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    return arr.map((a) => ({
+      id: String(a['id']),
+      name: String(a['name']),
+      kind: String(a['kind']),
+      versions: Array.isArray(a['versions']) ? (a['versions'] as unknown[]).length : 1,
+      createdAt: String(a['createdAt']),
+      shared: Boolean(a['shared']),
+    }));
+  }
+
+  addArtifact(
+    conversationId: string,
+    userId: string,
+    input: { name: string; kind: string; content: string }
+  ): { id: string; name: string; kind: string; versions: number; createdAt: string } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    const id = this.randId();
+    const createdAt = this.now();
+    arr.push({
+      id,
+      name: input.name,
+      kind: input.kind,
+      content: input.content,
+      versions: [{ version: 1, content: input.content, createdAt }],
+      createdAt,
+      shared: false,
+    });
+    ctx.scratchpad['_artifacts'] = arr;
+    this.store.setScratchpad(ctx, '_artifacts', arr);
+    return { id, name: input.name, kind: input.kind, versions: 1, createdAt };
+  }
+
+  getArtifact(conversationId: string, artifactId: string): Record<string, unknown> | null {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return null;
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    return arr.find((a) => a['id'] === artifactId) ?? null;
+  }
+
+  appendArtifactVersion(
+    conversationId: string,
+    userId: string,
+    artifactId: string,
+    content: string
+  ): { id: string; versions: number } | null {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    const a = arr.find((x) => x['id'] === artifactId);
+    if (!a) return null;
+    const versions = (a['versions'] as Array<Record<string, unknown>>) || [];
+    versions.push({ version: versions.length + 1, content, createdAt: this.now() });
+    a['versions'] = versions;
+    a['content'] = content;
+    ctx.scratchpad['_artifacts'] = arr;
+    this.store.setScratchpad(ctx, '_artifacts', arr);
+    return { id: artifactId, versions: versions.length };
+  }
+
+  deleteArtifact(conversationId: string, userId: string, artifactId: string): boolean {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    const next = arr.filter((a) => a['id'] !== artifactId);
+    ctx.scratchpad['_artifacts'] = next;
+    this.store.setScratchpad(ctx, '_artifacts', next);
+    return next.length < arr.length;
+  }
+
+  shareArtifact(conversationId: string, userId: string, artifactId: string, on: boolean): { id: string; shared: boolean } | null {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
+    const a = arr.find((x) => x['id'] === artifactId);
+    if (!a) return null;
+    a['shared'] = on;
+    ctx.scratchpad['_artifacts'] = arr;
+    this.store.setScratchpad(ctx, '_artifacts', arr);
+    return { id: artifactId, shared: on };
+  }
+
+  /** Smart level (Cloud '智能' menu). */
+  getSmartLevel(conversationId: string): string {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return 'medium';
+    return String(ctx.scratchpad['_smart_level'] ?? 'medium');
+  }
+
+  setSmartLevel(conversationId: string, userId: string, level: string): { level: string } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    ctx.scratchpad['_smart_level'] = level;
+    this.store.setScratchpad(ctx, '_smart_level', level);
+    return { level };
+  }
+
+  /** @-node references (Cloud '@' to attach tables/views/apps/automations/folders). */
+  listNodeRefs(conversationId: string): Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }> {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return [];
+    return (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+  }
+
+  addNodeRef(
+    conversationId: string,
+    userId: string,
+    input: { kind: string; refId: string; label: string }
+  ): { nodeId: string; kind: string; refId: string; label: string; addedAt: string } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+    const nodeId = this.randId();
+    const entry = { nodeId, kind: input.kind, refId: input.refId, label: input.label, addedAt: this.now() };
+    arr.push(entry);
+    ctx.scratchpad['_node_refs'] = arr;
+    this.store.setScratchpad(ctx, '_node_refs', arr);
+    return entry;
+  }
+
+  removeNodeRef(conversationId: string, userId: string, nodeId: string): boolean {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+    const next = arr.filter((n) => n['nodeId'] !== nodeId);
+    ctx.scratchpad['_node_refs'] = next;
+    this.store.setScratchpad(ctx, '_node_refs', next);
+    return next.length < arr.length;
+  }
+
+  /** File attachments (Cloud '上传文件' / '文件管理'). */
+  listFiles(conversationId: string): Array<{ fileId: string; name: string; mime: string; size: number; createdAt: string }> {
+    const ctx = this.store.peek(conversationId);
+    if (!ctx) return [];
+    return (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+  }
+
+  addFile(
+    conversationId: string,
+    userId: string,
+    input: { name: string; mime: string; size: number }
+  ): { fileId: string; name: string; mime: string; size: number; createdAt: string } {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+    const fileId = this.randId();
+    const entry = { fileId, name: input.name, mime: input.mime, size: input.size, createdAt: this.now() };
+    arr.push(entry);
+    ctx.scratchpad['_files'] = arr;
+    this.store.setScratchpad(ctx, '_files', arr);
+    return entry;
+  }
+
+  removeFile(conversationId: string, userId: string, fileId: string): boolean {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+    const next = arr.filter((f) => f['fileId'] !== fileId);
+    ctx.scratchpad['_files'] = next;
+    this.store.setScratchpad(ctx, '_files', next);
+    return next.length < arr.length;
+  }
+
+  /** Available models list (Cloud '模型' menu). */
+  listModels(): Array<{ id: string; label: string; tier: 'lite' | 'standard' | 'pro' }> {
+    return [
+      { id: 'gpt-4o-mini', label: 'GPT-4o mini', tier: 'lite' },
+      { id: 'gpt-4o', label: 'GPT-4o', tier: 'standard' },
+      { id: 'o1-mini', label: 'o1-mini', tier: 'standard' },
+      { id: 'o1', label: 'o1', tier: 'pro' },
+      { id: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet', tier: 'pro' },
+    ];
+  }
 }

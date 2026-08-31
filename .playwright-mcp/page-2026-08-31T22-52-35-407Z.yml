@@ -1,0 +1,634 @@
+- generic [active] [ref=f16e1]:
+  - blockquote [ref=f16e2]:
+    - heading [level=2] [ref=f16e3]: Documentation Index
+    - paragraph [ref=f16e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f16e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f16e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f16e7]:
+    - link "跳转到主要内容" [ref=f16e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f16e10]:
+      - banner [ref=f16e11]:
+        - generic [ref=f16e13]:
+          - paragraph [ref=f16e15]:
+            - text: 🚀 Teable 现已支持阿拉伯语、意大利语和西班牙语！查看
+            - link "更新日志" [ref=f16e16] [cursor=pointer]:
+              - /url: /zh/changelog#2026-08-25
+            - text: 了解详情。
+          - button "关闭横幅" [ref=f16e17] [cursor=pointer]
+        - generic [ref=f16e23]:
+          - generic [ref=f16e26]:
+            - generic [ref=f16e27]:
+              - link "Teable home page light logo" [ref=f16e28] [cursor=pointer]:
+                - /url: https://teable.ai
+                - generic [ref=f16e29]: Teable home page
+                - img "light logo" [ref=f16e30]
+              - button "简体中文" [ref=f16e31] [cursor=pointer]
+            - button "打开搜索" [ref=f16e36] [cursor=pointer]:
+              - generic [ref=f16e37]: 搜索...
+              - generic [ref=f16e42]: ⌘K
+            - generic [ref=f16e43]:
+              - navigation "Main" [ref=f16e44]:
+                - list [ref=f16e45]:
+                  - listitem [ref=f16e46]:
+                    - link "支持" [ref=f16e47] [cursor=pointer]:
+                      - /url: https://community.teable.ai/
+              - button "Change theme preference" [ref=f16e51] [cursor=pointer]
+          - generic [ref=f16e57]:
+            - link "功能文档" [ref=f16e58] [cursor=pointer]:
+              - /url: /zh/basic/ai/overview
+            - link "私有化部署" [ref=f16e60] [cursor=pointer]:
+              - /url: /zh/deploy/activate
+            - link "API 文档" [ref=f16e62] [cursor=pointer]:
+              - /url: /zh/api-doc/overview
+            - link "安全" [ref=f16e64] [cursor=pointer]:
+              - /url: /zh/basic/security
+            - link "更新日志" [ref=f16e66] [cursor=pointer]:
+              - /url: /zh/changelog
+      - generic [ref=f16e68]:
+        - navigation "Pages" [ref=f16e69]:
+          - generic [ref=f16e72]:
+            - generic [ref=f16e73]:
+              - heading "AI" [level=3] [ref=f16e75]
+              - list [ref=f16e76]:
+                - listitem [ref=f16e77]:
+                  - link "概览" [ref=f16e78] [cursor=pointer]:
+                    - /url: /zh/basic/ai/overview
+                - listitem [ref=f16e82]:
+                  - link "AI 对话" [ref=f16e83] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                - listitem [ref=f16e87]:
+                  - button "应用构建器" [ref=f16e88] [cursor=pointer]
+                - listitem [ref=f16e93]:
+                  - link "AI 字段" [ref=f16e94] [cursor=pointer]:
+                    - /url: /zh/basic/field/ai/ai-field
+                - listitem [ref=f16e98]:
+                  - link "自定义 AI 模型" [ref=f16e99] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                - listitem [ref=f16e103]:
+                  - link "将 AI Agent 连接到 Teable" [ref=f16e104] [cursor=pointer]:
+                    - /url: /zh/basic/ai/teable-skill
+                - listitem [ref=f16e108]:
+                  - button "Connect & Migrate Everything" [ref=f16e109] [cursor=pointer]
+            - generic [ref=f16e114]:
+              - heading "空间" [level=3] [ref=f16e116]
+              - list [ref=f16e117]:
+                - listitem [ref=f16e118]:
+                  - link "概览" [ref=f16e119] [cursor=pointer]:
+                    - /url: /zh/basic/space
+                - listitem [ref=f16e123]:
+                  - link "空间邀请" [ref=f16e124] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-invite
+                - listitem [ref=f16e128]:
+                  - link "数据库邀请" [ref=f16e129] [cursor=pointer]:
+                    - /url: /zh/basic/space/base-invite
+                - listitem [ref=f16e133]:
+                  - link "协作权限明细" [ref=f16e134] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                - listitem [ref=f16e138]:
+                  - link "账单与订阅" [ref=f16e139] [cursor=pointer]:
+                    - /url: /zh/basic/space/billing
+                - listitem [ref=f16e143]:
+                  - link "IM 集成" [ref=f16e144] [cursor=pointer]:
+                    - /url: /zh/basic/space/im-integration
+            - generic [ref=f16e148]:
+              - heading "自动化" [level=3] [ref=f16e150]
+              - list [ref=f16e151]:
+                - listitem [ref=f16e152]:
+                  - link "概览" [ref=f16e153] [cursor=pointer]:
+                    - /url: /zh/basic/automation
+                - listitem [ref=f16e157]:
+                  - button "触发器" [ref=f16e158] [cursor=pointer]
+                - listitem [ref=f16e163]:
+                  - button "操作" [ref=f16e164] [cursor=pointer]
+                - listitem [ref=f16e169]:
+                  - button "示例" [ref=f16e170] [cursor=pointer]
+            - generic [ref=f16e175]:
+              - heading "数据库" [level=3] [ref=f16e177]
+              - list [ref=f16e178]:
+                - listitem [ref=f16e179]:
+                  - link "概览" [ref=f16e180] [cursor=pointer]:
+                    - /url: /zh/basic/base
+                - listitem [ref=f16e184]:
+                  - button "表格" [ref=f16e185] [cursor=pointer]
+                - listitem [ref=f16e190]:
+                  - button "字段" [ref=f16e191] [cursor=pointer]
+                - listitem [ref=f16e196]:
+                  - button "记录" [ref=f16e197] [cursor=pointer]
+                - listitem [ref=f16e202]:
+                  - button "视图" [ref=f16e203] [cursor=pointer]
+            - generic [ref=f16e208]:
+              - heading "权限矩阵" [level=3] [ref=f16e210]
+              - list [ref=f16e211]:
+                - listitem [ref=f16e212]:
+                  - button "权限矩阵" [ref=f16e213] [cursor=pointer]
+            - generic [ref=f16e218]:
+              - heading "SSO" [level=3] [ref=f16e220]
+              - list [ref=f16e221]:
+                - listitem [ref=f16e222]:
+                  - link "单点登录 (SSO)" [ref=f16e223] [cursor=pointer]:
+                    - /url: /zh/basic/sso/overview
+                - listitem [ref=f16e227]:
+                  - link "Azure Entra ID SSO" [ref=f16e228] [cursor=pointer]:
+                    - /url: /zh/basic/sso/azure-entra-id
+                - listitem [ref=f16e232]:
+                  - link "Okta SSO" [ref=f16e233] [cursor=pointer]:
+                    - /url: /zh/basic/sso/okta
+                - listitem [ref=f16e237]:
+                  - link "Google Workspace SSO" [ref=f16e238] [cursor=pointer]:
+                    - /url: /zh/basic/sso/google-workspace
+                - listitem [ref=f16e242]:
+                  - link "Auth0 SSO" [ref=f16e243] [cursor=pointer]:
+                    - /url: /zh/basic/sso/auth0
+                - listitem [ref=f16e247]:
+                  - link "OneLogin SSO" [ref=f16e248] [cursor=pointer]:
+                    - /url: /zh/basic/sso/onelogin
+                - listitem [ref=f16e252]:
+                  - link "Authentik SSO" [ref=f16e253] [cursor=pointer]:
+                    - /url: /zh/basic/sso/authentik
+                - listitem [ref=f16e257]:
+                  - link "飞书" [ref=f16e258] [cursor=pointer]:
+                    - /url: /zh/basic/sso/feishu
+            - generic [ref=f16e262]:
+              - heading "横向对比" [level=3] [ref=f16e264]
+              - list [ref=f16e265]:
+                - listitem [ref=f16e266]:
+                  - link "Teable VS Excel" [ref=f16e267] [cursor=pointer]:
+                    - /url: /zh/compare/teable-vs-excel
+        - main [ref=f16e271]:
+          - generic [ref=f16e273]:
+            - generic [ref=f16e274]:
+              - heading "AI 对话" [level=1] [ref=f16e277]
+              - paragraph [ref=f16e279]: 使用自然语言与您的数据交互，进行分析、可视化和创作。
+            - generic [ref=f16e280]:
+              - note "注意" [ref=f16e281]:
+                - generic [ref=f16e285]: 云端版本所有方案可用；私有部署版本需要商业版及以上方案。
+              - generic [ref=f16e286]: AI 对话用于分析当前表格数据、解释记录内容、生成图表和报告，也可以协助创建或更新表格、视图、应用和自动化。
+              - generic [ref=f16e287]:
+                - text: AI 会优先参考当前页面。需要跨表格、视图、应用、自动化或文件夹时，可以在输入框中输入
+                - code [ref=f16e288]: "@"
+                - text: 选择相关节点。
+              - heading "导航到标题 打开方式" [level=2] [ref=f16e289]:
+                - link "导航到标题" [ref=f16e290] [cursor=pointer]:
+                  - /url: "#打开方式"
+                - generic [ref=f16e295] [cursor=pointer]: 打开方式
+              - generic [ref=f16e296]:
+                - text: 打开表格或视图后，点击右上角的
+                - img "Cuppy" [ref=f16e297]
+                - text: ，即可打开 AI 对话。在输入框中描述问题或任务；如果任务会修改数据或创建节点，建议先让 AI 列出计划，再确认执行。
+              - heading "导航到标题 AI 会参考哪些内容" [level=2] [ref=f16e298]:
+                - link "导航到标题" [ref=f16e299] [cursor=pointer]:
+                  - /url: "#ai-会参考哪些内容"
+                - generic [ref=f16e304] [cursor=pointer]: AI 会参考哪些内容
+              - generic [ref=f16e305]: AI 会优先参考你当前页面中的信息：
+              - list [ref=f16e306]:
+                - listitem [ref=f16e307]:
+                  - strong [ref=f16e308]: 当前表格和视图
+                  - text: ：包括当前表格、当前视图，以及视图中的筛选和排序结果。
+                - listitem [ref=f16e309]:
+                  - strong [ref=f16e310]: 选中的行、列和单元格
+                  - text: ：如果你在表格视图中选中了行、列、单个单元格或单元格区域，AI 会把这些选区作为重点参考。
+                - listitem [ref=f16e311]:
+                  - strong [ref=f16e312]: 上传的文件
+                  - text: ：可以把 PDF、Excel、Word、图片等文件加入对话。
+                - listitem [ref=f16e313]:
+                  - strong [ref=f16e314]:
+                    - code [ref=f16e315]: "@"
+                    - text: 让 AI 参考更多节点
+                  - text: ：在输入框中输入
+                  - code [ref=f16e316]: "@"
+                  - text: ，可以把目录树里的表格、视图、应用、自动化或文件夹加入对话。
+              - generic [ref=f16e317]: 你也可以直接把文件粘贴或拖拽到输入框中。文件会先显示为附件标签，发送后再交给 AI 参考。
+              - generic [ref=f16e318]: 较长的纯文本粘贴会转成 Markdown 附件，避免输入框被大段文本占满。文本和 Markdown 附件可从附件标签中打开预览。
+              - heading "导航到标题 输入框控制项" [level=2] [ref=f16e319]:
+                - link "导航到标题" [ref=f16e320] [cursor=pointer]:
+                  - /url: "#输入框控制项"
+                - generic [ref=f16e325] [cursor=pointer]: 输入框控制项
+              - list [ref=f16e326]:
+                - listitem [ref=f16e327]:
+                  - strong [ref=f16e328]: 语音输入
+                  - text: ：点击输入框中的麦克风按钮，允许使用麦克风后开始录音。录制时可以选择
+                  - strong [ref=f16e329]: 结束语音输入
+                  - text: 或
+                  - strong [ref=f16e330]: 丢弃本次语音输入
+                  - text: 。选择结束后，Teable 会把录音内容转写到输入框中。
+                - listitem [ref=f16e331]:
+                  - strong [ref=f16e332]: 模型
+                  - text: ：在模型菜单中选择本次对话使用的模型。简单查询、整理、改写可以选择较轻量的模型；复杂规划、跨表分析和应用构建适合选择更强的模型。
+                - listitem [ref=f16e333]:
+                  - strong [ref=f16e334]: 智能
+                  - text: ：在模型菜单中单独选择
+                  - strong [ref=f16e335]: 智能
+                  - text: 级别，用于控制 AI 的思考强度；级别越高，推理越深入。
+                - listitem [ref=f16e336]:
+                  - strong [ref=f16e337]: 密钥管理
+                  - text: ：打开
+                  - strong [ref=f16e338]: +
+                  - text: 菜单，选择
+                  - strong [ref=f16e339]: 密钥管理
+                  - text: ，保存 API Key 或其他凭证。AI 对话运行时可通过环境变量读取这些值。已保存的值不会明文展示；需要修改时，输入新值覆盖即可。
+                - listitem [ref=f16e340]:
+                  - strong [ref=f16e341]: 集成连接
+                  - text: ：当 AI 需要访问第三方账号时，会在对话中显示类似
+                  - strong [ref=f16e342]: 连接 Slack
+                  - text: 的卡片。点击
+                  - strong [ref=f16e343]: 连接
+                  - text: 可通过 OAuth 授权；点击
+                  - strong [ref=f16e344]: 跳过
+                  - text: 会取消本次授权，AI 会在不使用该连接的情况下继续处理可完成的部分。
+                - listitem [ref=f16e345]:
+                  - strong [ref=f16e346]: 技能
+                  - text: ：打开
+                  - strong [ref=f16e347]: +
+                  - text: 菜单，选择
+                  - strong [ref=f16e348]: 技能
+                  - text: ，可以在当前对话中导入、启用、停用或试用技能。导入时需要选择谁能用这个技能：选
+                  - strong [ref=f16e349]: 个人
+                  - text: 只有自己能用，选
+                  - strong [ref=f16e350]: 数据库
+                  - text: 则当前数据库的协作者都能用，选
+                  - strong [ref=f16e351]: 空间
+                  - text: 则当前空间的所有成员都能用。在输入框中输入
+                  - code [ref=f16e352]: /
+                  - text: ，可以选择已启用的技能。需要连接或迁移外部系统时，请参阅
+                  - link "Connect & Migrate Everything" [ref=f16e353] [cursor=pointer]:
+                    - /url: /zh/basic/ai/connect-everything
+                  - text: 。
+                - listitem [ref=f16e354]:
+                  - strong [ref=f16e355]: 上下文用量
+                  - text: ：输入框旁的圆环显示当前对话占用了多少模型上下文窗口，点击可查看百分比和 token 数量。上下文接近用满时，Teable 会压缩对话内容；如果希望从干净的上下文开始，可以新建对话。
+                - listitem [ref=f16e356]:
+                  - strong [ref=f16e357]: 文件管理
+                  - text: ：打开
+                  - strong [ref=f16e358]: +
+                  - text: →
+                  - strong [ref=f16e359]: 更多
+                  - text: →
+                  - strong [ref=f16e360]: 文件管理
+                  - text: ，可以查看当前对话沙箱中的文件。可以预览支持的文件类型、下载文件，也可以删除不再需要的文件或文件夹。需要先开始一段对话，才会有对应文件可管理。
+                - listitem [ref=f16e361]:
+                  - strong [ref=f16e362]: 消息队列
+                  - text: ：AI 还在工作时继续发消息不会打断它，消息会排进输入框上方的队列，等这一轮结束后一起发出。排队项和输入框一样保留表格、视图、附件和选区标签，可以
+                  - strong [ref=f16e363]: 移除
+                  - text: ，也可以用
+                  - strong [ref=f16e364]: …
+                  - text: →
+                  - strong [ref=f16e365]: 编辑消息
+                  - text: 放回输入框；纯文本消息还能点
+                  - strong [ref=f16e366]: 调整方向
+                  - text: ，不等这一轮结束就把这段话交给它。
+              - heading "导航到标题 常见用法" [level=2] [ref=f16e367]:
+                - link "导航到标题" [ref=f16e368] [cursor=pointer]:
+                  - /url: "#常见用法"
+                - generic [ref=f16e373] [cursor=pointer]: 常见用法
+              - generic [ref=f16e374]:
+                - generic [ref=f16e379]:
+                  - heading "创建表格和自动化" [level=2] [ref=f16e380]
+                  - generic [ref=f16e381]: 规划业务数据库，创建表格、视图、应用、自动化，或更新已有记录。
+                - generic [ref=f16e387]:
+                  - heading "分析数据" [level=2] [ref=f16e388]
+                  - generic [ref=f16e389]: 统计当前表格或视图中的数据，也可以结合多个相关节点分析。
+                - generic [ref=f16e395]:
+                  - heading "图表和报告" [level=2] [ref=f16e396]
+                  - generic [ref=f16e397]: 把查询结果做成图表、报告或小型交互页面，随时可以重新打开和分享。
+                - generic [ref=f16e403]:
+                  - heading "阅读文件" [level=2] [ref=f16e404]
+                  - generic [ref=f16e405]: 结合 PDF、Excel、Word、图片等附件回答问题。
+              - heading "导航到标题 创建表格和自动化" [level=3] [ref=f16e407]:
+                - link "导航到标题" [ref=f16e408] [cursor=pointer]:
+                  - /url: "#创建表格和自动化"
+                - generic [ref=f16e413] [cursor=pointer]: 创建表格和自动化
+              - generic [ref=f16e414]: AI 不只回答问题，也可以协助创建、更新或整理数据。对于新的业务场景，可以先和 AI 讨论数据结构，再让它继续创建表格、视图、应用和自动化。
+              - generic [ref=f16e415]: 适合这样使用：
+              - list [ref=f16e416]:
+                - listitem [ref=f16e417]: 先帮我规划一个客户跟进系统，需要哪些表和字段？
+                - listitem [ref=f16e418]: 按刚才的规划，帮我创建这些表格、视图和字段。
+                - listitem [ref=f16e419]: 给任务表添加优先级、负责人、截止时间和状态字段，并创建常用视图。
+                - listitem [ref=f16e420]: 把选中的记录状态改成已完成。
+                - listitem [ref=f16e421]: 根据这个 Excel 创建一张新表，并检查字段类型是否合适。
+                - listitem [ref=f16e422]: 基于这个客户表创建一个 CRM 应用，包含客户列表、客户详情和跟进记录页面。
+                - listitem [ref=f16e423]: 当新订单创建时，自动通知负责人，并包含订单号、客户名称和金额。
+              - generic [ref=f16e424]: 如果你要搭建完整业务数据库，可以先让 AI 规划表结构，再继续让它根据计划创建表格、视图、应用和自动化。
+              - list [ref=f16e425]:
+                - listitem [ref=f16e426]:
+                  - generic [ref=f16e428]: "1"
+                  - generic [ref=f16e431]:
+                    - paragraph [ref=f16e432]: 先梳理
+                    - generic [ref=f16e433]: 说明业务目标，例如我要搭一个客户跟进系统，让 AI 先整理需要哪些表格、字段、视图和自动化。
+                - listitem [ref=f16e435]:
+                  - generic [ref=f16e437]: "2"
+                  - generic [ref=f16e440]:
+                    - paragraph [ref=f16e441]: 确认结构
+                    - generic [ref=f16e442]: 检查 AI 给出的表格、字段、字段类型和关联关系，补充缺少的规则或流程。
+                - listitem [ref=f16e444]:
+                  - generic [ref=f16e446]: "3"
+                  - generic [ref=f16e449]:
+                    - paragraph [ref=f16e450]: 再创建
+                    - generic [ref=f16e451]: 让 AI 根据确认后的计划创建表格和视图，再继续补充应用或自动化。
+              - generic [ref=f16e453]:
+                - text: 更多应用创建说明，请参考
+                - link "应用构建器" [ref=f16e454] [cursor=pointer]:
+                  - /url: /zh/basic/ai/app-builder
+                - text: 。更多自动化说明，请参考
+                - link "自动化" [ref=f16e455] [cursor=pointer]:
+                  - /url: /zh/basic/automation
+                - text: 。
+              - heading "导航到标题 分析数据" [level=3] [ref=f16e456]:
+                - link "导航到标题" [ref=f16e457] [cursor=pointer]:
+                  - /url: "#分析数据"
+                - generic [ref=f16e462] [cursor=pointer]: 分析数据
+              - generic [ref=f16e463]: 你可以直接问当前表格里的数据问题，例如：
+              - list [ref=f16e464]:
+                - listitem [ref=f16e465]: 按负责人统计本月完成的任务数量。
+                - listitem [ref=f16e466]: 找出过去 30 天销售额最高的客户。
+                - listitem [ref=f16e467]: 帮我分析这个视图里的异常记录。
+              - generic [ref=f16e468]:
+                - text: 如果问题涉及多个表格，建议用
+                - code [ref=f16e469]: "@"
+                - text: 把相关表格或视图加入对话。
+              - generic [ref=f16e470]:
+                - text: 在表格视图中，你也可以选中行、列、单个单元格或单元格区域，然后从右键菜单选择
+                - strong [ref=f16e471]: 添加到 AI 对话
+                - text: 。选区会以标签形式进入输入框；点击标签时，会重新高亮对应的表格区域。列选区标签会优先显示字段名；列数较多时，只显示前几个字段名和剩余数量。
+              - heading "导航到标题 生成图表和报告" [level=3] [ref=f16e472]:
+                - link "导航到标题" [ref=f16e473] [cursor=pointer]:
+                  - /url: "#生成图表和报告"
+                - generic [ref=f16e478] [cursor=pointer]: 生成图表和报告
+              - generic [ref=f16e479]: 让 AI 把查询到的数据做成图表、书面报告或小型交互页面：
+              - list [ref=f16e480]:
+                - listitem [ref=f16e481]: 按周生成销售趋势图。
+                - listitem [ref=f16e482]: 把这个查询结果做成饼图。
+                - listitem [ref=f16e483]: 基于这些记录生成一份汇总报告。
+              - generic [ref=f16e484]:
+                - text: 这些结果会以
+                - strong [ref=f16e485]: Artifact
+                - text: 的形式生成：在对话中显示为一张卡片，在独立的查看器中打开，对话结束后仍然可以再次访问。具体用法见
+                - link "Artifact" [ref=f16e486] [cursor=pointer]:
+                  - /url: "#artifact"
+                - text: 。
+              - note "信息" [ref=f16e487]:
+                - generic [ref=f16e492]:
+                  - text: Artifact 保存的是 AI 生成它时写入的数据，不会自动刷新。如果需要持续读取表格最新数据，或者需要收集输入、保存状态的页面，请用
+                  - link "应用构建器" [ref=f16e493] [cursor=pointer]:
+                    - /url: /zh/basic/ai/app-builder
+                  - text: 创建应用。
+              - heading "导航到标题 阅读文件" [level=3] [ref=f16e494]:
+                - link "导航到标题" [ref=f16e495] [cursor=pointer]:
+                  - /url: "#阅读文件"
+                - generic [ref=f16e500] [cursor=pointer]: 阅读文件
+              - generic [ref=f16e501]: 上传文件后，可以让 AI 结合文件和表格数据回答问题：
+              - list [ref=f16e502]:
+                - listitem [ref=f16e503]: 总结这个 PDF，并和当前客户记录关联起来。
+                - listitem [ref=f16e504]: 读取这个 Excel，帮我找出需要导入的字段。
+                - listitem [ref=f16e505]: 根据这张图片生成产品描述。
+              - generic [ref=f16e506]:
+                - text: 上传到对话中的文件，以及对话中生成的文件，会保存在当前对话沙箱中，之后可通过
+                - strong [ref=f16e507]: 文件管理
+                - text: 查看。
+              - generic [ref=f16e508]:
+                - text: 当一条回复同时生成多个文件时，可以点击文件卡片下方的
+                - strong [ref=f16e509]: 下载全部
+                - text: ，把它们打包成一个压缩包下载。
+              - heading "导航到标题 记忆" [level=3] [ref=f16e510]:
+                - link "导航到标题" [ref=f16e511] [cursor=pointer]:
+                  - /url: "#记忆"
+                - generic [ref=f16e516] [cursor=pointer]: 记忆
+              - generic [ref=f16e517]: 记忆用于保存你明确要求 Cuppy 记住的信息。记忆会按用户和数据库隔离：每个用户在每个数据库中都有独立的记忆，保存在其他数据库中的记忆不会自动出现在当前数据库。
+              - list [ref=f16e518]:
+                - listitem [ref=f16e519]: 记住当前数据库的信息
+              - generic [ref=f16e520]: 在对话中直接说明要记住的内容：
+              - generic [ref=f16e521]:
+                - generic [ref=f16e523]:
+                  - button "复制代码块内容" [ref=f16e524] [cursor=pointer]
+                  - status [ref=f16e528]
+                - code [ref=f16e532]:
+                  - generic [ref=f16e533]: 请记住 xxx。
+              - list [ref=f16e534]:
+                - listitem [ref=f16e535]: 复用其他数据库的记忆
+              - generic [ref=f16e536]: 让 Cuppy 读取指定数据库，并把相关内容保存到当前数据库：
+              - generic [ref=f16e537]:
+                - generic [ref=f16e539]:
+                  - button "复制代码块内容" [ref=f16e540] [cursor=pointer]
+                  - status [ref=f16e544]
+                - code [ref=f16e548]:
+                  - generic [ref=f16e549]: Cuppy，请读取数据库 ID bsexxxxxxxxxxxx 的记忆，并把相关记忆保存到当前数据库。
+              - heading "导航到标题 处理长任务" [level=3] [ref=f16e550]:
+                - link "导航到标题" [ref=f16e551] [cursor=pointer]:
+                  - /url: "#处理长任务"
+                - generic [ref=f16e556] [cursor=pointer]: 处理长任务
+              - generic [ref=f16e557]: AI 对话的单次对话环境最长可运行约 24 小时，足以完成大多数数据分析、文件处理和应用构建任务。执行长任务时，请保留当前对话，以便查看进度，并在需要时补充信息。
+              - list [ref=f16e558]:
+                - listitem [ref=f16e559]:
+                  - generic [ref=f16e561]: "1"
+                  - generic [ref=f16e564]:
+                    - paragraph [ref=f16e565]: 在当前对话中查看进度
+                    - generic [ref=f16e567]:
+                      - text: 如果界面显示
+                      - code [ref=f16e568]: Thinking
+                      - text: ，或仍在持续返回进度，说明任务仍在运行。如果显示
+                      - code [ref=f16e569]: Completed
+                      - text: ，说明本次运行已结束。
+                - listitem [ref=f16e570]:
+                  - generic [ref=f16e572]: "2"
+                  - generic [ref=f16e575]:
+                    - paragraph [ref=f16e576]: 在关键节点保存结果
+                    - generic [ref=f16e577]: 对于包含多个阶段的任务，可以让 Cuppy 在关键节点把结果写回 Teable、导出结果，或生成可下载文件。即使对话环境之后被释放，已保存的工作仍可继续使用。
+                - listitem [ref=f16e579]:
+                  - generic [ref=f16e581]: "3"
+                  - generic [ref=f16e584]:
+                    - paragraph [ref=f16e585]: 了解环境何时释放
+                    - generic [ref=f16e586]: 单次对话环境的最长生命周期约为 24 小时。前台执行结束后，闲置环境大约会在 30 分钟后被释放。如果 AI 运行环境重启，临时文件和未保存的中间结果不会被保留。
+              - generic [ref=f16e588]: 对于长时间或重复性任务，建议根据处理方式选择更合适的功能：
+              - generic [ref=f16e589]:
+                - link [ref=f16e590] [cursor=pointer]:
+                  - link [ref=f16e592]:
+                    - /url: /zh/basic/field/ai/ai-field
+                    - generic [ref=f16e595]:
+                      - heading [level=2] [ref=f16e596]: AI 字段
+                      - generic [ref=f16e597]: 适合逐条记录处理，例如大型表格处理、批量分类、内容处理或填充字段。
+                - link [ref=f16e599] [cursor=pointer]:
+                  - link [ref=f16e601]:
+                    - /url: /zh/basic/automation
+                    - generic [ref=f16e604]:
+                      - heading [level=2] [ref=f16e605]: 自动化
+                      - generic [ref=f16e606]: 适合在记录创建或更新后重复执行、发送通知，或按计划处理数据。
+              - heading "导航到标题 Artifact" [level=2] [ref=f16e608]:
+                - link "导航到标题" [ref=f16e609] [cursor=pointer]:
+                  - /url: "#artifact"
+                - generic [ref=f16e614] [cursor=pointer]: Artifact
+              - generic [ref=f16e615]:
+                - text: AI 生成图表、报告、看板式页面或小型交互工具时，会把结果保存为
+                - strong [ref=f16e616]: Artifact
+                - text: ：一个独立成页、在对话之外渲染的页面。Artifact 在对话中显示为卡片，之后一直可用，形式是可交互的 HTML 页面或 Markdown 报告。
+              - generic [ref=f16e617]: 点击卡片即可打开 Artifact。在查看器中可以：
+              - list [ref=f16e618]:
+                - listitem [ref=f16e619]:
+                  - text: 用
+                  - strong [ref=f16e620]: 全屏
+                  - text: 或
+                  - strong [ref=f16e621]: 在新页面打开
+                  - text: 获得更大的显示区域。
+                - listitem [ref=f16e622]:
+                  - strong [ref=f16e623]: 下载
+                  - text: 当前版本的文件。
+                - listitem [ref=f16e624]:
+                  - text: 展开版本列表查看历史版本，用
+                  - strong [ref=f16e625]: 恢复此版本
+                  - text: 把它设为当前版本。
+                - listitem [ref=f16e626]:
+                  - strong [ref=f16e627]: 删除
+                  - text: 该 Artifact。删除后对话里的卡片会显示为已删除，因此确认不再需要这个结果时再删。
+              - generic [ref=f16e628]:
+                - text: 要修改 Artifact，在同一段对话里告诉 AI 即可。每次修改是同一个 Artifact 的新版本，而不是新建一个，因此分享链接继续有效，也仍然可以回到旧版本。如果页面运行出错，查看器会显示报错，并提供
+                - strong [ref=f16e629]: 让 AI 修复
+                - text: ，把错误信息带回对话继续修。
+              - heading "导航到标题 分享 Artifact" [level=3] [ref=f16e630]:
+                - link "导航到标题" [ref=f16e631] [cursor=pointer]:
+                  - /url: "#分享-artifact"
+                - generic [ref=f16e636] [cursor=pointer]: 分享 Artifact
+              - generic [ref=f16e637]: Artifact 默认只有创建者本人能打开，要让别人查看，需要开启分享链接。
+              - list [ref=f16e638]:
+                - listitem [ref=f16e639]:
+                  - generic [ref=f16e641]: "1"
+                  - generic [ref=f16e644]:
+                    - paragraph [ref=f16e645]: 开启分享
+                    - generic [ref=f16e647]:
+                      - text: 在查看器中点击
+                      - strong [ref=f16e648]: 分享
+                      - text: ，打开
+                      - strong [ref=f16e649]: 开启分享
+                      - text: ，Teable 会生成链接。
+                - listitem [ref=f16e650]:
+                  - generic [ref=f16e652]: "2"
+                  - generic [ref=f16e655]:
+                    - paragraph [ref=f16e656]: 设置可见范围
+                    - generic [ref=f16e658]:
+                      - text: 把
+                      - strong [ref=f16e659]: 可见范围
+                      - text: 设为
+                      - strong [ref=f16e660]: 任何拥有链接的人
+                      - text: ，或设为
+                      - strong [ref=f16e661]: 空间成员
+                      - text: ，只允许已登录的空间成员打开。
+                - listitem [ref=f16e662]:
+                  - generic [ref=f16e664]: "3"
+                  - generic [ref=f16e667]:
+                    - paragraph [ref=f16e668]: 设置密码（可选）
+                    - generic [ref=f16e670]:
+                      - text: 在高级设置中开启
+                      - strong [ref=f16e671]: 密码保护
+                      - text: 并设置密码，访问者需要先输入密码才能看到内容。
+                - listitem [ref=f16e672]:
+                  - generic [ref=f16e674]: "4"
+                  - generic [ref=f16e677]:
+                    - paragraph [ref=f16e678]: 发送链接
+                    - generic [ref=f16e680]:
+                      - text: 点击
+                      - strong [ref=f16e681]: 复制链接
+                      - text: 复制。如果链接扩散范围超出预期，用
+                      - strong [ref=f16e682]: 重置链接
+                      - text: 换一条新链接，原链接随即失效。
+              - heading "导航到标题 找回之前的 Artifact" [level=3] [ref=f16e683]:
+                - link "导航到标题" [ref=f16e684] [cursor=pointer]:
+                  - /url: "#找回之前的-artifact"
+                - generic [ref=f16e689] [cursor=pointer]: 找回之前的 Artifact
+              - generic [ref=f16e690]:
+                - text: 打开
+                - strong [ref=f16e691]: +
+                - text: →
+                - strong [ref=f16e692]: 更多
+                - text: →
+                - strong [ref=f16e693]: Artifact 管理
+                - text: ，可以浏览你在各个对话中创建的全部 Artifact。按名称搜索后打开，即可查看或重新分享。
+              - heading "导航到标题 提问建议" [level=2] [ref=f16e694]:
+                - link "导航到标题" [ref=f16e695] [cursor=pointer]:
+                  - /url: "#提问建议"
+                - generic [ref=f16e700] [cursor=pointer]: 提问建议
+              - list [ref=f16e701]:
+                - listitem [ref=f16e702]:
+                  - strong [ref=f16e703]: 先说明目标
+                  - text: ：第一条消息尽量写清楚你想做什么、有哪些条件、希望输出成什么样，例如分析过去 3 个月每周销售趋势，按地区分组，并输出一张趋势表和简短结论。
+                - listitem [ref=f16e704]:
+                  - strong [ref=f16e705]: 写清字段名
+                  - text: ：比如按
+                  - code [ref=f16e706]: 创建时间
+                  - text: 排序，方便 AI 理解你要操作哪一列数据。
+                - listitem [ref=f16e707]:
+                  - strong [ref=f16e708]: 提供多样本示例
+                  - text: ：需要固定格式输出时，可以提供 3-5 组输入 -> 期望输出示例。
+                - listitem [ref=f16e709]:
+                  - strong [ref=f16e710]:
+                    - text: 用
+                    - code [ref=f16e711]: "@"
+                    - text: 选择节点
+                  - text: ：需要参考表格、视图、应用、自动化或文件夹时，直接输入
+                  - code [ref=f16e712]: "@"
+                  - text: 选择节点。
+                - listitem [ref=f16e713]:
+                  - strong [ref=f16e714]: 先确认再执行
+                  - text: ：会修改数据、创建表格、创建应用或启用自动化时，建议先让 AI 说明将要做哪些改动。
+                - listitem [ref=f16e715]:
+                  - strong [ref=f16e716]: 按任务选择模型
+                  - text: ：如果你的空间支持选择模型，简单查询、整理、改写可以使用较轻量的模型；复杂规划、跨表分析、应用构建再使用更强模型。
+                - listitem [ref=f16e717]:
+                  - strong [ref=f16e718]: 调整智能级别
+                  - text: ：
+                  - strong [ref=f16e719]: 智能
+                  - text: 级别会影响 AI 的思考强度；级别越高，推理越深入。
+                - listitem [ref=f16e720]:
+                  - strong [ref=f16e721]: 换主题时新开对话
+                  - text: ：话题变化、对话太长，或想减少上下文消耗时，建议新开一个对话。
+              - heading "导航到标题 常见问题" [level=2] [ref=f16e722]:
+                - link "导航到标题" [ref=f16e723] [cursor=pointer]:
+                  - /url: "#常见问题"
+                - generic [ref=f16e728] [cursor=pointer]: 常见问题
+              - generic [ref=f16e729]:
+                - group [ref=f16e730]:
+                  - paragraph [ref=f16e735] [cursor=pointer]: 如何让 AI 对话参考其他表格、视图、应用或自动化？
+                - group [ref=f16e736]:
+                  - paragraph [ref=f16e741] [cursor=pointer]: AI 生成的图表和报告会保存吗？
+                - group [ref=f16e742]:
+                  - paragraph [ref=f16e747] [cursor=pointer]: 同事能打开我创建的 Artifact 吗？
+                - group [ref=f16e748]:
+                  - paragraph [ref=f16e753] [cursor=pointer]: 记忆会跨数据库生效吗？
+                - group [ref=f16e754]:
+                  - paragraph [ref=f16e759] [cursor=pointer]: AI 对话可以作为后台任务运行吗？
+                - group [ref=f16e760]:
+                  - paragraph [ref=f16e765] [cursor=pointer]: 为什么提示 Cuppy 正在另一个对话中执行？
+                - group [ref=f16e766]:
+                  - paragraph [ref=f16e771] [cursor=pointer]: AI 运行失败时如何返还算力？
+                - group [ref=f16e772]:
+                  - paragraph [ref=f16e777] [cursor=pointer]: AI 正在工作时继续发消息，会发生什么？
+                - group [ref=f16e778]:
+                  - paragraph [ref=f16e783] [cursor=pointer]: 队列为什么显示已暂停？
+                - group [ref=f16e784]:
+                  - paragraph [ref=f16e789] [cursor=pointer]: 如何在 AI 对话中使用技能？
+                - group [ref=f16e790]:
+                  - paragraph [ref=f16e795] [cursor=pointer]: 有同名技能时，实际生效的是哪一个？
+                - group [ref=f16e796]:
+                  - paragraph [ref=f16e801] [cursor=pointer]: 哪些文件会保留在文件管理里？
+                - group [ref=f16e802]:
+                  - paragraph [ref=f16e807] [cursor=pointer]: 复制带标签的消息时会保留什么？
+                - group [ref=f16e808]:
+                  - paragraph [ref=f16e813] [cursor=pointer]: AI 对话需要 API Key 时，应该放在哪里？
+            - generic [ref=f16e814]: 最后修改于 2026年8月31日
+            - generic [ref=f16e816]:
+              - paragraph [ref=f16e817]: 此页面对您有帮助吗？
+              - generic [ref=f16e819]:
+                - button "是" [ref=f16e820] [cursor=pointer]
+                - button "否" [ref=f16e825] [cursor=pointer]
+            - navigation "Pagination" [ref=f16e830]:
+              - 'link "上一页: 概览" [ref=f16e831] [cursor=pointer]':
+                - /url: /zh/basic/ai/overview
+                - generic [ref=f16e834]: 概览
+              - 'link "下一页: 应用构建器" [ref=f16e835] [cursor=pointer]':
+                - /url: /zh/basic/ai/app-builder
+                - generic [ref=f16e836]: 应用构建器
+            - link "技术支持 This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=f16e842] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=teablecn
+              - generic [ref=f16e843]: 技术支持
+              - generic [ref=f16e853]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=f16e854]

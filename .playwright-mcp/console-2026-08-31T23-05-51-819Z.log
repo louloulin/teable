@@ -1,0 +1,42 @@
+[   36553ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3001/auth/login?redirect=%2Fspace:0
+[   36696ms] Error: Minified React error #425; visit https://reactjs.org/docs/error-decoder.html?invariant=425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rh (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:44120)
+    at http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:104493
+    at oO (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:110001)
+    at oD (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102952)
+    at oR (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102762)
+    at oS (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:97835)
+    at E (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:1492)
+    at MessagePort.L (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:2013)
+[   36696ms] Error: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at lg (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:50410)
+    at i (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:124904)
+    at oD (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102892)
+    at oR (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102762)
+    at oS (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:97835)
+    at E (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:1492)
+    at MessagePort.L (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:2013)
+[   36696ms] Error: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at lg (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:50410)
+    at i (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:124904)
+    at oD (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102892)
+    at oR (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102762)
+    at oS (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:97835)
+    at E (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:1492)
+    at MessagePort.L (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:2013)
+[   36696ms] Error: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at lg (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:50410)
+    at i (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:124904)
+    at oD (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102892)
+    at oR (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102762)
+    at oS (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:97835)
+    at E (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:1492)
+    at MessagePort.L (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:2013)
+[   36696ms] Error: Minified React error #423; visit https://reactjs.org/docs/error-decoder.html?invariant=423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at i (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:124563)
+    at oD (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102892)
+    at oR (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:102762)
+    at ox (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:99533)
+    at oS (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:98088)
+    at E (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:1492)
+    at MessagePort.L (http://127.0.0.1:3001/_next/static/chunks/b270fa11873f5cb2.js:1:2013)

@@ -1,0 +1,43 @@
+[     588ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:3001/_next/static/chunks/c21e6_react-dom_cjs_react-dom_development_db335baa.js:25055
+[     652ms] [LOG] [HMR] connected @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[     654ms] [WARNING] [HMR] Invalid message: {"type":"isrManifest","data":{"/auth/login":false}}
+TypeError: Cannot read properties of undefined (reading 'components')
+    at handleStaticIndicator (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2952:46)
+    at processMessage (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2966:17)
+    at http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2840:13
+    at WebSocket.handleMessage (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2450:17) @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[     786ms] [ERROR] Warning: Prop `%s` did not match. Server: %s Client: %s%s className "bg-zinc-100 bg-opacity-25 dark:bg-zinc-900 dark:bg-opacity-25 size-10 rounded-md" "bg-zinc-100 dark:bg-zinc-900 size-10 rounded-md" 
+    at div
+    at Rectangles (http://127.0.0.1:3001/_next/static/chunks/apps_nextjs-app_src_4d4def25._.js:292:23)
+    at div
+    at div
+    at DescContent (http://127.0.0.1:3001/_next/static/chunks/apps_nextjs-app_src_4d4def25._.js:344:362)
+    at div
+    at div
+    at div
+    at http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:7169:26
+    at http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:7712:32
+    at div
+    at http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:7169:26
+    at Provider (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:7428:28)
+    at http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:7660:32
+    at _c (http://127.0.0.1:3001/_next/static/chunks/packages_6eecbca4._.js:566:230)
+    at LoginPage (http://127.0.0.1:3001/_next/static/chunks/apps_nextjs-app_src_4d4def25._.js:2071:13)
+    at HydrationBoundary (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:632:28)
+    at QueryClientProvider (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1b8fd794._.js:589:30)
+    at LoginRoute (http://127.0.0.1:3001/_next/static/chunks/apps_nextjs-app_src_4d4def25._.js:2298:217)
+    at ConfirmModalProvider (http://127.0.0.1:3001/_next/static/chunks/%5Broot-of-the-server%5D__1f047015._.js:3648:33)
+    at B (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1488729a._.js:17311:24)
+    at K (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1488729a._.js:17306:200)
+    at AppProviders (http://127.0.0.1:3001/_next/static/chunks/%5Broot-of-the-server%5D__1f047015._.js:4220:13)
+    at MyApp (http://127.0.0.1:3001/_next/static/chunks/%5Broot-of-the-server%5D__1f047015._.js:4341:13)
+    at I18nextProvider (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1488729a._.js:2093:11)
+    at AppWithTranslation (http://127.0.0.1:3001/_next/static/chunks/node_modules__pnpm_1488729a._.js:3244:26)
+    at PathnameContextProviderAdapter (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_shared_lib_f2f8e648._.js:6317:43)
+    at PagesDevOverlayErrorBoundary (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:2913:9)
+    at PagesDevOverlayBridge (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3725:34)
+    at Container (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:3336:1)
+    at AppContainer (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:3435:25)
+    at Root (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:3644:17) @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3751
+[   17533ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[   55685ms] [LOG] [Fast Refresh] done in 38252ms @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016

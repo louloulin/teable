@@ -1,0 +1,357 @@
+- generic [active] [ref=f13e1]:
+  - blockquote [ref=f13e2]:
+    - heading [level=2] [ref=f13e3]: Documentation Index
+    - paragraph [ref=f13e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f13e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f13e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f13e7]:
+    - link "跳转到主要内容" [ref=f13e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f13e10]:
+      - banner [ref=f13e11]:
+        - generic [ref=f13e13]:
+          - paragraph [ref=f13e15]:
+            - text: 🚀 Teable 现已支持阿拉伯语、意大利语和西班牙语！查看
+            - link "更新日志" [ref=f13e16] [cursor=pointer]:
+              - /url: /zh/changelog#2026-08-25
+            - text: 了解详情。
+          - button "关闭横幅" [ref=f13e17] [cursor=pointer]
+        - generic [ref=f13e23]:
+          - generic [ref=f13e26]:
+            - generic [ref=f13e27]:
+              - link "Teable home page light logo" [ref=f13e28] [cursor=pointer]:
+                - /url: https://teable.ai
+                - generic [ref=f13e29]: Teable home page
+                - img "light logo" [ref=f13e30]
+              - button "简体中文" [ref=f13e31] [cursor=pointer]
+            - button "打开搜索" [ref=f13e36] [cursor=pointer]:
+              - generic [ref=f13e37]: 搜索...
+              - generic [ref=f13e42]: ⌘K
+            - generic [ref=f13e43]:
+              - navigation "Main" [ref=f13e44]:
+                - list [ref=f13e45]:
+                  - listitem [ref=f13e46]:
+                    - link "支持" [ref=f13e47] [cursor=pointer]:
+                      - /url: https://community.teable.ai/
+              - button "Change theme preference" [ref=f13e51] [cursor=pointer]
+          - generic [ref=f13e57]:
+            - link "功能文档" [ref=f13e58] [cursor=pointer]:
+              - /url: /zh/basic/ai/overview
+            - link "私有化部署" [ref=f13e60] [cursor=pointer]:
+              - /url: /zh/deploy/activate
+            - link "API 文档" [ref=f13e62] [cursor=pointer]:
+              - /url: /zh/api-doc/overview
+            - link "安全" [ref=f13e64] [cursor=pointer]:
+              - /url: /zh/basic/security
+            - link "更新日志" [ref=f13e66] [cursor=pointer]:
+              - /url: /zh/changelog
+      - generic [ref=f13e68]:
+        - navigation "Pages" [ref=f13e69]:
+          - generic [ref=f13e72]:
+            - generic [ref=f13e73]:
+              - heading "AI" [level=3] [ref=f13e75]
+              - list [ref=f13e76]:
+                - listitem [ref=f13e77]:
+                  - link "概览" [ref=f13e78] [cursor=pointer]:
+                    - /url: /zh/basic/ai/overview
+                - listitem [ref=f13e82]:
+                  - link "AI 对话" [ref=f13e83] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                - listitem [ref=f13e87]:
+                  - button "应用构建器" [ref=f13e88] [cursor=pointer]
+                - listitem [ref=f13e93]:
+                  - link "AI 字段" [ref=f13e94] [cursor=pointer]:
+                    - /url: /zh/basic/field/ai/ai-field
+                - listitem [ref=f13e98]:
+                  - link "自定义 AI 模型" [ref=f13e99] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                - listitem [ref=f13e103]:
+                  - link "将 AI Agent 连接到 Teable" [ref=f13e104] [cursor=pointer]:
+                    - /url: /zh/basic/ai/teable-skill
+                - listitem [ref=f13e108]:
+                  - button "Connect & Migrate Everything" [ref=f13e109] [cursor=pointer]
+            - generic [ref=f13e114]:
+              - heading "空间" [level=3] [ref=f13e116]
+              - list [ref=f13e117]:
+                - listitem [ref=f13e118]:
+                  - link "概览" [ref=f13e119] [cursor=pointer]:
+                    - /url: /zh/basic/space
+                - listitem [ref=f13e123]:
+                  - link "空间邀请" [ref=f13e124] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-invite
+                - listitem [ref=f13e128]:
+                  - link "数据库邀请" [ref=f13e129] [cursor=pointer]:
+                    - /url: /zh/basic/space/base-invite
+                - listitem [ref=f13e133]:
+                  - link "协作权限明细" [ref=f13e134] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                - listitem [ref=f13e138]:
+                  - link "账单与订阅" [ref=f13e139] [cursor=pointer]:
+                    - /url: /zh/basic/space/billing
+                - listitem [ref=f13e143]:
+                  - link "IM 集成" [ref=f13e144] [cursor=pointer]:
+                    - /url: /zh/basic/space/im-integration
+            - generic [ref=f13e148]:
+              - heading "自动化" [level=3] [ref=f13e150]
+              - list [ref=f13e151]:
+                - listitem [ref=f13e152]:
+                  - link "概览" [ref=f13e153] [cursor=pointer]:
+                    - /url: /zh/basic/automation
+                - listitem [ref=f13e157]:
+                  - button "触发器" [ref=f13e158] [cursor=pointer]
+                - listitem [ref=f13e163]:
+                  - button "操作" [ref=f13e164] [cursor=pointer]
+                - listitem [ref=f13e169]:
+                  - button "示例" [ref=f13e170] [cursor=pointer]
+            - generic [ref=f13e175]:
+              - heading "数据库" [level=3] [ref=f13e177]
+              - list [ref=f13e178]:
+                - listitem [ref=f13e179]:
+                  - link "概览" [ref=f13e180] [cursor=pointer]:
+                    - /url: /zh/basic/base
+                - listitem [ref=f13e184]:
+                  - button "表格" [ref=f13e185] [cursor=pointer]
+                - listitem [ref=f13e190]:
+                  - button "字段" [ref=f13e191] [cursor=pointer]
+                - listitem [ref=f13e196]:
+                  - button "记录" [ref=f13e197] [cursor=pointer]
+                - listitem [ref=f13e202]:
+                  - button "视图" [ref=f13e203] [cursor=pointer]
+            - generic [ref=f13e208]:
+              - heading "权限矩阵" [level=3] [ref=f13e210]
+              - list [ref=f13e211]:
+                - listitem [ref=f13e212]:
+                  - button "权限矩阵" [ref=f13e213] [cursor=pointer]
+            - generic [ref=f13e218]:
+              - heading "SSO" [level=3] [ref=f13e220]
+              - list [ref=f13e221]:
+                - listitem [ref=f13e222]:
+                  - link "单点登录 (SSO)" [ref=f13e223] [cursor=pointer]:
+                    - /url: /zh/basic/sso/overview
+                - listitem [ref=f13e227]:
+                  - link "Azure Entra ID SSO" [ref=f13e228] [cursor=pointer]:
+                    - /url: /zh/basic/sso/azure-entra-id
+                - listitem [ref=f13e232]:
+                  - link "Okta SSO" [ref=f13e233] [cursor=pointer]:
+                    - /url: /zh/basic/sso/okta
+                - listitem [ref=f13e237]:
+                  - link "Google Workspace SSO" [ref=f13e238] [cursor=pointer]:
+                    - /url: /zh/basic/sso/google-workspace
+                - listitem [ref=f13e242]:
+                  - link "Auth0 SSO" [ref=f13e243] [cursor=pointer]:
+                    - /url: /zh/basic/sso/auth0
+                - listitem [ref=f13e247]:
+                  - link "OneLogin SSO" [ref=f13e248] [cursor=pointer]:
+                    - /url: /zh/basic/sso/onelogin
+                - listitem [ref=f13e252]:
+                  - link "Authentik SSO" [ref=f13e253] [cursor=pointer]:
+                    - /url: /zh/basic/sso/authentik
+                - listitem [ref=f13e257]:
+                  - link "飞书" [ref=f13e258] [cursor=pointer]:
+                    - /url: /zh/basic/sso/feishu
+            - generic [ref=f13e262]:
+              - heading "横向对比" [level=3] [ref=f13e264]
+              - list [ref=f13e265]:
+                - listitem [ref=f13e266]:
+                  - link "Teable VS Excel" [ref=f13e267] [cursor=pointer]:
+                    - /url: /zh/compare/teable-vs-excel
+        - main [ref=f13e271]:
+          - generic [ref=f13e273]:
+            - generic [ref=f13e274]:
+              - heading "自定义 AI 模型" [level=1] [ref=f13e277]
+              - paragraph [ref=f13e279]: 为 AI 字段、自动化、AI 对话、应用构建器等功能添加自定义模型提供商。
+            - generic [ref=f13e280]:
+              - note "提示" [ref=f13e281]:
+                - generic [ref=f13e285]: Pro 版及以上适用
+              - heading "导航到标题 配置入口" [level=2] [ref=f13e286]:
+                - link "导航到标题" [ref=f13e287] [cursor=pointer]:
+                  - /url: "#配置入口"
+                - generic [ref=f13e292] [cursor=pointer]: 配置入口
+              - list [ref=f13e293]:
+                - listitem [ref=f13e294]: 打开目标空间。
+                - listitem [ref=f13e295]:
+                  - text: 点击右上角
+                  - strong [ref=f13e296]: 设置
+                  - text: 。
+                - listitem [ref=f13e297]:
+                  - text: 进入
+                  - strong [ref=f13e298]: AI 配置
+                  - text: 。
+              - generic [ref=f13e299]:
+                - img "AI 配置页面" [ref=f13e302]
+                - generic:
+                  - 'button "Expand image: AI 配置页面"'
+              - heading "导航到标题 配置步骤" [level=2] [ref=f13e303]:
+                - link "导航到标题" [ref=f13e304] [cursor=pointer]:
+                  - /url: "#配置步骤"
+                - generic [ref=f13e309] [cursor=pointer]: 配置步骤
+              - generic [ref=f13e310]:
+                - text: 在
+                - strong [ref=f13e311]: AI 能力
+                - text: 中按需开启：
+              - list [ref=f13e312]:
+                - listitem [ref=f13e313]:
+                  - strong [ref=f13e314]: AI 字段
+                - listitem [ref=f13e315]:
+                  - strong [ref=f13e316]: AI 聊天
+              - generic [ref=f13e317]:
+                - text: 开启
+                - strong [ref=f13e318]: AI 聊天
+                - text: 表示允许空间使用聊天功能。
+              - heading "导航到标题 添加模型提供商" [level=3] [ref=f13e319]:
+                - link "导航到标题" [ref=f13e320] [cursor=pointer]:
+                  - /url: "#添加模型提供商"
+                - generic [ref=f13e325] [cursor=pointer]: 添加模型提供商
+              - note "注意" [ref=f13e326]:
+                - generic [ref=f13e331]:
+                  - text: 添加新的 LLM 提供商时，提供商类型请选择
+                  - strong [ref=f13e332]: OpenAI
+                  - text: 、
+                  - strong [ref=f13e333]: Anthropic
+                  - text: 或
+                  - strong [ref=f13e334]: OpenAI Compatible
+                  - text: （OpenAI 兼容）。如果服务商提供 OpenAI 兼容接口，请选择
+                  - strong [ref=f13e335]: OpenAI Compatible
+                  - text: 。如果任务涉及图片、截图等视觉输入，请选择支持视觉能力的模型；不支持视觉的模型会导致这类多模态任务报错。
+              - generic [ref=f13e336]:
+                - text: 点击
+                - strong [ref=f13e337]: 添加模型提供商
+                - text: ，填写以下信息：
+              - list [ref=f13e338]:
+                - listitem [ref=f13e339]:
+                  - strong [ref=f13e340]: 名称
+                  - text: ：用于区分不同的模型提供商。
+                - listitem [ref=f13e341]:
+                  - strong [ref=f13e342]: 提供商类型
+                  - text: ：选择服务商类型。
+                - listitem [ref=f13e343]:
+                  - strong [ref=f13e344]: 基础 URL
+                  - text: ：填写服务商的 API 地址。
+                - listitem [ref=f13e345]:
+                  - strong [ref=f13e346]: API 密钥
+                  - text: ：填写服务商提供的 API 密钥。
+                - listitem [ref=f13e347]:
+                  - strong [ref=f13e348]: 模型
+                  - text: ：填写要接入的模型名称，多个模型之间使用英文逗号分隔。
+              - generic [ref=f13e349]:
+                - img "添加模型提供商弹窗" [ref=f13e352]
+                - generic:
+                  - 'button "Expand image: 添加模型提供商弹窗"'
+              - heading "导航到标题 测试模型能力" [level=3] [ref=f13e353]:
+                - link "导航到标题" [ref=f13e354] [cursor=pointer]:
+                  - /url: "#测试模型能力"
+                - generic [ref=f13e359] [cursor=pointer]: 测试模型能力
+              - generic [ref=f13e360]: 当前支持三种测试方式：
+              - list [ref=f13e361]:
+                - listitem [ref=f13e362]:
+                  - text: 在模型提供商行点击
+                  - strong [ref=f13e363]: 测试
+                  - text: 。
+                - listitem [ref=f13e364]:
+                  - text: 在单个模型行点击
+                  - strong [ref=f13e365]: 测试
+                  - text: 。
+                - listitem [ref=f13e366]:
+                  - text: 在列表右上角点击
+                  - strong [ref=f13e367]: 测试模型能力
+                  - text: ，批量测试全部已配置模型。
+              - generic [ref=f13e368]:
+                - text: 如果某个模型用于图片生成，请先勾选
+                - strong [ref=f13e369]: 生图模型
+                - text: 再执行测试。勾选后会按生图模型测试
+                - strong [ref=f13e370]: 文生图
+                - text: 和
+                - strong [ref=f13e371]: 图生图
+                - text: 能力；未勾选时，则按普通文本模型测试。
+              - heading "导航到标题 填写提示" [level=2] [ref=f13e372]:
+                - link "导航到标题" [ref=f13e373] [cursor=pointer]:
+                  - /url: "#填写提示"
+                - generic [ref=f13e378] [cursor=pointer]: 填写提示
+              - heading "导航到标题 基础 URL 和模型" [level=3] [ref=f13e379]:
+                - link "导航到标题" [ref=f13e380] [cursor=pointer]:
+                  - /url: "#基础-url-和模型"
+                - generic [ref=f13e385] [cursor=pointer]: 基础 URL 和模型
+              - note "警告" [ref=f13e386]:
+                - generic [ref=f13e390]: 部分 Coding Plan Key 可能只允许在指定开发工具中使用，并不是标准 API Key。是否可用于第三方服务，请以对应提供商的条款和说明为准；如需接入 Teable，请使用提供商后台创建的标准 API Key。
+              - generic [ref=f13e391]: 常见填写示例：
+              - region "Scrollable table" [ref=f13e392]:
+                - table [ref=f13e394]:
+                  - rowgroup [ref=f13e395]:
+                    - row [ref=f13e396]:
+                      - columnheader "提供商类型" [ref=f13e397]
+                      - columnheader "基础 URL 格式" [ref=f13e398]
+                      - columnheader "模型名称示例" [ref=f13e399]
+                  - rowgroup [ref=f13e400]:
+                    - row [ref=f13e401]:
+                      - cell "OpenAI" [ref=f13e402]
+                      - cell [ref=f13e403]:
+                        - code [ref=f13e404]: https://api.openai.com/v1
+                      - cell [ref=f13e405]:
+                        - code [ref=f13e406]: gpt-5.5,o3,gpt-5-mini
+                    - row [ref=f13e407]:
+                      - cell "Anthropic" [ref=f13e408]
+                      - cell [ref=f13e409]:
+                        - code [ref=f13e410]: https://api.anthropic.com/v1
+                      - cell [ref=f13e411]:
+                        - code [ref=f13e412]: claude-opus-4-8,claude-sonnet-5,claude-haiku-4-5
+                    - row [ref=f13e413]:
+                      - cell "OpenAI Compatible" [ref=f13e414]
+                      - cell [ref=f13e415]:
+                        - text: 对应服务商的 OpenAI 兼容
+                        - code [ref=f13e416]: /v1
+                        - text: 接口
+                      - cell [ref=f13e417]:
+                        - code [ref=f13e418]: gpt-5.5,gpt-5.4,o3,gpt-5-mini
+              - note "注意" [ref=f13e419]:
+                - generic [ref=f13e423]: 模型名称必须与服务商文档一致，并区分大小写。多个模型之间使用英文逗号分隔。
+              - generic [ref=f13e424]: 注意事项：
+              - list [ref=f13e425]:
+                - listitem [ref=f13e426]: 模型名称区分大小写，请使用服务商文档中的准确名称。
+                - listitem [ref=f13e427]:
+                  - text: 部分服务商要求逗号后不要加空格，例如
+                  - code [ref=f13e428]: gpt-5.5,o3
+                  - text: 。
+                - listitem [ref=f13e429]:
+                  - text: 使用
+                  - strong [ref=f13e430]: OpenAI Compatible
+                  - text: 提供商时，请按对应服务商要求填写模型名称。有些服务会使用
+                  - code [ref=f13e431]: provider/model-name
+                  - text: 格式。
+              - heading "导航到标题 常见问题" [level=2] [ref=f13e432]:
+                - link "导航到标题" [ref=f13e433] [cursor=pointer]:
+                  - /url: "#常见问题"
+                - generic [ref=f13e438] [cursor=pointer]: 常见问题
+              - generic [ref=f13e439]:
+                - group [ref=f13e440]:
+                  - paragraph [ref=f13e445] [cursor=pointer]: 所有模型测试失败
+                - group [ref=f13e446]:
+                  - paragraph [ref=f13e451] [cursor=pointer]: 出现“测试失败”错误
+                - group [ref=f13e452]:
+                  - paragraph [ref=f13e457] [cursor=pointer]: 连接超时
+                - group [ref=f13e458]:
+                  - paragraph [ref=f13e463] [cursor=pointer]: 找不到模型
+                - group [ref=f13e464]:
+                  - paragraph [ref=f13e469] [cursor=pointer]: 使用 coding plan 的 Key 测试失败
+                - group [ref=f13e470]:
+                  - paragraph [ref=f13e475] [cursor=pointer]: 生图模型测试结果不对
+            - generic [ref=f13e476]: 最后修改于 2026年7月7日
+            - generic [ref=f13e478]:
+              - paragraph [ref=f13e479]: 此页面对您有帮助吗？
+              - generic [ref=f13e481]:
+                - button "是" [ref=f13e482] [cursor=pointer]
+                - button "否" [ref=f13e487] [cursor=pointer]
+            - navigation "Pagination" [ref=f13e492]:
+              - 'link "上一页: AI 字段" [ref=f13e493] [cursor=pointer]':
+                - /url: /zh/basic/field/ai/ai-field
+                - generic [ref=f13e496]: AI 字段
+              - 'link "下一页: 将 AI Agent 连接到 Teable" [ref=f13e497] [cursor=pointer]':
+                - /url: /zh/basic/ai/teable-skill
+                - generic [ref=f13e498]: 将 AI Agent 连接到 Teable
+            - link "技术支持 This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=f13e504] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=teablecn
+              - generic [ref=f13e505]: 技术支持
+              - generic [ref=f13e515]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=f13e516]

@@ -29,6 +29,7 @@ import {
   CellDownloadHandler,
   DownloadAllAttachmentsDialog,
 } from '../../components/download-attachments';
+import { ChatPanel } from '../../components/chat-panel/ChatPanel';
 import { PluginContextMenu } from '../../components/plugin-context-menu/PluginContextMenu';
 import { PluginPanel } from '../../components/plugin-panel/PluginPanel';
 import type { IBaseResourceTable } from '../../hooks/useBaseResource';
@@ -212,7 +213,7 @@ export const Table: React.FC<ITableProps> = ({
                   <PluginContextMenu tableId={tableId} baseId={baseId} />
                   <DownloadAllAttachmentsDialog />
                   <CellDownloadHandler />
-                  {/* <ChatPanel /> */}
+                  <ChatPanel />
                 </div>
               </PersonalViewProvider>
             </FieldProvider>

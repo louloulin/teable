@@ -1,0 +1,41 @@
+- generic [ref=f26e2]:
+  - generic [ref=f26e6]:
+    - generic [ref=f26e225]:
+      - heading "数据流动，团队成长" [level=2] [ref=f26e226]
+      - paragraph [ref=f26e227]: 为每个团队设计的数据库，从简单表格到企业解决方案
+    - generic [ref=f26e228]:
+      - generic [ref=f26e229]: Teable
+      - generic [ref=f26e236]:
+        - navigation [ref=f26e237]:
+          - link "注册" [ref=f26e238] [cursor=pointer]:
+            - /url: /auth/signup?redirect=%2Fbase%2FbseI7XJbwqqIuxlgAI1
+          - link "登录" [ref=f26e239] [cursor=pointer]:
+            - /url: /auth/login?redirect=%2Fbase%2FbseI7XJbwqqIuxlgAI1
+        - generic [ref=f26e240]:
+          - heading "创建一个账户来登录" [level=2] [ref=f26e242]
+          - generic [ref=f26e244]:
+            - generic [ref=f26e245]:
+              - generic [ref=f26e246]: 邮箱
+              - textbox "邮箱" [ref=f26e247]:
+                - /placeholder: 请输入您的电子邮件地址...
+            - generic [ref=f26e248]:
+              - generic [ref=f26e249]: 密码
+              - textbox "密码" [ref=f26e251]:
+                - /placeholder: 请输入您的密码...
+            - button "注册" [ref=f26e253] [cursor=pointer]
+        - generic [ref=f26e254]: 或继续使用
+        - generic [ref=f26e259]:
+          - button "Github" [ref=f26e260] [cursor=pointer]
+          - button "Google" [ref=f26e264] [cursor=pointer]
+        - button "SSO" [ref=f26e271] [cursor=pointer]
+        - paragraph [ref=f26e272]:
+          - text: 继续使用即表示您同意 Teable 的
+          - link "服务条款" [ref=f26e273] [cursor=pointer]:
+            - /url: https://teable.cn/terms-of-service-cn
+          - text: 和
+          - link "隐私政策" [ref=f26e274] [cursor=pointer]:
+            - /url: https://teable.cn/privacy-cn
+          - text: ，并接收更新邮件。
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"

@@ -1,0 +1,378 @@
+- generic [active] [ref=f22e1]:
+  - blockquote [ref=f22e2]:
+    - heading [level=2] [ref=f22e3]: Documentation Index
+    - paragraph [ref=f22e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f22e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f22e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f22e7]:
+    - link "跳转到主要内容" [ref=f22e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f22e10]:
+      - banner [ref=f22e11]:
+        - generic [ref=f22e13]:
+          - paragraph [ref=f22e15]:
+            - text: 🚀 Teable 现已支持阿拉伯语、意大利语和西班牙语！查看
+            - link "更新日志" [ref=f22e16] [cursor=pointer]:
+              - /url: /zh/changelog#2026-08-25
+            - text: 了解详情。
+          - button "关闭横幅" [ref=f22e17] [cursor=pointer]
+        - generic [ref=f22e23]:
+          - generic [ref=f22e26]:
+            - generic [ref=f22e27]:
+              - link "Teable home page light logo" [ref=f22e28] [cursor=pointer]:
+                - /url: https://teable.ai
+                - generic [ref=f22e29]: Teable home page
+                - img "light logo" [ref=f22e30]
+              - button "简体中文" [ref=f22e31] [cursor=pointer]
+            - button "打开搜索" [ref=f22e36] [cursor=pointer]:
+              - generic [ref=f22e37]: 搜索...
+              - generic [ref=f22e42]: ⌘K
+            - generic [ref=f22e43]:
+              - navigation "Main" [ref=f22e44]:
+                - list [ref=f22e45]:
+                  - listitem [ref=f22e46]:
+                    - link "支持" [ref=f22e47] [cursor=pointer]:
+                      - /url: https://community.teable.ai/
+              - button "Change theme preference" [ref=f22e51] [cursor=pointer]
+          - generic [ref=f22e57]:
+            - link "功能文档" [ref=f22e58] [cursor=pointer]:
+              - /url: /zh/basic/ai/overview
+            - link "私有化部署" [ref=f22e60] [cursor=pointer]:
+              - /url: /zh/deploy/activate
+            - link "API 文档" [ref=f22e62] [cursor=pointer]:
+              - /url: /zh/api-doc/overview
+            - link "安全" [ref=f22e64] [cursor=pointer]:
+              - /url: /zh/basic/security
+            - link "更新日志" [ref=f22e66] [cursor=pointer]:
+              - /url: /zh/changelog
+      - generic [ref=f22e68]:
+        - navigation "Pages" [ref=f22e69]:
+          - generic [ref=f22e72]:
+            - generic [ref=f22e73]:
+              - heading "AI" [level=3] [ref=f22e75]
+              - list [ref=f22e76]:
+                - listitem [ref=f22e77]:
+                  - link "概览" [ref=f22e78] [cursor=pointer]:
+                    - /url: /zh/basic/ai/overview
+                - listitem [ref=f22e82]:
+                  - link "AI 对话" [ref=f22e83] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                - listitem [ref=f22e87]:
+                  - button "应用构建器" [ref=f22e88] [cursor=pointer]
+                - listitem [ref=f22e93]:
+                  - link "AI 字段" [ref=f22e94] [cursor=pointer]:
+                    - /url: /zh/basic/field/ai/ai-field
+                - listitem [ref=f22e98]:
+                  - link "自定义 AI 模型" [ref=f22e99] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                - listitem [ref=f22e103]:
+                  - link "将 AI Agent 连接到 Teable" [ref=f22e104] [cursor=pointer]:
+                    - /url: /zh/basic/ai/teable-skill
+                - listitem [ref=f22e108]:
+                  - button "Connect & Migrate Everything" [ref=f22e109] [cursor=pointer]
+            - generic [ref=f22e114]:
+              - heading "空间" [level=3] [ref=f22e116]
+              - list [ref=f22e117]:
+                - listitem [ref=f22e118]:
+                  - link "概览" [ref=f22e119] [cursor=pointer]:
+                    - /url: /zh/basic/space
+                - listitem [ref=f22e123]:
+                  - link "空间邀请" [ref=f22e124] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-invite
+                - listitem [ref=f22e128]:
+                  - link "数据库邀请" [ref=f22e129] [cursor=pointer]:
+                    - /url: /zh/basic/space/base-invite
+                - listitem [ref=f22e133]:
+                  - link "协作权限明细" [ref=f22e134] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                - listitem [ref=f22e138]:
+                  - link "账单与订阅" [ref=f22e139] [cursor=pointer]:
+                    - /url: /zh/basic/space/billing
+                - listitem [ref=f22e143]:
+                  - link "IM 集成" [ref=f22e144] [cursor=pointer]:
+                    - /url: /zh/basic/space/im-integration
+            - generic [ref=f22e148]:
+              - heading "自动化" [level=3] [ref=f22e150]
+              - list [ref=f22e151]:
+                - listitem [ref=f22e152]:
+                  - link "概览" [ref=f22e153] [cursor=pointer]:
+                    - /url: /zh/basic/automation
+                - listitem [ref=f22e157]:
+                  - button "触发器" [ref=f22e158] [cursor=pointer]
+                - listitem [ref=f22e163]:
+                  - button "操作" [ref=f22e164] [cursor=pointer]
+                - listitem [ref=f22e169]:
+                  - button "示例" [ref=f22e170] [cursor=pointer]
+            - generic [ref=f22e175]:
+              - heading "数据库" [level=3] [ref=f22e177]
+              - list [ref=f22e178]:
+                - listitem [ref=f22e179]:
+                  - link "概览" [ref=f22e180] [cursor=pointer]:
+                    - /url: /zh/basic/base
+                - listitem [ref=f22e184]:
+                  - button "表格" [ref=f22e185] [cursor=pointer]
+                - listitem [ref=f22e190]:
+                  - button "字段" [ref=f22e191] [cursor=pointer]
+                - listitem [ref=f22e196]:
+                  - button "记录" [ref=f22e197] [cursor=pointer]
+                - listitem [ref=f22e202]:
+                  - button "视图" [ref=f22e203] [cursor=pointer]
+            - generic [ref=f22e208]:
+              - heading "权限矩阵" [level=3] [ref=f22e210]
+              - list [ref=f22e211]:
+                - listitem [ref=f22e212]:
+                  - button "权限矩阵" [expanded] [ref=f22e213] [cursor=pointer]
+                  - list [ref=f22e218]:
+                    - listitem [ref=f22e219]:
+                      - link "概览" [ref=f22e220] [cursor=pointer]:
+                        - /url: /zh/basic/authority-matrix
+                    - listitem [ref=f22e224]:
+                      - link "权限矩阵指南" [ref=f22e225] [cursor=pointer]:
+                        - /url: /zh/basic/authority-matrix/authority-matrix-practical-guide
+            - generic [ref=f22e229]:
+              - heading "SSO" [level=3] [ref=f22e231]
+              - list [ref=f22e232]:
+                - listitem [ref=f22e233]:
+                  - link "单点登录 (SSO)" [ref=f22e234] [cursor=pointer]:
+                    - /url: /zh/basic/sso/overview
+                - listitem [ref=f22e238]:
+                  - link "Azure Entra ID SSO" [ref=f22e239] [cursor=pointer]:
+                    - /url: /zh/basic/sso/azure-entra-id
+                - listitem [ref=f22e243]:
+                  - link "Okta SSO" [ref=f22e244] [cursor=pointer]:
+                    - /url: /zh/basic/sso/okta
+                - listitem [ref=f22e248]:
+                  - link "Google Workspace SSO" [ref=f22e249] [cursor=pointer]:
+                    - /url: /zh/basic/sso/google-workspace
+                - listitem [ref=f22e253]:
+                  - link "Auth0 SSO" [ref=f22e254] [cursor=pointer]:
+                    - /url: /zh/basic/sso/auth0
+                - listitem [ref=f22e258]:
+                  - link "OneLogin SSO" [ref=f22e259] [cursor=pointer]:
+                    - /url: /zh/basic/sso/onelogin
+                - listitem [ref=f22e263]:
+                  - link "Authentik SSO" [ref=f22e264] [cursor=pointer]:
+                    - /url: /zh/basic/sso/authentik
+                - listitem [ref=f22e268]:
+                  - link "飞书" [ref=f22e269] [cursor=pointer]:
+                    - /url: /zh/basic/sso/feishu
+            - generic [ref=f22e273]:
+              - heading "横向对比" [level=3] [ref=f22e275]
+              - list [ref=f22e276]:
+                - listitem [ref=f22e277]:
+                  - link "Teable VS Excel" [ref=f22e278] [cursor=pointer]:
+                    - /url: /zh/compare/teable-vs-excel
+        - main [ref=f22e282]:
+          - generic [ref=f22e284]:
+            - generic [ref=f22e285]:
+              - heading "概览" [level=1] [ref=f22e288]
+              - paragraph [ref=f22e290]: 在同一个数据库中为不同团队设置访问范围，让成员只看到、修改或导出自己需要的数据。
+            - generic [ref=f22e291]:
+              - note "提示" [ref=f22e292]:
+                - generic [ref=f22e296]: 商业版及以上适用
+              - generic [ref=f22e297]: 当销售、财务、运营和管理层共用同一个数据库时，权限不只是决定谁能进入数据库，还关系到谁能看哪些数据、改哪些内容，以及是否可以导入或导出。权限矩阵适合把数据集中管理，同时按职责隔离访问范围的团队。
+              - generic [ref=f22e298]: 你可以为成员或部门分配自定义角色，让不同角色只访问需要的表格、应用和工作流。对表格，还可以继续限制可见视图、可见记录、可编辑字段，以及导入/导出权限。比如销售只维护自己的客户，财务只查看账单字段，管理层查看完整数据。
+              - heading "导航到标题 适用场景" [level=2] [ref=f22e299]:
+                - link "导航到标题" [ref=f22e300] [cursor=pointer]:
+                  - /url: "#适用场景"
+                - generic [ref=f22e305] [cursor=pointer]: 适用场景
+              - region "Scrollable table" [ref=f22e306]:
+                - table [ref=f22e308]:
+                  - rowgroup [ref=f22e309]:
+                    - row [ref=f22e310]:
+                      - columnheader "场景" [ref=f22e311]
+                      - columnheader "示例" [ref=f22e312]
+                  - rowgroup [ref=f22e313]:
+                    - row [ref=f22e314]:
+                      - cell "按部门分配访问范围" [ref=f22e315]
+                      - cell "销售团队可以维护客户记录，财务团队只能查看账单相关字段。" [ref=f22e316]
+                    - row [ref=f22e317]:
+                      - cell "按负责人限制记录" [ref=f22e318]
+                      - cell "销售代表只能查看和更新负责人是自己的记录。" [ref=f22e319]
+                    - row [ref=f22e320]:
+                      - cell "限制数据录入权限" [ref=f22e321]
+                      - cell "成员可以创建新记录，但不能编辑或删除已有记录。" [ref=f22e322]
+                    - row [ref=f22e323]:
+                      - cell "在共享数据库中保护敏感字段" [ref=f22e324]
+                      - cell "成员可以查看订单记录，但看不到支付方式或成本字段。" [ref=f22e325]
+                    - row [ref=f22e326]:
+                      - cell "控制应用和工作流入口" [ref=f22e327]
+                      - cell "角色只能打开指定应用或工作流，未授权节点不会显示。" [ref=f22e328]
+              - heading "导航到标题 权限如何生效" [level=2] [ref=f22e329]:
+                - link "导航到标题" [ref=f22e330] [cursor=pointer]:
+                  - /url: "#权限如何生效"
+                - generic [ref=f22e335] [cursor=pointer]: 权限如何生效
+              - generic [ref=f22e336]: 权限矩阵按角色分配访问范围。用户可以通过直接分配的角色或部门角色获得权限。多个角色同时适用时，Teable 会合并这些角色允许的权限。
+              - note "信息" [ref=f22e337]:
+                - generic [ref=f22e341]:
+                  - text: 空间中拥有
+                  - strong [ref=f22e342]: 可管理
+                  - text: 权限的用户和权限矩阵管理员，可以管理权限矩阵，也不受权限矩阵限制。
+              - generic [ref=f22e343]:
+                - text: 角色列表包含
+                - code [ref=f22e344]: 管理员
+                - text: 和
+                - code [ref=f22e345]: 自定义角色
+                - text: 两部分：
+              - generic [ref=f22e346]:
+                - img "权限矩阵角色列表" [ref=f22e349]
+                - generic:
+                  - 'button "Expand image: 权限矩阵角色列表"'
+              - generic [ref=f22e350]:
+                - text: 点击
+                - code [ref=f22e351]: 添加角色
+                - text: 创建自定义角色。进入角色详情后，可以分配协作者、填写角色说明，并为数据库中的每个节点配置访问权限：
+              - generic [ref=f22e352]:
+                - img "权限矩阵角色详情页" [ref=f22e355]
+                - generic:
+                  - 'button "Expand image: 权限矩阵角色详情页"'
+              - heading "导航到标题 配置角色访问范围" [level=2] [ref=f22e356]:
+                - link "导航到标题" [ref=f22e357] [cursor=pointer]:
+                  - /url: "#配置角色访问范围"
+                - generic [ref=f22e362] [cursor=pointer]: 配置角色访问范围
+              - generic [ref=f22e363]: 每个表格、应用和工作流都有独立的访问设置。
+              - region "Scrollable table" [ref=f22e364]:
+                - table [ref=f22e366]:
+                  - rowgroup [ref=f22e367]:
+                    - row [ref=f22e368]:
+                      - columnheader "节点类型" [ref=f22e369]
+                      - columnheader "可配置权限" [ref=f22e370]
+                  - rowgroup [ref=f22e371]:
+                    - row [ref=f22e372]:
+                      - cell "表格" [ref=f22e373]
+                      - cell [ref=f22e374]:
+                        - text: 选择
+                        - code [ref=f22e375]: 可编辑
+                        - text: 或
+                        - code [ref=f22e376]: 无权限
+                        - text: 。设置为
+                        - code [ref=f22e377]: 可编辑
+                        - text: 后，可以继续配置表格内的详细权限。
+                    - row [ref=f22e378]:
+                      - cell "应用" [ref=f22e379]
+                      - cell [ref=f22e380]:
+                        - text: 选择
+                        - code [ref=f22e381]: 可访问
+                        - text: 或
+                        - code [ref=f22e382]: 无权限
+                        - text: ，控制这个角色能否打开该应用。
+                    - row [ref=f22e383]:
+                      - cell "工作流" [ref=f22e384]
+                      - cell [ref=f22e385]:
+                        - text: 选择
+                        - code [ref=f22e386]: 可访问
+                        - text: 或
+                        - code [ref=f22e387]: 无权限
+                        - text: ，控制这个角色能否打开该工作流。
+                    - row [ref=f22e388]:
+                      - cell "文件夹" [ref=f22e389]
+                      - cell "文件夹用于展示层级。如果角色不能访问文件夹下的任何节点，该文件夹会自动隐藏。" [ref=f22e390]
+              - generic [ref=f22e391]:
+                - text: 如果要配置表格内的视图、记录、字段等详细权限，需要先将该表格设置为
+                - code [ref=f22e392]: 可编辑
+                - text: 。对某个角色来说，处于
+                - code [ref=f22e393]: 无权限
+                - text: 状态的表格不会显示。
+              - heading "导航到标题 表格权限" [level=2] [ref=f22e394]:
+                - link "导航到标题" [ref=f22e395] [cursor=pointer]:
+                  - /url: "#表格权限"
+                - generic [ref=f22e400] [cursor=pointer]: 表格权限
+              - generic [ref=f22e401]:
+                - text: 当表格设置为
+                - code [ref=f22e402]: 可编辑
+                - text: 后，可以继续配置以下权限：
+              - region "Scrollable table" [ref=f22e403]:
+                - table [ref=f22e405]:
+                  - rowgroup [ref=f22e406]:
+                    - row [ref=f22e407]:
+                      - columnheader "权限区域" [ref=f22e408]
+                      - columnheader "控制内容" [ref=f22e409]
+                  - rowgroup [ref=f22e410]:
+                    - row [ref=f22e411]:
+                      - cell "视图权限" [ref=f22e412]
+                      - cell [ref=f22e413]:
+                        - text: 控制角色能否创建、更新、删除视图，以及可以查看
+                        - code [ref=f22e414]: 所有视图
+                        - text: 还是只能查看
+                        - code [ref=f22e415]: 特定视图
+                        - text: 。
+                    - row [ref=f22e416]:
+                      - cell "记录权限" [ref=f22e417]
+                      - cell [ref=f22e418]:
+                        - text: 控制角色能否创建、更新、删除、评论、复制记录。可见记录可以是
+                        - code [ref=f22e419]: 所有记录
+                        - text: ，也可以限制为符合筛选条件的记录。
+                    - row [ref=f22e420]:
+                      - cell "字段权限" [ref=f22e421]
+                      - cell "控制角色能否查看、更新或创建指定字段的值。主字段必须保持可见。" [ref=f22e422]
+                    - row [ref=f22e423]:
+                      - cell "导入/导出权限" [ref=f22e424]
+                      - cell "控制角色能否向表格导入数据，或导出表格数据。" [ref=f22e425]
+              - img "权限矩阵表格权限" [ref=f22e429]
+              - generic [ref=f22e430]:
+                - text: 记录筛选适合处理按负责人、部门等变化的访问范围。比如设置
+                - code [ref=f22e431]: 销售负责人
+                - code [ref=f22e432]: 等于
+                - code [ref=f22e433]: 当前用户
+                - text: 后，每位销售只能看到自己的记录。字段权限可以在可访问记录的基础上，继续隐藏或锁定敏感字段值。
+              - heading "导航到标题 默认角色" [level=2] [ref=f22e434]:
+                - link "导航到标题" [ref=f22e435] [cursor=pointer]:
+                  - /url: "#默认角色"
+                - generic [ref=f22e440] [cursor=pointer]: 默认角色
+              - generic [ref=f22e441]:
+                - img "权限矩阵默认角色设置" [ref=f22e444]
+                - generic:
+                  - 'button "Expand image: 权限矩阵默认角色设置"'
+              - generic [ref=f22e445]:
+                - code [ref=f22e446]: 默认角色
+                - text: 只用于未分配任何自定义角色的成员。你可以选择一个已启用的自定义角色，也可以选择
+                - code [ref=f22e447]: 无权限
+                - text: ，让这类成员不能访问权限矩阵控制下的内容。
+              - heading "导航到标题 注意事项" [level=2] [ref=f22e448]:
+                - link "导航到标题" [ref=f22e449] [cursor=pointer]:
+                  - /url: "#注意事项"
+                - generic [ref=f22e454] [cursor=pointer]: 注意事项
+              - list [ref=f22e455]:
+                - listitem [ref=f22e456]:
+                  - text: 启用权限矩阵后，空间中低于
+                  - code [ref=f22e457]: 可管理
+                  - text: 的用户都会受到限制，除非被加入权限矩阵管理员。
+                - listitem [ref=f22e458]:
+                  - text: 开启权限矩阵的用户会自动加入
+                  - code [ref=f22e459]: 管理员
+                  - text: 。
+                - listitem [ref=f22e460]:
+                  - text: 通过
+                  - code [ref=f22e461]: 添加用户
+                  - text: 分配角色时，已选择但尚未加入当前数据库的成员会被加入为数据库协作者。权限矩阵随后会收窄他们在数据库内的访问范围。
+              - note "注意" [ref=f22e462]:
+                - generic [ref=f22e466]:
+                  - text: 了解
+                  - strong [ref=f22e467]: 空间
+                  - text: 和
+                  - strong [ref=f22e468]: 数据库
+                  - text: 的基础权限级别，请查看
+                  - link "协作权限" [ref=f22e469] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                  - text: 。
+            - generic [ref=f22e470]: 最后修改于 2026年5月28日
+            - generic [ref=f22e472]:
+              - paragraph [ref=f22e473]: 此页面对您有帮助吗？
+              - generic [ref=f22e475]:
+                - button "是" [ref=f22e476] [cursor=pointer]
+                - button "否" [ref=f22e481] [cursor=pointer]
+            - navigation "Pagination" [ref=f22e486]:
+              - 'link "上一页: 视图工具栏" [ref=f22e487] [cursor=pointer]':
+                - /url: /zh/basic/view/toolbar
+                - generic [ref=f22e490]: 视图工具栏
+              - 'link "下一页: 权限矩阵指南" [ref=f22e491] [cursor=pointer]':
+                - /url: /zh/basic/authority-matrix/authority-matrix-practical-guide
+                - generic [ref=f22e492]: 权限矩阵指南
+            - link "技术支持 This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=f22e498] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=teablecn
+              - generic [ref=f22e499]: 技术支持
+              - generic [ref=f22e509]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=f22e510]

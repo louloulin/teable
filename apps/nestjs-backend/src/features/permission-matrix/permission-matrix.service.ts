@@ -103,7 +103,11 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     return updated;
   }
 
-  // ─── node (table) settings ──────────────────────────────────────────────
+  // ─── node access (table / app / workflow) ──────────────────────────────
+  // Cloud Business §权限矩阵 splits "节点权限" into three sub-types. For
+  // backwards compat the legacy setTableAccess() writes to the (table, tableId)
+  // shape; setNodeAccess() writes to the (nodeType, nodeId) shape so app and
+  // workflow permissions can be modeled on the same table.
 
   async setTableAccess(
     baseId: string,
@@ -111,11 +115,57 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     tableId: string,
     access: 'none' | 'editable'
   ) {
+    return this.setNodeAccess(baseId, roleId, 'table', tableId, access);
+  }
+
+  async setNodeAccess(
+    baseId: string,
+    roleId: string,
+    nodeType: 'table' | 'app' | 'workflow',
+    nodeId: string,
+    access: 'none' | 'editable'
+  ) {
     await this.assertRole(baseId, roleId);
+    // New unique key is (roleId, nodeType, nodeId) — see migration
+    // 20260831130000_extend_permission_role_node_with_node_type.
     await this.prisma.permissionRoleNode.upsert({
-      where: { roleId_tableId: { roleId, tableId } },
-      create: { id: `prn_${randomBytes(10).toString('hex')}`, roleId, tableId, access },
+      where: {
+        roleId_nodeType_nodeId: { roleId, nodeType, nodeId },
+      } as unknown as { roleId_tableId: { roleId: string; tableId: string } },
+      create: {
+        id: `prn_${randomBytes(10).toString('hex')}`,
+        roleId,
+        nodeType,
+        nodeId,
+        tableId: nodeType === 'table' ? nodeId : `${nodeType}_${nodeId}`,
+        access,
+      },
       update: { access },
+    });
+    this.invalidate(baseId);
+  }
+  // ─── import / export gate (Cloud Business §权限矩阵 §导入/导出权限) ─────
+  // Independent axis from recordAction. canImport gates CSV/Excel import
+  // endpoints; canExport gates CSV export endpoint per role per table.
+
+  async setImportExport(
+    baseId: string,
+    roleId: string,
+    tableId: string,
+    canImport: boolean,
+    canExport: boolean
+  ) {
+    await this.assertRole(baseId, roleId);
+    await this.prisma.permissionRoleImportExport.upsert({
+      where: { roleId_tableId: { roleId, tableId } },
+      create: {
+        id: `prie_${randomBytes(10).toString('hex')}`,
+        roleId,
+        tableId,
+        canImport,
+        canExport,
+      },
+      update: { canImport, canExport },
     });
     this.invalidate(baseId);
   }
@@ -183,6 +233,61 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
       });
     }
     this.invalidate(baseId);
+  }
+
+  /**
+   * Round-26: Import/Export permission gate (Cloud Business §权限矩阵 §导入/导出权限).
+   * canImport gates CSV/Excel import endpoints; canExport gates CSV export
+   * endpoints per role per table. Independent axis from recordAction.
+   */
+  async setImportExport(
+    baseId: string,
+    roleId: string,
+    tableId: string,
+    canImport: boolean,
+    canExport: boolean
+  ): Promise<{ id: string; roleId: string; tableId: string; canImport: boolean; canExport: boolean }> {
+    await this.assertRole(baseId, roleId);
+    const id = `prie_${randomBytes(10).toString('hex')}`;
+    const row = await this.prisma.permissionRoleImportExport.upsert({
+      where: { roleId_tableId: { roleId, tableId } },
+      create: { id, roleId, tableId, canImport, canExport },
+      update: { canImport, canExport },
+    });
+    this.invalidate(baseId);
+    return {
+      id: row.id,
+      roleId: row.roleId,
+      tableId: row.tableId,
+      canImport: row.canImport,
+      canExport: row.canExport,
+    };
+  }
+
+  async listImportExport(
+    baseId: string,
+    roleId: string
+  ): Promise<Array<{ id: string; tableId: string; canImport: boolean; canExport: boolean }>> {
+    await this.assertRole(baseId, roleId);
+    const rows = await this.prisma.permissionRoleImportExport.findMany({
+      where: { roleId },
+      orderBy: { tableId: 'asc' },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      tableId: r.tableId,
+      canImport: r.canImport,
+      canExport: r.canExport,
+    }));
+  }
+
+  async deleteImportExport(baseId: string, roleId: string, tableId: string): Promise<{ ok: boolean; deleted: number }> {
+    await this.assertRole(baseId, roleId);
+    const { count } = await this.prisma.permissionRoleImportExport.deleteMany({
+      where: { roleId, tableId },
+    });
+    this.invalidate(baseId);
+    return { ok: true, deleted: count };
   }
 
   // ─── members ───────────────────────────────────────────────────────────

@@ -1,0 +1,264 @@
+- generic [active] [ref=f2e1]:
+  - blockquote [ref=f2e2]:
+    - heading [level=2] [ref=f2e3]: Documentation Index
+    - paragraph [ref=f2e4]:
+      - text: "Fetch the complete documentation index at:"
+      - link [ref=f2e5] [cursor=pointer]:
+        - /url: /llms.txt
+        - text: /llms.txt
+    - paragraph [ref=f2e6]: Use this file to discover all available pages before exploring further.
+  - generic [ref=f2e7]:
+    - link "跳转到主要内容" [ref=f2e8] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=f2e10]:
+      - banner [ref=f2e11]:
+        - generic [ref=f2e13]:
+          - paragraph [ref=f2e15]:
+            - text: 🚀 Teable 现已支持阿拉伯语、意大利语和西班牙语！查看
+            - link "更新日志" [ref=f2e16] [cursor=pointer]:
+              - /url: /zh/changelog#2026-08-25
+            - text: 了解详情。
+          - button "关闭横幅" [ref=f2e17] [cursor=pointer]
+        - generic [ref=f2e23]:
+          - generic [ref=f2e26]:
+            - generic [ref=f2e27]:
+              - link "Teable home page light logo" [ref=f2e28] [cursor=pointer]:
+                - /url: https://teable.ai
+                - generic [ref=f2e29]: Teable home page
+                - img "light logo" [ref=f2e30]
+              - button "简体中文" [ref=f2e31] [cursor=pointer]
+            - button "打开搜索" [ref=f2e36] [cursor=pointer]:
+              - generic [ref=f2e37]: 搜索...
+              - generic [ref=f2e42]: ⌘K
+            - generic [ref=f2e43]:
+              - navigation "Main" [ref=f2e44]:
+                - list [ref=f2e45]:
+                  - listitem [ref=f2e46]:
+                    - link "支持" [ref=f2e47] [cursor=pointer]:
+                      - /url: https://community.teable.ai/
+              - button "Change theme preference" [ref=f2e51] [cursor=pointer]
+          - generic [ref=f2e57]:
+            - link "功能文档" [ref=f2e58] [cursor=pointer]:
+              - /url: /zh/basic/ai/overview
+            - link "私有化部署" [ref=f2e60] [cursor=pointer]:
+              - /url: /zh/deploy/activate
+            - link "API 文档" [ref=f2e62] [cursor=pointer]:
+              - /url: /zh/api-doc/overview
+            - link "安全" [ref=f2e64] [cursor=pointer]:
+              - /url: /zh/basic/security
+            - link "更新日志" [ref=f2e66] [cursor=pointer]:
+              - /url: /zh/changelog
+      - generic [ref=f2e68]:
+        - navigation "Pages" [ref=f2e69]:
+          - generic [ref=f2e72]:
+            - generic [ref=f2e73]:
+              - heading "AI" [level=3] [ref=f2e75]
+              - list [ref=f2e76]:
+                - listitem [ref=f2e77]:
+                  - link "概览" [ref=f2e78] [cursor=pointer]:
+                    - /url: /zh/basic/ai/overview
+                - listitem [ref=f2e82]:
+                  - link "AI 对话" [ref=f2e83] [cursor=pointer]:
+                    - /url: /zh/basic/ai/ai-chat
+                - listitem [ref=f2e87]:
+                  - button "应用构建器" [ref=f2e88] [cursor=pointer]
+                - listitem [ref=f2e93]:
+                  - link "AI 字段" [ref=f2e94] [cursor=pointer]:
+                    - /url: /zh/basic/field/ai/ai-field
+                - listitem [ref=f2e98]:
+                  - link "自定义 AI 模型" [ref=f2e99] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                - listitem [ref=f2e103]:
+                  - link "将 AI Agent 连接到 Teable" [ref=f2e104] [cursor=pointer]:
+                    - /url: /zh/basic/ai/teable-skill
+                - listitem [ref=f2e108]:
+                  - button "Connect & Migrate Everything" [ref=f2e109] [cursor=pointer]
+            - generic [ref=f2e114]:
+              - heading "空间" [level=3] [ref=f2e116]
+              - list [ref=f2e117]:
+                - listitem [ref=f2e118]:
+                  - link "概览" [ref=f2e119] [cursor=pointer]:
+                    - /url: /zh/basic/space
+                - listitem [ref=f2e123]:
+                  - link "空间邀请" [ref=f2e124] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-invite
+                - listitem [ref=f2e128]:
+                  - link "数据库邀请" [ref=f2e129] [cursor=pointer]:
+                    - /url: /zh/basic/space/base-invite
+                - listitem [ref=f2e133]:
+                  - link "协作权限明细" [ref=f2e134] [cursor=pointer]:
+                    - /url: /zh/basic/space/space-permission
+                - listitem [ref=f2e138]:
+                  - link "账单与订阅" [ref=f2e139] [cursor=pointer]:
+                    - /url: /zh/basic/space/billing
+                - listitem [ref=f2e143]:
+                  - link "IM 集成" [ref=f2e144] [cursor=pointer]:
+                    - /url: /zh/basic/space/im-integration
+            - generic [ref=f2e148]:
+              - heading "自动化" [level=3] [ref=f2e150]
+              - list [ref=f2e151]:
+                - listitem [ref=f2e152]:
+                  - link "概览" [ref=f2e153] [cursor=pointer]:
+                    - /url: /zh/basic/automation
+                - listitem [ref=f2e157]:
+                  - button "触发器" [ref=f2e158] [cursor=pointer]
+                - listitem [ref=f2e163]:
+                  - button "操作" [ref=f2e164] [cursor=pointer]
+                - listitem [ref=f2e169]:
+                  - button "示例" [ref=f2e170] [cursor=pointer]
+            - generic [ref=f2e175]:
+              - heading "数据库" [level=3] [ref=f2e177]
+              - list [ref=f2e178]:
+                - listitem [ref=f2e179]:
+                  - link "概览" [ref=f2e180] [cursor=pointer]:
+                    - /url: /zh/basic/base
+                - listitem [ref=f2e184]:
+                  - button "表格" [ref=f2e185] [cursor=pointer]
+                - listitem [ref=f2e190]:
+                  - button "字段" [ref=f2e191] [cursor=pointer]
+                - listitem [ref=f2e196]:
+                  - button "记录" [ref=f2e197] [cursor=pointer]
+                - listitem [ref=f2e202]:
+                  - button "视图" [ref=f2e203] [cursor=pointer]
+            - generic [ref=f2e208]:
+              - heading "权限矩阵" [level=3] [ref=f2e210]
+              - list [ref=f2e211]:
+                - listitem [ref=f2e212]:
+                  - button "权限矩阵" [ref=f2e213] [cursor=pointer]
+            - generic [ref=f2e218]:
+              - heading "SSO" [level=3] [ref=f2e220]
+              - list [ref=f2e221]:
+                - listitem [ref=f2e222]:
+                  - link "单点登录 (SSO)" [ref=f2e223] [cursor=pointer]:
+                    - /url: /zh/basic/sso/overview
+                - listitem [ref=f2e227]:
+                  - link "Azure Entra ID SSO" [ref=f2e228] [cursor=pointer]:
+                    - /url: /zh/basic/sso/azure-entra-id
+                - listitem [ref=f2e232]:
+                  - link "Okta SSO" [ref=f2e233] [cursor=pointer]:
+                    - /url: /zh/basic/sso/okta
+                - listitem [ref=f2e237]:
+                  - link "Google Workspace SSO" [ref=f2e238] [cursor=pointer]:
+                    - /url: /zh/basic/sso/google-workspace
+                - listitem [ref=f2e242]:
+                  - link "Auth0 SSO" [ref=f2e243] [cursor=pointer]:
+                    - /url: /zh/basic/sso/auth0
+                - listitem [ref=f2e247]:
+                  - link "OneLogin SSO" [ref=f2e248] [cursor=pointer]:
+                    - /url: /zh/basic/sso/onelogin
+                - listitem [ref=f2e252]:
+                  - link "Authentik SSO" [ref=f2e253] [cursor=pointer]:
+                    - /url: /zh/basic/sso/authentik
+                - listitem [ref=f2e257]:
+                  - link "飞书" [ref=f2e258] [cursor=pointer]:
+                    - /url: /zh/basic/sso/feishu
+            - generic [ref=f2e262]:
+              - heading "横向对比" [level=3] [ref=f2e264]
+              - list [ref=f2e265]:
+                - listitem [ref=f2e266]:
+                  - link "Teable VS Excel" [ref=f2e267] [cursor=pointer]:
+                    - /url: /zh/compare/teable-vs-excel
+        - main [ref=f2e271]:
+          - generic [ref=f2e273]:
+            - generic [ref=f2e274]:
+              - heading "概览" [level=1] [ref=f2e277]
+              - paragraph [ref=f2e279]: 探索 Teable 的 AI 能力，实现智能数据处理、自动化和分析。
+            - generic [ref=f2e280]:
+              - note "注意" [ref=f2e281]:
+                - generic [ref=f2e285]: 云端版本所有方案可用；私有部署版本需要商业版及以上方案。
+              - note "提示" [ref=f2e286]:
+                - generic [ref=f2e290]: AI 可能会犯错，请仔细核实生成的结果。
+              - generic [ref=f2e291]: Teable 在整个平台中集成了强大的 AI 能力，帮助您更智能地处理数据。从智能字段处理到自动化工作流，AI 功能全面优化您的数据操作。
+              - heading "导航到标题 AI 能力" [level=2] [ref=f2e292]:
+                - link "导航到标题" [ref=f2e293] [cursor=pointer]:
+                  - /url: "#ai-能力"
+                - generic [ref=f2e298] [cursor=pointer]: AI 能力
+              - generic [ref=f2e299]:
+                - link [ref=f2e300] [cursor=pointer]:
+                  - link [ref=f2e302]:
+                    - /url: /zh/basic/ai/ai-chat
+                    - generic [ref=f2e305]:
+                      - heading [level=2] [ref=f2e306]: AI 对话
+                      - generic [ref=f2e307]: 用于数据分析、可视化和创作的上下文感知智能助手。
+                - link [ref=f2e309] [cursor=pointer]:
+                  - link [ref=f2e311]:
+                    - /url: /zh/basic/ai/app-builder
+                    - generic [ref=f2e314]:
+                      - heading [level=2] [ref=f2e315]: 应用构建器
+                      - generic [ref=f2e316]: 利用 AI 将您的数据转化为定制化的网络应用。
+                - link [ref=f2e318] [cursor=pointer]:
+                  - link [ref=f2e320]:
+                    - /url: /zh/basic/automation/actions/ai/ai-script
+                    - generic [ref=f2e323]:
+                      - heading [level=2] [ref=f2e324]: 运行脚本
+                      - generic [ref=f2e325]: 编写自定义 AI 驱动的脚本，扩展自动化能力。
+                - link [ref=f2e327] [cursor=pointer]:
+                  - link [ref=f2e329]:
+                    - /url: /zh/basic/field/ai/ai-field
+                    - generic [ref=f2e332]:
+                      - heading [level=2] [ref=f2e333]: AI 字段
+                      - generic [ref=f2e334]: 使用 AI 驱动的字段自动生成、总结、翻译和提取数据信息。
+                - link [ref=f2e336] [cursor=pointer]:
+                  - link [ref=f2e338]:
+                    - /url: /zh/basic/automation/actions/ai/ai-generate
+                    - generic [ref=f2e341]:
+                      - heading [level=2] [ref=f2e342]: AI 生成
+                      - generic [ref=f2e343]: 将 AI 处理集成到自动化工作流中，实现智能数据处理。
+              - heading "导航到标题 配置" [level=2] [ref=f2e345]:
+                - link "导航到标题" [ref=f2e346] [cursor=pointer]:
+                  - /url: "#配置"
+                - generic [ref=f2e351] [cursor=pointer]: 配置
+              - generic [ref=f2e352]:
+                - link [ref=f2e353] [cursor=pointer]:
+                  - link [ref=f2e355]:
+                    - /url: /zh/basic/ai/custom-model
+                    - generic [ref=f2e358]:
+                      - heading [level=2] [ref=f2e359]: 自定义 AI 模型
+                      - generic [ref=f2e360]: 集成自定义 AI 模型和第三方 API 提供商。
+                - link [ref=f2e362] [cursor=pointer]:
+                  - link [ref=f2e364]:
+                    - /url: /zh/basic/admin-panel/ai-setting
+                    - generic [ref=f2e367]:
+                      - heading [level=2] [ref=f2e368]: AI 配置（私有化）
+                      - generic [ref=f2e369]: 为 self-hosted 实例配置 AI Chat、AI 字段、AI 自动化和应用构建器。
+              - heading "导航到标题 开始使用" [level=2] [ref=f2e371]:
+                - link "导航到标题" [ref=f2e372] [cursor=pointer]:
+                  - /url: "#开始使用"
+                - generic [ref=f2e377] [cursor=pointer]: 开始使用
+              - list [ref=f2e378]:
+                - listitem [ref=f2e379]:
+                  - strong [ref=f2e380]: 启用 AI
+                  - text: （仅限私有部署）- Teable 内置 AI 可直接使用。私有部署用户需先完成
+                  - link "AI 配置" [ref=f2e381] [cursor=pointer]:
+                    - /url: /zh/basic/admin-panel/ai-setting
+                  - text: ；如需接入自己的模型，可继续参考
+                  - link "自定义 AI 模型" [ref=f2e382] [cursor=pointer]:
+                    - /url: /zh/basic/ai/custom-model
+                  - text: 。
+                - listitem [ref=f2e383]:
+                  - strong [ref=f2e384]: 使用 AI Chat
+                  - text: "- 询问有关数据的问题或生成图表"
+                - listitem [ref=f2e385]:
+                  - strong [ref=f2e386]: 构建应用
+                  - text: "- 通过简单的提示词将数据库转化为 Web 应用"
+                - listitem [ref=f2e387]:
+                  - strong [ref=f2e388]: 创建 AI 字段
+                  - text: "- 添加 AI 驱动的字段来自动处理数据"
+                - listitem [ref=f2e389]:
+                  - strong [ref=f2e390]: 构建自动化
+                  - text: "- 在工作流中使用 AI 生成和运行脚本操作"
+            - generic [ref=f2e391]: 最后修改于 2026年5月28日
+            - generic [ref=f2e393]:
+              - paragraph [ref=f2e394]: 此页面对您有帮助吗？
+              - generic [ref=f2e396]:
+                - button "是" [ref=f2e397] [cursor=pointer]
+                - button "否" [ref=f2e402] [cursor=pointer]
+            - navigation "Pagination" [ref=f2e407]:
+              - 'link "下一页: AI 对话" [ref=f2e408] [cursor=pointer]':
+                - /url: /zh/basic/ai/ai-chat
+                - generic [ref=f2e409]: AI 对话
+            - link "技术支持 This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=f2e415] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=teablecn
+              - generic [ref=f2e416]: 技术支持
+              - generic [ref=f2e426]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=f2e427]

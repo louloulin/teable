@@ -1,0 +1,49 @@
+- generic [active] [ref=f20e1]:
+  - generic [ref=f20e2]:
+    - generic [ref=f20e6]:
+      - generic [ref=f20e7]: Teable
+      - generic [ref=f20e231]:
+        - heading "数据流动，团队成长" [level=2] [ref=f20e232]
+        - paragraph [ref=f20e233]: 为每个团队设计的数据库，从简单表格到企业解决方案
+      - generic [ref=f20e234]:
+        - tablist [ref=f20e237]:
+          - link [ref=f20e238] [cursor=pointer]:
+            - /url: /auth/login
+            - tab "登录" [selected] [ref=f20e239]
+          - link [ref=f20e240] [cursor=pointer]:
+            - /url: /auth/signup
+            - tab "注册" [ref=f20e241]
+        - generic [ref=f20e242]:
+          - generic:
+            - generic:
+              - heading "登录到您的账户" [level=2]
+            - generic:
+              - generic:
+                - generic:
+                  - generic: 邮箱
+                  - textbox "邮箱" [disabled]:
+                    - /placeholder: 请输入您的电子邮件地址...
+                    - text: admin@teable.local
+                - generic:
+                  - generic: 密码
+                  - textbox "密码" [disabled]:
+                    - /placeholder: 请输入您的密码...
+                    - text: admin123
+                  - link "忘记密码?":
+                    - /url: /auth/forget-password
+                - generic:
+                  - button "登录" [disabled]
+                  - generic:
+                    - link "注册":
+                      - /url: /auth/signup
+    - region "Notifications (F8)":
+      - list
+    - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f20e270] [cursor=pointer]:
+    - generic [ref=f20e273]:
+      - text: Compiling
+      - generic [ref=f20e274]:
+        - generic [ref=f20e275]: .
+        - generic [ref=f20e276]: .
+        - generic [ref=f20e277]: .
+  - alert [ref=f20e269]

@@ -43,7 +43,9 @@ export type LicenseCapability =
   | 'computed_outbox'
   | 'table_query_ops'
   | 'announcements'
-  | 'sandbox_agent';
+  | 'sandbox_agent'
+  // Round-AI-2: BYOK LLM — Enterprise-only (customer-managed keys)
+  | 'byok_llm_key';
 
 const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'ai_field',
@@ -69,6 +71,7 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'table_query_ops',
   'announcements',
   'sandbox_agent',
+  'byok_llm_key',
 ];
 
 const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
@@ -131,6 +134,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'table_query_ops',
     'announcements',
     'sandbox_agent',
+    'byok_llm_key',
   ]),
   // Self-hosted OSS does not require a cloud license for local operation.
   self_hosted: ALL_CAPABILITIES_SET,

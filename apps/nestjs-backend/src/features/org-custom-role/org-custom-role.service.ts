@@ -137,6 +137,29 @@ export function canRegisterMore(currentCount: number, opts?: IOrgCustomRoleOptio
   return currentCount < maxRoles(opts);
 }
 
+/** Normalize an assignment — ensure grantedAt timestamp, baseId null/undefined handling. */
+export function normalizeAssignment(
+  input: {
+    id: string;
+    orgId: string;
+    userId: string;
+    roleId: string;
+    baseId?: string | null;
+    grantedBy: string;
+  },
+  now?: string
+): IRoleAssignment {
+  return {
+    id: input.id,
+    orgId: input.orgId,
+    userId: input.userId,
+    roleId: input.roleId,
+    baseId: input.baseId ?? null,
+    grantedAt: now ?? new Date().toISOString(),
+    grantedBy: input.grantedBy,
+  };
+}
+
 /** Validate a role assignment. */
 export function validateAssignment(a: IRoleAssignment): string | null {
   if (!a.id) return 'id required';

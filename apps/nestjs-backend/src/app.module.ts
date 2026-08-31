@@ -9,19 +9,30 @@ import type { ICacheConfig } from './configs/cache.config';
 import { ConfigModule } from './configs/config.module';
 import { AccessTokenModule } from './features/access-token/access-token.module';
 import { AdminOpenApiModule } from './features/admin/admin-open-api.module';
+import { EnterpriseReadinessModule } from './features/admin/enterprise-readiness.module';
 import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orchestrator.module';
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
+import { AiSettingModule } from './features/ai-setting/ai-setting.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
+import { BaserowImportModule } from './features/baserow-import/baserow-import.module';
+import { ClickUpImportModule } from './features/clickup-import/clickup-import.module';
+import { JiraImportModule } from './features/jira-import/jira-import.module';
+import { MondayImportModule } from './features/monday-import/monday-import.module';
+import { NocoDbImportModule } from './features/nocodb-import/nocodb-import.module';
+import { SmartSuiteImportModule } from './features/smartsuite-import/smartsuite-import.module';
+import { SmartsheetImportModule } from './features/smartsheet-import/smartsheet-import.module';
 import { AnnouncementsModule } from './features/announcements/announcements.module';
 import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuditExportModule } from './features/audit-export/audit-export.module';
+import { BillingModule } from './features/billing/billing.module';
 import { AuthModule } from './features/auth/auth.module';
+import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
 import { BaseModule } from './features/base/base.module';
@@ -36,6 +47,12 @@ import { ConditionalFormatModule } from './features/conditional-format/condition
 import { CuppyPromptRouterModule } from './features/cuppy-prompt-router/cuppy-prompt-router.module';
 import { CustomDomainModule } from './features/custom-domain/custom-domain.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
+import { DataResidencyModule } from './features/data-residency/data-residency.module';
+import { CrossBaseFederationModule } from './features/cross-base-federation/cross-base-federation.module';
+import { CustomAiModelModule } from './features/custom-ai-model/custom-ai-model.module';
+import { ConflictReplayModule } from './features/conflict-replay/conflict-replay.module';
+import { OrgCustomRoleModule } from './features/org-custom-role/org-custom-role.module';
+import { DrCanvasModule } from './features/dr-canvas/dr-canvas.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
 import { DomainVerificationModule } from './features/domain-verification/domain-verification.module';
@@ -43,6 +60,7 @@ import { EmailDomainClaimModule } from './features/email-domain-claim/email-doma
 import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
+import { GenericConnectorModule } from './features/generic-connector/generic-connector.module';
 import { GoogleSheetsModule } from './features/google-sheets/google-sheets.module';
 import { GraphModule } from './features/graph/graph.module';
 import { HealthModule } from './features/health/health.module';
@@ -121,6 +139,7 @@ export const appModules = {
     BaseModule,
     BackupModule,
     GoogleSheetsModule,
+    GenericConnectorModule, // Round-23: generic pluggable driver registry (connect_more_sources)
     BaseNodeModule,
     MapViewModule,
     IntegrityModule,
@@ -138,6 +157,7 @@ export const appModules = {
     UserModule,
     ViewPermissionModule,
     AuthModule,
+    ApprovalWorkflowModule,
     AuditSourceModule,
     AutomationModule,
     SpaceModule,
@@ -151,10 +171,18 @@ export const appModules = {
     NotionModule,
     AccessTokenModule,
     AdminOpenApiModule,
+    EnterpriseReadinessModule,
     InstanceSkillModule,
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
+    BaserowImportModule, // Round-16: minimal baserow driver
+    ClickUpImportModule, // Round-17: minimal clickup driver
+    JiraImportModule, // Round-18: minimal jira driver
+    MondayImportModule, // Round-19: minimal monday driver (GraphQL)
+    NocoDbImportModule, // Round-20: minimal nocodb driver (REST, xc-token)
+    SmartsheetImportModule, // Round-21: minimal smartsheet driver (REST, Bearer)
+    SmartSuiteImportModule, // Round-22: minimal smartsuite driver (REST, Bearer)
     ExportOpenApiModule,
     PinModule,
     SettingAdminOpenApiModule,
@@ -172,6 +200,7 @@ export const appModules = {
     TotpModule,
     DataMaskingModule,
     AuditExportModule,
+    BillingModule,
     ApiExplorerModule,
     ScimModule,
     PermissionMatrixModule,
@@ -180,12 +209,19 @@ export const appModules = {
     OAuthServerModule,
     TrashModule,
     DashboardModule,
+    DataResidencyModule,
+    CrossBaseFederationModule,
+    CustomAiModelModule,
+    ConflictReplayModule,
+    OrgCustomRoleModule,
+    DrCanvasModule,
     DatabaseViewModule,
     GraphModule,
     CommentOpenApiModule,
     OrganizationModule,
     AiModule,
     AiBuilderModule,
+    AiSettingModule,
     AiFieldRecordListenerModule,
     PluginModule,
     PluginPanelModule,

@@ -1,3 +1,4 @@
+import { AppPage } from '@/features/app/blocks/App';
 import { QueryClient } from '@tanstack/react-query';
 import { IdPrefix } from '@teable/core';
 import { BaseNodeResourceType } from '@teable/openapi';
@@ -38,7 +39,7 @@ const UnifiedBasePage: NextPageWithLayout<IBaseNodePageProps> = (props: IBaseNod
     case BaseNodeResourceType.Workflow:
       return <WorkflowPage />;
     case BaseNodeResourceType.App:
-      return <div>App Page</div>;
+      return <AppPage />;
     default:
       return <CommunityPage />;
   }

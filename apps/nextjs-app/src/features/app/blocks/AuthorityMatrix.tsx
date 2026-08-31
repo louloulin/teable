@@ -5,11 +5,18 @@ import {
   Button,
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Skeleton,
+  Textarea,
 } from '@teable/ui-lib/shadcn';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 import Head from 'next/head';
@@ -115,6 +122,88 @@ export function AuthorityMatrixPage() {
         `/admin/permission-matrix/roles/${roleId}/record-action`,
         { tableId, action, enabled },
         { params: { baseId } }
+      ),
+    onSuccess: invalidate,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteRole = useMutation({
+    mutationFn: (roleId: string) =>
+      axios.delete(`/admin/permission-matrix/roles/${roleId}`, { params: { baseId } }),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Role deleted');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const setFieldPermission = useMutation({
+    mutationFn: ({
+      roleId,
+      tableId,
+      fieldId,
+      access,
+    }: {
+      roleId: string;
+      tableId: string;
+      fieldId: string;
+      access: 'hidden' | 'readonly' | 'editable';
+    }) =>
+      axios.put(
+        `/admin/permission-matrix/roles/${roleId}/field-permission`,
+        { tableId, fieldId, access },
+        { params: { baseId } }
+      ),
+    onSuccess: invalidate,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const setRecordFilter = useMutation({
+    mutationFn: ({ roleId, tableId, filter }: {
+      roleId: string;
+      tableId: string;
+      filter: unknown;
+    }) =>
+      axios.put(
+        `/admin/permission-matrix/roles/${roleId}/record-filter`,
+        { tableId, filter },
+        { params: { baseId } }
+      ),
+    onSuccess: invalidate,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const addMember = useMutation({
+    mutationFn: ({ roleId, userId }: { roleId: string; userId: string }) =>
+      axios.post('/admin/permission-matrix/members', { baseId, roleId, userId }),
+    onSuccess: invalidate,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: ({ roleId, userId }: { roleId: string; userId: string }) =>
+      axios.delete('/admin/permission-matrix/members', {
+        params: { baseId, roleId, userId },
+      }),
+    onSuccess: invalidate,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const setImportExport = useMutation({
+    mutationFn: ({
+      roleId,
+      tableId,
+      canImport,
+      canExport,
+    }: {
+      roleId: string;
+      tableId: string;
+      canImport: boolean;
+      canExport: boolean;
+    }) =>
+      axios.put(
+        `/admin/permission-matrix/roles/${roleId}/import-export`,
+        { baseId, tableId, canImport, canExport }
       ),
     onSuccess: invalidate,
     onError: (error: Error) => toast.error(error.message),
@@ -248,6 +337,72 @@ export function AuthorityMatrixPage() {
                   </div>
                 );
               })}
+
+              {/* Delete role */}
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={deleteRole.isPending}
+                onClick={() => {
+                  if (typeof window !== 'undefined' &&
+                      window.confirm(`Delete role "${role.name}"?`)) {
+                    void deleteRole.mutateAsync(role.id);
+                  }
+                }}
+              >
+                Delete role
+              </Button>
+
+              {/* Members */}
+              <RoleMembersSection
+                roleId={role.id}
+                members={role.members}
+                isPending={addMember.isPending || removeMember.isPending}
+                onAdd={(userId) => void addMember.mutateAsync({ roleId: role.id, userId })}
+                onRemove={(userId) =>
+                  void removeMember.mutateAsync({ roleId: role.id, userId })
+                }
+              />
+
+              {/* Import / Export */}
+              <RoleImportExportSection
+                roleId={role.id}
+                tables={tables.data ?? []}
+                isPending={setImportExport.isPending}
+                onChange={(tableId, canImport, canExport) =>
+                  void setImportExport.mutateAsync({
+                    roleId: role.id,
+                    tableId,
+                    canImport,
+                    canExport,
+                  })
+                }
+              />
+
+              {/* Field permission + record filter per table */}
+              {(tables.data ?? []).map((table) => (
+                <RoleFieldPermissionSection
+                  key={`${role.id}-${table.id}-fields`}
+                  roleId={role.id}
+                  table={table}
+                  isPending={setFieldPermission.isPending || setRecordFilter.isPending}
+                  onFieldChange={(fieldId, access) =>
+                    void setFieldPermission.mutateAsync({
+                      roleId: role.id,
+                      tableId: table.id,
+                      fieldId,
+                      access,
+                    })
+                  }
+                  onFilterChange={(filter) =>
+                    void setRecordFilter.mutateAsync({
+                      roleId: role.id,
+                      tableId: table.id,
+                      filter,
+                    })
+                  }
+                />
+              ))}
             </CardContent>
           </Card>
         ))}
@@ -257,6 +412,215 @@ export function AuthorityMatrixPage() {
           No roles configured for this base yet.
         </div>
       )}
+    </div>
+  );
+}
+
+// ──────────────────────────── Role sub-sections ────────────────────────────
+
+function RoleMembersSection({
+  roleId,
+  members,
+  isPending,
+  onAdd,
+  onRemove,
+}: {
+  roleId: string;
+  members: string[];
+  isPending: boolean;
+  onAdd: (userId: string) => void;
+  onRemove: (userId: string) => void;
+}) {
+  const [userId, setUserId] = useState('');
+  return (
+    <div className="rounded-md border p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-medium">Members</span>
+        <span className="text-xs text-muted-foreground">{members.length} assigned</span>
+      </div>
+      {members.length > 0 && (
+        <ul className="mb-2 space-y-1 text-xs">
+          {members.map((m) => (
+            <li key={m} className="flex items-center justify-between">
+              <code>{m}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={isPending}
+                onClick={() => onRemove(m)}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-1">
+        <Input
+          placeholder="user id"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+        />
+        <Button
+          size="sm"
+          disabled={!userId.trim() || isPending}
+          onClick={() => {
+            onAdd(userId.trim());
+            setUserId('');
+          }}
+        >
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RoleImportExportSection({
+  roleId,
+  tables,
+  isPending,
+  onChange,
+}: {
+  roleId: string;
+  tables: Array<{ id: string; name: string }>;
+  isPending: boolean;
+  onChange: (tableId: string, canImport: boolean, canExport: boolean) => void;
+}) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="mb-2 font-medium">Import / Export</div>
+      <div className="space-y-1 text-xs">
+        {tables.map((table) => (
+          <div key={table.id} className="flex items-center justify-between">
+            <span>{table.name}</span>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => onChange(table.id, true, true)}
+              >
+                Allow both
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={isPending}
+                onClick={() => onChange(table.id, false, false)}
+              >
+                Deny both
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoleFieldPermissionSection({
+  roleId,
+  table,
+  isPending,
+  onFieldChange,
+  onFilterChange,
+}: {
+  roleId: string;
+  table: { id: string; name: string };
+  isPending: boolean;
+  onFieldChange: (fieldId: string, access: 'hidden' | 'readonly' | 'editable') => void;
+  onFilterChange: (filter: unknown) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [filterText, setFilterText] = useState('');
+  return (
+    <div className="rounded-md border p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-medium">{table.name} · Advanced</span>
+        <Button size="sm" variant="ghost" onClick={() => setExpanded((v) => !v)}>
+          {expanded ? 'Hide' : 'Show'}
+        </Button>
+      </div>
+      {expanded && (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">
+            Field permission: enter a field id and pick an access level.
+          </div>
+          <FieldPermissionRow
+            isPending={isPending}
+            onChange={(fieldId, access) => onFieldChange(fieldId, access)}
+          />
+          <div className="space-y-1">
+            <Label htmlFor={`filter-${roleId}-${table.id}`}>Record filter (JSON DSL)</Label>
+            <Textarea
+              id={`filter-${roleId}-${table.id}`}
+              rows={3}
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              placeholder='{"conjunction":"and","filterSet":[{"fieldId":"fld_xxx","operator":"is","value":"open"}]}'
+            />
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => {
+                  try {
+                    const parsed = JSON.parse(filterText);
+                    onFilterChange(parsed);
+                    toast.success('Filter saved');
+                  } catch {
+                    toast.error('Invalid JSON');
+                  }
+                }}
+              >
+                Save filter
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FieldPermissionRow({
+  isPending,
+  onChange,
+}: {
+  isPending: boolean;
+  onChange: (fieldId: string, access: 'hidden' | 'readonly' | 'editable') => void;
+}) {
+  const [fieldId, setFieldId] = useState('');
+  const [access, setAccess] = useState<'hidden' | 'readonly' | 'editable'>('editable');
+  return (
+    <div className="flex gap-1">
+      <Input
+        placeholder="fld_xxx"
+        value={fieldId}
+        onChange={(e) => setFieldId(e.target.value)}
+      />
+      <Select value={access} onValueChange={(v) => setAccess(v as typeof access)}>
+        <SelectTrigger className="w-32">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="hidden">hidden</SelectItem>
+          <SelectItem value="readonly">readonly</SelectItem>
+          <SelectItem value="editable">editable</SelectItem>
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        disabled={!fieldId.trim() || isPending}
+        onClick={() => {
+          onChange(fieldId.trim(), access);
+          setFieldId('');
+        }}
+      >
+        Set
+      </Button>
     </div>
   );
 }

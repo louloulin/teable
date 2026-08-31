@@ -1,0 +1,34 @@
+- generic [ref=f20e2]:
+  - generic [ref=f20e6]:
+    - generic [ref=f20e7]: Teable
+    - generic [ref=f20e231]:
+      - heading "数据流动，团队成长" [level=2] [ref=f20e232]
+      - paragraph [ref=f20e233]: 为每个团队设计的数据库，从简单表格到企业解决方案
+    - generic [ref=f20e234]:
+      - tablist [ref=f20e237]:
+        - link [ref=f20e238] [cursor=pointer]:
+          - /url: /auth/login
+          - tab "登录" [selected] [ref=f20e239]
+        - link [ref=f20e240] [cursor=pointer]:
+          - /url: /auth/signup
+          - tab "注册" [ref=f20e241]
+      - generic [ref=f20e243]:
+        - heading "登录到您的账户" [level=2] [ref=f20e245]
+        - generic [ref=f20e247]:
+          - generic [ref=f20e248]:
+            - generic [ref=f20e249]: 邮箱
+            - textbox "邮箱" [ref=f20e250]:
+              - /placeholder: 请输入您的电子邮件地址...
+          - generic [ref=f20e251]:
+            - generic [ref=f20e252]: 密码
+            - textbox "密码" [ref=f20e254]:
+              - /placeholder: 请输入您的密码...
+            - link "忘记密码?" [ref=f20e255] [cursor=pointer]:
+              - /url: /auth/forget-password
+          - generic [ref=f20e256]:
+            - button "登录" [ref=f20e257] [cursor=pointer]
+            - link "注册" [ref=f20e259] [cursor=pointer]:
+              - /url: /auth/signup
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"

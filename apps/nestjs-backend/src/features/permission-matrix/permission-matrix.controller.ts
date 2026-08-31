@@ -44,6 +44,13 @@ interface IAddMemberDto {
   userId: string;
 }
 
+interface IImportExportDto {
+  baseId: string;
+  tableId: string;
+  canImport: boolean;
+  canExport: boolean;
+}
+
 @Controller('api/admin/permission-matrix')
 @UseGuards(MatrixGuard)
 export class PermissionMatrixController {
@@ -153,5 +160,44 @@ export class PermissionMatrixController {
   async removeMember(@Body() body: IAddMemberDto) {
     await this.svc.removeMember(body.baseId, body.roleId, body.userId);
     return { ok: true };
+  }
+
+  // ─── import/export permissions (Round-26: Cloud §权限矩阵 §导入/导出权限) ───
+
+  @Put('roles/:roleId/import-export')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setImportExport(
+    @Param('roleId') roleId: string,
+    @Body() body: IImportExportDto
+  ) {
+    return this.svc.setImportExport(
+      body.baseId,
+      roleId,
+      body.tableId,
+      body.canImport,
+      body.canExport
+    );
+  }
+
+  @Get('roles/:roleId/import-export')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async listImportExport(
+    @Param('roleId') roleId: string,
+    @Query('baseId') baseId: string
+  ) {
+    return this.svc.listImportExport(baseId, roleId);
+  }
+
+  @Delete('roles/:roleId/import-export/:tableId')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async deleteImportExport(
+    @Param('roleId') roleId: string,
+    @Param('tableId') tableId: string,
+    @Query('baseId') baseId: string
+  ) {
+    return this.svc.deleteImportExport(baseId, roleId, tableId);
   }
 }

@@ -1,0 +1,31 @@
+[     259ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[     516ms] [LOG] [Fast Refresh] done in 358ms @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[    1123ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:3001/_next/static/chunks/c21e6_react-dom_cjs_react-dom_development_db335baa.js:25055
+[    1136ms] [LOG] [HMR] connected @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[    1136ms] [WARNING] [HMR] Invalid message: {"type":"isrManifest","data":{"/space":false,"/auth/login":false}}
+TypeError: Cannot read properties of undefined (reading 'components')
+    at handleStaticIndicator (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2952:46)
+    at processMessage (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2966:17)
+    at http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2840:13
+    at WebSocket.handleMessage (http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2450:17) @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[    1914ms] [WARNING] Image with src "/images/layout/pointer.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[   16820ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[   17920ms] [LOG] [Fast Refresh] done in 1201ms @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_3abc30e0._.js:3016
+[   22225ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://127.0.0.1:3001/socket/info?t=1788218993143:0
+[   23226ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   24228ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   24478ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket/info?t=1788218997204:0
+[   25230ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   26233ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   27236ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   27856ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket/info?t=1788219000583:0
+[   32239ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   32921ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket/info?t=1788219005647:0
+[   37241ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   40516ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket/info?t=1788219013242:0
+[   42243ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   47245ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   51909ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket/info?t=1788219024635:0
+[   52247ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
+[   57249ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3001/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/_next/static/chunks/256b4_next_dist_client_6995d2c1._.js:2468
