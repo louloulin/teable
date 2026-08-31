@@ -1,0 +1,131 @@
+schema: comet.native.v4
+name: stage-8b-ai-granular-gating
+language: zh-CN
+phase: archive
+status: active
+state_version: 11
+brief: brief.md
+spec_changes:
+  - capability: stage-8b-ai-granular-gating
+    operation: create
+    source: specs/stage-8b-ai-granular-gating/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/stage-8b-ai-granular-gating
+  target_branch: comet/teable-oss-vs-cloud-gap-fill
+  finish: merge
+loop:
+  stage: archive-ready
+  goal_cycle: 2
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: archive
+acceptance:
+  - id: A1
+    source: specs/stage-8b-ai-granular-gating/spec.md
+    text: LicenseCapabilityGuard.for(ai_chat | ai_app_builder | ai_field |
+      cuppy_claw) 4 个能力位独立判断。
+    result: passed
+    reason:
+      text: Stage 8b A1 pass
+      truncated: false
+builder_handoff:
+  candidate_id: 3a1a2497-8e1f-454d-860a-243973a4d6db
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:eee2e29c-a5f9-4899-bedc-5893d40c0aa9
+  iteration: 1
+  summary:
+    text: "Stage 8b ai-granular-gating 端到端实现: LicenseCapabilityGuard.for('ai_chat' |
+      'ai_app_builder' | 'ai_field' | 'cuppy_claw') 4 档能力门控 + plan 阶梯 (free →
+      402 / pro → 部分 / business → 全部) + 24 个单测全绿 + nest 启动 Guard 注册成功。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+  checks:
+    - name:
+        text: capability-guards
+        truncated: false
+      result: passed
+      note:
+        text: LicenseCapabilityGuard.for(ai_chat | ai_app_builder | ai_field |
+          cuppy_claw) 4 个能力位独立判断
+        truncated: false
+    - name:
+        text: plan-tier-gating
+        truncated: false
+      result: passed
+      note:
+        text: plan=free → 402 LICENSE_REQUIRED; plan=pro → 部分能力; plan=business → 全部能力
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: LicenseCapabilityGuard 13 it() + ai-granular-gating 11 it() 全部通过
+        truncated: false
+    - name:
+        text: nest-startup
+        truncated: false
+      result: passed
+      note:
+        text: nest 启动日志确认 4 个 Guard 全部注册; APP_GUARD providers 中可见
+        truncated: false
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: 2026-08-31T08:14:38.760Z
+blockers: []
+verification:
+  candidate_id: 3a1a2497-8e1f-454d-860a-243973a4d6db
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:b8351465-d384-4dad-9288-97898638ea65
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: Stage 8b all pass
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-31T08:14:57.967Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native target specification declarations changed
+      truncated: false
+    completed_at: 2026-08-31T08:13:40.315Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: Stage 8b all pass
+      truncated: false
+    completed_at: 2026-08-31T08:14:57.967Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-08-31T15:30:00.000Z
