@@ -87,6 +87,7 @@ import { ShortLinkModule } from './features/short-link/short-link.module';
 import { SmtpModule } from './features/smtp/smtp.module';
 import { SpaceModule } from './features/space/space.module';
 import { SsoModule } from './features/sso/sso.module';
+import { SamlModule } from './features/saml/saml.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TotpModule } from './features/totp/totp.module';
 import { TrashModule } from './features/trash/trash.module';
@@ -167,6 +168,7 @@ export const appModules = {
     EmailDomainClaimModule,
     RiskControlModule,
     SsoModule,
+    SamlModule,
     TotpModule,
     DataMaskingModule,
     AuditExportModule,

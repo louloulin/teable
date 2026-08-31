@@ -36,6 +36,16 @@ export class SamlAuthService {
     });
   }
 
+/**
+   * Public lookup so the controller can hydrate a SAML provider row
+   * after the IdP response lands (state is consumed in
+   * `completeLogin`, so we re-fetch by id to learn the emailDomain
+   * needed by `SsoAuthService.resolveLocalUser`).
+   */
+  async findProviderById(providerId: string) {
+    return this.prisma.ssoIdentityProvider.findUnique({ where: { id: providerId } });
+  }
+
   /**
    * Begin a SAML login for an organization. Returns the URL to
    * redirect the browser to plus the opaque state token the IdP
