@@ -84,6 +84,8 @@ cleanup() {
      DELETE FROM meta.federation_source; \
      DELETE FROM meta.federation_view; \
      DELETE FROM meta.conflict_event; \
+     DELETE FROM meta.role_assignment; \
+     DELETE FROM meta.custom_role; \
      DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
      DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
@@ -2233,6 +2235,108 @@ print('enabled=' + str(ce.get('enabled',False)).lower() + ' count=' + str(ce.get
 ")
 assert_ok "$([[ "$CR_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
   "conflict-replay capability conflict_event enabled (got: $CR_CAP_LIVE)"
+
+log "=== Section 4.20: org-custom-role HTTP CRUD (Round-32) ==="
+
+# Pre-clean (cleanup() also handles this at trap EXIT)
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.role_assignment WHERE org_id='org_r32_e2e'; \
+   DELETE FROM meta.custom_role WHERE org_id='org_r32_e2e';" >/dev/null 2>&1 || true
+
+# 1) Upsert role
+sleep 2  # dodge ApiThrottleGuard 429 (Section 4 is under business license)
+OCR_R=$(curl -s -X PUT "${BASE_URL}/api/org-custom-role/roles/crr_r32_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org_r32_e2e","name":"R32 Editor","description":"e2e role","capabilities":["base.read","row.create","row.update"],"scopes":[],"enabled":true}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('name','') + '|' + str(len(d.get('capabilities', []))) + '|' + str(d.get('enabled', False)).lower())
+")
+assert_ok "$([[ "$OCR_R" == "R32 Editor|3|true" ]] && echo 0 || echo 1)" \
+  "org-custom-role: upsert role returns name|capCount|enabled (got: $OCR_R)"
+
+# 2) Load role
+sleep 2
+OCR_LOAD=$(curl -s "${BASE_URL}/api/org-custom-role/roles/crr_r32_e2e" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('name','') + '|' + ','.join(d.get('capabilities', [])))
+")
+assert_ok "$([[ "$OCR_LOAD" == "R32 Editor|base.read,row.create,row.update" ]] && echo 0 || echo 1)" \
+  "org-custom-role: load role returns name+capabilities (got: $OCR_LOAD)"
+
+# 3) List roles in org
+sleep 2
+OCR_LIST=$(curl -s "${BASE_URL}/api/org-custom-role/orgs/org_r32_e2e/roles" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+names = sorted([r.get('name','') for r in d.get('roles', [])])
+print(','.join(names))
+")
+assert_ok "$([[ "$OCR_LIST" =~ R32\ Editor ]] && echo 0 || echo 1)" \
+  "org-custom-role: list roles includes R32 Editor (got: $OCR_LIST)"
+
+# 4) Upsert assignment
+sleep 2
+OCR_A=$(curl -s -X PUT "${BASE_URL}/api/org-custom-role/assignments/ra_r32_e2e" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org_r32_e2e","userId":"usr_r32_e2e","roleId":"crr_r32_e2e","baseId":null,"grantedBy":"usr_admin"}' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('roleId','') + '|' + d.get('userId','') + '|' + d.get('grantedBy',''))
+")
+assert_ok "$([[ "$OCR_A" == "crr_r32_e2e|usr_r32_e2e|usr_admin" ]] && echo 0 || echo 1)" \
+  "org-custom-role: upsert assignment returns roleId|userId|grantedBy (got: $OCR_A)"
+
+# 5) List user assignments
+sleep 2
+OCR_AL=$(curl -s "${BASE_URL}/api/org-custom-role/orgs/org_r32_e2e/users/usr_r32_e2e/assignments" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+ids = sorted([a.get('id','') for a in d.get('assignments', [])])
+print(','.join(ids))
+")
+assert_ok "$([[ "$OCR_AL" =~ ra_r32_e2e ]] && echo 0 || echo 1)" \
+  "org-custom-role: list user assignments includes ra_r32_e2e (got: $OCR_AL)"
+
+# 6) Capability flip check (custom_role) — must run BEFORE deletes since the
+#    capability flips based on row count.
+sleep 2
+OCR_CAP_LIVE=$(curl -sf -H "x-admin-token: ${ADMIN_TOKEN}" "${BASE_URL}/api/admin/enterprise-readiness" | python3 -c "
+import json, sys
+cr = json.load(sys.stdin)['capabilities'].get('custom_role', {})
+print('enabled=' + str(cr.get('enabled',False)).lower() + ' count=' + str(cr.get('customRole', 0)))
+")
+assert_ok "$([[ "$OCR_CAP_LIVE" =~ enabled=true ]] && echo 0 || echo 1)" \
+  "org-custom-role capability custom_role enabled (got: $OCR_CAP_LIVE)"
+
+# 7) Delete assignment (FK: must delete assignment first since it references roleId)
+sleep 2
+OCR_DA=$(curl -s -X DELETE "${BASE_URL}/api/org-custom-role/assignments/ra_r32_e2e" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$OCR_DA" == "true" ]] && echo 0 || echo 1)" \
+  "org-custom-role: delete assignment returns deleted:true (got: $OCR_DA)"
+
+# 8) Delete role
+sleep 2
+OCR_DR=$(curl -s -X DELETE "${BASE_URL}/api/org-custom-role/roles/crr_r32_e2e" | python3 -c "
+import json, sys
+print(str(json.load(sys.stdin).get('deleted', False)).lower())
+")
+assert_ok "$([[ "$OCR_DR" == "true" ]] && echo 0 || echo 1)" \
+  "org-custom-role: delete role returns deleted:true (got: $OCR_DR)"
+
+# 9) Deleted role returns role:null
+sleep 2
+OCR_GONE=$(curl -s "${BASE_URL}/api/org-custom-role/roles/crr_r32_e2e" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('null' if d.get('role', 'x') is None else 'present')
+")
+assert_ok "$([[ "$OCR_GONE" == "null" ]] && echo 0 || echo 1)" \
+  "org-custom-role: deleted role returns role:null (got: $OCR_GONE)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

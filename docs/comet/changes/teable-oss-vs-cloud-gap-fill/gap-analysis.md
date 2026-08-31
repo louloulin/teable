@@ -3102,3 +3102,136 @@ $ curl -X DELETE /api/conflict-replay/orgs/.../events/org_r31_smoke:k-smoke-1:0
 - **R38**: `audit-log-query` + `audit-retention` (审计查询+保留)
 - **R39**: `app-module-wiring` (App 模块接线)
 - **R40**: `ai-credit` + `ai-usage` (AI 信用/使用追踪)
+
+## Round-32: org-custom-role HTTP 层接入 (自定义角色 + 用户授权)
+
+### 背景
+
+R31 修了 conflict-replay 的"service 完整但无 controller" gap。R32 接 org-custom-role —— 这是用户提到的 authority-matrix 直接对应的运维 API。云版 (Cloud) 用它做"自定义角色 + 用户授权",在 R26 权限矩阵之上叠加细粒度角色。
+
+R32 选型理由:
+1. auth.service 7 个方法全有:`upsertRole`, `listRoles`, `getRole`, `deleteRole`, `upsertAssignment`, `listAssignmentsForUser`, `deleteAssignment`
+2. Prisma model `CustomRole` + `RoleAssignment` 已配 (id, orgId, name, capabilities[], scopes[], enabled, grantedAt, grantedBy 等)
+3. capability `custom_role` 已注册,seed 即 enabled
+4. **用户显式引用 authority-matrix URL** (`https://help.teable.ai/zh/basic/authority-matrix`)
+
+### 实施细节
+
+#### 1) Controller (`org-custom-role.controller.ts`, 152 LOC)
+
+`@Controller('api/org-custom-role')` + 7 个 endpoint:
+
+| HTTP | Path | 方法 |
+|---|---|---|
+| PUT | `/roles/:id` | upsertRole |
+| GET | `/roles/:id` | loadRole |
+| GET | `/orgs/:orgId/roles` | listRoles |
+| DELETE | `/roles/:id` | deleteRole |
+| PUT | `/assignments/:id` | upsertAssignment |
+| GET | `/orgs/:orgId/users/:userId/assignments` | listAssignments |
+| DELETE | `/assignments/:id` | deleteAssignment |
+
+**Bug fix during R32**:controller 一开始用 `this.auth.loadRole(id)`,但 auth.service 真实方法名是 `getRole` (不是 loadRole)。修复:统一用 `getRole`。
+
+#### 2) 新增 helper (`R32-001`)
+
+service 没有 `normalizeAssignment`,controller 端新增:
+
+```ts
+export function normalizeAssignment(
+  input: {
+    id, orgId, userId, roleId, baseId?, grantedBy
+  },
+  now?: string
+): IRoleAssignment {
+  return {
+    id, orgId, userId, roleId,
+    baseId: input.baseId ?? null,
+    grantedAt: now ?? new Date().toISOString(),
+    grantedBy
+  };
+}
+```
+
+这个函数和现有 `normalizeRole` 对称,把可选字段默认值填好,grantedAt ISO 化。controller 用 `normalizeRole` + `normalizeAssignment` 做 HTTP 边界归一化,service `validateRole/validateAssignment` 不变。
+
+#### 3) Module + 注册(`R32-002`)
+
+```ts
+@Module({
+  imports: [PrismaModule],
+  controllers: [OrgCustomRoleController],
+  providers: [OrgCustomRoleAuthService],
+  exports: [OrgCustomRoleAuthService],
+})
+export class OrgCustomRoleModule {}
+```
+
+注册到 `app.module.ts` 第 210 行,紧跟 `ConflictReplayModule`。
+
+#### 4) 实测端到端(7 endpoint 全部 200)
+
+```bash
+# 1. upsert role (capabilities: ["base.read","row.create"])
+$ curl -X PUT /api/org-custom-role/roles/crr_r32_smoke -d '{orgId,name,description,capabilities,scopes,enabled}'
+{ "id":"crr_r32_smoke","name":"TestEditor","capabilities":["base.read","row.create"],... }
+
+# 2. upsert assignment (grantedBy=admin)
+$ curl -X PUT /api/org-custom-role/assignments/ra_r32_smoke -d '{orgId,userId,roleId,grantedBy}'
+{ "id":"ra_r32_smoke","userId":"usr_r32_smoke","roleId":"crr_r32_smoke","grantedAt":"...","grantedBy":"admin" }
+
+# 3. list user's assignments
+$ curl /api/org-custom-role/orgs/org_r32_smoke/users/usr_r32_smoke/assignments
+{ "assignments":[{"id":"ra_r32_smoke",...}] }
+
+# 4. delete (assignment 先,role 后;FK 依赖)
+$ curl -X DELETE .../assignments/ra_r32_smoke → {deleted:true}
+$ curl -X DELETE .../roles/crr_r32_smoke → {deleted:true}
+```
+
+`custom_role` capability 从 `enabled=false reason=no_custom_role_rows_yet` → **`enabled=true count=1`**。
+
+#### 5) e2e Section 4.20 (9 断言)
+
+| # | 断言 | 实测 |
+|---|---|---|
+| 1 | upsert role returns name\|capCount\|enabled | R32 Editor\|3\|true ✓ |
+| 2 | load role returns name+capabilities | R32 Editor\|base.read,row.create,row.update ✓ |
+| 3 | list roles includes R32 Editor | R32 Editor ✓ |
+| 4 | upsert assignment returns roleId\|userId\|grantedBy | crr_r32_e2e\|usr_r32_e2e\|usr_admin ✓ |
+| 5 | list user assignments includes ra_r32_e2e | ra_r32_e2e ✓ |
+| 6 | custom_role capability enabled | enabled=true count=1 ✓ |
+| 7 | delete assignment returns deleted:true | true ✓ |
+| 8 | delete role returns deleted:true | true ✓ |
+| 9 | deleted role returns role:null | null ✓ |
+
+**e2e 总数:214 OK / 0 FAIL** (R31 是 205,+9)。
+
+#### 6) e2e 顺带修的 latent bug
+
+跑 R32 时发现 1 个 ordering 问题:
+- **Section 4.20 capability check 顺序错** —— 我把 capability flip check 放在 delete 之后,导致 role 行已删,count=0,capability 回 false。**修复**:capability check 移到 delete 之前(行还在时)。
+
+### Round-32 设计教训 (给后续 round 的同学)
+
+1. **auth.service 方法名 vs controller** —— `loadRole` 不是通用命名,各 service 用 `getXxx` / `loadXxx` / `findXxx` 不统一。Controller 写之前 grep 一下 `async (load|get|find)Xxx` 确认命名,避免 500。
+2. **capability 顺序敏感性** —— capability 状态依赖 row count,所以 `enabled=true` 检查必须在 DELETE 之前,否则会被自己清零。这是 R30/R31/R32 三个 round 反复出现的模式,**通用规则**:capability flip check 永远放在第一个 DELETE 前,或者在另一个 fresh row 上测。
+3. **FK 删除顺序** —— `RoleAssignment.roleId → CustomRole.id` 是逻辑引用(虽然不是真 FK),e2e 必须先 delete assignment 再 delete role,否则 prisma 抛 P2003。R28 approval_workflow 类似(decision → request → workflow)。
+4. **normalize* 对称性** —— `normalizeRole` 早就存在但没有 `normalizeAssignment`。新增 normalize helper 时让 `normalizeXxx` 命名 + 签名一致 (Partial<IXxx> + now),controller 调用模式统一。
+
+### 结论
+
+**Round-32 完成**: org-custom-role HTTP 层全栈接入 (controller + module + app.module + 9 个 e2e 断言 + 2 个 latent bug 修复)。`custom_role` capability 从"永远无法 enabled"变成"创建 role 即 enabled",云版自定义角色链路通,**直接对齐用户提到的 authority-matrix URL**。
+
+### 下一步 (R33+ 候选)
+
+| Round | 候选 | 业务价值 | 估算 |
+|---|---|---|---|
+| **R33** | `dr-canvas` | 灾难恢复画布,云版独有 | ~30min |
+| **R34** | `compliance-attestation` + `audit-pack` | SOC2/ISO27001 合规 | ~1h |
+| **R35** | `billing` + `billing-pdf-export` | SaaS 计费发票 | ~45min |
+| **R36** | `byok-llm` + `byok-kms` | BYOK 加密 | ~30min |
+| **R37** | `federated-sso` + `sso` + `saml` | 企业 SSO | ~1.5h |
+| **R38** | `audit-log-query` + `audit-retention` | 审计查询+保留 | ~45min |
+| **R39** | `app-module-wiring` | App 模块接线 | ~30min |
+| **R40** | `ai-credit` + `ai-usage` | AI 信用/使用追踪 | ~30min |
