@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.teable.frontend.dev</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/louloulin/appx/teable/apps/nextjs-app/node_modules/.bin/next</string>
+        <string>dev</string>
+        <string>-p</string>
+        <string>3001</string>
+        <string>-H</string>
+        <string>127.0.0.1</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/teable-frontend.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/teable-frontend.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/louloulin/appx/teable/apps/nextjs-app</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>NODE_ENV</key>
+        <string>development</string>
+        <key>PORT</key>
+        <string>3001</string>
+        <key>BACKEND_API_URL</key>
+        <string>http://127.0.0.1:3000</string>
+        <key>NEXT_PUBLIC_BACKEND_API_URL</key>
+        <string>http://127.0.0.1:3000</string>
+        <key>PUBLIC_ORIGIN</key>
+        <string>http://127.0.0.1:3001</string>
+    </dict>
+</dict>
+</plist>

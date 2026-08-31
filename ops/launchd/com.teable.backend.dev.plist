@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.teable.backend.dev</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-l</string>
+        <string>-c</string>
+        <string>source /tmp/teable-env.sh && export TEABLE_ADMIN_TOKEN='test-token' && export PORT=3000 && export NODE_ENV=development && export V2_TABLE_QUERY_OPS_ENABLED=false && export NEXTJS_DIR='/Users/louloulin/appx/teable/apps/nextjs-app' && unset BACKEND_SKIP_NEXT_START && cd /Users/louloulin/appx/teable/apps/nestjs-backend && exec /opt/homebrew/opt/node@24/bin/node dist/index.js</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/teable-backend.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/teable-backend.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/louloulin/appx/teable/apps/nestjs-backend</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
