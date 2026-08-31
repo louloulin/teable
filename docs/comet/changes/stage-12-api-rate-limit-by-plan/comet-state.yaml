@@ -1,9 +1,9 @@
 schema: comet.native.v4
 name: stage-12-api-rate-limit-by-plan
 language: zh-CN
-phase: verify
-status: await-user
-state_version: 7
+phase: archive
+status: active
+state_version: 9
 brief: brief.md
 spec_changes:
   - capability: stage-12-api-rate-limit-by-plan
@@ -13,9 +13,9 @@ workspace:
   isolation: worktree
   change_branch: comet/stage-12-api-rate-limit-by-plan
   target_branch: comet/teable-oss-vs-cloud-gap-fill
-  finish: null
+  finish: keep
 loop:
-  stage: await-user
+  stage: archive-ready
   goal_cycle: 2
   iteration: 1
   attempt: 1
@@ -24,7 +24,7 @@ loop:
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-skill-coordinated-pass
+  next_action: archive
 acceptance:
   - id: A1
     source: brief.md
@@ -409,14 +409,7 @@ builder_handoff:
   known_limits: []
   known_limits_truncated: false
   submitted_at: 2026-08-31T07:41:53.459Z
-blockers:
-  - owner: user
-    reason:
-      text: The generic Skill bridge cannot prove an independent Verifier execution;
-        user confirmation is required before Archive.
-      truncated: false
-    acceptance_ids: []
-    resolution_action: await-user
+blockers: []
 verification:
   candidate_id: 5370f4f9-fe6f-4932-ad1b-5013afba45f0
   identity_provider: skill-coordinated
