@@ -56,7 +56,23 @@ cleanup() {
      DELETE FROM meta.conditional_format_rule WHERE id = 'cfr_round6_demo'; \
      DELETE FROM meta.data_residency_policy WHERE id = 'drp_round6_demo'; \
      DELETE FROM meta.db_connector WHERE id = 'dbc_round6_demo'; \
+     DELETE FROM meta.db_connector_sync WHERE id = 'dcs_round6_demo'; \
+     DELETE FROM meta.data_db_connection WHERE id = 'ddc_round6_demo'; \
      DELETE FROM meta.custom_role WHERE id = 'crr_round6_demo'; \
+     DELETE FROM meta.ai_credit_grant_policy WHERE id = 'acgp_round6_demo'; \
+     DELETE FROM meta.ai_credit_ledger WHERE id = 'acl_round6_demo'; \
+     DELETE FROM meta.ai_usage_bucket WHERE id = 'aub_round6_demo'; \
+     DELETE FROM meta.app_module_wire WHERE id = 'amw_round6_demo'; \
+     DELETE FROM meta.automation_canvas_revision WHERE id = 'acr_round6_demo'; \
+     DELETE FROM meta.automation_secret WHERE id = 'as_round6_demo'; \
+     DELETE FROM meta.conflict_event WHERE id = 'cfe_round6_demo'; \
+     DELETE FROM meta.federation_event WHERE id = 'fe_round6_demo'; \
+     DELETE FROM meta.cross_org_admin_grant WHERE id = 'coag_round6_demo'; \
+     DELETE FROM meta.dr_canvas WHERE id = 'drc_round6_demo'; \
+     DELETE FROM meta.billing_credit WHERE id = 'bcr_round6_demo'; \
+     DELETE FROM meta.backup_restore_log WHERE id = 'brl_round6_demo';
+      DELETE FROM meta.backup_snapshot WHERE id = 'snp_round6_demo'; \
+     DELETE FROM meta.airtable_connection WHERE id = 'airc_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
      DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
      DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
@@ -508,6 +524,124 @@ COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -
    VALUES ('crr_round6_demo', 'org_round6_demo', 'Round6 Custom Role', 'demo', true, now(), now()) \
    ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.custom_role;" 2>&1 | tail -1)
 [[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[custom_role]="$COUNT" || true
+
+# 9. ai_credit_grant_policy
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.ai_credit_grant_policy (id, organization_id, monthly_limit, carry_cap, updated_by, updated_time) \
+   VALUES ('acgp_round6_demo', 'org_round6_demo', 10000, 2000, 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.ai_credit_grant_policy;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[ai_credit_grant_policy]="$COUNT" || true
+
+# 10. ai_credit_ledger
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.ai_credit_ledger (id, organization_id, action, credits, month_bucket, created_time) \
+   VALUES ('acl_round6_demo', 'org_round6_demo', 'consume', 100, '202608', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.ai_credit_ledger;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[ai_credit_ledger]="$COUNT" || true
+
+# 11. ai_usage_bucket
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.ai_usage_bucket (id, organization_id, model, action, credits, event_count, month_bucket, updated_time) \
+   VALUES ('aub_round6_demo', 'org_round6_demo', 'gpt-4o', 'completion', 50, 10, '202608', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.ai_usage_bucket;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[ai_usage_bucket]="$COUNT" || true
+
+# 12. app_module_wire
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.app_module_wire (id, name, category, round, required, updated_at) \
+   VALUES ('amw_round6_demo', 'round6-app-module', 'core', 1, true, now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.app_module_wire;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[app_module_wire]="$COUNT" || true
+
+# 13. automation_canvas_revision
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.automation_canvas_revision (id, canvas_id, version, graph_json, hash, author, created_at) \
+   VALUES ('acr_round6_demo', 'cnv_round6_demo', 1, '{}'::jsonb, 'h_round6', 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.automation_canvas_revision;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[automation_canvas_revision]="$COUNT" || true
+
+# 14a. automation (parent row required by automation_secret FK)
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.automation (id, base_id, name, enabled, created_by, created_time) \
+   VALUES ('aut_round6_demo', 'bse_round6_demo', 'Round6 Automation', true, 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.automation;" 2>&1 | tail -1)
+# Note: automation itself is not a capability, so we don't add to SEED_OK.
+# 14b. automation_secret
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.automation_secret (id, automation_id, name, encrypted_value, created_by, created_time) \
+   VALUES ('as_round6_demo', 'aut_round6_demo', 'round6-secret', 'enc_round6', 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.automation_secret;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[automation_secret]="$COUNT" || true
+
+# 15. conflict_event
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.conflict_event (id, org_id, record_id, kind, idempotency_key, \"offset\", attempts, enqueued_at) \
+   VALUES ('cfe_round6_demo', 'org_round6_demo', 'rec_round6_demo', 'edit_conflict', 'idem_round6', 0, 0, now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.conflict_event;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[conflict_event]="$COUNT" || true
+
+# 16. federation_event
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.federation_event (id, view_id, source_id, kind, occurred_at, summary, processed) \
+   VALUES ('fe_round6_demo', 'viw_round6_demo', 'src_round6', 'link', now(), 'round6 federation event', false) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.federation_event;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[federation_event]="$COUNT" || true
+
+# 17. data_db_connection
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.data_db_connection (id, provider, encrypted_url, url_fingerprint, internal_schema, status, created_by, created_time) \
+   VALUES ('ddc_round6_demo', 'postgres', 'enc_round6_url', 'fp_round6', 'public', 'ready', 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.data_db_connection;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[data_db_connection]="$COUNT" || true
+
+# 18. db_connector_sync
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.db_connector_sync (id, connector_id, mode, status, rows_fetched, rows_written, started_at, triggered_by) \
+   VALUES ('dcs_round6_demo', 'dbc_round6_demo', 'full', 'success', 100, 100, now(), 'manual') \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.db_connector_sync;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[db_connector_sync]="$COUNT" || true
+
+# 19. cross_org_admin_grant
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.cross_org_admin_grant (id, user_id, space_id, granted_by, role, created_time) \
+   VALUES ('coag_round6_demo', 'usr_round6_demo', 'spc_round6_demo', 'usr_round6_demo', 'admin', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.cross_org_admin_grant;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[cross_org_admin_grant]="$COUNT" || true
+
+# 20. dr_canvas
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.dr_canvas (id, base_id, name, canvas_json, source_region, dest_region, version, hash, created_by, updated_at) \
+   VALUES ('drc_round6_demo', 'bse_round6_demo', 'Round6 DR Canvas', '{}'::jsonb, 'us-west-2', 'us-east-1', 1, 'h_round6_dr', 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.dr_canvas;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[dr_canvas]="$COUNT" || true
+
+# 21. billing_credit
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.billing_credit (id, org_id, applied_at, amount_minor, currency, reason) \
+   VALUES ('bcr_round6_demo', 'org_round6_demo', now(), 5000, 'USD', 'round6 promotional credit') \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.billing_credit;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[billing_credit]="$COUNT" || true
+
+# 22a. backup_snapshot (parent row required by backup_restore_log FK)
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.backup_snapshot (id, base_id, created_by, status, archive_path, created_time, last_modified_time) \
+   VALUES ('snp_round6_demo', 'bse_round6_demo', 'usr_round6_demo', 'complete', 'archive/round6', now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.backup_snapshot;" 2>&1 | tail -1)
+# Note: backup_snapshot itself is not a capability, so we don't add to SEED_OK.
+
+# 22b. backup_restore_log
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.backup_restore_log (id, snapshot_id, target_base_id, status, rows_restored, created_time) \
+   VALUES ('brl_round6_demo', 'snp_round6_demo', 'bse_round6_demo', 'complete', 100, now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.backup_restore_log;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[backup_restore_log]="$COUNT" || true
+
+# 23. airtable_connection
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.airtable_connection (id, organization_id, base_id, base_name, access_token_json, connected_by, connected_time, updated_time) \
+   VALUES ('airc_round6_demo', 'org_round6_demo', 'app_round6_demo', 'Round6 Airtable Base', 'enc_token_round6', 'usr_round6_demo', now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.airtable_connection;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[airtable_connection]="$COUNT" || true
 
 # Re-fetch readiness AFTER all seeds inserted
 SEED_BODY="$(fetch_readiness)"

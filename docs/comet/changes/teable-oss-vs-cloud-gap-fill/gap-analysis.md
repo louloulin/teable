@@ -275,6 +275,82 @@ Section 2.10 演示:
 
 **E2E 自动化验证**: 10 段全 PASS,证明探针链路完整工作
 
+
+## Round-7: Section 2.10 全 round-3 capability 翻转验证
+
+### 目标
+把 Section 2.10 从"8 个代表性 capability"扩展到"全部 23 个 round-3 capability",每个 capability 插入 1 行 demo 数据,断言从 `no_*_rows_yet` 翻转到 `enabled=true`。
+
+### 改动摘要
+- `scripts/e2e-enterprise-readiness.sh` Section 2.10:
+  - 1~8: 原有 byok_llm_key / customer_kms_key / billing_invoice / approval_workflow / conditional_format_rule / data_residency_policy / db_connector / custom_role
+  - 9~11: 新增 ai_credit_grant_policy / ai_credit_ledger / ai_usage_bucket (AI 计费三件套)
+  - 12: 新增 app_module_wire (app 模块注册)
+  - 13~15: 新增 automation_canvas_revision + automation (parent) + automation_secret (FK 链)
+  - 16: 新增 conflict_event (offset 是 PG 保留字,必须双引号转义)
+  - 17: 新增 federation_event
+  - 18: 新增 data_db_connection (status enum: ready,不是 active)
+  - 19: 新增 db_connector_sync
+  - 20: 新增 cross_org_admin_grant
+  - 21: 新增 dr_canvas
+  - 22: 新增 billing_credit
+  - 23: 新增 backup_restore_log (需要 backup_snapshot parent,status enum: complete)
+  - 24: 新增 airtable_connection
+- cleanup() trap 扩展:增加 automation / backup_snapshot 的 DELETE
+
+### Round-7 已知踩坑
+1. **PG 保留字 `offset`** → 在 bash 双引号字符串里需要 `"offset"` 转义
+2. **枚举 status 值不匹配**:
+   - `data_db_connection.status`: enum `meta."DataDbConnectionStatus"` = {pending, validating, ready, error, migrating, disabled} — 用 `ready`
+   - `backup_restore_log.status`: enum `meta."RestoreStatus"` = {queued, running, complete, failed} — 用 `complete`
+3. **FK 链**: backup_restore_log.snapshot_id → backup_snapshot.id,必须先插入 parent
+4. **`set -euo pipefail`**: psql 失败时整个 pipeline 失败,触发 cleanup trap 静默退出 — 用 dry-run 模式快速定位每个 INSERT 的具体错误
+
+### 验证结果
+```
+=== Section 2.10: round-6 bulk seed-flip verification ===
+[OK]   byok_llm_key flipped to enabled after seed (count=1)
+[OK]   customer_kms_key flipped to enabled after seed (count=1)
+[OK]   billing_invoice flipped to enabled after seed (count=1)
+[OK]   approval_workflow flipped to enabled after seed (count=1)
+[OK]   conditional_format_rule flipped to enabled after seed (count=1)
+[OK]   data_residency_policy flipped to enabled after seed (count=1)
+[OK]   db_connector flipped to enabled after seed (count=1)
+[OK]   custom_role flipped to enabled after seed (count=1)
+[OK]   ai_credit_grant_policy flipped to enabled after seed (count=1)
+[OK]   ai_credit_ledger flipped to enabled after seed (count=1)
+[OK]   ai_usage_bucket flipped to enabled after seed (count=1)
+[OK]   app_module_wire flipped to enabled after seed (count=1)
+[OK]   automation_canvas_revision flipped to enabled after seed (count=1)
+[OK]   automation_secret flipped to enabled after seed (count=1)
+[OK]   conflict_event flipped to enabled after seed (count=1)
+[OK]   federation_event flipped to enabled after seed (count=1)
+[OK]   data_db_connection flipped to enabled after seed (count=1)
+[OK]   db_connector_sync flipped to enabled after seed (count=1)
+[OK]   cross_org_admin_grant flipped to enabled after seed (count=1)
+[OK]   dr_canvas flipped to enabled after seed (count=1)
+[OK]   billing_credit flipped to enabled after seed (count=1)
+[OK]   backup_restore_log flipped to enabled after seed (count=1)
+[OK]   airtable_connection flipped to enabled after seed (count=1)
+[OK]   round-6 bulk seed-flip: 23/23 capabilities flipped to enabled
+```
+
+完整 e2e:10 段全 PASS,业务许可 38/38 parity。
+
+### 累计统计 (Round-1 ~ Round-7)
+
+| 维度 | R1 | R2 | R3 | R4 | R5 | R6 | **R7** |
+|---|---|---|---|---|---|---|---|
+| 已注册 capability | 35 | 35 | 60 | 68 | 72 | 72 | **72** |
+| enabled (self_hosted baseline) | 35 | 35 | 35 | 42 | 46 | 46 | **46** |
+| enabled (after Section 2.10 seed) | – | – | – | – | – | 54 | **69** |
+| Cloud parity (business+) | 12/12 | 12/12 | 25/25 | 33/33 | 38/38 | 38/38 | **38/38** |
+| e2e 测试段数 | 5 | 5 | 6 | 8 | 9 | 10 | **10** |
+| Section 2.10 翻转验证 | – | – | – | – | – | 8 | **23** |
+
+### 结论
+**Round-7 完成**:Section 2.10 现在覆盖全部 23 个 round-3 capability 的翻转验证(之前只覆盖 8 个代表性),每个 capability 都有 demo-row→enabled 翻转的端到端证据。
+
 ### 已知 limitation (留给未来)
 - utility-only 模块(compliance-attestation, sdk-publish-orchestrator 等)无 .module.ts,不作为独立 capability 暴露(它们是其他模块的 building blocks)
 - 前端 admin UI 未实现(目前只有 `/api/admin/*` API)
