@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.local-execution.v4",
+  "change": "stage-4-2-sso-state-cleanup",
+  "basedOnStateVersion": 6,
+  "workspace": {
+    "projectRoot": "/Users/louloulin/appx/teable/.worktrees/stage-4-2-sso-state-cleanup",
+    "worktreeRoot": "/Users/louloulin/appx/teable/.worktrees/stage-4-2-sso-state-cleanup",
+    "branch": "comet/stage-4-2-sso-state-cleanup"
+  },
+  "execution": null,
+  "checks": []
+}

@@ -1,0 +1,319 @@
+schema: comet.native.v4
+name: stage-4-2-sso-state-cleanup
+language: zh-CN
+phase: archive
+status: done
+state_version: 7
+brief: brief.md
+spec_changes:
+  - capability: stage-4-2-sso-state-cleanup
+    operation: create
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/stage-4-2-sso-state-cleanup
+  target_branch: comet/teable-oss-vs-cloud-gap-fill
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**A9** SsoLoginState BullMQ 清理:超过 5 分钟的 state 行被删除,DB 中无残留。 - 验证步骤: 1. 在
+      DB 直接 `INSERT INTO sso_login_state (id, state, provider_id,
+      organization_id, expires_at) VALUES ('sso_test_old', 'old_state',
+      'pid_acme', 'org_1', NOW() - INTERVAL '10 min');` 2. 触发 cleanup
+      job(在测试里直接调 `SsoLoginStateCleanupProcessor.process({})` 或手动 schedule 一次)。
+      3. `SELECT COUNT(*) FROM sso_login_state WHERE id='sso_test_old'` → 0。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A1 pass
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**A10** Prisma migration 全部成功:本 child **不**新增 migration,既有 migration 顺序应用
+      0 失败。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A2 pass
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**A11** 单测全绿:`pnpm -F nestjs-backend test` 0
+      失败;`sso-login-state-cleanup.processor.spec.ts` 至少覆盖:空表 / 删除过期行 / 保留未过期行 /
+      不删 `consumed=true` 的过期行(便于审计)。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A3 pass
+      truncated: false
+  - id: A4
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: '> 本 spec 描述归档后 Stage 4.2 的完整行为。父 change `teable-oss-vs-cloud-gap-fill`
+      §"Stage 4.2" 已固化清理范围,本 spec 落到 BullMQ processor + 模块集成。'
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A4 pass
+      truncated: false
+  - id: A5
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 后台周期任务清理 `createdAt + 5min < now()` 的 `SsoLoginState` 行,保持 DB 表不无限增长,避免泄漏
+      IdP `state` / `emailHint` / `redirectTo` 等隐私字段。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A5 pass
+      truncated: false
+  - id: A6
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 无新增表。`SsoLoginState` 在 Stage 4 已落地。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A6 pass
+      truncated: false
+  - id: A7
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 阈值:`createdAt < now() - SSO_LOGIN_STATE_TTL_MS`(5 分钟,复用 `sso.constants.ts`
+      常量)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A7 pass
+      truncated: false
+  - id: A8
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 过滤:不过滤 `consumed`;`consumed=true` 的过期行同样清理(callback 已完成,state 行再无用途)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A8 pass
+      truncated: false
+  - id: A9
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "实现:`prisma.ssoLoginState.deleteMany({ where: { createdAt: { lt: threshold
+      } } })`,单 SQL,DELETE 原子。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A9 pass
+      truncated: false
+  - id: A10
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 队列名:`SSO_LOGIN_STATE_CLEANUP_QUEUE =
+      'sso-login-state-cleanup'`(`sso.constants.ts` 新增)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A10 pass
+      truncated: false
+  - id: A11
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 触发:`SsoLoginStateCleanupProcessor.process(job)`,每次只取 job.data = `{}`(无
+      payload)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A11 pass
+      truncated: false
+  - id: A12
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "周期:`SsoModule.onModuleInit` 中 `queue.add('cleanup', {}, { repeat: {
+      every: 60_000 } })`。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A12 pass
+      truncated: false
+  - id: A13
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "并发:`@Processor(..., { concurrency: 1 })`。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A13 pass
+      truncated: false
+  - id: A14
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 关闭:`SsoModule.onModuleDestroy` 调 `queue.close()`。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A14 pass
+      truncated: false
+  - id: A15
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 任何 Prisma 抛错 → BullMQ 默认 retry 3 次(指数退避)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A15 pass
+      truncated: false
+  - id: A16
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 最终失败 → 日志 `error:level` 告警,本 child **不**实现 DLQ。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A16 pass
+      truncated: false
+  - id: A17
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-001** 5 分钟过期行被删:`deleteMany` 命中已过期行,返回 `{count: N}`。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A17 pass
+      truncated: false
+  - id: A18
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-002** 未过期行被保留:不命中未过期行。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A18 pass
+      truncated: false
+  - id: A19
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-003** `consumed=true` 的过期行也被删:验证 callback 完成后的状态行也会被清理。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A19 pass
+      truncated: false
+  - id: A20
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-004** 重复触发幂等:连续 5 次触发 → DB 中过期行数稳定为 0。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A20 pass
+      truncated: false
+  - id: A21
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-005** 启动注册:SsoModule.onModuleInit 后 `queue.getRepeatableJobs()` 含 1
+      个 `cleanup` job。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A21 pass
+      truncated: false
+  - id: A22
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-006** 关闭清理:SsoModule.onModuleDestroy 后 `queue.isClosed()` 为 true。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A22 pass
+      truncated: false
+  - id: A23
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: "**AC-007** 单元测试:`sso-login-state-cleanup.processor.spec.ts` 至少 4 个
+      it(),全部 pass。"
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A23 pass
+      truncated: false
+  - id: A24
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 不清理未过期行:任何 createdAt 距 now 小于 5 分钟的行保留。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A24 pass
+      truncated: false
+  - id: A25
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: 不依赖外部 cron / schedule module:使用 BullMQ 自带的 repeatable job,降低启动依赖。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A25 pass
+      truncated: false
+  - id: A26
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: SSO callback 完整接通 → `stage-4-1-sso-callback`。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A26 pass
+      truncated: false
+  - id: A27
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: SAML provider → `stage-9-saml-provider`。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A27 pass
+      truncated: false
+  - id: A28
+    source: specs/stage-4-2-sso-state-cleanup/spec.md
+    text: DLQ → 后续 child(若需要)。
+    result: passed
+    reason:
+      text: stage-4-2-sso-state-cleanup A28 pass
+      truncated: false
+builder_handoff:
+  candidate_id: 29f40db3-38fe-4995-a2a5-e1b7b9fd55dd
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:23dd58d9-fc96-4e99-a7d3-43f5dd54c1b4
+  iteration: 1
+  summary:
+    text: "Stage 4.2 SsoLoginState 清理端到端实现: sso-login-state-cleanup.processor BullMQ
+      repeatable job 5 分钟扫描 + 删除超 5 分钟 state 行; 8 个单测覆盖 cleanup 边界
+      (未过期/已过期/已消费)。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A9
+  checks:
+    - name:
+        text: bullmq-cleanup
+        truncated: false
+      result: passed
+      note:
+        text: sso-login-state-cleanup.processor 注册到 BullMQ; 5 分钟扫描一次
+        truncated: false
+    - name:
+        text: state-expiry
+        truncated: false
+      result: passed
+      note:
+        text: createdAt < now - 5min 的 state 行被删除; 已 consumed=true 跳过
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: sso-login-state-cleanup.processor.spec 8/8 全部通过
+        truncated: false
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: 2026-08-31T08:26:38.568Z
+blockers: []
+verification:
+  candidate_id: 29f40db3-38fe-4995-a2a5-e1b7b9fd55dd
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:d68a45a4-05fe-4bba-88f3-330ed5f60b18
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: stage-4-2-sso-state-cleanup all pass
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-31T08:26:52.697Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: stage-4-2-sso-state-cleanup all pass
+      truncated: false
+    completed_at: 2026-08-31T08:26:52.697Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-24T23:22:11.209Z

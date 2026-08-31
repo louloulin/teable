@@ -1,6 +1,10 @@
 {
   "schema": "comet.selection.v2",
   "workflow": "native",
+<<<<<<< HEAD
   "change": "stage-4-1-sso-callback",
+=======
+  "change": "stage-4-2-sso-state-cleanup",
+>>>>>>> comet/stage-4-2-sso-state-cleanup
   "branch": null
 }
