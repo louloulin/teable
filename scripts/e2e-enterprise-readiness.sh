@@ -212,10 +212,10 @@ log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 # notion_import, google_sheets_import, view_permission) for a total of
 # 72 capabilities. Baseline enabled: 46 (api_rate_limit opt-out in
 # self_hosted, dashboard no_rows_yet; rest wired-enable).
-# Cloud Business parity: 41/43 (api_rate_limit + dashboard no_rows_yet + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 added).
+# Cloud Business parity: 42/44 (api_rate_limit + dashboard no_rows_yet + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 + smartsheet_r21 added).
 # Flips to 38/38 once api_rate_limit enables on license and any dashboard
 # row exists.
-EXPECTED_TOTAL=77
+EXPECTED_TOTAL=78
 EXPECTED_ENABLED=46
 assert_ok "$([[ "$TOTAL_CAPS" == "$EXPECTED_TOTAL" ]] && echo 0 || echo 1)" \
   "total capabilities registered = $EXPECTED_TOTAL (got total=$TOTAL_CAPS)"
@@ -301,8 +301,8 @@ log "[OK]   all 25 round-3 enterprise-table capabilities registered with 'no_*_r
 # self_hosted (guard short-circuits when plan=self_hosted). Flips to 33/33
 # on any business/enterprise license — see Section 3.
 PARITY_DEFAULT=$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')
-assert_ok "$([[ "$PARITY_DEFAULT" == "41/43" ]] && echo 0 || echo 1)" \
-  "default self_hosted parity = 41/43 (got: $PARITY_DEFAULT; api_rate_limit opt-out + dashboard no_rows_yet)"
+assert_ok "$([[ "$PARITY_DEFAULT" == "42/44" ]] && echo 0 || echo 1)" \
+  "default self_hosted parity = 42/44 (got: $PARITY_DEFAULT; api_rate_limit opt-out + dashboard no_rows_yet)"
 
 # ----- Section 2.7: round-3 capability flips on data -----
 # Insert a demo row into one round-3 enterprise table and re-fetch readiness
@@ -439,7 +439,7 @@ assert_ok "$([[ "$DM_STATE" == "enabled=true" ]] && echo 0 || echo 1)" \
 #   google_sheets_import (google-sheets module wired in app.module.ts)
 #   view_permission (view-permission module wired in app.module.ts)
 log "=== Section 2.9: round-5 wired migration/UI modules ==="
-ROUND5_KEYS="airtable_import notion_import google_sheets_import baserow_import clickup_import jira_import monday_import nocodb_import view_permission"
+ROUND5_KEYS="airtable_import notion_import google_sheets_import baserow_import clickup_import jira_import monday_import nocodb_import smartsheet_import view_permission"
 for cap in $ROUND5_KEYS; do
   STATE=$(echo "$DEFAULT_BODY" | python3 -c "
 import json, sys
@@ -458,7 +458,7 @@ print(str('$cap' in body['capabilities']).lower() + ' ' + str(c.get('enabled', F
     exit 1
   fi
 done
-log "[OK]   all 9 round-5 wired migration/UI capabilities registered + enabled (airtable + notion + google_sheets + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 + view_permission)"
+log "[OK]   all 10 round-5 wired migration/UI capabilities registered + enabled (airtable + notion + google_sheets + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 + smartsheet_r21 + view_permission)"
 
 # ----- Section 2.10: round-6 bulk seed-flip verification -----
 # Demonstrates that every representative round-3 capability flips to
@@ -781,14 +781,14 @@ assert_ok "$([[ "$GAP_SUMMARY" == "true" ]] && echo 0 || echo 1)" \
 # Migrations with integration-connector framework should sort to the top.
 log "=== Section 4.1: cloudGap framework detection (Round-12) ==="
 
-# 3 driver_missing (framework present, no driver) -- 3 migration; baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 now implemented
+# 2 driver_missing (framework present, no driver) -- 2 migration; baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 + smartsheet_r21 now implemented
 DRIVER_MISSING=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 gaps = json.load(sys.stdin).get('cloudGap', [])
 print(sum(1 for g in gaps if g.get('reasonCategory') == 'driver_missing' and g.get('status') != 'implemented'))
 ")
-assert_ok "$([[ "$DRIVER_MISSING" == "3" ]] && echo 0 || echo 1)" \
-  "3 driver_missing gaps still pending driver (Round-20: nocodb moved to implemented) (got: $DRIVER_MISSING)"
+assert_ok "$([[ "$DRIVER_MISSING" == "2" ]] && echo 0 || echo 1)" \
+  "2 driver_missing gaps still pending driver (Round-21: smartsheet moved to implemented) (got: $DRIVER_MISSING)"
 
 # 5 sandbox_missing (scripting without JS sandbox)
 SANDBOX_MISSING=$(echo "$GAP_BODY" | python3 -c "
@@ -949,10 +949,10 @@ MS_PEND=$(echo "$MS_BODY" | python3 -c "import json,sys; print(json.load(sys.std
 
 assert_ok "$([[ "$MS_TOTAL" == "11" ]] && echo 0 || echo 1)" \
   "migration-sources total == 11 (got: $MS_TOTAL)"
-assert_ok "$([[ "$MS_IMPL" == "8" ]] && echo 0 || echo 1)" \
-  "migration-sources implemented == 8 (airtable + notion + google_sheets + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20) (got: $MS_IMPL)"
-assert_ok "$([[ "$MS_PEND" == "3" ]] && echo 0 || echo 1)" \
-  "migration-sources pending == 3 (smartsheet/smartsuite/connect_more_sources) (got: $MS_PEND)"
+assert_ok "$([[ "$MS_IMPL" == "9" ]] && echo 0 || echo 1)" \
+  "migration-sources implemented == 9 (airtable + notion + google_sheets + baserow_r16 + clickup_r17 + jira_r18 + monday_r19 + nocodb_r20 + smartsheet_r21) (got: $MS_IMPL)"
+assert_ok "$([[ "$MS_PEND" == "2" ]] && echo 0 || echo 1)" \
+  "migration-sources pending == 2 (smartsuite/connect_more_sources) (got: $MS_PEND)"
 
 # Verify airtable_import is the only one with implementedBy='airtable-import'
 MS_AIRTABLE=$(echo "$MS_BODY" | python3 -c "
@@ -969,11 +969,11 @@ MS_PARTIAL_CHECK=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 gaps = json.load(sys.stdin)['cloudGap']
 driver_missing = [g for g in gaps if g['reasonCategory'] == 'driver_missing']
-all_partial = all(g['status'] == 'partial' for g in driver_missing if g['key'] not in ('baserow_import', 'clickup_import', 'jira_import', 'monday_import', 'nocodb_import'))
+all_partial = all(g['status'] == 'partial' for g in driver_missing if g['key'] not in ('baserow_import', 'clickup_import', 'jira_import', 'monday_import', 'nocodb_import', 'smartsheet_import'))
 print('true' if all_partial else 'false:' + ','.join(g['key']+':'+g['status'] for g in driver_missing if g['status'] != 'partial'))
 ")
 assert_ok "$([[ "$MS_PARTIAL_CHECK" == "true" ]] && echo 0 || echo 1)" \
-  "3 driver_missing cloudGap entries still partial (nocodb_round-20 moved to implemented) (got: $MS_PARTIAL_CHECK)"
+  "2 driver_missing cloudGap entries still partial (smartsheet_round-21 moved to implemented) (got: $MS_PARTIAL_CHECK)"
 
 # ----- Section 4.5: baserow-import driver wired + implemented metric (Round-16) -----
 # Round-16 adds a minimal baserow-import module (probe + listFields + fetchRows).
@@ -1027,8 +1027,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "5" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 5 (baserow + clickup + jira + monday + nocodb) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
 
 # 6) summary.cloudGapCoverage unchanged at 9/14=64% (partial counts as filled too)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1090,8 +1090,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "5" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 5 (baserow + clickup + jira + monday + nocodb) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 9/14=64% (1 not_implemented -> 1 implemented, count stays same)
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1153,8 +1153,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "5" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 5 (baserow + clickup + jira + monday + nocodb) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 9/14=64%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1216,8 +1216,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "5" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 5 (baserow + clickup + jira + monday + nocodb) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 9/14=64%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1279,8 +1279,8 @@ IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
 import json, sys
 print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
 ")
-assert_ok "$([[ "$IMPL_COUNT" == "5" ]] && echo 0 || echo 1)" \
-  "summary.cloudGapImplementedCount == 5 (baserow + clickup + jira + monday + nocodb) (got: $IMPL_COUNT)"
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
 
 # 6) cloudGapCoverage still 9/14=64%
 COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
@@ -1290,6 +1290,69 @@ print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
 ")
 assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
   "cloudGapCoverage still 9/14=64% after nocodb upgrade (got: $COV_CHECK)"
+
+# ----- Section 4.10: smartsheet-import driver wired + implemented metric (Round-21) -----
+# Round-21 mirrors R16-R20: smartsheet-import module wired, smartsheet_import cloudGap upgraded.
+log "=== Section 4.10: smartsheet-import driver + implemented metric (Round-21) ==="
+
+# 1) smartsheet_import capability present in readiness map
+SMARTSHEET_CAP=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+caps = json.load(sys.stdin).get('capabilities', {})
+s = caps.get('smartsheet_import', {})
+print('present' if s.get('module') == 'smartsheet-import' else 'missing:' + str(s))
+")
+assert_ok "$([[ "$SMARTSHEET_CAP" == "present" ]] && echo 0 || echo 1)" \
+  "smartsheet_import registered as capability with module=smartsheet-import (got: $SMARTSHEET_CAP)"
+
+# 2) smartsheet_import cloudGap entry has status='implemented'
+SMARTSHEET_STATUS=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+gaps = json.load(sys.stdin)['cloudGap']
+s = next((g for g in gaps if g['key'] == 'smartsheet_import'), None)
+print(s['status'] if s else 'MISSING')
+")
+assert_ok "$([[ "$SMARTSHEET_STATUS" == "implemented" ]] && echo 0 || echo 1)" \
+  "smartsheet_import cloudGap status=implemented (Round-21 upgrade) (got: $SMARTSHEET_STATUS)"
+
+# 3) smartsheet-import endpoint reachable (probe with dummy token)
+SMARTSHEET_PROBE=$(curl -sX POST "${BASE_URL}/api/smartsheet-import/probe" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"test"}')
+SMARTSHEET_PROBE_OK=$(echo "$SMARTSHEET_PROBE" | python3 -c "
+import json, sys
+b = json.load(sys.stdin)
+print('reachable' if 'ok' in b else 'unreachable')
+")
+assert_ok "$([[ "$SMARTSHEET_PROBE_OK" == "reachable" ]] && echo 0 || echo 1)" \
+  "smartsheet-import probe endpoint reachable (got: $SMARTSHEET_PROBE_OK)"
+
+# 4) smartsheet-import rows endpoint validates input
+SMARTSHEET_ROWS=$(curl -s "${BASE_URL}/api/smartsheet-import/rows")
+SMARTSHEET_ROWS_OK=$(echo "$SMARTSHEET_ROWS" | python3 -c "
+import json, sys
+b = json.load(sys.stdin)
+print('validates' if 'error' in b else 'no-validation')
+")
+assert_ok "$([[ "$SMARTSHEET_ROWS_OK" == "validates" ]] && echo 0 || echo 1)" \
+  "smartsheet-import rows endpoint validates input (got: $SMARTSHEET_ROWS_OK)"
+
+# 5) summary.cloudGapImplementedCount = 6
+IMPL_COUNT=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+print(json.load(sys.stdin)['summary']['cloudGapImplementedCount'])
+")
+assert_ok "$([[ "$IMPL_COUNT" == "6" ]] && echo 0 || echo 1)" \
+  "summary.cloudGapImplementedCount == 6 (baserow + clickup + jira + monday + nocodb + smartsheet) (got: $IMPL_COUNT)"
+
+# 6) cloudGapCoverage still 9/14=64%
+COV_CHECK=$(echo "$GAP_BODY" | python3 -c "
+import json, sys
+c = json.load(sys.stdin)['summary']['cloudGapCoverage']
+print('true' if c['filled'] == 9 and c['percent'] == 64 else 'false:' + str(c))
+")
+assert_ok "$([[ "$COV_CHECK" == "true" ]] && echo 0 || echo 1)" \
+  "cloudGapCoverage still 9/14=64% after smartsheet upgrade (got: $COV_CHECK)"
 
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

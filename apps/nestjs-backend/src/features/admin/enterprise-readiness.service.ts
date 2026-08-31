@@ -112,6 +112,7 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   'jira_import',           // jira-import module wired in app.module.ts (Round-18: Cloud §Jira 迁移)
   'monday_import',         // monday-import module wired in app.module.ts (Round-19: Cloud §monday.com 迁移)
   'nocodb_import',         // nocodb-import module wired in app.module.ts (Round-20: Cloud §NocoDB 迁移)
+  'smartsheet_import',     // smartsheet-import module wired in app.module.ts (Round-21: Cloud §Smartsheet 迁移)
   'view_permission',       // view-permission module wired in app.module.ts (Cloud §视图权限独立)
   'dashboard',             // dashboard table + module (Cloud §仪表盘)
 ];
@@ -134,7 +135,7 @@ const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'implemented', ossFramework: 'jira-import', notes: 'Round-18: jira-import module wired; probe + listProjects + fetchIssues endpoints exposed; ADF + custom field translation pending follow-up' },
   { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'implemented', ossFramework: 'monday-import', notes: 'Round-19: monday-import module wired; probe + listWorkspaces + listBoards + fetchItems endpoints exposed; column value translation pending follow-up' },
   { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'implemented', ossFramework: 'clickup-import', notes: 'Round-17: clickup-import module wired; probe + listSpaces + listLists + fetchTasks endpoints exposed; field translation pending follow-up' },
-  { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'not_implemented', ossFramework: 'integration-connector', notes: 'Sheet/row/column/discussion/attachment mapping' },
+  { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'implemented', ossFramework: 'smartsheet-import', notes: 'Round-21: smartsheet-import module wired; probe + listSheets + fetchRows endpoints exposed; column type translation pending follow-up' },
   // Scripting (3)
   { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires JS sandbox (VM2 / isolated-vm) for safe execution' },
   { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'not_implemented', ossFramework: null, notes: 'Requires Run Script action + LLM integration' },
@@ -166,7 +167,7 @@ const MIGRATION_SOURCE_REGISTRY: ReadonlySet<string> = new Set([
   'jira_import',         // implemented (round-18 wired: jira-import module)
   'monday_import',       // implemented (round-19 wired: monday-import module, GraphQL)
   'nocodb_import',       // implemented (round-20 wired: nocodb-import module)
-  'smartsheet_import',   // framework slot only
+  'smartsheet_import',   // implemented (round-21 wired: smartsheet-import module)
   'smartsuite_import',   // framework slot only
   'connect_more_sources', // generic connector slot
 ]);
@@ -349,7 +350,7 @@ export class EnterpriseReadinessService {
     implemented: boolean;
     implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
-    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'pending'> = {
+    const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'pending'> = {
       airtable_import: 'airtable-import',
       notion_import: 'notion',
       google_sheets_import: 'google-sheets',
@@ -358,6 +359,7 @@ export class EnterpriseReadinessService {
       jira_import: 'jira-import',
       monday_import: 'monday-import',
       nocodb_import: 'nocodb-import',
+      smartsheet_import: 'smartsheet-import',
     };
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
@@ -846,6 +848,12 @@ export class EnterpriseReadinessService {
       {
         key: 'nocodb_import',
         module: 'nocodb-import',
+        enabled: true,
+      },
+      // Smartsheet migration source (Round-21: smartsheet-import module wired, Bearer)
+      {
+        key: 'smartsheet_import',
+        module: 'smartsheet-import',
         enabled: true,
       },
       // View-level permission (Cloud §视图权限独立)

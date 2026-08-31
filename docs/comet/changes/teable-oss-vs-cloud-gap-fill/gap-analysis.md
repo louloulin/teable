@@ -1572,3 +1572,102 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+
+## Round-21: 实现 smartsheet_import driver（第 6 个 partial → implemented）
+
+### 目标
+沿用 R16-R20 driver 模板,实现 cloudGap[6] `smartsheet_import`。Smartsheet 使用 REST + Bearer token,典型的 spreadsheet-as-API 形态。
+
+### 改动
+
+**新增模块 `apps/nestjs-backend/src/features/smartsheet-import/`（~220 LOC）**
+
+| 文件 | 职责 | LOC |
+|---|---|---|
+| `smartsheet-import.types.ts` | SmartsheetSheet / SmartsheetRow / SmartsheetConnectionProbe | 39 |
+| `smartsheet-api.client.ts` | REST client (Bearer auth, /users/me + /sheets + /sheets/{id}/rows) | 74 |
+| `smartsheet-import.service.ts` | 服务层:probe / listSheets / fetchRows | 50 |
+| `smartsheet-import.controller.ts` | 3 个端点:`/api/smartsheet-import/{probe,sheets,rows}` | 54 |
+| `smartsheet-import.module.ts` | NestJS module 装配 | 21 |
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `SmartsheetImportModule` import + module 数组条目
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`**
+- `smartsheet_import` cloudGap entry: status='implemented', ossFramework='smartsheet-import'
+- `smartsheet_import` 加入 capability / MIGRATION_SOURCE_REGISTRY / implementedBy mapping
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- 新增 Section 4.10(6 个断言)
+- driver_missing 3→2
+- migration-sources implemented 8→9, pending 3→2
+- cloudGapImplementedCount 5→6
+- parity 41/43 → 42/44
+- EXPECTED_TOTAL 77 → 78
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R19 | 18 | ~86 |
+| R20 | 19 | ~92 (+6) |
+| **R21** | **20** | **~98 (+6)** |
+
+### 累计统计 (Round-1 ~ Round-21)
+
+| 维度 | R20 | **R21** |
+|---|---|---|
+| Worktree commits | 14 | **15** |
+| e2e 段数 | 19 | **20** |
+| e2e 总断言数 | ~92 | **~98** |
+| 新增模块 | nocodb-import | **smartsheet-import (220 LOC)** |
+| cloudGapImplementedCount | 5 | **6** |
+| cloudGapCoverage | 64% | **64%** |
+| 总 capability | 77 | **78** |
+| 业务 parity | 41/43 | **42/44** |
+
+### API 范式扩展（6 个 driver）
+
+| Driver | Round | API 范式 | Auth |
+|---|---|---|---|
+| baserow | R16 | REST | Token header |
+| clickup | R17 | REST | Bearer (no prefix) |
+| jira | R18 | REST v3 | HTTP Basic |
+| monday | R19 | GraphQL | Token (no prefix) |
+| nocodb | R20 | REST v1+v2 | xc-token |
+| **smartsheet** | **R21** | **REST** | **Bearer (with prefix)** |
+
+8 个 driver_missing 中已完成 6/8 = 75%。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/smartsheet-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"token":"test"}'
+{
+  "ok": false,
+  "error": "Smartsheet API /users/me failed: HTTP 401 ...",
+  "fetchedAt": "2026-09-01T16:14:00.000Z"
+}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 78,
+  "enabled": 52,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 6
+}
+```
+
+### 结论
+
+**Round-21 完成**:smartsheet_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 6。剩 2 个 driver_missing:smartsuite + connect_more_sources (generic)。
+
+### 已知 limitation (继承)
+- smartsheet driver 只覆盖 probe / listSheets / fetchRows;system columns + picklists + attachments 是 follow-up
+- 2 个 pending migration(smartsuite/connect_more_sources)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
