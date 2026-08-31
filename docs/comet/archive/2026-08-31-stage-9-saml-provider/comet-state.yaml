@@ -1,0 +1,467 @@
+schema: comet.native.v4
+name: stage-9-saml-provider
+language: zh-CN
+phase: archive
+status: done
+state_version: 10
+brief: brief.md
+spec_changes:
+  - capability: stage-9-saml-provider
+    operation: create
+    source: specs/stage-9-saml-provider/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/stage-9-saml-provider
+  target_branch: comet/teable-oss-vs-cloud-gap-fill
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 2
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**A1** SSO callback 完整会话链路:`buildAuthnRequestUrl` → `handleCallback` 验签 →
+      返回 `userId`。"
+    result: passed
+    reason:
+      text: "Stage 9 SAML Provider: buildAuthnRequestUrl + handleCallback(RSA-SHA256
+        验签 + 用户查找); spec 4 个 it 覆盖。"
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**A10** Prisma migration 全部成功:本 child 不引入新表,`pnpm prisma migrate deploy`
+      与 `pnpm --filter @teable/db-main-prisma prisma generate` 均 0 失败。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A2。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**A11** 单测全绿:`saml-auth.service.spec.ts` ≥3 用例,`pnpm --filter
+      @teable/backend test-unit -- saml-auth.service.spec.ts` 0 失败。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A3。
+      truncated: false
+  - id: A4
+    source: specs/stage-9-saml-provider/spec.md
+    text: 在 OSS 仓库 `apps/nestjs-backend/src/features/federated-sso/` 真实新增 SAML 2.0
+      SP-initiated AuthnRequest + ACS callback + 签名校验路径。复用既有 `SsoLoginState`
+      BullMQ 清理、session cookie、`/api/auth/sso/login` + `/api/auth/sso/callback`
+      入口;OIDC 与 SAML 共用 `federated-sso` 模块。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A4。
+      truncated: false
+  - id: A5
+    source: specs/stage-9-saml-provider/spec.md
+    text: "`SamlAuthService.buildAuthnRequestUrl(cfg, state, acsUrl)`:"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A5。
+      truncated: false
+  - id: A6
+    source: specs/stage-9-saml-provider/spec.md
+    text: 输入:`cfg`(含 `ssoUrl` / `entityId` /
+      `certificate`)、`state`(SsoLoginState.id,5 分钟 TTL,Stage 4.2 自动清理)、`acsUrl`。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A6。
+      truncated: false
+  - id: A7
+    source: specs/stage-9-saml-provider/spec.md
+    text: 输出:形如 `<ssoUrl>?SAMLRequest=<deflate-base64
+      AuthnRequest>&RelayState=<state>`。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A7。
+      truncated: false
+  - id: A8
+    source: specs/stage-9-saml-provider/spec.md
+    text: '`SAMLRequest` = `<samlp:AuthnRequest ID="_<uuid>" Version="2.0"
+      IssueInstant="<ISO>" AssertionConsumerServiceURL="<acs-url>"
+      ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"><saml:Issuer><cfg.entityId></saml:Issuer></samlp:AuthnRequest>`
+      + DEFLATE 压缩 + base64。'
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A8。
+      truncated: false
+  - id: A9
+    source: specs/stage-9-saml-provider/spec.md
+    text: "`SamlAuthService.handleCallback({ samlResponseB64, relayState })`:"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A9。
+      truncated: false
+  - id: A10
+    source: specs/stage-9-saml-provider/spec.md
+    text: "`SAMLResponse` base64 解码 + INFLATE 解压 → XML DOM。"
+    result: passed
+    reason:
+      text: Stage 9 不引入新表(SsoIdentityProvider.config JSONB 已存 SAML config)。
+      truncated: false
+  - id: A11
+    source: specs/stage-9-saml-provider/spec.md
+    text: 从 `<ds:Signature><ds:KeyInfo><ds:X509Certificate>` 提取 IdP 证书。
+    result: passed
+    reason:
+      text: Stage 9 saml-auth.service.spec 4 个 it 覆盖。
+      truncated: false
+  - id: A12
+    source: specs/stage-9-saml-provider/spec.md
+    text: "`crypto.verify('RSA-SHA256', signedInfoCanonical, cfg.certificate,
+      signatureValue)` 验签;失败抛 `CustomHttpException('SAML signature verification
+      failed', 403)`。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A12。
+      truncated: false
+  - id: A13
+    source: specs/stage-9-saml-provider/spec.md
+    text: "提取 `<AttributeStatement>` 中 `email` / `name` / `email_verified`:"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A13。
+      truncated: false
+  - id: A14
+    source: specs/stage-9-saml-provider/spec.md
+    text: "`email_verified` 必须严格 == `true` → 否则 `403 EMAIL_NOT_VERIFIED`。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A14。
+      truncated: false
+  - id: A15
+    source: specs/stage-9-saml-provider/spec.md
+    text: 查 user:存在 → `update lastSignTime`;不存在 → 拒绝(无自动创建,留给 admin invite 流程)。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A15。
+      truncated: false
+  - id: A16
+    source: specs/stage-9-saml-provider/spec.md
+    text: 返回 `{ userId, relayState }`。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A16。
+      truncated: false
+  - id: A17
+    source: specs/stage-9-saml-provider/spec.md
+    text: '**GIVEN** IdP
+      `ssoUrl="https://idp.example.com/sso"`、`entityId="https://teable.example.com"`'
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A17。
+      truncated: false
+  - id: A18
+    source: specs/stage-9-saml-provider/spec.md
+    text: '**WHEN** `samlAuthService.buildAuthnRequestUrl(cfg, "state-uuid-1234",
+      "https://teable.example.com/acs")`'
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A18。
+      truncated: false
+  - id: A19
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 返回 URL 形如
+      `https://idp.example.com/sso?SAMLRequest=<base64>&RelayState=state-uuid-1\
+      234`;`SAMLRequest` 解码后包含 `<samlp:AuthnRequest>` +
+      `<saml:Issuer>https://teable.example.com</saml:Issuer>` + 合法
+      `AssertionConsumerServiceURL`。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A19。
+      truncated: false
+  - id: A20
+    source: specs/stage-9-saml-provider/spec.md
+    text: '**GIVEN** 预生成 SAML Response
+      XML(签名正确,`email="alice@acme.com"`、`name="Alice"`、`email_verified=true`),本地
+      user 已存在'
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A20。
+      truncated: false
+  - id: A21
+    source: specs/stage-9-saml-provider/spec.md
+    text: '**WHEN** `handleCallback({ samlResponseB64, relayState: "valid-state" })`'
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A21。
+      truncated: false
+  - id: A22
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 返回 `{ userId: 'user-1', relayState: 'valid-state'
+      }`;`prisma.user.update` 被调用一次,`lastSignTime` 已更新。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A22。
+      truncated: false
+  - id: A23
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**GIVEN** SAMLResponse 缺少 `<Assertion>` 标签"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A23。
+      truncated: false
+  - id: A24
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**WHEN** `handleCallback` with malformed XML"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A24。
+      truncated: false
+  - id: A25
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 抛 `CustomHttpException('SAML response missing Assertion',
+      403)`;不返回 userId。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A25。
+      truncated: false
+  - id: A26
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**GIVEN** `email_verified` 属性为 `false`"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A26。
+      truncated: false
+  - id: A27
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**WHEN** `handleCallback` with `email_verified=false`"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A27。
+      truncated: false
+  - id: A28
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 抛 `CustomHttpException('SAML email not verified', 403)`;不返回
+      userId。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A28。
+      truncated: false
+  - id: A29
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**GIVEN** 本 child 不引入新表 / 新字段(`SsoIdentityProvider.config` 已有 JSONB 列存
+      SAML config)"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A29。
+      truncated: false
+  - id: A30
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**WHEN** `pnpm --filter @teable/db-main-prisma prisma migrate deploy` +
+      `prisma generate`"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A30。
+      truncated: false
+  - id: A31
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 两个命令均 0 失败;`SsoProviderType` 枚举仍包含 `'oidc' | 'saml'`。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A31。
+      truncated: false
+  - id: A32
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**GIVEN** `saml-auth.service.spec.ts` ≥3 用例"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A32。
+      truncated: false
+  - id: A33
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**WHEN** `pnpm --filter @teable/backend test-unit --
+      saml-auth.service.spec.ts`"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A33。
+      truncated: false
+  - id: A34
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**THEN** 至少 3 个 `it` 通过:AuthnRequest URL 格式正确 / `email_verified=false` 抛
+      403 / config 缺字段抛 VALIDATION_ERROR。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A34。
+      truncated: false
+  - id: A35
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**失败降级**:`crypto.verify` 抛错时,**不**返回 userId。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A35。
+      truncated: false
+  - id: A36
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**失败拒绝**:`email_verified=false` → 显式 403。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A36。
+      truncated: false
+  - id: A37
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**不引入新 npm 依赖**:Node 内置 `crypto` + `zlib`。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A37。
+      truncated: false
+  - id: A38
+    source: specs/stage-9-saml-provider/spec.md
+    text: "**不可变主体**:`federated-sso.service.ts` / `auth.controller.ts` / `prisma`
+      schema 一行不改。"
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A38。
+      truncated: false
+  - id: A39
+    source: specs/stage-9-saml-provider/spec.md
+    text: Cloud 独占:`teableio/teable-ee` 任何源代码 — 不复制。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A39。
+      truncated: false
+  - id: A40
+    source: specs/stage-9-saml-provider/spec.md
+    text: 前端 UI(`apps/nextjs-app`) — 不改。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A40。
+      truncated: false
+  - id: A41
+    source: specs/stage-9-saml-provider/spec.md
+    text: IdP-initiated SSO — 留待后续 stage。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A41。
+      truncated: false
+  - id: A42
+    source: specs/stage-9-saml-provider/spec.md
+    text: SAML SLO — 留待后续 stage。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A42。
+      truncated: false
+  - id: A43
+    source: specs/stage-9-saml-provider/spec.md
+    text: SAML metadata XML 端点 — 留待后续 stage。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A43。
+      truncated: false
+  - id: A44
+    source: specs/stage-9-saml-provider/spec.md
+    text: API 速率限制按档位(Stage 12 覆盖) — 本 child 不重复节流。
+    result: passed
+    reason:
+      text: 由父 supervisor / 已归档子 change 覆盖;Stage 9 不重复覆盖 A44。
+      truncated: false
+builder_handoff:
+  candidate_id: 5cdf9ac8-5210-47e9-884a-389b9820be1c
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:83fbaa88-98c9-4754-a2ff-08d777ba3d69
+  iteration: 1
+  summary:
+    text: "Stage 9 SAML Provider 端到端实现: saml-auth.service.ts 提供
+      buildAuthnRequestUrl(SP-initiated AuthnRequest + DEFLATE + base64) 与
+      handleCallback(RSA-SHA256 签名验证 + 用户查找 + lastSignTime 更新);
+      saml-auth.service.spec.ts 4 个 it 覆盖; 不引入 npm 依赖。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A10
+    - A11
+  checks:
+    - name:
+        text: saml-authn-request
+        truncated: false
+      result: passed
+      note:
+        text: buildAuthnRequestUrl 返回合规 SP-initiated AuthnRequest URL,含 SAMLRequest +
+          RelayState
+        truncated: false
+    - name:
+        text: saml-acs-callback
+        truncated: false
+      result: passed
+      note:
+        text: handleCallback 验签 + 提取 email/name/email_verified + 用户查找 + lastSignTime 更新
+        truncated: false
+    - name:
+        text: saml-failure-rejection
+        truncated: false
+      result: passed
+      note:
+        text: email_verified=false / 缺 Assertion / 缺签名块 全部 403 拒绝
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: saml-auth.service.spec 4 个 it 覆盖
+        truncated: false
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: 2026-08-31T09:00:39.252Z
+blockers: []
+verification:
+  candidate_id: 5cdf9ac8-5210-47e9-884a-389b9820be1c
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:89b63876-75b1-49e8-ace7-795fe94a860a
+  iteration: 1
+  attempt: 2
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: Stage 9 SAML Provider 验收 A1/A10/A11 passed
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-31T09:02:25.985Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier acceptance coverage
+        is invalid (duplicate: none; unknown: A45, A46, A47, A48, A49, A50, A51,
+        A52, A53, A54, A55, A56, A57, A58, A59, A60, A61, A62, A63, A64, A65,
+        A66, A67; missing: none)"
+      truncated: false
+    completed_at: 2026-08-31T09:00:52.680Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: Stage 9 SAML Provider 验收 A1/A10/A11 passed
+      truncated: false
+    completed_at: 2026-08-31T09:02:25.985Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-31T08:55:00.000Z
