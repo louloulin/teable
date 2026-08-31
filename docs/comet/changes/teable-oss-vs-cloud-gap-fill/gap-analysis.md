@@ -1671,3 +1671,132 @@ $ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterpris
 - 5 个 sandbox_missing 需先建 `packages/sandbox/`
 - 前端 admin UI 未实现
 - Cloud 独有营销特性无法在 OSS 中实现
+
+## Round-22: 实现 smartsuite_import driver（第 7 个 partial → implemented）
+
+### 目标
+继续 R16-R21 模式，把 driver_missing 列表里最后一个具体的 migration source（smartsuite_import）升级到 implemented。smartsuite 是 Cloud §Migrate Everything 列表中第 7 个 migration source，与 baserow/clickup/jira/monday/nocodb/smartsheet 并列。完成后剩 1 个 driver_missing（connect_more_sources - generic connector,需要新模式而非 driver 复用）。
+
+### SmartSuite API 调研
+- **Endpoint**: `https://api.smartsuite.com/api/v1/`
+- **Auth**: `Authorization: Bearer <token>`（无前缀）
+- **Hierarchy**: Solution > App > Table > Record（不同于 airtable 的 Base/Table）
+- **关键 endpoint**:
+  - `GET /applications/` → list apps（相当于 workspace + base）
+  - `GET /applications/{id}/` → app 详情 + nested tables
+  - `POST /applications/{id}/records/list/` → 分页 records（body: filters/limit/offset）
+
+### 改动 (5 文件 + 2 配置点)
+
+**新增 `apps/nestjs-backend/src/features/smartsuite-import/` (4 文件, 228 LOC):**
+- `smartsuite-api.client.ts` (101 LOC): `SmartSuiteApiClient` — REST + Bearer，`probe()` / `listApps()` / `listTables()` / `fetchRecords()`
+- `smartsuite-import.service.ts` (57 LOC): `SmartSuiteImportService` — driver boundary,封装 token 注入
+- `smartsuite-import.controller.ts` (47 LOC): `SmartSuiteImportController` — 4 个 endpoint under `/api/smartsuite-import/`
+- `smartsuite-import.module.ts` (23 LOC): NestJS module wiring
+- (类型 `smartsuite-import.types.ts` 已在 R22 准备阶段写入，38 LOC)
+
+**`apps/nestjs-backend/src/app.module.ts`**
+- 新增 `SmartSuiteImportModule` import + module 数组条目（按字母序, 放在 SmartsheetImportModule 后）
+
+**`apps/nestjs-backend/src/features/admin/enterprise-readiness.service.ts`** (5 spots)
+- `smartsuite_import` 加入 `BASELINE_CAPABILITIES`
+- `smartsuite_import` cloudGap entry: `status='implemented', ossFramework='smartsuite-import'`
+- `MIGRATION_SOURCE_REGISTRY` 的 `smartsuite_import` 注释从 "framework slot only" → "implemented (round-22 wired: smartsuite-import module)"
+- `implementedBy` Record type 加 `'smartsuite-import'`,map 加 `smartsuite_import: 'smartsuite-import'`
+- 加 `smartsuite_import` 到 wired migration capabilities section
+
+**`scripts/e2e-enterprise-readiness.sh`**
+- `EXPECTED_TOTAL` 78 → 79
+- `ROUND5_KEYS` 加 `smartsuite_import`
+- "all 11 round-5 wired" message
+- `PARITY_DEFAULT` 42/44 → 43/45
+- `DRIVER_MISSING` 2 → 1
+- `MS_IMPL` 9 → 10, `MS_PEND` 2 → 1
+- `all_partial` 排除列表加 `smartsuite_import`
+- 全部 5 个 `IMPL_COUNT == 6` 检查点更新到 `== 7` (sections 4.5-4.9 共 5 处)
+- 新增 Section 4.11 (6 个断言):capability present / cloudGap implemented / probe reachable / records validates input / IMPL_COUNT == 7 / Coverage 9/14=64%
+
+### e2e 累计断言数
+
+| Round | 段数 | 累计断言 |
+|---|---|---|
+| R21 | 20 | ~98 |
+| **R22** | **21** | **~104 (+6)** |
+
+最终运行结果: **130 OK / 0 FAIL / exit=0** (含每段 print 与断言)
+
+### 累计统计 (Round-1 ~ Round-22)
+
+| 维度 | R21 | **R22** |
+|---|---|---|
+| Worktree commits | 15 | **16** |
+| e2e 段数 | 20 | **21** |
+| e2e 总断言数 | ~98 | **~104** |
+| 新增模块 | smartsheet-import (220 LOC) | **smartsuite-import (228 LOC)** |
+| cloudGapImplementedCount | 6 | **7** |
+| cloudGapCoverage | 64% | **64%** |
+| 总 capability | 78 | **79** |
+| 业务 parity | 42/44 | **43/45** |
+
+### API 范式扩展（7 个 driver）
+
+| Driver | Round | API 范式 | Auth |
+|---|---|---|---|
+| baserow | R16 | REST | Token header |
+| clickup | R17 | REST | Bearer (no prefix) |
+| jira | R18 | REST v3 | HTTP Basic |
+| monday | R19 | GraphQL | Token (no prefix) |
+| nocodb | R20 | REST v1+v2 | xc-token |
+| smartsheet | R21 | REST | Bearer (with prefix) |
+| **smartsuite** | **R22** | **REST v1** | **Bearer (no prefix)** |
+
+8 个 driver_missing 中已完成 **7/8 = 88%**。
+
+### 实际 API 响应 (示例)
+
+```bash
+$ curl -sX POST http://127.0.0.1:3000/api/smartsuite-import/probe \
+  -H "Content-Type: application/json" \
+  -d '{"token":"test-dummy-token"}'
+{
+  "ok": false,
+  "error": "SmartSuite API /applications/ failed: HTTP 403 Forbidden {\"message\":\"Forbidden\"}",
+  "fetchedAt": "2026-08-31T16:19:57.980Z"
+}
+
+$ curl -s "http://127.0.0.1:3000/api/smartsuite-import/records?token=test"
+{"error":"invalid appId"}
+
+$ curl -sH "x-admin-token: test-token" http://127.0.0.1:3000/api/admin/enterprise-readiness | jq '.summary'
+{
+  "total": 79,
+  "enabled": 53,
+  "cloudBusinessParity": "43/45",
+  "cloudExclusiveGapCount": 14,
+  "cloudGapCoverage": {"filled": 9, "total": 14, "percent": 64},
+  "cloudGapImplementedCount": 7
+}
+```
+
+### SmartSuite API 注意事项 (给后续 driver 接 SmartSuite API 的同学)
+- `apps` 与 `tables` endpoint 是 hierarchy 的:tables 通过 app 详情 nested 返回,没有独立的 `/tables` endpoint
+- record list endpoint 必须 POST,filter 结构为 `{operator:'and', fields:[]}`
+- 错误时 HTTP 403 + `{"message":"Forbidden"}` body,需要解码 json 后给 message
+- SmartSuite Solution 概念未在 driver 中体现 (current API 没有 list solutions endpoint,只在 console UI 中存在)
+
+### 结论
+
+**Round-22 完成**:smartsuite_import 从 partial 升级到 implemented,`cloudGapImplementedCount` 升到 7。剩 1 个 driver_missing: connect_more_sources (generic connector, 需要新模式 - R23)。
+
+### 已知 limitation (继承)
+- smartsuite driver 只覆盖 probe / listApps / listTables / fetchRecords;field type (status/date/duedate 等) 翻译是 follow-up
+- 1 个 pending migration (connect_more_sources - generic, 需要 driver registry 模式)
+- 5 个 sandbox_missing 需先建 `packages/sandbox/`
+- 前端 admin UI 未实现
+- Cloud 独有营销特性无法在 OSS 中实现
+
+### 下一步 (R23 候选)
+- **connect_more_sources (generic adapter)**: 与 source-specific driver 不同,需要一个 configurable adapter spec,允许运行时注册任意外部数据源 (~300 LOC,新模式)
+- **packages/sandbox/ JS sandbox**: 解锁 5 个 sandbox_missing (VM2 / isolated-vm, 大型工程,可能拆分多轮)
+- **admin UI**: 在 nextjs-app 中加 enterprise-readiness dashboard 页 (gap visualization + migration wizard)
+- **field type translator**: 把各 driver 的 fields (system/picklist/status/...) 翻译为 teable 字段类型 (链接 line item / formula / select 等)
