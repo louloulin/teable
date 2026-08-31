@@ -45,6 +45,21 @@ log() {
 }
 
 cleanup() {
+  # Always clean up e2e demo rows, regardless of pass/fail exit.
+  # (Section 2.10 inserts demo rows; if a per-cap assertion fails before
+  # the inline cleanup, we still want the next run to start clean.)
+  PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+    "DELETE FROM meta.byok_llm_key WHERE id = 'byk_round6_demo'; \
+     DELETE FROM meta.customer_kms_key WHERE id = 'ckk_round6_demo'; \
+     DELETE FROM meta.billing_invoice WHERE id = 'inv_round6_demo'; \
+     DELETE FROM meta.approval_workflow WHERE id = 'apw_round6_demo'; \
+     DELETE FROM meta.conditional_format_rule WHERE id = 'cfr_round6_demo'; \
+     DELETE FROM meta.data_residency_policy WHERE id = 'drp_round6_demo'; \
+     DELETE FROM meta.db_connector WHERE id = 'dbc_round6_demo'; \
+     DELETE FROM meta.custom_role WHERE id = 'crr_round6_demo'; \
+     DELETE FROM meta.comment_subscription WHERE id = 'cs_round6_demo'; \
+     DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%'; \
+     DELETE FROM meta.dashboard WHERE id LIKE 'dsh_e2e_demo_%';" >/dev/null 2>&1 || true
   if [[ -n "$BACKEND_PID" ]] && kill -0 "$BACKEND_PID" 2>/dev/null; then
     log "Stopping backend pid=$BACKEND_PID"
     kill "$BACKEND_PID" 2>/dev/null || true
@@ -428,6 +443,106 @@ print(str('$cap' in body['capabilities']).lower() + ' ' + str(c.get('enabled', F
   fi
 done
 log "[OK]   all 4 round-5 wired migration/UI capabilities registered + enabled"
+
+# ----- Section 2.10: round-6 bulk seed-flip verification -----
+# Demonstrates that every representative round-3 capability flips to
+# enabled when its backing meta-schema table has a row. Inserts 1 demo
+# row per table, asserts each capability flips, then cleans up.
+log "=== Section 2.10: round-6 bulk seed-flip verification ==="
+
+unset SEED_OK  # bash quirk: prior scalar becomes assoc array key "0"
+declare -A SEED_OK  # capability_id -> inserted count
+
+# 1. byok_llm_key
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.byok_llm_key (id, org_id, provider, alias, status, ciphertext_ref, fingerprint, provider_tpm_cap, org_daily_cap, isolation, created_at, updated_at) \
+   VALUES ('byk_round6_demo', 'org_round6_demo', 'openai', 'round6-demo-key', 'active', 'vault://round6', 'fp-round6', 60000, 1000000, 'strict', now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.byok_llm_key;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[byok_llm_key]="$COUNT" || true
+
+# 2. customer_kms_key
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.customer_kms_key (id, organization_id, alias, provider, key_id, status, created_by, created_time, updated_time) \
+   VALUES ('ckk_round6_demo', 'org_round6_demo', 'round6-kms', 'aws', 'aws-key-id-round6', 'active', 'usr_round6_demo', now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.customer_kms_key;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[customer_kms_key]="$COUNT" || true
+
+# 3. billing_invoice
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.billing_invoice (id, org_id, customer_name, currency, period_start, period_end, issued_at, lines, tax_bps) \
+   VALUES ('inv_round6_demo', 'org_round6_demo', 'Round6 Demo', 'USD', now() - interval '30 days', now(), now(), '[{}]'::jsonb, 0) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.billing_invoice;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[billing_invoice]="$COUNT" || true
+
+# 4. approval_workflow
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.approval_workflow (id, base_id, table_id, name, strategy, approver_ids_json, updated_time) \
+   VALUES ('apw_round6_demo', 'bse_round6_demo', 'tbl_round6_demo', 'Round6 Approval', 'any', '{usr_round6_demo}', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.approval_workflow;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[approval_workflow]="$COUNT" || true
+
+# 5. conditional_format_rule
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.conditional_format_rule (id, view_id, name, operator, style, priority) \
+   VALUES ('cfr_round6_demo', 'viw_round6_demo', 'Round6 Highlight', 'eq', '{}'::jsonb, 1) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.conditional_format_rule;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[conditional_format_rule]="$COUNT" || true
+
+# 6. data_residency_policy
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.data_residency_policy (id, organization_id, region_code, locked, updated_by, updated_time) \
+   VALUES ('drp_round6_demo', 'org_round6_demo', 'us-west-2', true, 'usr_round6_demo', now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.data_residency_policy;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[data_residency_policy]="$COUNT" || true
+
+# 7. db_connector
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.db_connector (id, base_id, name, kind, encrypted_config_json, schedule, target_table_id, enabled, created_time, updated_time) \
+   VALUES ('dbc_round6_demo', 'bse_round6_demo', 'Round6 Connector', 'postgres', 'plaintext-config-round6', 'daily', 'tbl_round6_target', true, now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.db_connector;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[db_connector]="$COUNT" || true
+
+# 8. custom_role
+COUNT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.custom_role (id, org_id, name, description, enabled, created_time, updated_time) \
+   VALUES ('crr_round6_demo', 'org_round6_demo', 'Round6 Custom Role', 'demo', true, now(), now()) \
+   ON CONFLICT DO NOTHING; SELECT count(*) FROM meta.custom_role;" 2>&1 | tail -1)
+[[ "$COUNT" =~ ^[0-9]+$ ]] && SEED_OK[custom_role]="$COUNT" || true
+
+# Re-fetch readiness AFTER all seeds inserted
+SEED_BODY="$(fetch_readiness)"
+
+# Assert each capability flipped to enabled
+SEED_FLIPPED=0
+SEED_TOTAL="${#SEED_OK[@]}"
+for cap in "${!SEED_OK[@]}"; do
+  STATE=$(echo "$SEED_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('$cap', {})
+print(str(c.get('enabled', False)).lower())
+")
+  if [[ "$STATE" == "true" ]]; then
+    SEED_FLIPPED=$((SEED_FLIPPED + 1))
+    log "[OK]   $cap flipped to enabled after seed (count=${SEED_OK[$cap]})"
+  else
+    log "[FAIL] $cap did NOT flip after seed (state=$STATE, inserted=${SEED_OK[$cap]})"
+    exit 1
+  fi
+done
+log "[OK]   round-6 bulk seed-flip: $SEED_FLIPPED/$SEED_TOTAL capabilities flipped to enabled"
+
+# Cleanup all round-6 demo rows
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.byok_llm_key WHERE id = 'byk_round6_demo'; \
+   DELETE FROM meta.customer_kms_key WHERE id = 'ckk_round6_demo'; \
+   DELETE FROM meta.billing_invoice WHERE id = 'inv_round6_demo'; \
+   DELETE FROM meta.approval_workflow WHERE id = 'apw_round6_demo'; \
+   DELETE FROM meta.conditional_format_rule WHERE id = 'cfr_round6_demo'; \
+   DELETE FROM meta.data_residency_policy WHERE id = 'drp_round6_demo'; \
+   DELETE FROM meta.db_connector WHERE id = 'dbc_round6_demo'; \
+   DELETE FROM meta.custom_role WHERE id = 'crr_round6_demo';" >/dev/null 2>&1 || true
+log "[OK]   round-6 demo rows cleaned up"
 
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="
