@@ -167,10 +167,12 @@ ENABLED_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.l
 log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 
 # Section 2 final assertion: with the meta.organization_ip_allowlist migration
-# applied and the meta.setting row inserted, all 33 capabilities should be
+# applied, the meta.setting row inserted, and the 2 documented permission-matrix
+# gaps surfaced as disabled probes, exactly 33 of 35 capabilities should be
 # enabled on a default self-hosted instance.
-assert_ok "$([[ "$ENABLED_CAPS" == "$TOTAL_CAPS" ]] && echo 0 || echo 1)" \
-  "all $TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS)"
+EXPECTED_ENABLED=33
+assert_ok "$([[ "$ENABLED_CAPS" == "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
+  "$EXPECTED_ENABLED/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; the 2 permission-matrix sub-capabilities below are documented gaps)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
@@ -184,6 +186,23 @@ sys.exit(0 if '$cap' in body['capabilities'] else 1)
   fi
 done
 log "[OK]   all 9 core capabilities present in readiness map"
+
+# ----- Section 2.5: documented permission-matrix gaps are surfaced -----
+log "=== Section 2.5: documented permission-matrix sub-capability probes ==="
+for cap in permission_import_export permission_app_workflow; do
+  ENABLED_REASON=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+cap = body['capabilities'].get('$cap', {})
+print('enabled=' + str(cap.get('enabled', None)).lower() + ' reason=' + str(cap.get('reason', '')))
+")
+  if [[ "$ENABLED_REASON" != "enabled=false reason=import_export_permission_not_yet_modeled" ]] && \
+     [[ "$ENABLED_REASON" != "enabled=false reason=app_workflow_node_access_pending" ]]; then
+    log "[FAIL] capability '$cap' not surfaced as documented gap (got: $ENABLED_REASON)"
+    exit 1
+  fi
+  log "[OK]   capability '$cap' is a documented gap ($ENABLED_REASON)"
+done
 
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="

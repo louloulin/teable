@@ -304,6 +304,24 @@ export class EnterpriseReadinessService {
       },
       { key: 'password_share', module: 'base-share', enabled: true },
       { key: 'automation_rate_limit', module: 'automation', enabled: true },
+      // ── Permission matrix sub-capabilities (Cloud Business docs, §权限矩阵) ──
+      // Cloud splits authority-matrix into 5 areas. OSS implements 3 (table node
+      // access + field perms + record actions + record filter); 2 areas remain
+      // gaps that this snapshot surfaces so operators can plan the next stage.
+      //   - 'permission_import_export'   — Cloud §导入/导出权限 (independent axis)
+      //   - 'permission_app_workflow'     — Cloud §节点权限 sub-types (app/workflow access)
+      {
+        key: 'permission_import_export',
+        module: 'permission-matrix',
+        enabled: false,
+        reason: 'import_export_permission_not_yet_modeled',
+      },
+      {
+        key: 'permission_app_workflow',
+        module: 'permission-matrix',
+        enabled: false,
+        reason: 'app_workflow_node_access_pending',
+      },
     ];
   }
 
