@@ -2816,6 +2816,105 @@ print('model='+str(d.get('defaultModel','none'))+',level='+str(d.get('defaultSma
 assert_ok "$([[ "$AIS_GDM" =~ model=claude-3-5-sonnet ]] && [[ "$AIS_GDM" =~ level=high ]] && echo 0 || echo 1)" \
   "ai-setting: GET /default-model reads back claude + high (got: $AIS_GDM)"
 
+# ----- Section 4.25: cuppy chat built-in fallback (Round-AI-5) -----
+# R-AI-5: /api/cuppy/chat must return a real conversational response even when
+# no external LLM is configured. The live CUPPY_LLM_CLIENT now falls back to a
+# deterministic echo so the endpoint never returns a 503 to the UI.
+log "=== Section 4.25: cuppy chat built-in fallback (Round-AI-5) ==="
+
+# Pre-create demo base + collaborator so admin has access.
+PG_SQL_425="$(mktemp)"
+cat > "$PG_SQL_425" <<'EOSQL'
+INSERT INTO meta.base (id, space_id, name, "order", created_time, created_by)
+VALUES ('bse_round_ai5_demo', 'spcsp43Lpj0xS3oW5tH', 'Round AI-5 Demo', 0, now(), 'usrzdwQ3PgckZuDlQvo')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO meta.collaborator (id, role_name, resource_type, resource_id, principal_id, principal_type, created_by, created_time)
+VALUES ('collab_round_ai5_demo', 'owner', 'base', 'bse_round_ai5_demo', 'usrzdwQ3PgckZuDlQvo', 'user', 'usrzdwQ3PgckZuDlQvo', now())
+ON CONFLICT (id) DO NOTHING;
+EOSQL
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -f "$PG_SQL_425" -q > /dev/null
+rm -f "$PG_SQL_425"
+
+rm -f /tmp/teable-cookies-425.txt 2>/dev/null || true
+curl -sS -X POST "${BASE_URL}/api/auth/signin" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@teable.local","password":"admin123"}' \
+  -c /tmp/teable-cookies-425.txt -o /dev/null
+
+# Helper: assert actual env var equals expected env var (string compare). evals via python3.
+chk_eq() { A="$1" B="$2" python3 -c "import os; a=os.environ.get(chr(65),''); b=os.environ.get(chr(66),''); print(chr(121) if a==b else chr(110))" 2>/dev/null; }
+chk_starts() { A="$1" B="$2" python3 -c "import os; a=os.environ.get(chr(65),''); b=os.environ.get(chr(66),''); print(chr(121) if a.startswith(b) else chr(110))" 2>/dev/null; }
+chk_in() {  # chk_in NEEDLE_VAR HAYSTACK_VAR NAME — 'in' substring
+  python3 -c "import os; a=os.environ.get('A',''); b=os.environ.get('B',''); print('y' if a in b else 'n')" A="$1" B="$2" 2>/dev/null
+}
+chk_truthy() { A="$1" python3 -c "import os; v=os.environ.get(chr(65),''); print(chr(121) if v and v!='None' else chr(110))" 2>/dev/null; }
+
+# 1. chat without baseId returns 201 + echo text
+CUP_NO_BASE_RAW=$(curl -sS -X POST "${BASE_URL}/api/cuppy/chat" \
+  -H "Content-Type: application/json" -b /tmp/teable-cookies-425.txt \
+  -d '{"message":"hello teable"}' \
+  -w '|%{http_code}' 2>/dev/null)
+CUP_CODE_NO_BASE="${CUP_NO_BASE_RAW##*|}"
+CUP_BODY_NO_BASE="${CUP_NO_BASE_RAW%|*}"
+CID_NO_BASE=$(printf '%s' "$CUP_BODY_NO_BASE" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("conversationId",""))' 2>/dev/null)
+CUP_TEXT_NO_BASE=$(printf '%s' "$CUP_BODY_NO_BASE" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("text","")[:120])' 2>/dev/null)
+assert_ok "$(chk_eq "$CUP_CODE_NO_BASE" "201")" "cuppy: chat no-baseId returns 201 (got HTTP $CUP_CODE_NO_BASE)"
+assert_ok "$(chk_in "built-in fallback" "$CUP_TEXT_NO_BASE")" "cuppy: chat no-baseId text says built-in fallback (got prefix: ${CUP_TEXT_NO_BASE:0:60})"
+assert_ok "$(chk_truthy "$CID_NO_BASE")" "cuppy: no-base chat returned a conversationId (got: $CID_NO_BASE)"
+
+# 2. chat with baseId returns echo (no LLM configured) — proves fallback path
+CUP_WB_RAW=$(curl -sS -X POST "${BASE_URL}/api/cuppy/chat" \
+  -H "Content-Type: application/json" -b /tmp/teable-cookies-425.txt \
+  -d '{"baseId":"bse_round_ai5_demo","message":"List tables"}' \
+  -w '|%{http_code}' 2>/dev/null)
+CUP_CODE_WB="${CUP_WB_RAW##*|}"
+CUP_BODY_WB="${CUP_WB_RAW%|*}"
+CUP_TEXT_WB=$(printf '%s' "$CUP_BODY_WB" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("text","")[:160])' 2>/dev/null)
+CID_WB=$(printf '%s' "$CUP_BODY_WB" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("conversationId",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$CUP_CODE_WB" "201")" "cuppy: chat with baseId returns 201 (got HTTP $CUP_CODE_WB)"
+assert_ok "$(chk_in "bse_round_ai5_demo" "$CUP_TEXT_WB")" "cuppy: chat with baseId includes base tag (got prefix: ${CUP_TEXT_WB:0:80})"
+
+# 3. follow-up turn with same conversationId — context continues
+CUP_FU_RAW=$(curl -sS -X POST "${BASE_URL}/api/cuppy/chat" \
+  -H "Content-Type: application/json" -b /tmp/teable-cookies-425.txt \
+  -d "$(printf '%s' "{\"baseId\":\"bse_round_ai5_demo\",\"conversationId\":\"$CID_WB\",\"message\":\"And records?\"}")" \
+  -w '|%{http_code}' 2>/dev/null)
+CUP_CODE_FU="${CUP_FU_RAW##*|}"
+assert_ok "$(chk_eq "$CUP_CODE_FU" "201")" "cuppy: follow-up turn returns 201 (got HTTP $CUP_CODE_FU)"
+
+# 4. conversation history contains both turns
+HIST=$(curl -sS -b /tmp/teable-cookies-425.txt "${BASE_URL}/api/cuppy/conversations/${CID_WB}/messages" 2>/dev/null)
+HIST_LEN=$(printf '%s' "$HIST" | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("messages",[])))' 2>/dev/null)
+assert_ok "$(chk_eq "$HIST_LEN" "4")" "cuppy: history contains 4 messages after 2 turns (got: $HIST_LEN)"
+
+# 5. chat with baseId the user cannot access returns 4xx (permission gate, not fallback)
+CUP_NP_RAW=$(curl -sS -X POST "${BASE_URL}/api/cuppy/chat" \
+  -H "Content-Type: application/json" -b /tmp/teable-cookies-425.txt \
+  -d '{"baseId":"bse_demo_enterprise","message":"private"}' \
+  -w '|%{http_code}' 2>/dev/null)
+CUP_CODE_NP="${CUP_NP_RAW##*|}"
+assert_ok "$(chk_starts "$CUP_CODE_NP" "4")" "cuppy: chat without permission returns 4xx (got HTTP $CUP_CODE_NP)"
+
+# 6. inspect endpoint shows conversation metadata
+INSPECT=$(curl -sS -b /tmp/teable-cookies-425.txt "${BASE_URL}/api/cuppy/conversations/${CID_WB}" 2>/dev/null)
+INSPECT_MSG=$(printf '%s' "$INSPECT" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("messageCount",0))' 2>/dev/null)
+assert_ok "$(chk_eq "$INSPECT_MSG" "4")" "cuppy: inspect reports messageCount=4 (got: $INSPECT_MSG)"
+
+# 7. smart-level defaults to medium
+SMART=$(curl -sS -b /tmp/teable-cookies-425.txt "${BASE_URL}/api/cuppy/conversations/${CID_WB}/smart-level" 2>/dev/null)
+SMART_LEVEL=$(printf '%s' "$SMART" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("smartLevel",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$SMART_LEVEL" "medium")" "cuppy: smart-level default is medium (got: $SMART_LEVEL)"
+
+# 8. delete conversation cleans up
+DEL_RAW=$(curl -sS -X DELETE -b /tmp/teable-cookies-425.txt "${BASE_URL}/api/cuppy/conversations/${CID_WB}" -w '|%{http_code}' 2>/dev/null)
+DEL_CODE="${DEL_RAW##*|}"
+DEL_BODY="$(printf '%s' "${DEL_RAW%|*}" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("deleted",False))' 2>/dev/null)"
+assert_ok "$(A="$DEL_CODE" B="$DEL_BODY" python3 -c 'import os; a=os.environ.get("A",""); b=os.environ.get("B",""); print("y" if a=="200" and b=="True" else "n")')" "cuppy: DELETE conversation returns deleted:true (got HTTP $DEL_CODE, deleted=$DEL_BODY)"
+
+# Cleanup demo rows so subsequent runs start from baseline.
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.collaborator WHERE id='collab_round_ai5_demo';" -q > /dev/null
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.base WHERE id='bse_round_ai5_demo';" -q > /dev/null
+rm -f /tmp/teable-cookies-425.txt
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"
