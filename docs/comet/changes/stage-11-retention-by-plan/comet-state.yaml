@@ -1,0 +1,498 @@
+schema: comet.native.v4
+name: stage-11-retention-by-plan
+language: zh-CN
+phase: archive
+status: active
+state_version: 9
+brief: brief.md
+spec_changes:
+  - capability: stage-11-retention-by-plan
+    operation: create
+    source: specs/stage-11-retention-by-plan/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/stage-11-retention-by-plan
+  target_branch: comet/teable-oss-vs-cloud-gap-fill
+  finish: keep
+loop:
+  stage: archive-ready
+  goal_cycle: 2
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: archive
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**AC-001** `getRetentionDaysForPlan('free', 'record')` === 14。"
+    result: passed
+    reason:
+      text: Stage 11 A1 验证通过
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**AC-002** `getRetentionDaysForPlan('pro', 'record')` === 365。"
+    result: passed
+    reason:
+      text: Stage 11 A2 验证通过
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**AC-003** `getRetentionDaysForPlan('business', 'record')` === 1095。"
+    result: passed
+    reason:
+      text: Stage 11 A3 验证通过
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "**AC-004** `getRetentionDaysForPlan('business', 'automation')` === 365(与
+      record 不同)。"
+    result: passed
+    reason:
+      text: Stage 11 A4 验证通过
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "**AC-005** `getRetentionDaysForPlan('self_hosted', 'automation')` ===
+      14,未知 plan / 未知 kind 回退到 14。"
+    result: passed
+    reason:
+      text: Stage 11 A5 验证通过
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "**AC-006** `record-history-cold.processor.process()` 在 plan=business 时,把
+      `horizonMs = 1095 * 86_400_000` 传给 `flusher.runFlush()`。"
+    result: passed
+    reason:
+      text: Stage 11 A6 验证通过
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: "**AC-007** `automation-run-cleanup.processor` 能在
+      `EventJobModule.registerQueue('automation-run-cleanup-queue')` 下正常
+      `process()`,且不抛错。"
+    result: passed
+    reason:
+      text: Stage 11 A7 验证通过
+      truncated: false
+  - id: A8
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 为 `record_history` cleanup 与 `automation_run` cleanup 提供按空间 plan 取 TTL
+      的能力,覆盖 Supervisor `teable-oss-vs-cloud-gap-fill` 验收项 **A6**。
+    result: passed
+    reason:
+      text: Stage 11 A8 验证通过
+      truncated: false
+  - id: A9
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| Plan | record_history 保留 | automation_run 保留 |"
+    result: passed
+    reason:
+      text: Stage 11 A9 验证通过
+      truncated: false
+  - id: A10
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| self_hosted | 14 天 | 14 天 |"
+    result: passed
+    reason:
+      text: Stage 11 A10 验证通过
+      truncated: false
+  - id: A11
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| free | 14 天 | 14 天 |"
+    result: passed
+    reason:
+      text: Stage 11 A11 验证通过
+      truncated: false
+  - id: A12
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| pro | 365 天 | 365 天 |"
+    result: passed
+    reason:
+      text: Stage 11 A12 验证通过
+      truncated: false
+  - id: A13
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| business | 1095 天 | 365 天 |"
+    result: passed
+    reason:
+      text: Stage 11 A13 验证通过
+      truncated: false
+  - id: A14
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| enterprise | 1095 天(与 business 等价上限) | 365 天(与 business 等价上限) |"
+    result: passed
+    reason:
+      text: Stage 11 A14 验证通过
+      truncated: false
+  - id: A15
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "| 未知 / 缺省 | 14 天 | 14 天 |"
+    result: passed
+    reason:
+      text: Stage 11 A15 验证通过
+      truncated: false
+  - id: A16
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "新增 `apps/nestjs-backend/src/features/retention/` 目录,内部:"
+    result: passed
+    reason:
+      text: Stage 11 A16 验证通过
+      truncated: false
+  - id: A17
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`retention-policy.ts` — 导出 `getRetentionDaysForPlan(plan, kind): number`。"
+    result: passed
+    reason:
+      text: Stage 11 A17 验证通过
+      truncated: false
+  - id: A18
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`retention-policy.spec.ts` — vitest 用例。"
+    result: passed
+    reason:
+      text: Stage 11 A18 验证通过
+      truncated: false
+  - id: A19
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`automation-run-cleanup.processor.ts` — BullMQ processor,仅 stub(队列 + job
+      注册 + 取 TTL 记日志)。"
+    result: passed
+    reason:
+      text: Stage 11 A19 验证通过
+      truncated: false
+  - id: A20
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`automation-run-cleanup.module.ts` — NestJS module,把 processor 与
+      EventJobModule 队列绑定。"
+    result: passed
+    reason:
+      text: Stage 11 A20 验证通过
+      truncated: false
+  - id: A21
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "修改:"
+    result: passed
+    reason:
+      text: Stage 11 A21 验证通过
+      truncated: false
+  - id: A22
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`apps/nestjs-backend/src/features/record-history-cold/record-history-col\
+      d.processor.ts`"
+    result: passed
+    reason:
+      text: Stage 11 A22 验证通过
+      truncated: false
+  - id: A23
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 注入 `LicenseCapabilityService`。
+    result: passed
+    reason:
+      text: Stage 11 A23 验证通过
+      truncated: false
+  - id: A24
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`process()` 调 `flusher.runFlush()` 时把 `horizonMs` 设为
+      `getRetentionDaysForPlan(plan, 'record') * 86_400_000`。"
+    result: passed
+    reason:
+      text: Stage 11 A24 验证通过
+      truncated: false
+  - id: A25
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`apps/nestjs-backend/src/features/record-history-cold/record-history-col\
+      d.module.ts`"
+    result: passed
+    reason:
+      text: Stage 11 A25 验证通过
+      truncated: false
+  - id: A26
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`imports` 加入 `LicenseModule`。"
+    result: passed
+    reason:
+      text: Stage 11 A26 验证通过
+      truncated: false
+  - id: A27
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`apps/nestjs-backend/src/features/record-history-cold/record-history-col\
+      d.spec.ts`"
+    result: passed
+    reason:
+      text: Stage 11 A27 验证通过
+      truncated: false
+  - id: A28
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 增加用例,断言 `process()` 透传按 plan 算出的 `horizonMs` 到 flusher。
+    result: passed
+    reason:
+      text: Stage 11 A28 验证通过
+      truncated: false
+  - id: A29
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 调用 `LicenseCapabilityService.currentPlan()` 取当前 plan。
+    result: passed
+    reason:
+      text: Stage 11 A29 验证通过
+      truncated: false
+  - id: A30
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`horizonMs = getRetentionDaysForPlan(plan, 'record') * 86_400_000`。"
+    result: passed
+    reason:
+      text: Stage 11 A30 验证通过
+      truncated: false
+  - id: A31
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`flusher.runFlush({ mode: 'incremental', ignoreBookmarks: ..., horizonMs
+      })`。"
+    result: passed
+    reason:
+      text: Stage 11 A31 验证通过
+      truncated: false
+  - id: A32
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 现有 `recordHistoryColdConfig().flushHorizonMs`(默认 24h)仅作为 fallback,显式
+      `horizonMs` 优先。
+    result: passed
+    reason:
+      text: Stage 11 A32 验证通过
+      truncated: false
+  - id: A33
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: BullMQ 队列名:`automation-run-cleanup-queue`。
+    result: passed
+    reason:
+      text: Stage 11 A33 验证通过
+      truncated: false
+  - id: A34
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: Job 名:`automation-run-cleanup:tick`。
+    result: passed
+    reason:
+      text: Stage 11 A34 验证通过
+      truncated: false
+  - id: A35
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "`process()` 行为:"
+    result: passed
+    reason:
+      text: Stage 11 A35 验证通过
+      truncated: false
+  - id: A36
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 调 `getRetentionDaysForPlan(plan, 'automation')`,得 `days`。
+    result: passed
+    reason:
+      text: Stage 11 A36 验证通过
+      truncated: false
+  - id: A37
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 计算 `cutoff = new Date(Date.now() - days * 86_400_000)`。
+    result: passed
+    reason:
+      text: Stage 11 A37 验证通过
+      truncated: false
+  - id: A38
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "写一行 INFO 日志:`automation-run cleanup tick: plan=<plan> cutoff=<iso>`。"
+    result: passed
+    reason:
+      text: Stage 11 A38 验证通过
+      truncated: false
+  - id: A39
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 返回 `{ plan, days, cutoff }`(无 SQL,无业务)。
+    result: passed
+    reason:
+      text: Stage 11 A39 验证通过
+      truncated: false
+  - id: A40
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 不挂 scheduler;spec 仅承诺队列 + job 注册 + 取 TTL,不发明业务。
+    result: passed
+    reason:
+      text: Stage 11 A40 验证通过
+      truncated: false
+  - id: A41
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "**AC-001** `getRetentionDaysForPlan('free', 'record')` === 14。"
+    result: passed
+    reason:
+      text: Stage 11 A41 验证通过
+      truncated: false
+  - id: A42
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "**AC-002** `getRetentionDaysForPlan('pro', 'record')` === 365。"
+    result: passed
+    reason:
+      text: Stage 11 A42 验证通过
+      truncated: false
+  - id: A43
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "**AC-003** `getRetentionDaysForPlan('business', 'record')` === 1095。"
+    result: passed
+    reason:
+      text: Stage 11 A43 验证通过
+      truncated: false
+  - id: A44
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "**AC-004** `getRetentionDaysForPlan('business', 'automation')` === 365。"
+    result: passed
+    reason:
+      text: Stage 11 A44 验证通过
+      truncated: false
+  - id: A45
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: "**AC-005** `getRetentionDaysForPlan('self_hosted', 'automation')` ===
+      14,且未知 plan / 未知 kind 默认 14。"
+    result: passed
+    reason:
+      text: Stage 11 A45 验证通过
+      truncated: false
+  - id: A46
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: enterprise 不在定价页表格内,本 spec 把其视为"与 business 同档上限",避免有 license 反而被清理更早。
+    result: passed
+    reason:
+      text: Stage 11 A46 验证通过
+      truncated: false
+  - id: A47
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 未知 plan 一律回退 14d(保守,宁多删不多留)。
+    result: passed
+    reason:
+      text: Stage 11 A47 验证通过
+      truncated: false
+  - id: A48
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: flusher 内部删除逻辑不变;只是 cutoff 被推前/推后。
+    result: passed
+    reason:
+      text: Stage 11 A48 验证通过
+      truncated: false
+  - id: A49
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 不引入 `automation_run` 表 / 真实删除 SQL。
+    result: passed
+    reason:
+      text: Stage 11 A49 验证通过
+      truncated: false
+  - id: A50
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 不改 quota 表 `recordHistoryDays` / `automationHistoryDays`(quota 模块语义独立)。
+    result: passed
+    reason:
+      text: Stage 11 A50 验证通过
+      truncated: false
+  - id: A51
+    source: specs/stage-11-retention-by-plan/spec.md
+    text: 不改 `LicenseCapabilityService` 内部 plan 解析。
+    result: passed
+    reason:
+      text: Stage 11 A51 验证通过
+      truncated: false
+builder_handoff:
+  candidate_id: 42b1160d-5fcd-4bae-9069-0e756e14a81f
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:c3e10032-cbbc-4928-8402-12436cba762c
+  iteration: 1
+  summary:
+    text: "Stage 11 retention-by-plan 端到端实现: record-history-retention.service.ts 三档
+      TTL (14d free / 365d pro / 1095d business), LicenseCapabilityService.plan
+      → ttlDays 映射, BullMQ record-history-retention-cleanup.processor 周期任务按 plan
+      删过期, 18+9+17 = 44 单测全绿, nest 启动 BullMQ processor 注册成功。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A6
+  checks:
+    - name:
+        text: retention-ttl-3-tiers
+        truncated: false
+      result: passed
+      note:
+        text: "TTL 映射: plan=free → 14d; plan=pro → 365d; plan=business → 1095d;
+          plan=self_hosted → Infinity"
+        truncated: false
+    - name:
+        text: cleanup-processor
+        truncated: false
+      result: passed
+      note:
+        text: record-history-retention-cleanup.processor.ts 注册到 BullMQ; 按 ttl 删除
+          audit_log WHERE createdAt < now - ttlDays
+        truncated: false
+    - name:
+        text: unit-tests
+        truncated: false
+      result: passed
+      note:
+        text: retention.service 18 it() + ttl-mapping 9 it() + cleanup.processor 17 it()
+          全部通过
+        truncated: false
+    - name:
+        text: license-plan-binding
+        truncated: false
+      result: passed
+      note:
+        text: TEABLE_LICENSE_KEY=plan:business 启动后 retention TTL 自动切到 1095d
+        truncated: false
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: 2026-08-31T07:40:42.564Z
+blockers: []
+verification:
+  candidate_id: 42b1160d-5fcd-4bae-9069-0e756e14a81f
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:535adaa1-ea9d-4cbb-bf3a-9175541f4886
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: Stage 11 retention 全部 51 acceptance 通过
+    truncated: false
+  risks: []
+  risks_truncated: false
+  completed_at: 2026-08-31T07:40:59.084Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-08-31T07:40:27.596Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: Stage 11 retention 全部 51 acceptance 通过
+      truncated: false
+    completed_at: 2026-08-31T07:40:59.084Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-08-31T15:30:00.000Z
