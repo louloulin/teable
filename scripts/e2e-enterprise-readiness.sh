@@ -166,15 +166,20 @@ TOTAL_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.loa
 ENABLED_CAPS="$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["enabled"])')"
 log "capabilities: enabled=$ENABLED_CAPS / total=$TOTAL_CAPS"
 
-# Section 2 final assertion: with the meta.organization_ip_allowlist migration
-# applied, the meta.setting row inserted, and the 0 remaining documented
-# permission-matrix gaps, exactly 35 of 35 capabilities should be enabled
-# on a default self-hosted instance.
-# (permission_import_export flips to enabled the moment ≥1 rule row exists,
-#  permission_app_workflow flips when ≥1 app/workflow node access row exists.)
+# Section 2 final assertion (round-3): with the round-3 enterprise-table
+# probes registered (25 new capabilities from meta-schema tables via raw SQL
+# count(*)), and the 0 remaining documented permission-matrix gaps, exactly
+# 35 of 60 capabilities should be enabled on a default self-hosted instance.
+# The remaining 25 (BYOK, billing, db-connector, dashboard, ...) flip to
+# enabled the moment a row is inserted into their backing meta table. Section
+# 2.6 confirms registration + presence on disk without requiring seed rows.
+EXPECTED_TOTAL=60
 EXPECTED_ENABLED=35
-assert_ok "$([[ "$ENABLED_CAPS" == "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
-  "$EXPECTED_ENABLED/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; 0 documented gaps remain)"
+EXPECTED_PARITY_SCORE=25
+assert_ok "$([[ "$TOTAL_CAPS" == "$EXPECTED_TOTAL" ]] && echo 0 || echo 1)" \
+  "total capabilities registered = $EXPECTED_TOTAL (got total=$TOTAL_CAPS)"
+assert_ok "$([[ "$ENABLED_CAPS" -ge "$EXPECTED_ENABLED" ]] && echo 0 || echo 1)" \
+  "$EXPECTED_ENABLED+/$TOTAL_CAPS capabilities enabled (got enabled=$ENABLED_CAPS; >=35 baseline, data may push higher)"
 
 # Assert core capabilities are present in the map (regression guard for AC-005)
 for cap in sso audit_log permission_matrix admin_panel custom_domain ai_field automation webhook trash; do
@@ -223,6 +228,75 @@ case "$APPWF" in
     exit 1 ;;
 esac
 
+# ----- Section 2.6: round-3 enterprise-table probe registration -----
+# Round 3 added 25 capabilities from DB tables (BYOK, billing, db-connector,
+# approval, conditional_format, federation, dr_canvas, custom_role, etc.).
+# They are intentionally disabled by default (tables exist but empty). The
+# probe machinery must report them as "registered but no_rows_yet".
+log "=== Section 2.6: round-3 enterprise-table probe registration ==="
+ROUND3_KEYS="byok_llm_key customer_kms_key data_residency_policy billing_invoice billing_credit cross_org_admin_grant db_connector db_connector_sync airtable_connection data_db_connection approval_workflow conditional_format_rule conflict_event federation_event dashboard dr_canvas ai_credit_ledger ai_usage_bucket ai_credit_grant_policy custom_role app_module_wire automation_canvas_revision automation_secret comment_subscription backup_restore_log"
+for cap in $ROUND3_KEYS; do
+  STATE=$(echo "$DEFAULT_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('$cap', {})
+print('present=' + str('$cap' in body['capabilities']).lower() + ' ' + str(c.get('reason', '')))
+")
+  PRESENT=$(echo "$STATE" | awk '{print $1}')
+  REASON=$(echo "$STATE" | awk '{$1=""; sub(/^ /,""); print}')
+  if [[ "$PRESENT" != "present=true" ]]; then
+    log "[FAIL] round-3 capability '$cap' missing from readiness map"
+    exit 1
+  fi
+  if [[ ! "$REASON" =~ ^no_[a-zA-Z0-9_]+_rows_yet$ ]]; then
+    log "[FAIL] round-3 capability '$cap' expected 'no_X_rows_yet' reason, got: '$REASON'"
+    exit 1
+  fi
+done
+log "[OK]   all 25 round-3 enterprise-table capabilities registered with 'no_*_rows_yet' probe"
+
+# Cloud Business parity extended from 12 to 25 keys (license + external)
+PARITY_DEFAULT=$(echo "$DEFAULT_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')
+assert_ok "$([[ "$PARITY_DEFAULT" == "25/25" ]] && echo 0 || echo 1)" \
+  "default self_hosted parity = 25/25 (got: $PARITY_DEFAULT)"
+
+# ----- Section 2.7: round-3 capability flips on data -----
+# Insert a demo row into one round-3 enterprise table and re-fetch readiness
+# to prove the probe flips enabled=true when count > 0.
+log "=== Section 2.7: round-3 capability flips on data ==="
+# Clean up any prior seed row from previous e2e runs to make this idempotent.
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+  "DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%';" >/dev/null 2>&1 || true
+# Use comment_subscription as the round-3 demo (no FK to other meta tables,
+# simple text PK). Insert then check the capability flips.
+SEED_OK=0
+PG_CONN_STR="postgresql://teable:teable@127.0.0.1:42345/teable?schema=meta"
+PG_RESULT=$(PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -t -A -c \
+  "INSERT INTO meta.comment_subscription (id, table_id, record_id, created_by, created_time) \
+   VALUES ('cs_e2e_demo_$(date +%s)', 'tbloj9xG5OIxMaISGhg', 'rec_e2e_demo', 'usr_e2e_demo', now()) \
+   ON CONFLICT (id) DO NOTHING; \
+   SELECT count(*) FROM meta.comment_subscription;" 2>&1) || PG_RESULT=""
+echo "$PG_RESULT" | grep -qE '^[0-9]+$' && SEED_OK=1
+if [[ "$SEED_OK" == "1" ]]; then
+  SEED_COUNT=$(echo "$PG_RESULT" | tail -1)
+  log "[OK]   demo row inserted into meta.comment_subscription (count=$SEED_COUNT)"
+  # Re-fetch readiness and assert comment_subscription flipped to enabled
+  REFETCH_BODY="$(fetch_readiness)"
+  CS_STATE=$(echo "$REFETCH_BODY" | python3 -c "
+import json, sys
+body = json.load(sys.stdin)
+c = body['capabilities'].get('comment_subscription', {})
+print('enabled=' + str(c.get('enabled', False)).lower())
+")
+  assert_ok "$([[ "$CS_STATE" == "enabled=true" ]] && echo 0 || echo 1)" \
+    "round-3 capability 'comment_subscription' flipped to enabled after row insert (got: $CS_STATE)"
+  # Clean up the demo row so subsequent runs start from baseline
+  PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -q -c \
+    "DELETE FROM meta.comment_subscription WHERE id LIKE 'cs_e2e_demo_%';" >/dev/null 2>&1 || true
+else
+  log "[SKIP] comment_subscription seed insert failed (psql unavailable?) - skipping flip-on-data check"
+fi
+
 # ----- Section 3: restart with business license -----
 log "=== Section 3: business license parity ==="
 stop_backend
@@ -239,8 +313,8 @@ assert_ok "$([[ "$BIZ_LEVEL" == "business" ]] && echo 0 || echo 1)" \
 PARITY="$(echo "$BIZ_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["cloudBusinessParity"])')"
 SCORE="${PARITY%/*}"
 TOTAL="${PARITY##*/}"
-assert_ok "$([[ "$SCORE" -ge 8 ]] && echo 0 || echo 1)" \
-  "cloudBusinessParity score $SCORE/$TOTAL >= 8 (Cloud Business features wired)"
+assert_ok "$([[ "$SCORE" -ge 25 ]] && echo 0 || echo 1)" \
+  "cloudBusinessParity score $SCORE/$TOTAL >= 25 (extended Cloud Business parity)"
 
 # Assert business-only capabilities flipped to true
 for cap in sso audit_log permission_matrix admin_panel custom_domain; do

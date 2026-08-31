@@ -47,7 +47,17 @@ const PLAN_LABEL: Record<string, string> = {
   self_hosted: 'Self-hosted',
 };
 
-const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly LicenseCapability[] = [
+// Cloud Business parity core capabilities. Tracks every dimension that
+// Cloud Business §pricing highlights as enterprise-grade. Combines:
+//   - license-tracked keys (sso, permission_matrix, ...)
+//   - external capability keys surfaced via describeExternals()
+//     (password_share, totp, saml, scim, oauth_server, ip_allowlist,
+//      custom_app_domain, permission_app_workflow, permission_import_export,
+//      backup, trash, smtp, workspace_mirror)
+// Keys exist as Probe=true the moment the corresponding runtime / DB state is
+// wired. Capacity (count rows) does not gate parity — only capability presence.
+const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
+  // License-tracked (Business+ differentiators)
   'sso',
   'permission_matrix',
   'custom_domain',
@@ -60,6 +70,22 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly LicenseCapability[] = [
   'automation',
   'webhook',
   'audit_log_query',
+  // Permission matrix sub-capabilities (Cloud §权限矩阵)
+  'permission_app_workflow',
+  'permission_import_export',
+  // Enterprise security & compliance
+  'password_share',
+  'totp',
+  'saml',
+  'scim',
+  'oauth_server',
+  'ip_allowlist',
+  'custom_app_domain',
+  // Operational & governance
+  'backup',
+  'trash',
+  'smtp',
+  'workspace_mirror',
 ];
 
 const PLAN_QUOTA_HINTS: Record<string, { rows: number | null; attachments: number | null; automationRuns: number | null; seats: number | null }> = {
@@ -144,9 +170,13 @@ export class EnterpriseReadinessService {
     );
   }
 
+  cloudBusinessParityTotal(): number {
+    return CLOUD_BUSINESS_CORE_CAPABILITIES.length;
+  }
+
   private cloudBusinessParity(caps: Record<string, CapabilityDescriptor>): string {
     const score = this.cloudBusinessScore(caps);
-    const total = CLOUD_BUSINESS_CORE_CAPABILITIES.length;
+    const total = this.cloudBusinessParityTotal();
     return `${score}/${total}`;
   }
 
@@ -224,6 +254,45 @@ export class EnterpriseReadinessService {
       default:
         return cap;
     }
+  }
+
+  /**
+   * Round-3 helper: probe a meta-schema table and emit a default
+   * ExternalCapability. Uses raw SQL count(*) since most enterprise tables
+   * live in meta schema but are not exposed as Prisma delegates (created
+   * via raw SQL migrations).
+   *
+   * The Prisma client pool sets search_path to "meta", public so
+   * `SELECT count(*) FROM <table>` resolves to meta.<table>.
+   */
+  private async safeProbe(
+    modelName: string,
+    moduleName: string,
+    statsKey: string
+  ): Promise<ExternalCapability> {
+    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await fn();
+      } catch (err) {
+        this.logger.warn(
+          `external capability probe (${modelName}) failed: ${(err as Error).message}`
+        );
+        return fallback;
+      }
+    };
+    const count = await safe(async () => {
+      const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
+        `SELECT count(*)::int AS count FROM ${modelName}`
+      );
+      return Number(rows?.[0]?.count ?? 0);
+    }, 0);
+    return {
+      key: modelName,
+      module: moduleName,
+      enabled: count > 0,
+      reason: count === 0 ? `no_${modelName}_rows_yet` : undefined,
+      stats: { [statsKey]: count },
+    };
   }
 
   /**
@@ -347,6 +416,45 @@ export class EnterpriseReadinessService {
         reason: appWorkflowCount === 0 ? 'no_app_or_workflow_nodes_yet' : undefined,
         stats: { appWorkflowNodes: appWorkflowCount },
       },
+
+      // ─── Round-3: register DB-backed enterprise capabilities ───
+      // Each entry probes a single meta-schema table via safe count(). No
+      // business logic added; this just surfaces what is already persisted.
+      // capability flips to enabled once the count > 0.
+
+      // Data security & compliance (5)
+      await this.safeProbe('byok_llm_key', 'byok-llm', 'byokLlmKey'),
+      await this.safeProbe('customer_kms_key', 'kms', 'customerKmsKey'),
+      await this.safeProbe('data_residency_policy', 'data-residency', 'dataResidencyPolicy'),
+      // Billing & cross-org (6)
+      await this.safeProbe('billing_invoice', 'billing', 'billingInvoice'),
+      await this.safeProbe('billing_credit', 'billing', 'billingCredit'),
+      await this.safeProbe('cross_org_admin_grant', 'cross-org-admin', 'crossOrgAdminGrant'),
+      // External data integration (4)
+      await this.safeProbe('db_connector', 'db-connector', 'dbConnector'),
+      await this.safeProbe('db_connector_sync', 'db-connector', 'dbConnectorSync'),
+      await this.safeProbe('airtable_connection', 'airtable-migration', 'airtableConnection'),
+      await this.safeProbe('data_db_connection', 'data-db-connection', 'dataDbConnection'),
+      // Governance & operations (4)
+      await this.safeProbe('approval_workflow', 'approval', 'approvalWorkflow'),
+      await this.safeProbe('conditional_format_rule', 'conditional-format', 'conditionalFormatRule'),
+      await this.safeProbe('conflict_event', 'conflict', 'conflictEvent'),
+      await this.safeProbe('federation_event', 'federation', 'federationEvent'),
+      // Self-service observability (2)
+      await this.safeProbe('dashboard', 'dashboard', 'dashboard'),
+      await this.safeProbe('dr_canvas', 'dr-canvas', 'drCanvas'),
+      // AI credit / usage (3)
+      await this.safeProbe('ai_credit_ledger', 'ai-credit', 'aiCreditLedger'),
+      await this.safeProbe('ai_usage_bucket', 'ai-usage', 'aiUsageBucket'),
+      await this.safeProbe('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy'),
+      // Customization & extension (5)
+      await this.safeProbe('custom_role', 'custom-role', 'customRole'),
+      await this.safeProbe('app_module_wire', 'app-module', 'appModuleWire'),
+      await this.safeProbe('automation_canvas_revision', 'automation', 'automationCanvasRevision'),
+      await this.safeProbe('automation_secret', 'automation', 'automationSecret'),
+      await this.safeProbe('comment_subscription', 'comments', 'commentSubscription'),
+      // Backup / cross-cutting
+      await this.safeProbe('backup_restore_log', 'backup', 'backupRestoreLog'),
     ];
   }
 

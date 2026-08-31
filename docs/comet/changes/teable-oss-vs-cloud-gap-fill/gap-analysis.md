@@ -1,0 +1,149 @@
+# Teable OSS vs Cloud Business 真实差距分析
+
+> 生成于 2026-08-31,基于:
+> - 官方定价页 `https://teable.ai/zh/pricing`(商业版 ¥20/席位/月年付)
+> - 官方帮助文档 `https://help.teable.ai/zh/basic/authority-matrix`(权限矩阵)
+> - 官方帮助文档 `https://help.teable.ai/zh/basic/space/space-permission`
+> - 当前 OSS 主分支 `comet/enterprise-readiness-2026` worktree (commit 1a0d554d5)
+> - `/api/admin/enterprise-readiness` 实时返回
+
+## 1. 已 wired 到 readiness 接口 (35/35 enabled)
+
+### Cloud Business 核心 (12 项 parity 满分)
+| capability | module | 备注 |
+|---|---|---|
+| sso | sso | OIDC 单点登录 |
+| permission_matrix | permission-matrix | 角色矩阵主轴 |
+| permission_import_export | permission-matrix | 导入/导出子权限 (本轮 commit 1a0d554d5) |
+| permission_app_workflow | permission-matrix | 节点权限子维度 (commit 741a86a99) |
+| custom_domain | custom-domain | 域名验证 |
+| custom_app_domain | custom-domain | 自定义应用域名 |
+| audit_log | audit | 登录/邀请/访问令牌/表/记录/导出事件 |
+| audit_log_query | audit | 审计查询 API |
+| admin_panel | admin | 用户/空间站/模板/实例设置 |
+| users_read | admin | 管理员只读用户 |
+| spaces_read | admin | 管理员只读空间站 |
+| templates_read | admin | 管理员只读模板 |
+| ai_field | ai | AI 字段类型 |
+| ai_chat | ai | AI 对话 |
+| ai_app_builder | ai | AI 应用构建器 |
+| cuppy_claw | ai | CuppyClaw Agent |
+| automation | automation | 触发器/动作/运行/画布 |
+| automation_rate_limit | automation | 自动化速率限制 |
+| webhook | webhook-bridge | Webhook 出站 |
+| backup | backup | 备份快照 (snapshots=0, 等数据) |
+| trash | trash | 回收站 30 天保留 |
+| totp | totp | 2FA (enrolledUsers=0, 等用户启用) |
+| saml | saml | SAML 2.0 (providers=0, 等配置) |
+| scim | scim | SCIM 用户置备 |
+| oauth_server | oauth-server | OAuth 应用 (apps=0, 等创建) |
+| password_share | base-share | 密码限制分享 |
+| ip_allowlist | ip-allowlist | IP 白名单 (rules=1) |
+| smtp | smtp | 自定义 SMTP |
+| quota_view | quota | 配额查询 |
+| computed_outbox | calculation | 计算管道出站 |
+| workspace_mirror | workspace-mirror | 工作区镜像 |
+| sandbox_agent | sandbox-agent | 沙箱代理 |
+| announcements | announcements | 公告/公告免打扰 |
+| table_query_ops | admin-table-query-ops | 表查询运维 |
+
+## 2. DB 已有表但未在 readiness 中体现 (32 项)
+
+按企业级维度分组,所有这些表已存在于 `meta` schema,只需挂 probe 即可暴露能力。
+
+### 数据安全与合规 (5 项)
+| 表 | 含义 | Cloud Business 关系 |
+|---|---|---|
+| `byok_llm_key` | 用户自有 LLM key | 客户加密能力 |
+| `byok_llm_attempt` | BYOK 调用尝试日志 | 合规审计 |
+| `byok_llm_usage` | BYOK 用量 | 用量计费 |
+| `customer_kms_key` | 客户自有 KMS key | 企业加密 (Enterprise) |
+| `encryption_key` | 平台加密密钥 | 加密基础 |
+| `data_residency_policy` | 数据驻留策略 | Enterprise 卖点 |
+
+### 计费与商务 (6 项)
+| 表 | 含义 |
+|---|---|
+| `billing_credit` | 信用余额 |
+| `billing_invoice` | 发票 |
+| `billing_line_item` | 账单条目 |
+| `billing_pdf_export` | 发票 PDF 导出 |
+| `billing_rollup` | 周期汇总 |
+| `cross_org_admin_grant` | 跨组织管理员授权 |
+
+### 外部数据集成 (5 项)
+| 表 | 含义 |
+|---|---|
+| `db_connector` | 数据库外部连接 |
+| `db_connector_sync` | 外部数据同步 |
+| `data_db_connection` | 数据 DB 连接 |
+| `airtable_connection` | Airtable 迁移源 |
+| `airtable_sync_*` | Airtable 同步日志 |
+
+### 治理与流程 (5 项)
+| 表 | 含义 |
+|---|---|
+| `approval_workflow` | 审批流 (Enterprise) |
+| `approval_request` | 审批申请 |
+| `approval_decision` | 审批决策 |
+| `conditional_format_rule` | 条件格式规则 |
+| `conflict_event` | 协作冲突事件 |
+
+### 自助可观测 (3 项)
+| 表 | 含义 |
+|---|---|
+| `dashboard` | 仪表盘 |
+| `federation_event` | 联邦事件 |
+| `dr_canvas` | 灾难恢复画布 |
+
+### AI 用量与额度 (3 项)
+| 表 | 含义 |
+|---|---|
+| `ai_credit_grant_policy` | AI 算力授予策略 |
+| `ai_credit_ledger` | AI 算力账本 |
+| `ai_usage_bucket` | AI 用量分桶 |
+
+### 自定义与扩展 (5 项)
+| 表 | 含义 |
+|---|---|
+| `custom_role` | 自定义角色 |
+| `app_module_wire` | 应用模块连线 (App Builder) |
+| `automation_canvas_revision` | 画布版本历史 |
+| `automation_secret` | 自动化密钥 |
+| `collaborator` | 协作者 |
+
+## 3. 真正未建模的功能 (需要业务逻辑 + 新表)
+
+| 能力 | Cloud Business 含义 | 现状 | 最小改造路径 |
+|---|---|---|---|
+| 记录历史 (Record History) | 记录级变更历史,3 年保留 | 无 revision 表,无历史 API | 新建 `record_revision` 表 + 历史服务 + 写时触发 |
+| API 速率限制 | 10 req/sec 全计划 | 无统一 rate limiter | 接入 token bucket,Redis 计数 |
+
+## 4. 改造策略 (最小改动,本轮目标)
+
+### 维度 A: 把已建表批量挂到 readiness (0 业务改动)
+为第 2 节的 32 项 enterprise 表批量注册 capability。每个新 capability:
+- module 名 (例如 `byok-llm`, `billing`, `db-connector`)
+- `enabled: count > 0`
+- `stats.{tables: count}` 反映当前数据规模
+
+### 维度 B: 扩展 CLOUD_BUSINESS_CORE_CAPABILITIES
+把所有 Cloud Business 独有的关键 capability 纳入 parity 计算:
+- sso, permission_matrix, custom_domain, audit_log, admin_panel,
+  ai_field, ai_chat, ai_app_builder, cuppy_claw, automation, webhook,
+  audit_log_query — 已 12 项
+- 新增: permission_import_export, permission_app_workflow, password_share,
+  custom_app_domain, saml, scim, totp, ip_allowlist, backup, trash, oauth_server,
+  smtp, workspace_mirror — 13 项
+
+预计 parity 从 12/12 → 25/25
+
+### 维度 C: e2e 新断言
+- EXPECTED_TOTAL_CAPS: 35 → ~67
+- EXPECTED_PARITY_SCORE: 12 → 25
+- 新 capability 列表断言
+
+## 5. 本轮不做的项 (留作后续)
+
+- 记录历史 / API 速率限制 / 数据迁移管线 UI: 需要新表 + 新 API, 留 enterprise-readiness-2026-round2
+- 前端 admin 页面接入: 仍只有 API, 无 UI
