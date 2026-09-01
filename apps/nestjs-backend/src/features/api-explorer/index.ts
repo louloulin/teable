@@ -15,28 +15,11 @@ export { ApiExplorerModule } from './api-explorer.module';
 export { ApiExplorerAdminController } from './api-explorer.admin.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { ApiExplorerAuthService } from './api-explorer.auth.service';
-export { InMemoryRouteCatalog } from './api-explorer.auth.service';
-export { DEFAULT_TEABLE_ROUTES } from './api-explorer.auth.service';
-export { IRouteCatalog } from './api-explorer.auth.service';
-export { buildOpenApiSpec } from './api-explorer.service';
-export { buildExplorerHtml } from './api-explorer.service';
-export { validateRouteSpec } from './api-explorer.service';
-export { serializeSpec } from './api-explorer.service';
-export { IBuildSpecInput } from './api-explorer.service';
-export { IBuildHtmlInput } from './api-explorer.service';
+export { ApiExplorerAuthService, InMemoryRouteCatalog, DEFAULT_TEABLE_ROUTES, IRouteCatalog } from './api-explorer.auth.service';
+export { buildOpenApiSpec, buildExplorerHtml, validateRouteSpec, serializeSpec, IBuildSpecInput, IBuildHtmlInput } from './api-explorer.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { HttpMethod } from './api-explorer.types';
-export { ParamLocation } from './api-explorer.types';
-export { IRouteParam } from './api-explorer.types';
-export { IRouteResponse } from './api-explorer.types';
-export { IRouteSpec } from './api-explorer.types';
-export { IJsonSchema } from './api-explorer.types';
-export { IOpenApiSpec } from './api-explorer.types';
-export { IOperationObject } from './api-explorer.types';
-export { ISecurityScheme } from './api-explorer.types';
-export { IApiExplorerOptions } from './api-explorer.types';
+export { HttpMethod, ParamLocation, IRouteParam, IRouteResponse, IRouteSpec, IJsonSchema, IOpenApiSpec, IOperationObject, ISecurityScheme, IApiExplorerOptions } from './api-explorer.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { DEFAULT_API_EXPLORER_OPTIONS } from './api-explorer.defaults';

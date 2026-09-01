@@ -10,25 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AutomationTriggerCatalogAuthService } from './automation-trigger-catalog.auth.service';
-export { indexTriggerCatalog } from './automation-trigger-catalog.service';
-export { getTriggerSpec } from './automation-trigger-catalog.service';
-export { listTriggersByCategory } from './automation-trigger-catalog.service';
-export { groupTriggersByCategory } from './automation-trigger-catalog.service';
-export { validateTriggerConfig } from './automation-trigger-catalog.service';
-export { mergeTriggerCatalogs } from './automation-trigger-catalog.service';
-export { capTriggerCatalog } from './automation-trigger-catalog.service';
-export { missingTriggerFields } from './automation-trigger-catalog.service';
-export { hasTriggerOutputKey } from './automation-trigger-catalog.service';
-export { serializeTriggerCatalog } from './automation-trigger-catalog.service';
-export { summarizeTriggerCatalog } from './automation-trigger-catalog.service';
-export { BUILTIN_TRIGGER_CATALOG } from './automation-trigger-catalog.service';
+export { indexTriggerCatalog, getTriggerSpec, listTriggersByCategory, groupTriggersByCategory, validateTriggerConfig, mergeTriggerCatalogs, capTriggerCatalog, missingTriggerFields, hasTriggerOutputKey, serializeTriggerCatalog, summarizeTriggerCatalog, BUILTIN_TRIGGER_CATALOG } from './automation-trigger-catalog.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_TRIGGER_CATALOG_TYPES } from './automation-trigger-catalog.types';
-export { MAX_TRIGGER_FIELDS_PER_TYPE } from './automation-trigger-catalog.types';
-export { AutomationTriggerCategory } from './automation-trigger-catalog.types';
-export { ITriggerFieldSpec } from './automation-trigger-catalog.types';
-export { ITriggerTypeSpec } from './automation-trigger-catalog.types';
-export { ITriggerCatalog } from './automation-trigger-catalog.types';
-export { ITriggerValidationIssue } from './automation-trigger-catalog.types';
-export { ITriggerValidationResult } from './automation-trigger-catalog.types';
+export { MAX_TRIGGER_CATALOG_TYPES, MAX_TRIGGER_FIELDS_PER_TYPE, AutomationTriggerCategory, ITriggerFieldSpec, ITriggerTypeSpec, ITriggerCatalog, ITriggerValidationIssue, ITriggerValidationResult } from './automation-trigger-catalog.types';

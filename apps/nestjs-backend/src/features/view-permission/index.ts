@@ -18,10 +18,4 @@ export { ViewPermissionController } from './view-permission.controller';
 export { ViewPermissionService } from './view-permission.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { VIEW_PERMISSIONS } from './view-permission.types';
-export { ViewPermissionLevel } from './view-permission.types';
-export { ViewSubjectKind } from './view-permission.types';
-export { IViewPermissionRow } from './view-permission.types';
-export { IViewPermissionInput } from './view-permission.types';
-export { IResolveArgs } from './view-permission.types';
-export { IViewPermissionService } from './view-permission.types';
+export { VIEW_PERMISSIONS, ViewPermissionLevel, ViewSubjectKind, IViewPermissionRow, IViewPermissionInput, IResolveArgs, IViewPermissionService } from './view-permission.types';

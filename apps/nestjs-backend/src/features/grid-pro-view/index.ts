@@ -16,19 +16,7 @@ export { GridProViewAuthController } from './grid-pro-view.auth.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { GridProViewAuthService } from './grid-pro-view.auth.service';
-export { renderGridPro } from './grid-pro-view.service';
-export { scrollOffsetForRow } from './grid-pro-view.service';
-export { windowCells } from './grid-pro-view.service';
-export { withinRowCap } from './grid-pro-view.service';
-export { columnSummary } from './grid-pro-view.service';
-export { findCell } from './grid-pro-view.service';
-export { buildSpec } from './grid-pro-view.service';
+export { renderGridPro, scrollOffsetForRow, windowCells, withinRowCap, columnSummary, findCell, buildSpec } from './grid-pro-view.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { GRID_PRO_DEFAULT_ROW_HEIGHT } from './grid-pro-view.types';
-export { GRID_PRO_DEFAULT_HEADER_HEIGHT } from './grid-pro-view.types';
-export { GRID_PRO_MAX_ROWS } from './grid-pro-view.types';
-export { GridProCellData } from './grid-pro-view.types';
-export { GridProCellRender } from './grid-pro-view.types';
-export { GridProViewSpec } from './grid-pro-view.types';
-export { GridProRenderResult } from './grid-pro-view.types';
+export { GRID_PRO_DEFAULT_ROW_HEIGHT, GRID_PRO_DEFAULT_HEADER_HEIGHT, GRID_PRO_MAX_ROWS, GridProCellData, GridProCellRender, GridProViewSpec, GridProRenderResult } from './grid-pro-view.types';

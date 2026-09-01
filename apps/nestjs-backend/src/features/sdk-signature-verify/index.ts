@@ -10,22 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SdkSignatureVerifyAuthService } from './sdk-signature-verify.auth.service';
-export { digest } from './sdk-signature-verify.service';
-export { sign } from './sdk-signature-verify.service';
-export { verify } from './sdk-signature-verify.service';
-export { signArtifact } from './sdk-signature-verify.service';
-export { verifyArtifact } from './sdk-signature-verify.service';
-export { buildBundle } from './sdk-signature-verify.service';
-export { verifyBundle } from './sdk-signature-verify.service';
-export { isAlgorithmSupported } from './sdk-signature-verify.service';
-export { makeTestKey } from './sdk-signature-verify.service';
+export { digest, sign, verify, signArtifact, verifyArtifact, buildBundle, verifyBundle, isAlgorithmSupported, makeTestKey } from './sdk-signature-verify.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SIG_ALGORITHMS } from './sdk-signature-verify.types';
-export { SignatureKeyPair } from './sdk-signature-verify.types';
-export { SignatureBlob } from './sdk-signature-verify.types';
-export { SignedArtifact } from './sdk-signature-verify.types';
-export { VerifyResult } from './sdk-signature-verify.types';
-export { BundleEntry } from './sdk-signature-verify.types';
-export { VerificationBundle } from './sdk-signature-verify.types';
-export { BundleVerifyResult } from './sdk-signature-verify.types';
+export { SIG_ALGORITHMS, SignatureKeyPair, SignatureBlob, SignedArtifact, VerifyResult, BundleEntry, VerificationBundle, BundleVerifyResult } from './sdk-signature-verify.types';

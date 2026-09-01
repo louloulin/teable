@@ -18,9 +18,7 @@ export { JiraImportController } from './jira-import.controller';
 export { JiraImportService } from './jira-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { JiraProject } from './jira-import.types';
-export { JiraIssue } from './jira-import.types';
-export { JiraConnectionProbe } from './jira-import.types';
+export { JiraProject, JiraIssue, JiraConnectionProbe } from './jira-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { JiraApiClient } from './jira-api.client';

@@ -13,25 +13,7 @@ export { WorkspaceSwitchModule } from './workspace-switch.module';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { WorkspaceSwitchAuthService } from './workspace-switch.auth.service';
-export { generateSwitchToken } from './workspace-switch.service';
-export { hashSwitchToken } from './workspace-switch.service';
-export { resolveTtlMs } from './workspace-switch.service';
-export { buildSessionRow } from './workspace-switch.service';
-export { evaluateConsumption } from './workspace-switch.service';
-export { verifyToken } from './workspace-switch.service';
-export { computeEffectiveRole } from './workspace-switch.service';
-export { coerceRole } from './workspace-switch.service';
-export { isGrantActive } from './workspace-switch.service';
-export { resolveGrantExpiresAt } from './workspace-switch.service';
-export { coerceCreateSwitchInput } from './workspace-switch.service';
-export { coerceGrantInput } from './workspace-switch.service';
-export { ROLE_RANK } from './workspace-switch.service';
+export { generateSwitchToken, hashSwitchToken, resolveTtlMs, buildSessionRow, evaluateConsumption, verifyToken, computeEffectiveRole, coerceRole, isGrantActive, resolveGrantExpiresAt, coerceCreateSwitchInput, coerceGrantInput, ROLE_RANK } from './workspace-switch.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { CrossOrgRole } from './workspace-switch.types';
-export { IWorkspaceSwitchSession } from './workspace-switch.types';
-export { ICrossOrgAdminGrant } from './workspace-switch.types';
-export { ICreateSwitchInput } from './workspace-switch.types';
-export { IConsumeResult } from './workspace-switch.types';
-export { IGrantInput } from './workspace-switch.types';
-export { IEffectiveRoleResult } from './workspace-switch.types';
+export { CrossOrgRole, IWorkspaceSwitchSession, ICrossOrgAdminGrant, ICreateSwitchInput, IConsumeResult, IGrantInput, IEffectiveRoleResult } from './workspace-switch.types';

@@ -10,33 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { VectorFieldAuthService } from './vector-field.auth.service';
-export { isValidMetric } from './vector-field.service';
-export { isValidDimensions } from './vector-field.service';
-export { isValidCollectionName } from './vector-field.service';
-export { cosineSimilarity } from './vector-field.service';
-export { dotProduct } from './vector-field.service';
-export { euclideanDistance } from './vector-field.service';
-export { score } from './vector-field.service';
-export { hashContent } from './vector-field.service';
-export { validateCreateCollection } from './vector-field.service';
-export { buildCollectionRow } from './vector-field.service';
-export { buildRecordRow } from './vector-field.service';
-export { runSimilaritySearch } from './vector-field.service';
-export { search } from './vector-field.service';
-export { trimHitContent } from './vector-field.service';
-export { buildRagPrompt } from './vector-field.service';
-export { IRankedHit } from './vector-field.service';
+export { isValidMetric, isValidDimensions, isValidCollectionName, cosineSimilarity, dotProduct, euclideanDistance, score, hashContent, validateCreateCollection, buildCollectionRow, buildRecordRow, runSimilaritySearch, search, trimHitContent, buildRagPrompt, IRankedHit } from './vector-field.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_METRICS } from './vector-field.types';
-export { DEFAULT_TOP_K } from './vector-field.types';
-export { MIN_DIMENSIONS } from './vector-field.types';
-export { MAX_DIMENSIONS } from './vector-field.types';
-export { DistanceMetric } from './vector-field.types';
-export { IndexStatus } from './vector-field.types';
-export { IVectorCollection } from './vector-field.types';
-export { IVectorRecord } from './vector-field.types';
-export { ISimilarityHit } from './vector-field.types';
-export { ISearchInput } from './vector-field.types';
-export { ICreateCollectionInput } from './vector-field.types';
-export { IUpsertRecordInput } from './vector-field.types';
+export { SUPPORTED_METRICS, DEFAULT_TOP_K, MIN_DIMENSIONS, MAX_DIMENSIONS, DistanceMetric, IndexStatus, IVectorCollection, IVectorRecord, ISimilarityHit, ISearchInput, ICreateCollectionInput, IUpsertRecordInput } from './vector-field.types';

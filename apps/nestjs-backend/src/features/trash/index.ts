@@ -17,13 +17,7 @@ export { TrashController } from './trash.controller';
 // ─── Services ─────────────────────────────────────────────────────
 export { TrashService } from './trash.service';
 export { V2RecordTrashService } from './v2-record-trash.service';
-export { V2FieldTrashRepository } from './v2-table-trash.service';
-export { V2RecordsDeletedTableTrashProjection } from './v2-table-trash.service';
-export { V2RecordsDeletedAttachmentProjection } from './v2-table-trash.service';
-export { V2TableTrashedProjection } from './v2-table-trash.service';
-export { V2TableRestoredProjection } from './v2-table-trash.service';
-export { V2TableTrashService } from './v2-table-trash.service';
+export { V2FieldTrashRepository, V2RecordsDeletedTableTrashProjection, V2RecordsDeletedAttachmentProjection, V2TableTrashedProjection, V2TableRestoredProjection, V2TableTrashService } from './v2-table-trash.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { resolveV2TrashRecordDisplayName } from './v2-trash-record-name';
-export { IV2TrashRecordSnapshotLike } from './v2-trash-record-name';
+export { resolveV2TrashRecordDisplayName, IV2TrashRecordSnapshotLike } from './v2-trash-record-name';

@@ -8,28 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { ComplianceAuditPackModule } from './compliance-audit-pack.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { ComplianceAuditPackController } from './compliance-audit-pack.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { ComplianceAuditPackAuthService } from './compliance-audit-pack.auth.service';
-export { controlToCsv } from './compliance-audit-pack.service';
-export { renderControlsCsv } from './compliance-audit-pack.service';
-export { renderEvidenceJsonl } from './compliance-audit-pack.service';
-export { renderPdfManifest } from './compliance-audit-pack.service';
-export { manifestToText } from './compliance-audit-pack.service';
-export { sha256 } from './compliance-audit-pack.service';
-export { buildAuditPack } from './compliance-audit-pack.service';
-export { filterByFormat } from './compliance-audit-pack.service';
-export { verifyPackIntegrity } from './compliance-audit-pack.service';
-export { isPackIdValid } from './compliance-audit-pack.service';
-export { formatBytes } from './compliance-audit-pack.service';
-export { hasAllFormats } from './compliance-audit-pack.service';
-export { CONTROL_CSV_HEADER } from './compliance-audit-pack.service';
+export { controlToCsv, renderControlsCsv, renderEvidenceJsonl, renderPdfManifest, manifestToText, sha256, buildAuditPack, filterByFormat, verifyPackIntegrity, isPackIdValid, formatBytes, hasAllFormats, CONTROL_CSV_HEADER } from './compliance-audit-pack.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { AUDIT_PACK_ID_RE } from './compliance-audit-pack.types';
-export { EXPORT_FORMATS } from './compliance-audit-pack.types';
-export { ExportFormat } from './compliance-audit-pack.types';
-export { AuditPackMeta } from './compliance-audit-pack.types';
-export { AuditArtifact } from './compliance-audit-pack.types';
-export { AuditPack } from './compliance-audit-pack.types';
-export { AuditPackInput } from './compliance-audit-pack.types';
-export { PdfManifestSection } from './compliance-audit-pack.types';
+export { AUDIT_PACK_ID_RE, EXPORT_FORMATS, ExportFormat, AuditPackMeta, AuditArtifact, AuditPack, AuditPackInput, PdfManifestSection } from './compliance-audit-pack.types';

@@ -10,27 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { WidgetMarketAuthService } from './widget-market.auth.service';
-export { isWidgetKind } from './widget-market.service';
-export { isAggregationFn } from './widget-market.service';
-export { newWidgetInstanceId } from './widget-market.service';
-export { validateWidgetInstance } from './widget-market.service';
-export { defaultPosition } from './widget-market.service';
-export { aggregate } from './widget-market.service';
-export { pivot } from './widget-market.service';
-export { topN } from './widget-market.service';
-export { renderWidget } from './widget-market.service';
-export { IRowLike } from './widget-market.service';
+export { isWidgetKind, isAggregationFn, newWidgetInstanceId, validateWidgetInstance, defaultPosition, aggregate, pivot, topN, renderWidget, IRowLike } from './widget-market.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { findWidgetDefinition } from './widget-market.types';
-export { DEFAULT_WIDGET_WIDTH } from './widget-market.types';
-export { DEFAULT_WIDGET_HEIGHT } from './widget-market.types';
-export { MAX_WIDGET_INSTANCES_PER_DASHBOARD } from './widget-market.types';
-export { WIDGET_DEFINITIONS } from './widget-market.types';
-export { WidgetKind } from './widget-market.types';
-export { AggregationFn } from './widget-market.types';
-export { IWidgetDataBinding } from './widget-market.types';
-export { IWidgetDefinition } from './widget-market.types';
-export { IWidgetInstance } from './widget-market.types';
-export { IWidgetSeriesPoint } from './widget-market.types';
-export { IWidgetRenderResult } from './widget-market.types';
+export { findWidgetDefinition, DEFAULT_WIDGET_WIDTH, DEFAULT_WIDGET_HEIGHT, MAX_WIDGET_INSTANCES_PER_DASHBOARD, WIDGET_DEFINITIONS, WidgetKind, AggregationFn, IWidgetDataBinding, IWidgetDefinition, IWidgetInstance, IWidgetSeriesPoint, IWidgetRenderResult } from './widget-market.types';

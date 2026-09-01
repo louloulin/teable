@@ -15,42 +15,11 @@ export { AiBuilderModule } from './ai-builder.module';
 export { AiBuilderController } from './ai-builder.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { AiBuilderAuthService } from './ai-builder.auth.service';
-export { LLM_PROVIDER } from './ai-builder.auth.service';
-export { testOnly } from './ai-builder.auth.service';
-export { OfflineBuilderProvider } from './ai-builder.service';
-export { inferFieldType } from './ai-builder.service';
-export { sanitizePrompt } from './ai-builder.service';
-export { isValidFieldType } from './ai-builder.service';
-export { isValidViewType } from './ai-builder.service';
-export { repairJson } from './ai-builder.service';
-export { validateProposal } from './ai-builder.service';
-export { isValidStatusTransition } from './ai-builder.service';
-export { stringifyProposal } from './ai-builder.service';
-export { hashProposal } from './ai-builder.service';
-export { buildProposalRow } from './ai-builder.service';
-export { extractTitle } from './ai-builder.service';
-export { buildPromptForLlm } from './ai-builder.service';
-export { parseAndValidateProposal } from './ai-builder.service';
-export { normalizeProposal } from './ai-builder.service';
-export { MAX_PROMPT_LENGTH } from './ai-builder.service';
-export { MIN_PROMPT_LENGTH } from './ai-builder.service';
-export { ILlmProvider } from './ai-builder.service';
+export { AiBuilderAuthService, LLM_PROVIDER, testOnly } from './ai-builder.auth.service';
+export { OfflineBuilderProvider, inferFieldType, sanitizePrompt, isValidFieldType, isValidViewType, repairJson, validateProposal, isValidStatusTransition, stringifyProposal, hashProposal, buildProposalRow, extractTitle, buildPromptForLlm, parseAndValidateProposal, normalizeProposal, MAX_PROMPT_LENGTH, MIN_PROMPT_LENGTH, ILlmProvider } from './ai-builder.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_FIELD_TYPES } from './ai-builder.types';
-export { SUPPORTED_VIEW_TYPES } from './ai-builder.types';
-export { BuilderEntityType } from './ai-builder.types';
-export { BuilderProposalStatus } from './ai-builder.types';
-export { BuilderFieldType } from './ai-builder.types';
-export { IBuilderFieldProposal } from './ai-builder.types';
-export { IBuilderTableProposal } from './ai-builder.types';
-export { IBuilderViewProposal } from './ai-builder.types';
-export { IBuilderProposal } from './ai-builder.types';
-export { BuilderProposal } from './ai-builder.types';
-export { IBuilderProposalRow } from './ai-builder.types';
-export { ICreateBuilderProposalInput } from './ai-builder.types';
-export { IApproveBuilderProposalInput } from './ai-builder.types';
+export { SUPPORTED_FIELD_TYPES, SUPPORTED_VIEW_TYPES, BuilderEntityType, BuilderProposalStatus, BuilderFieldType, IBuilderFieldProposal, IBuilderTableProposal, IBuilderViewProposal, IBuilderProposal, BuilderProposal, IBuilderProposalRow, ICreateBuilderProposalInput, IApproveBuilderProposalInput } from './ai-builder.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { AiServiceBuilderProvider } from './ai-service-builder.provider';

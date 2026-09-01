@@ -12,28 +12,12 @@
 export { TotpModule } from './totp.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
+export { TotpAdminController } from './totp.admin.controller';
 export { TotpController } from './totp.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { TotpAuthService } from './totp.auth.service';
-export { generateSecret } from './totp.service';
-export { base32Encode } from './totp.service';
-export { base32Decode } from './totp.service';
-export { currentCounter } from './totp.service';
-export { hotp } from './totp.service';
-export { totp } from './totp.service';
-export { verifyCode } from './totp.service';
-export { buildOtpauthUri } from './totp.service';
-export { generateBackupCodes } from './totp.service';
-export { hashBackupCode } from './totp.service';
-export { nextWindowAt } from './totp.service';
-export { DEFAULT_PERIOD } from './totp.service';
-export { DEFAULT_DIGITS } from './totp.service';
-export { DEFAULT_ALGORITHM } from './totp.service';
+export { generateSecret, base32Encode, base32Decode, currentCounter, hotp, totp, verifyCode, buildOtpauthUri, generateBackupCodes, hashBackupCode, nextWindowAt, DEFAULT_PERIOD, DEFAULT_DIGITS, DEFAULT_ALGORITHM } from './totp.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { TotpAlgorithm } from './totp.types';
-export { ITotpFactorRow } from './totp.types';
-export { ITotpEnrollmentChallenge } from './totp.types';
-export { ITotpVerifyInput } from './totp.types';
-export { ITotpVerifyResult } from './totp.types';
+export { TotpAlgorithm, ITotpFactorRow, ITotpEnrollmentChallenge, ITotpVerifyInput, ITotpVerifyResult } from './totp.types';

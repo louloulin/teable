@@ -11,41 +11,12 @@
 // ─── NestJS module ────────────────────────────────────────────────
 export { EmailDomainClaimModule } from './email-domain-claim.module';
 
+// ─── Controllers ──────────────────────────────────────────────────
+export { EmailDomainClaimController } from './email-domain-claim.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { EmailDomainClaimAuthService } from './email-domain-claim.auth.service';
-export { isClaimStatus } from './email-domain-claim.service';
-export { isClaimMode } from './email-domain-claim.service';
-export { defaultTokenLength } from './email-domain-claim.service';
-export { maxDomainsPerOrg } from './email-domain-claim.service';
-export { normalizeDomain } from './email-domain-claim.service';
-export { validateDomain } from './email-domain-claim.service';
-export { generateToken } from './email-domain-claim.service';
-export { renderVerificationRecord } from './email-domain-claim.service';
-export { parseVerificationValue } from './email-domain-claim.service';
-export { validateClaim } from './email-domain-claim.service';
-export { normalizeClaim } from './email-domain-claim.service';
-export { applyDnsCheck } from './email-domain-claim.service';
-export { matchCandidate } from './email-domain-claim.service';
-export { shouldAutoJoin } from './email-domain-claim.service';
-export { makeAuditEntry } from './email-domain-claim.service';
-export { countVerified } from './email-domain-claim.service';
-export { canClaimMore } from './email-domain-claim.service';
+export { isClaimStatus, isClaimMode, defaultTokenLength, maxDomainsPerOrg, normalizeDomain, validateDomain, generateToken, renderVerificationRecord, parseVerificationValue, validateClaim, normalizeClaim, applyDnsCheck, matchCandidate, shouldAutoJoin, makeAuditEntry, countVerified, canClaimMore } from './email-domain-claim.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_TOKEN_LENGTH } from './email-domain-claim.types';
-export { MAX_DOMAINS_PER_ORG } from './email-domain-claim.types';
-export { MAX_DNS_CHECK_AGE_MS } from './email-domain-claim.types';
-export { MIN_DOMAIN_LENGTH } from './email-domain-claim.types';
-export { MAX_DOMAIN_LENGTH } from './email-domain-claim.types';
-export { CLAIM_STATUSES } from './email-domain-claim.types';
-export { CLAIM_MODES } from './email-domain-claim.types';
-export { DOMAIN_VERIFICATION_PREFIX } from './email-domain-claim.types';
-export { CLAIM_STATUS_LABELS } from './email-domain-claim.types';
-export { CLAIM_MODE_LABELS } from './email-domain-claim.types';
-export { ClaimStatus } from './email-domain-claim.types';
-export { ClaimMode } from './email-domain-claim.types';
-export { DnsRecordKind } from './email-domain-claim.types';
-export { IEmailDomainClaim } from './email-domain-claim.types';
-export { IClaimAuditEntry } from './email-domain-claim.types';
-export { IAutoJoinCandidate } from './email-domain-claim.types';
-export { IEmailDomainClaimOptions } from './email-domain-claim.types';
+export { DEFAULT_TOKEN_LENGTH, MAX_DOMAINS_PER_ORG, MAX_DNS_CHECK_AGE_MS, MIN_DOMAIN_LENGTH, MAX_DOMAIN_LENGTH, CLAIM_STATUSES, CLAIM_MODES, DOMAIN_VERIFICATION_PREFIX, CLAIM_STATUS_LABELS, CLAIM_MODE_LABELS, ClaimStatus, ClaimMode, DnsRecordKind, IEmailDomainClaim, IClaimAuditEntry, IAutoJoinCandidate, IEmailDomainClaimOptions } from './email-domain-claim.types';

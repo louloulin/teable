@@ -8,41 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { RiskPolicyModule } from './risk-policy.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { RiskPolicyAdminController } from './risk-policy.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { RiskPolicyAuthService } from './risk-policy.auth.service';
-export { isRiskBand } from './risk-policy.service';
-export { isRiskAction } from './risk-policy.service';
-export { isRiskSignalKind } from './risk-policy.service';
-export { maxRulesPerPolicy } from './risk-policy.service';
-export { maxSignalsPerRule } from './risk-policy.service';
-export { maxScore } from './risk-policy.service';
-export { minScore } from './risk-policy.service';
-export { bandFromScore } from './risk-policy.service';
-export { validateSignal } from './risk-policy.service';
-export { validateRule } from './risk-policy.service';
-export { validatePolicy } from './risk-policy.service';
-export { normalizePolicy } from './risk-policy.service';
-export { totalWeight } from './risk-policy.service';
-export { ruleFires } from './risk-policy.service';
-export { evaluate } from './risk-policy.service';
-export { shouldAudit } from './risk-policy.service';
+export { isRiskBand, isRiskAction, isRiskSignalKind, maxRulesPerPolicy, maxSignalsPerRule, maxScore, minScore, bandFromScore, validateSignal, validateRule, validatePolicy, normalizePolicy, totalWeight, ruleFires, evaluate, shouldAudit } from './risk-policy.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { RISK_BANDS } from './risk-policy.types';
-export { RISK_ACTIONS } from './risk-policy.types';
-export { RISK_SIGNAL_KINDS } from './risk-policy.types';
-export { BAND_THRESHOLDS } from './risk-policy.types';
-export { MAX_RULES_PER_POLICY } from './risk-policy.types';
-export { MAX_SIGNALS_PER_RULE } from './risk-policy.types';
-export { MAX_WEIGHT } from './risk-policy.types';
-export { DEFAULT_RISK_SCORE_FLOOR } from './risk-policy.types';
-export { DEFAULT_RISK_SCORE_CEIL } from './risk-policy.types';
-export { RISK_BAND_LABELS } from './risk-policy.types';
-export { RISK_ACTION_LABELS } from './risk-policy.types';
-export { RiskAction } from './risk-policy.types';
-export { RiskBand } from './risk-policy.types';
-export { RiskSignalKind } from './risk-policy.types';
-export { IRiskSignal } from './risk-policy.types';
-export { IRiskRule } from './risk-policy.types';
-export { IRiskPolicy } from './risk-policy.types';
-export { IRiskDecision } from './risk-policy.types';
+export { RISK_BANDS, RISK_ACTIONS, RISK_SIGNAL_KINDS, BAND_THRESHOLDS, MAX_RULES_PER_POLICY, MAX_SIGNALS_PER_RULE, MAX_WEIGHT, DEFAULT_RISK_SCORE_FLOOR, DEFAULT_RISK_SCORE_CEIL, RISK_BAND_LABELS, RISK_ACTION_LABELS, RiskAction, RiskBand, RiskSignalKind, IRiskSignal, IRiskRule, IRiskPolicy, IRiskDecision } from './risk-policy.types';

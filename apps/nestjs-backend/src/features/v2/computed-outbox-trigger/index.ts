@@ -10,49 +10,25 @@
 
 // ─── NestJS module ────────────────────────────────────────────────
 export { ComputedOutboxWakeupConsumerModule } from './computed-outbox-wakeup-consumer.module';
-export { ComputedOutboxWakeupProducerModule } from './computed-outbox-wakeup-producer.module';
-export { createRoleAwareWakeupPublisher } from './computed-outbox-wakeup-producer.module';
+export { ComputedOutboxWakeupProducerModule, createRoleAwareWakeupPublisher } from './computed-outbox-wakeup-producer.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { ComputedOutboxAdminController } from './computed-outbox-admin.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { ComputedOutboxAnomalyService } from './computed-outbox-anomaly.service';
-export { buildComputedOutboxAnomalyGroupKey } from './computed-outbox-anomaly.service';
-export { groupComputedOutboxAnomalies } from './computed-outbox-anomaly.service';
-export { ComputedOutboxAnomaly } from './computed-outbox-anomaly.service';
-export { ComputedOutboxAnomalyGroup } from './computed-outbox-anomaly.service';
-export { ComputedOutboxBaseAdmissionLeaseLostError } from './computed-outbox-base-admission.service';
-export { ComputedOutboxBaseAdmissionService } from './computed-outbox-base-admission.service';
-export { ComputedOutboxBaseAdmissionResult } from './computed-outbox-base-admission.service';
-export { ComputedOutboxBaseAdmissionPermit } from './computed-outbox-base-admission.service';
-export { ComputedOutboxMonitorService } from './computed-outbox-monitor.service';
-export { ComputedOutboxMonitorSnapshot } from './computed-outbox-monitor.service';
+export { ComputedOutboxAnomalyService, buildComputedOutboxAnomalyGroupKey, groupComputedOutboxAnomalies, ComputedOutboxAnomaly, ComputedOutboxAnomalyGroup } from './computed-outbox-anomaly.service';
+export { ComputedOutboxBaseAdmissionLeaseLostError, ComputedOutboxBaseAdmissionService, ComputedOutboxBaseAdmissionResult, ComputedOutboxBaseAdmissionPermit } from './computed-outbox-base-admission.service';
+export { ComputedOutboxMonitorService, ComputedOutboxMonitorSnapshot } from './computed-outbox-monitor.service';
 export { ComputedOutboxRedriveService } from './computed-outbox-redrive.service';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { COMPUTED_OUTBOX_WAKEUP_QUEUE } from './constants';
-export { COMPUTED_OUTBOX_WAKEUP_JOB } from './constants';
-export { COMPUTED_OUTBOX_WAKEUP_PUBLISHER } from './constants';
-export { COMPUTED_OUTBOX_COMPLETED_RETENTION_COUNT } from './constants';
-export { COMPUTED_OUTBOX_RECENT_COMPLETED_LIMIT } from './constants';
-export { COMPUTED_OUTBOX_RECENT_FAILED_LIMIT } from './constants';
-export { COMPUTED_OUTBOX_ANOMALY_GROUP_SAMPLE_LIMIT } from './constants';
-export { COMPUTED_OUTBOX_ANOMALY_FETCH_CAP } from './constants';
+export { COMPUTED_OUTBOX_WAKEUP_QUEUE, COMPUTED_OUTBOX_WAKEUP_JOB, COMPUTED_OUTBOX_WAKEUP_PUBLISHER, COMPUTED_OUTBOX_COMPLETED_RETENTION_COUNT, COMPUTED_OUTBOX_RECENT_COMPLETED_LIMIT, COMPUTED_OUTBOX_RECENT_FAILED_LIMIT, COMPUTED_OUTBOX_ANOMALY_GROUP_SAMPLE_LIMIT, COMPUTED_OUTBOX_ANOMALY_FETCH_CAP } from './constants';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BullMqComputedOutboxWakeupProcessor } from './bullmq-computed-outbox-wakeup.processor';
-export { BullMqComputedOutboxWakeupPublisher } from './bullmq-computed-outbox-wakeup.publisher';
-export { ComputedOutboxWakeupPublishTimeoutError } from './bullmq-computed-outbox-wakeup.publisher';
-export { ComputedOutboxWakeupRecoveryInProgressError } from './bullmq-computed-outbox-wakeup.publisher';
-export { ComputedOutboxTriggerMetrics } from './computed-outbox-trigger.metrics';
-export { ComputedOutboxConsumeOutcome } from './computed-outbox-trigger.metrics';
-export { ComputedOutboxPublishOutcome } from './computed-outbox-trigger.metrics';
-export { ComputedOutboxPublishSkipReason } from './computed-outbox-trigger.metrics';
-export { ComputedOutboxRuntimeSnapshot } from './computed-outbox-trigger.metrics';
-export { ComputedOutboxWakeupHandler } from './computed-outbox-wakeup.handler';
-export { ComputedOutboxWakeupHandlerOutcome } from './computed-outbox-wakeup.handler';
+export { BullMqComputedOutboxWakeupPublisher, ComputedOutboxWakeupPublishTimeoutError, ComputedOutboxWakeupRecoveryInProgressError } from './bullmq-computed-outbox-wakeup.publisher';
+export { ComputedOutboxTriggerMetrics, ComputedOutboxConsumeOutcome, ComputedOutboxPublishOutcome, ComputedOutboxPublishSkipReason, ComputedOutboxRuntimeSnapshot } from './computed-outbox-trigger.metrics';
+export { ComputedOutboxWakeupHandler, ComputedOutboxWakeupHandlerOutcome } from './computed-outbox-wakeup.handler';
 export { IComputedOutboxWakeupAppPublisher } from './computed-outbox-wakeup.publisher';
-export { computedOutboxWakeupWireSchema } from './computed-outbox-wakeup.wire';
-export { ComputedOutboxWakeupWire } from './computed-outbox-wakeup.wire';
+export { computedOutboxWakeupWireSchema, ComputedOutboxWakeupWire } from './computed-outbox-wakeup.wire';
 export * from './map-with-concurrency';

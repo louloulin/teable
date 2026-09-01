@@ -16,19 +16,7 @@ export { AuditExportController } from './audit-export.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AuditExportAuthService } from './audit-export.auth.service';
-export { toJsonl } from './audit-export.service';
-export { toJson } from './audit-export.service';
-export { toCsv } from './audit-export.service';
-export { exportAuditEvents } from './audit-export.service';
-export { mimeFor } from './audit-export.service';
-export { signPayload } from './audit-export.service';
-export { SIEM_HEADERS } from './audit-export.service';
-export { DEFAULT_BATCH_SIZE } from './audit-export.service';
+export { toJsonl, toJson, toCsv, exportAuditEvents, mimeFor, signPayload, SIEM_HEADERS, DEFAULT_BATCH_SIZE } from './audit-export.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { AuditExportFormat } from './audit-export.types';
-export { IAuditEventRow } from './audit-export.types';
-export { IAuditExportInput } from './audit-export.types';
-export { IAuditExportResult } from './audit-export.types';
-export { ISiemWebhookInput } from './audit-export.types';
-export { ISiemDeliverInput } from './audit-export.types';
+export { AuditExportFormat, IAuditEventRow, IAuditExportInput, IAuditExportResult, ISiemWebhookInput, ISiemDeliverInput } from './audit-export.types';

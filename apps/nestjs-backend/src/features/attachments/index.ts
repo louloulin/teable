@@ -23,13 +23,9 @@ export { AttachmentsTableService } from './attachments-table.service';
 export { AttachmentsService } from './attachments.service';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { getExtensionPreview } from './utils';
-export { resolveThumbnailMimetype } from './utils';
+export { getExtensionPreview, resolveThumbnailMimetype } from './utils';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { AttachmentsCropQueueProcessor } from './attachments-crop.processor';
-export { ATTACHMENTS_CROP_QUEUE } from './attachments-crop.processor';
-export { ATTACHMENT_SM_THUMBNAIL_HEIGHT } from './constant';
-export { ATTACHMENT_LG_THUMBNAIL_HEIGHT } from './constant';
-export { ATTACHMENT_THUMBNAIL_DEFAULT_MIMETYPE } from './constant';
+export { AttachmentsCropQueueProcessor, ATTACHMENTS_CROP_QUEUE } from './attachments-crop.processor';
+export { ATTACHMENT_SM_THUMBNAIL_HEIGHT, ATTACHMENT_LG_THUMBNAIL_HEIGHT, ATTACHMENT_THUMBNAIL_DEFAULT_MIMETYPE } from './constant';
 export * from './pdf-thumbnail';

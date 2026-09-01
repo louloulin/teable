@@ -10,30 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { FieldExperimentAuthService } from './field-experiment.auth.service';
-export { bucketize } from './field-experiment.service';
-export { assignVariant } from './field-experiment.service';
-export { validateExperiment } from './field-experiment.service';
-export { isValidExperimentTransition } from './field-experiment.service';
-export { findVariant } from './field-experiment.service';
-export { buildExposure } from './field-experiment.service';
-export { shouldAutoComplete } from './field-experiment.service';
-export { summarizeExposures } from './field-experiment.service';
-export { applyExperimentToRead } from './field-experiment.service';
-export { deriveExperimentKey } from './field-experiment.service';
-export { DEFAULT_OUTCOME_FOR_CONVERSION } from './field-experiment.service';
+export { bucketize, assignVariant, validateExperiment, isValidExperimentTransition, findVariant, buildExposure, shouldAutoComplete, summarizeExposures, applyExperimentToRead, deriveExperimentKey, DEFAULT_OUTCOME_FOR_CONVERSION } from './field-experiment.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_STICKY } from './field-experiment.types';
-export { MAX_EXPERIMENT_VARIANTS } from './field-experiment.types';
-export { MIN_EXPERIMENT_WEIGHT } from './field-experiment.types';
-export { MAX_EXPERIMENT_WEIGHT } from './field-experiment.types';
-export { DEFAULT_MIN_LIFT } from './field-experiment.types';
-export { DEFAULT_OUTCOME_TAG } from './field-experiment.types';
-export { ExperimentStatus } from './field-experiment.types';
-export { ExperimentVariantKind } from './field-experiment.types';
-export { IExperimentVariant } from './field-experiment.types';
-export { IFieldExperiment } from './field-experiment.types';
-export { IExperimentAssignment } from './field-experiment.types';
-export { IExperimentExposure } from './field-experiment.types';
-export { IExperimentSummary } from './field-experiment.types';
-export { IAssignmentOptions } from './field-experiment.types';
+export { DEFAULT_STICKY, MAX_EXPERIMENT_VARIANTS, MIN_EXPERIMENT_WEIGHT, MAX_EXPERIMENT_WEIGHT, DEFAULT_MIN_LIFT, DEFAULT_OUTCOME_TAG, ExperimentStatus, ExperimentVariantKind, IExperimentVariant, IFieldExperiment, IExperimentAssignment, IExperimentExposure, IExperimentSummary, IAssignmentOptions } from './field-experiment.types';

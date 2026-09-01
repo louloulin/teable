@@ -18,6 +18,4 @@ export { AiSettingController } from './ai-setting.controller';
 export { AiSettingAuthService } from './ai-setting.auth.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_AI_SETTING } from './ai-setting.types';
-export { IAiCreditPolicy } from './ai-setting.types';
-export { IAiSetting } from './ai-setting.types';
+export { DEFAULT_AI_SETTING, IAiCreditPolicy, IAiSetting } from './ai-setting.types';

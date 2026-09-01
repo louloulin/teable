@@ -16,13 +16,5 @@ export { EvalHarnessController } from './eval-harness.controller';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SEED_EVAL_CASES } from './eval-fixtures';
-export { f1 } from './eval-harness';
-export { typeAccuracy } from './eval-harness';
-export { scoreCase } from './eval-harness';
-export { summarize } from './eval-harness';
-export { SchemaField } from './eval-harness';
-export { SchemaDoc } from './eval-harness';
-export { EvalCase } from './eval-harness';
-export { CaseScore } from './eval-harness';
-export { HarnessSummary } from './eval-harness';
+export { f1, typeAccuracy, scoreCase, summarize, SchemaField, SchemaDoc, EvalCase, CaseScore, HarnessSummary } from './eval-harness';
 export * from './eval-runner';

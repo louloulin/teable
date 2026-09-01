@@ -10,29 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ComplianceAttestationAuthService } from './compliance-attestation.auth.service';
-export { hashStatement } from './compliance-attestation.service';
-export { buildAttestationId } from './compliance-attestation.service';
-export { isAttestationIdValid } from './compliance-attestation.service';
-export { submitAttestation } from './compliance-attestation.service';
-export { verifyAttestation } from './compliance-attestation.service';
-export { rejectAttestation } from './compliance-attestation.service';
-export { isActive } from './compliance-attestation.service';
-export { filterByKind } from './compliance-attestation.service';
-export { filterByRef } from './compliance-attestation.service';
-export { findActive } from './compliance-attestation.service';
-export { summarize } from './compliance-attestation.service';
-export { needsReAttestation } from './compliance-attestation.service';
-export { expireOverdue } from './compliance-attestation.service';
-export { daysUntilExpiry } from './compliance-attestation.service';
-export { isStatementValid } from './compliance-attestation.service';
+export { hashStatement, buildAttestationId, isAttestationIdValid, submitAttestation, verifyAttestation, rejectAttestation, isActive, filterByKind, filterByRef, findActive, summarize, needsReAttestation, expireOverdue, daysUntilExpiry, isStatementValid } from './compliance-attestation.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ATTESTATION_ID_RE } from './compliance-attestation.types';
-export { DEFAULT_VALIDITY_DAYS } from './compliance-attestation.types';
-export { DEFAULT_RE_ATTEST_DAYS } from './compliance-attestation.types';
-export { AttestationKind } from './compliance-attestation.types';
-export { AttestationState } from './compliance-attestation.types';
-export { Attestation } from './compliance-attestation.types';
-export { AttestationRequest } from './compliance-attestation.types';
-export { AttestationPolicy } from './compliance-attestation.types';
-export { AttestationReport } from './compliance-attestation.types';
+export { ATTESTATION_ID_RE, DEFAULT_VALIDITY_DAYS, DEFAULT_RE_ATTEST_DAYS, AttestationKind, AttestationState, Attestation, AttestationRequest, AttestationPolicy, AttestationReport } from './compliance-attestation.types';

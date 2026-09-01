@@ -16,40 +16,7 @@ export { CrossBaseFederationController } from './cross-base-federation.controlle
 
 // ─── Services ─────────────────────────────────────────────────────
 export { CrossBaseFederationAuthService } from './cross-base-federation.auth.service';
-export { isFederationStatus } from './cross-base-federation.service';
-export { isFederationSourceKind } from './cross-base-federation.service';
-export { isFederationRefreshMode } from './cross-base-federation.service';
-export { defaultRefreshIntervalSeconds } from './cross-base-federation.service';
-export { maxSourcesPerView } from './cross-base-federation.service';
-export { validateView } from './cross-base-federation.service';
-export { normalizeView } from './cross-base-federation.service';
-export { validateSource } from './cross-base-federation.service';
-export { normalizeSource } from './cross-base-federation.service';
-export { nextRefreshAt } from './cross-base-federation.service';
-export { stalenessSeconds } from './cross-base-federation.service';
-export { shouldRefreshNow } from './cross-base-federation.service';
-export { startRefresh } from './cross-base-federation.service';
-export { finishRefresh } from './cross-base-federation.service';
-export { consumeEvents } from './cross-base-federation.service';
-export { aliasMap } from './cross-base-federation.service';
-export { hasSources } from './cross-base-federation.service';
+export { isFederationStatus, isFederationSourceKind, isFederationRefreshMode, defaultRefreshIntervalSeconds, maxSourcesPerView, validateView, normalizeView, validateSource, normalizeSource, nextRefreshAt, stalenessSeconds, shouldRefreshNow, startRefresh, finishRefresh, consumeEvents, aliasMap, hasSources } from './cross-base-federation.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_REFRESH_INTERVAL_SECONDS } from './cross-base-federation.types';
-export { MIN_REFRESH_INTERVAL_SECONDS } from './cross-base-federation.types';
-export { MAX_REFRESH_INTERVAL_SECONDS } from './cross-base-federation.types';
-export { MAX_SOURCES_PER_VIEW } from './cross-base-federation.types';
-export { MAX_FIELDS_PER_SOURCE } from './cross-base-federation.types';
-export { MAX_EVENTS_PER_REFRESH } from './cross-base-federation.types';
-export { FEDERATION_STATUSES } from './cross-base-federation.types';
-export { FEDERATION_SOURCE_KINDS } from './cross-base-federation.types';
-export { FEDERATION_REFRESH_MODES } from './cross-base-federation.types';
-export { FEDERATION_STATUS_LABELS } from './cross-base-federation.types';
-export { FederationStatus } from './cross-base-federation.types';
-export { FederationSourceKind } from './cross-base-federation.types';
-export { FederationRefreshMode } from './cross-base-federation.types';
-export { IFederationSource } from './cross-base-federation.types';
-export { IFederationView } from './cross-base-federation.types';
-export { IFederationEvent } from './cross-base-federation.types';
-export { IFederationRefresh } from './cross-base-federation.types';
-export { ICrossBaseFederationOptions } from './cross-base-federation.types';
+export { DEFAULT_REFRESH_INTERVAL_SECONDS, MIN_REFRESH_INTERVAL_SECONDS, MAX_REFRESH_INTERVAL_SECONDS, MAX_SOURCES_PER_VIEW, MAX_FIELDS_PER_SOURCE, MAX_EVENTS_PER_REFRESH, FEDERATION_STATUSES, FEDERATION_SOURCE_KINDS, FEDERATION_REFRESH_MODES, FEDERATION_STATUS_LABELS, FederationStatus, FederationSourceKind, FederationRefreshMode, IFederationSource, IFederationView, IFederationEvent, IFederationRefresh, ICrossBaseFederationOptions } from './cross-base-federation.types';

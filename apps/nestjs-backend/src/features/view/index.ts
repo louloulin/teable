@@ -16,5 +16,4 @@ export { ViewDataSafetyLimitService } from './view-data-safety-limit.service';
 export { ViewService } from './view.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { ROW_ORDER_FIELD_PREFIX } from './constant';
-export { defaultShareMetaMap } from './constant';
+export { ROW_ORDER_FIELD_PREFIX, defaultShareMetaMap } from './constant';

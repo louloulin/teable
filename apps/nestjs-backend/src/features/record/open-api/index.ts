@@ -20,5 +20,5 @@ export { RecordOpenApiService } from './record-open-api.service';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { FieldKeyPipe } from './field-key.pipe';
-export * from './record-undo-redo-service';
+export { RECORD_UNDO_REDO_SERVICE_PLACEHOLDER } from './record-undo-redo-service';
 export { TqlPipe } from './tql.pipe';

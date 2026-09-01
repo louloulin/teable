@@ -8,34 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { ByokLlmModule } from './byok-llm.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { ByokLlmController } from './byok-llm.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { ByokLlmAuthService } from './byok-llm.auth.service';
-export { fingerprintKey } from './byok-llm.service';
-export { suggestAlias } from './byok-llm.service';
-export { validateProviderKey } from './byok-llm.service';
-export { normalizeProviderKey } from './byok-llm.service';
-export { canRegisterMore } from './byok-llm.service';
-export { buildUsageRow } from './byok-llm.service';
-export { aggregateOrgUsage } from './byok-llm.service';
-export { computeHealth } from './byok-llm.service';
-export { routeRequest } from './byok-llm.service';
-export { hashAttempt } from './byok-llm.service';
-export { shouldMarkExhausted } from './byok-llm.service';
-export { ALL_LLM_PROVIDERS } from './byok-llm.service';
-export { testHelpers } from './byok-llm.service';
+export { fingerprintKey, suggestAlias, validateProviderKey, normalizeProviderKey, canRegisterMore, buildUsageRow, aggregateOrgUsage, computeHealth, routeRequest, hashAttempt, shouldMarkExhausted, ALL_LLM_PROVIDERS, testHelpers } from './byok-llm.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_MIN_REMAINING_TOKENS } from './byok-llm.types';
-export { MAX_LLM_KEYS_PER_ORG } from './byok-llm.types';
-export { DEFAULT_HEALTH_WINDOW_MS } from './byok-llm.types';
-export { DEFAULT_HEALTH_MIN_REQUESTS } from './byok-llm.types';
-export { LLM_PROVIDER_LABELS } from './byok-llm.types';
-export { LlmProvider } from './byok-llm.types';
-export { LlmKeyStatus } from './byok-llm.types';
-export { LlmIsolationMode } from './byok-llm.types';
-export { ILlmProviderKey } from './byok-llm.types';
-export { ILlmUsageRow } from './byok-llm.types';
-export { ILlmCallAttempt } from './byok-llm.types';
-export { ILlmHealthSnapshot } from './byok-llm.types';
-export { ILlmRoutingDecision } from './byok-llm.types';
-export { ILlmRoutingOptions } from './byok-llm.types';
+export { DEFAULT_MIN_REMAINING_TOKENS, MAX_LLM_KEYS_PER_ORG, DEFAULT_HEALTH_WINDOW_MS, DEFAULT_HEALTH_MIN_REQUESTS, LLM_PROVIDER_LABELS, LlmProvider, LlmKeyStatus, LlmIsolationMode, ILlmProviderKey, ILlmUsageRow, ILlmCallAttempt, ILlmHealthSnapshot, ILlmRoutingDecision, ILlmRoutingOptions } from './byok-llm.types';

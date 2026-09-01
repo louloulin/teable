@@ -8,28 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { StorageMeteringModule } from './storage-metering.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { StorageMeteringController } from './storage-metering.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { StorageMeteringAuthService } from './storage-metering.auth.service';
-export { isStorageKind } from './storage-metering.service';
-export { validateSample } from './storage-metering.service';
-export { emptyByKind } from './storage-metering.service';
-export { attributeSamples } from './storage-metering.service';
-export { normalizeAttribution } from './storage-metering.service';
-export { bytesToGb } from './storage-metering.service';
-export { billableCents } from './storage-metering.service';
-export { billableLine } from './storage-metering.service';
-export { sumBillable } from './storage-metering.service';
-export { appendSample } from './storage-metering.service';
-export { latestPerKind } from './storage-metering.service';
-export { attributionFromLatest } from './storage-metering.service';
+export { isStorageKind, validateSample, emptyByKind, attributeSamples, normalizeAttribution, bytesToGb, billableCents, billableLine, sumBillable, appendSample, latestPerKind, attributionFromLatest } from './storage-metering.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { STORAGE_CENTS_PER_GB } from './storage-metering.types';
-export { STORAGE_BYTES_PER_GB } from './storage-metering.types';
-export { STORAGE_KINDS } from './storage-metering.types';
-export { STORAGE_MAX_KINDS_PER_BASE } from './storage-metering.types';
-export { STORAGE_MAX_SAMPLES_PER_BASE } from './storage-metering.types';
-export { StorageKind } from './storage-metering.types';
-export { IStorageSample } from './storage-metering.types';
-export { IStorageAttribution } from './storage-metering.types';
-export { IStorageBillableLine } from './storage-metering.types';
+export { STORAGE_CENTS_PER_GB, STORAGE_BYTES_PER_GB, STORAGE_KINDS, STORAGE_MAX_KINDS_PER_BASE, STORAGE_MAX_SAMPLES_PER_BASE, StorageKind, IStorageSample, IStorageAttribution, IStorageBillableLine } from './storage-metering.types';

@@ -8,21 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { AiUsageModule } from './ai-usage.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { AiUsageController } from './ai-usage.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { AiUsageAuthService } from './ai-usage.auth.service';
-export { normalizeModel } from './ai-usage.service';
-export { normalizeAction } from './ai-usage.service';
-export { bucketKey } from './ai-usage.service';
-export { applyToBucket } from './ai-usage.service';
-export { foldRecords } from './ai-usage.service';
-export { summarize } from './ai-usage.service';
-export { exceedsModelCap } from './ai-usage.service';
-export { parsePerModelCap } from './ai-usage.service';
-export { coercePolicy } from './ai-usage.service';
-export { mergePerModelCap } from './ai-usage.service';
+export { normalizeModel, normalizeAction, bucketKey, applyToBucket, foldRecords, summarize, exceedsModelCap, parsePerModelCap, coercePolicy, mergePerModelCap } from './ai-usage.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IAiUsageBucket } from './ai-usage.types';
-export { IRecordUsageInput } from './ai-usage.types';
-export { IAiUsageSummary } from './ai-usage.types';
-export { IAiCreditGrantPolicy } from './ai-usage.types';
+export { IAiUsageBucket, IRecordUsageInput, IAiUsageSummary, IAiCreditGrantPolicy } from './ai-usage.types';

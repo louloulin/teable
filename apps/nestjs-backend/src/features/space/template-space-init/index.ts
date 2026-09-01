@@ -9,5 +9,4 @@
  */
 
 // ─── Services ─────────────────────────────────────────────────────
-export { TemplateSpaceInitService } from './template-space.init.service';
-export { TEMPLATE_SPACE_ID } from './template-space.init.service';
+export { TemplateSpaceInitService, TEMPLATE_SPACE_ID } from './template-space.init.service';

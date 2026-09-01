@@ -8,30 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { SeatMeteringModule } from './seat-metering.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { SeatMeteringController } from './seat-metering.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { SeatMeteringAuthService } from './seat-metering.auth.service';
-export { isSeatTier } from './seat-metering.service';
-export { isSeatStatus } from './seat-metering.service';
-export { unitPriceCents } from './seat-metering.service';
-export { validateAssignment } from './seat-metering.service';
-export { countsAsSeat } from './seat-metering.service';
-export { activeFraction } from './seat-metering.service';
-export { proratedSeats } from './seat-metering.service';
-export { buildCycle } from './seat-metering.service';
-export { nextCycle } from './seat-metering.service';
-export { maxSeatsPerOrg } from './seat-metering.service';
-export { totalActiveSeats } from './seat-metering.service';
-export { sumCycles } from './seat-metering.service';
-export { prorationUnit } from './seat-metering.service';
+export { isSeatTier, isSeatStatus, unitPriceCents, validateAssignment, countsAsSeat, activeFraction, proratedSeats, buildCycle, nextCycle, maxSeatsPerOrg, totalActiveSeats, sumCycles, prorationUnit } from './seat-metering.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SEAT_PRICES_CENTS } from './seat-metering.types';
-export { SEAT_MAX_PER_ORG } from './seat-metering.types';
-export { SEAT_CYCLE_DAYS } from './seat-metering.types';
-export { SEAT_PRORATION_DENOMINATOR } from './seat-metering.types';
-export { SEAT_TIERS } from './seat-metering.types';
-export { SEAT_STATUSES } from './seat-metering.types';
-export { SeatTier } from './seat-metering.types';
-export { SeatStatus } from './seat-metering.types';
-export { ISeatAssignment } from './seat-metering.types';
-export { ISeatCycle } from './seat-metering.types';
+export { SEAT_PRICES_CENTS, SEAT_MAX_PER_ORG, SEAT_CYCLE_DAYS, SEAT_PRORATION_DENOMINATOR, SEAT_TIERS, SEAT_STATUSES, SeatTier, SeatStatus, ISeatAssignment, ISeatCycle } from './seat-metering.types';

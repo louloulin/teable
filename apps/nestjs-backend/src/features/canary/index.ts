@@ -11,20 +11,11 @@
 // ─── NestJS module ────────────────────────────────────────────────
 export { CanaryModule } from './canary.module';
 
+// ─── Controllers ──────────────────────────────────────────────────
+export { CanaryController } from './canary.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
-export { CanaryService } from './canary.service';
-export { IV2Decision } from './canary.service';
-export { IBaseV2DecisionContext } from './canary.service';
+export { CanaryService, IV2Decision, IBaseV2DecisionContext } from './canary.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { X_TEABLE_V2_HEADER } from './v2-attribution';
-export { X_TEABLE_V2_REASON_HEADER } from './v2-attribution';
-export { X_TEABLE_V2_FEATURE_HEADER } from './v2-attribution';
-export { TEABLE_REQUEST_ATTRIBUTION } from './v2-attribution';
-export { getV2Attribution } from './v2-attribution';
-export { setV2AttributionOnSentryScope } from './v2-attribution';
-export { setV2AttributionOnCurrentSentryScopes } from './v2-attribution';
-export { getV2AttributionSpanAttributes } from './v2-attribution';
-export { getV2AttributionLogContext } from './v2-attribution';
-export { setV2AttributionHeaders } from './v2-attribution';
-export { IV2Attribution } from './v2-attribution';
+export { X_TEABLE_V2_HEADER, X_TEABLE_V2_REASON_HEADER, X_TEABLE_V2_FEATURE_HEADER, TEABLE_REQUEST_ATTRIBUTION, getV2Attribution, setV2AttributionOnSentryScope, setV2AttributionOnCurrentSentryScopes, getV2AttributionSpanAttributes, getV2AttributionLogContext, setV2AttributionHeaders, IV2Attribution } from './v2-attribution';

@@ -9,21 +9,12 @@
  */
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { jwtAuthInternalInfoSchema } from './types';
-export { IPayloadUser } from './types';
-export { IFromExtractor } from './types';
-export { IJwtAuthInfo } from './types';
-export { IWorkflowContext } from './types';
-export { IJwtAuthInternalInfo } from './types';
-export { JwtAuthInternalType } from './types';
+export { jwtAuthInternalInfoSchema, IPayloadUser, IFromExtractor, IJwtAuthInfo, IWorkflowContext, IJwtAuthInternalInfo, JwtAuthInternalType } from './types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { PassportAccessTokenStrategy } from './access-token.passport';
 export { AccessTokenStrategy } from './access-token.strategy';
-export { ACCESS_TOKEN_STRATEGY_NAME } from './constant';
-export { JWT_TOKEN_STRATEGY_NAME } from './constant';
-export { TEMPLATE_STRATEGY_NAME } from './constant';
-export { ANONYMOUS_STRATEGY_NAME } from './constant';
+export { ACCESS_TOKEN_STRATEGY_NAME, JWT_TOKEN_STRATEGY_NAME, TEMPLATE_STRATEGY_NAME, ANONYMOUS_STRATEGY_NAME } from './constant';
 export { GithubStrategy } from './github.strategy';
 export { GoogleStrategy } from './google.strategy';
 export { JwtStrategy } from './jwt.strategy';

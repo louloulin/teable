@@ -16,29 +16,7 @@ export { TimelineViewAuthController } from './timeline-view.auth.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { TimelineViewAuthService } from './timeline-view.auth.service';
-export { isValidDependencyType } from './timeline-view.service';
-export { isValidProgress } from './timeline-view.service';
-export { daysBetween } from './timeline-view.service';
-export { addDays } from './timeline-view.service';
-export { validateTimelineView } from './timeline-view.service';
-export { buildTimelineViewRow } from './timeline-view.service';
-export { buildTaskRow } from './timeline-view.service';
-export { buildDependencyRow } from './timeline-view.service';
-export { detectCycle } from './timeline-view.service';
-export { computeCriticalPath } from './timeline-view.service';
-export { renderGanttBars } from './timeline-view.service';
-export { DEPENDENCY_TYPES } from './timeline-view.service';
-export { IGanttBar } from './timeline-view.service';
+export { isValidDependencyType, isValidProgress, daysBetween, addDays, validateTimelineView, buildTimelineViewRow, buildTaskRow, buildDependencyRow, detectCycle, computeCriticalPath, renderGanttBars, DEPENDENCY_TYPES, IGanttBar } from './timeline-view.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MS_PER_DAY } from './timeline-view.types';
-export { DEFAULT_PROGRESS } from './timeline-view.types';
-export { DependencyType } from './timeline-view.types';
-export { ITimelineTask } from './timeline-view.types';
-export { ITimelineDependency } from './timeline-view.types';
-export { ITimelineView } from './timeline-view.types';
-export { ICriticalPathTask } from './timeline-view.types';
-export { ICriticalPathResult } from './timeline-view.types';
-export { ICreateTimelineViewInput } from './timeline-view.types';
-export { ICreateTaskInput } from './timeline-view.types';
-export { ICreateDependencyInput } from './timeline-view.types';
+export { MS_PER_DAY, DEFAULT_PROGRESS, DependencyType, ITimelineTask, ITimelineDependency, ITimelineView, ICriticalPathTask, ICriticalPathResult, ICreateTimelineViewInput, ICreateTaskInput, ICreateDependencyInput } from './timeline-view.types';

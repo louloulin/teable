@@ -20,43 +20,18 @@ export { BaseDuplicateV2Service } from './base-duplicate-v2.service';
 export { BaseDuplicateService } from './base-duplicate.service';
 export { BaseExportV2Service } from './base-export-v2.service';
 export { BaseExportService } from './base-export.service';
-export { BaseImportService } from './base-import.service';
-export { formatBaseImportError } from './base-import.service';
-export { IBaseImportProgress } from './base-import.service';
-export { BaseImportProgressCallback } from './base-import.service';
-export { BASE_META_MOVE_SERVICE } from './base-meta-move.service';
-export { IBaseMetaMoveService } from './base-meta-move.service';
+export { BaseImportService, formatBaseImportError, IBaseImportProgress, BaseImportProgressCallback } from './base-import.service';
+export { BASE_META_MOVE_SERVICE, IBaseMetaMoveService } from './base-meta-move.service';
 export { BaseService } from './base.service';
 export { DbConnectionService } from './db-connection.service';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { activeBaseDataDbMoveJobStates } from './base-data-db-move.constants';
-export { cancelableBaseDataDbMoveJobStates } from './base-data-db-move.constants';
-export { baseDataDbMovingErrorCode } from './base-data-db-move.constants';
-export { baseDataDbMoveProgressWeights } from './base-data-db-move.constants';
-export { IBaseDataDbMovePhase } from './base-data-db-move.constants';
+export { activeBaseDataDbMoveJobStates, cancelableBaseDataDbMoveJobStates, baseDataDbMovingErrorCode, baseDataDbMoveProgressWeights, IBaseDataDbMovePhase } from './base-data-db-move.constants';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { isCrossSpaceReferenceAllowed } from './cross-space-detection.util';
-export { parseFieldJson } from './cross-space-detection.util';
-export { extractForeignTableId } from './cross-space-detection.util';
-export { collectCrossSpaceAffectedFieldIds } from './cross-space-detection.util';
-export { computeCrossSpaceFieldLevels } from './cross-space-detection.util';
-export { sortByConversionDepth } from './cross-space-detection.util';
-export { ICrossSpaceFieldInput } from './cross-space-detection.util';
-export { ICollectCrossSpaceAffectedArgs } from './cross-space-detection.util';
-export { replaceExpressionFieldIds } from './utils';
-export { replaceJsonStringFieldIds } from './utils';
-export { replaceStringByMap } from './utils';
-export { replaceTimeZoneDeep } from './utils';
-export { replaceWorkflowTimeZoneDeep } from './utils';
-export { adaptStructureTimeZone } from './utils';
-export { replaceDefaultUrl } from './utils';
-export { mergeLinkFieldTableMaps } from './utils';
-export { ILinkFieldTableInfo } from './utils';
-export { ILinkFieldTableMap } from './utils';
+export { isCrossSpaceReferenceAllowed, parseFieldJson, extractForeignTableId, collectCrossSpaceAffectedFieldIds, computeCrossSpaceFieldLevels, sortByConversionDepth, ICrossSpaceFieldInput, ICollectCrossSpaceAffectedArgs } from './cross-space-detection.util';
+export { replaceExpressionFieldIds, replaceJsonStringFieldIds, replaceStringByMap, replaceTimeZoneDeep, replaceWorkflowTimeZoneDeep, adaptStructureTimeZone, replaceDefaultUrl, mergeLinkFieldTableMaps, ILinkFieldTableInfo, ILinkFieldTableMap } from './utils';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BatchProcessor } from './BatchProcessor.class';
-export { EXCLUDE_SYSTEM_FIELDS } from './constant';
-export { DEFAULT_EXPRESSION } from './constant';
+export { EXCLUDE_SYSTEM_FIELDS, DEFAULT_EXPRESSION } from './constant';

@@ -18,10 +18,7 @@ export { BaserowImportController } from './baserow-import.controller';
 export { BaserowImportService } from './baserow-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { BaserowField } from './baserow-import.types';
-export { BaserowTableSchema } from './baserow-import.types';
-export { BaserowRow } from './baserow-import.types';
-export { BaserowConnectionProbe } from './baserow-import.types';
+export { BaserowField, BaserowTableSchema, BaserowRow, BaserowConnectionProbe } from './baserow-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BaserowApiClient } from './baserow-api.client';

@@ -10,22 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ViewConfigPanelApiAuthService } from './view-config-panel-api.auth.service';
-export { buildPanelResponse } from './view-config-panel-api.service';
-export { hashMetadata } from './view-config-panel-api.service';
-export { applyPatches } from './view-config-panel-api.service';
-export { processPatchRequest } from './view-config-panel-api.service';
-export { canEdit } from './view-config-panel-api.service';
-export { diffMetadata } from './view-config-panel-api.service';
+export { buildPanelResponse, hashMetadata, applyPatches, processPatchRequest, canEdit, diffMetadata } from './view-config-panel-api.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ViewConfigPanelRequest } from './view-config-panel-api.types';
-export { ViewConfigPanelColumnSection } from './view-config-panel-api.types';
-export { ViewConfigPanelFilterSection } from './view-config-panel-api.types';
-export { ViewConfigPanelSortSection } from './view-config-panel-api.types';
-export { ViewConfigPanelGroupSection } from './view-config-panel-api.types';
-export { ViewConfigPanelCondFormatSection } from './view-config-panel-api.types';
-export { ViewConfigPanelSection } from './view-config-panel-api.types';
-export { ViewConfigPanelResponse } from './view-config-panel-api.types';
-export { ViewConfigPanelPatchRequest } from './view-config-panel-api.types';
-export { ViewConfigPanelPatchResponse } from './view-config-panel-api.types';
-export { ViewConfigPanelError } from './view-config-panel-api.types';
+export { ViewConfigPanelRequest, ViewConfigPanelColumnSection, ViewConfigPanelFilterSection, ViewConfigPanelSortSection, ViewConfigPanelGroupSection, ViewConfigPanelCondFormatSection, ViewConfigPanelSection, ViewConfigPanelResponse, ViewConfigPanelPatchRequest, ViewConfigPanelPatchResponse, ViewConfigPanelError } from './view-config-panel-api.types';

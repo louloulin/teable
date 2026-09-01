@@ -16,19 +16,7 @@ export { SamlController } from './saml.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SamlAuthService } from './saml.auth.service';
-export { buildAuthnRequest } from './saml.service';
-export { buildRedirectUrl } from './saml.service';
-export { buildMetadataXml } from './saml.service';
-export { parseSamlResponse } from './saml.service';
-export { extractEmailFromAssertion } from './saml.service';
-export { extractDisplayName } from './saml.service';
-export { hashAuthnRequest } from './saml.service';
-export { deflateSamlRequest } from './saml.service';
-export { IBuildAuthnRequestInput } from './saml.service';
+export { buildAuthnRequest, buildRedirectUrl, buildMetadataXml, parseSamlResponse, extractEmailFromAssertion, extractDisplayName, hashAuthnRequest, deflateSamlRequest, IBuildAuthnRequestInput } from './saml.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ISamlProviderRow } from './saml.types';
-export { ISamlLoginInput } from './saml.types';
-export { ISamlLoginResult } from './saml.types';
-export { ISamlAssertion } from './saml.types';
-export { ISamlMetadata } from './saml.types';
+export { ISamlProviderRow, ISamlLoginInput, ISamlLoginResult, ISamlAssertion, ISamlMetadata } from './saml.types';

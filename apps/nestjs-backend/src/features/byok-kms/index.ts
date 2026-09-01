@@ -8,37 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { ByokKmsModule } from './byok-kms.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { ByokKmsController } from './byok-kms.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
-export { LocalMasterKeyProvider } from './byok-kms.auth.service';
-export { ByokKmsAuthService } from './byok-kms.auth.service';
-export { IMasterKeyProvider } from './byok-kms.auth.service';
-export { generateAlias } from './byok-kms.service';
-export { isValidAlias } from './byok-kms.service';
-export { generateDek } from './byok-kms.service';
-export { encryptWithDek } from './byok-kms.service';
-export { decryptWithDek } from './byok-kms.service';
-export { wrapDek } from './byok-kms.service';
-export { unwrapDek } from './byok-kms.service';
-export { envelopeHash } from './byok-kms.service';
-export { isRotationDue } from './byok-kms.service';
-export { daysUntilRotation } from './byok-kms.service';
-export { parseRotationPolicy } from './byok-kms.service';
-export { stringifyRotationPolicy } from './byok-kms.service';
-export { buildKeyRow } from './byok-kms.service';
-export { normalizeMasterKey } from './byok-kms.service';
-export { ALGORITHM } from './byok-kms.service';
-export { DEK_BYTES } from './byok-kms.service';
-export { IV_BYTES } from './byok-kms.service';
-export { TAG_BYTES } from './byok-kms.service';
+export { LocalMasterKeyProvider, ByokKmsAuthService, IMasterKeyProvider } from './byok-kms.auth.service';
+export { generateAlias, isValidAlias, generateDek, encryptWithDek, decryptWithDek, wrapDek, unwrapDek, envelopeHash, isRotationDue, daysUntilRotation, parseRotationPolicy, stringifyRotationPolicy, buildKeyRow, normalizeMasterKey, ALGORITHM, DEK_BYTES, IV_BYTES, TAG_BYTES } from './byok-kms.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { KmsProvider } from './byok-kms.types';
-export { KmsKeyStatus } from './byok-kms.types';
-export { KmsOperation } from './byok-kms.types';
-export { KmsCallerType } from './byok-kms.types';
-export { IRotationPolicy } from './byok-kms.types';
-export { ICustomerKmsKey } from './byok-kms.types';
-export { IKmsAuditEntry } from './byok-kms.types';
-export { IRegisterKeyInput } from './byok-kms.types';
-export { IEnvelopeEncrypted } from './byok-kms.types';
-export { IUnwrappedDataKey } from './byok-kms.types';
+export { KmsProvider, KmsKeyStatus, KmsOperation, KmsCallerType, IRotationPolicy, ICustomerKmsKey, IKmsAuditEntry, IRegisterKeyInput, IEnvelopeEncrypted, IUnwrappedDataKey } from './byok-kms.types';

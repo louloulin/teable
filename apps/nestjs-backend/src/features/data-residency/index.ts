@@ -16,20 +16,7 @@ export { DataResidencyController } from './data-residency.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { DataResidencyAuthService } from './data-residency.auth.service';
-export { isValidRegionCode } from './data-residency.service';
-export { parseRegionHeader } from './data-residency.service';
-export { normalizeRegionFromHeader } from './data-residency.service';
-export { resolveRegionRoute } from './data-residency.service';
-export { isValidStatusTransition } from './data-residency.service';
-export { buildPolicyRow } from './data-residency.service';
-export { buildRegionRow } from './data-residency.service';
-export { HEADER_NAME } from './data-residency.service';
+export { isValidRegionCode, parseRegionHeader, normalizeRegionFromHeader, resolveRegionRoute, isValidStatusTransition, buildPolicyRow, buildRegionRow, HEADER_NAME } from './data-residency.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { HEADER_REGION } from './data-residency.types';
-export { RegionStatus } from './data-residency.types';
-export { RegionCode } from './data-residency.types';
-export { IRegion } from './data-residency.types';
-export { IDataResidencyPolicy } from './data-residency.types';
-export { ISetPolicyInput } from './data-residency.types';
-export { IResolvedRegionRoute } from './data-residency.types';
+export { HEADER_REGION, RegionStatus, RegionCode, IRegion, IDataResidencyPolicy, ISetPolicyInput, IResolvedRegionRoute } from './data-residency.types';

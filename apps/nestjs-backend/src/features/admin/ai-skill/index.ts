@@ -12,6 +12,4 @@
 export { AiSkillController } from './ai-skill.controller';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { listAiSkillFiles } from './ai-skill.content';
-export { getAiSkillFile } from './ai-skill.content';
-export { AI_SKILL_FILES } from './ai-skill.content';
+export { listAiSkillFiles, getAiSkillFile, AI_SKILL_FILES } from './ai-skill.content';

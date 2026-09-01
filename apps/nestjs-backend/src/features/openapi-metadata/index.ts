@@ -10,24 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { OpenApiMetadataAuthService } from './openapi-metadata.auth.service';
-export { validateOperation } from './openapi-metadata.service';
-export { validateParam } from './openapi-metadata.service';
-export { buildDocument } from './openapi-metadata.service';
-export { filterByVerb } from './openapi-metadata.service';
-export { filterByAuth } from './openapi-metadata.service';
-export { findOperation } from './openapi-metadata.service';
-export { countsByVerb } from './openapi-metadata.service';
-export { uniqueResources } from './openapi-metadata.service';
-export { mergeDocuments } from './openapi-metadata.service';
+export { validateOperation, validateParam, buildDocument, filterByVerb, filterByAuth, findOperation, countsByVerb, uniqueResources, mergeDocuments } from './openapi-metadata.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_OPERATIONS } from './openapi-metadata.types';
-export { MAX_PARAMS_PER_OPERATION } from './openapi-metadata.types';
-export { MAX_RESPONSES_PER_OPERATION } from './openapi-metadata.types';
-export { MAX_SCHEMAS } from './openapi-metadata.types';
-export { ParamLocation } from './openapi-metadata.types';
-export { IParamSpec } from './openapi-metadata.types';
-export { IRequestBodySpec } from './openapi-metadata.types';
-export { IResponseSpec } from './openapi-metadata.types';
-export { IOperationSpec } from './openapi-metadata.types';
-export { IOpenApiDocument } from './openapi-metadata.types';
+export { MAX_OPERATIONS, MAX_PARAMS_PER_OPERATION, MAX_RESPONSES_PER_OPERATION, MAX_SCHEMAS, ParamLocation, IParamSpec, IRequestBodySpec, IResponseSpec, IOperationSpec, IOpenApiDocument } from './openapi-metadata.types';

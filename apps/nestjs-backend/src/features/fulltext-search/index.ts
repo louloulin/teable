@@ -10,36 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { FulltextSearchAuthService } from './fulltext-search.auth.service';
-export { tokenize } from './fulltext-search.service';
-export { stemApprox } from './fulltext-search.service';
-export { buildTokenStream } from './fulltext-search.service';
-export { buildBodyText } from './fulltext-search.service';
-export { contentHash } from './fulltext-search.service';
-export { buildSnippet } from './fulltext-search.service';
-export { scoreDocument } from './fulltext-search.service';
-export { expandSynonyms } from './fulltext-search.service';
-export { isValidLanguage } from './fulltext-search.service';
-export { isValidScope } from './fulltext-search.service';
-export { isValidStatusTransition } from './fulltext-search.service';
-export { buildIndexRow } from './fulltext-search.service';
-export { buildDocumentRow } from './fulltext-search.service';
-export { runSearch } from './fulltext-search.service';
-export { indexDocumentRowFromInput } from './fulltext-search.service';
+export { tokenize, stemApprox, buildTokenStream, buildBodyText, contentHash, buildSnippet, scoreDocument, expandSynonyms, isValidLanguage, isValidScope, isValidStatusTransition, buildIndexRow, buildDocumentRow, runSearch, indexDocumentRowFromInput } from './fulltext-search.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_LANGUAGES } from './fulltext-search.types';
-export { SUPPORTED_SCOPES } from './fulltext-search.types';
-export { SearchScope } from './fulltext-search.types';
-export { SearchIndexStatus } from './fulltext-search.types';
-export { SearchLanguage } from './fulltext-search.types';
-export { ISearchIndex } from './fulltext-search.types';
-export { ISearchDocument } from './fulltext-search.types';
-export { ISearchQueryLog } from './fulltext-search.types';
-export { ISearchSynonym } from './fulltext-search.types';
-export { ICreateIndexInput } from './fulltext-search.types';
-export { IUpdateIndexInput } from './fulltext-search.types';
-export { IIndexDocumentInput } from './fulltext-search.types';
-export { ISearchQueryInput } from './fulltext-search.types';
-export { ISearchHit } from './fulltext-search.types';
-export { ISearchResult } from './fulltext-search.types';
-export { IAddSynonymInput } from './fulltext-search.types';
+export { SUPPORTED_LANGUAGES, SUPPORTED_SCOPES, SearchScope, SearchIndexStatus, SearchLanguage, ISearchIndex, ISearchDocument, ISearchQueryLog, ISearchSynonym, ICreateIndexInput, IUpdateIndexInput, IIndexDocumentInput, ISearchQueryInput, ISearchHit, ISearchResult, IAddSynonymInput } from './fulltext-search.types';

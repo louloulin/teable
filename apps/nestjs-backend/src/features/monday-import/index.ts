@@ -18,10 +18,7 @@ export { MondayImportController } from './monday-import.controller';
 export { MondayImportService } from './monday-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MondayWorkspace } from './monday-import.types';
-export { MondayBoard } from './monday-import.types';
-export { MondayItem } from './monday-import.types';
-export { MondayConnectionProbe } from './monday-import.types';
+export { MondayWorkspace, MondayBoard, MondayItem, MondayConnectionProbe } from './monday-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { MondayApiClient } from './monday-api.client';

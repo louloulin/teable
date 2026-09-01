@@ -18,10 +18,7 @@ export { ClickUpImportController } from './clickup-import.controller';
 export { ClickUpImportService } from './clickup-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ClickUpSpace } from './clickup-import.types';
-export { ClickUpList } from './clickup-import.types';
-export { ClickUpTask } from './clickup-import.types';
-export { ClickUpConnectionProbe } from './clickup-import.types';
+export { ClickUpSpace, ClickUpList, ClickUpTask, ClickUpConnectionProbe } from './clickup-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { ClickUpApiClient } from './clickup-api.client';

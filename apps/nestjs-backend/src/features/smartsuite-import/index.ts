@@ -18,10 +18,7 @@ export { SmartSuiteImportController } from './smartsuite-import.controller';
 export { SmartSuiteImportService } from './smartsuite-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SmartSuiteApp } from './smartsuite-import.types';
-export { SmartSuiteTable } from './smartsuite-import.types';
-export { SmartSuiteRecord } from './smartsuite-import.types';
-export { SmartSuiteConnectionProbe } from './smartsuite-import.types';
+export { SmartSuiteApp, SmartSuiteTable, SmartSuiteRecord, SmartSuiteConnectionProbe } from './smartsuite-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SmartSuiteApiClient } from './smartsuite-api.client';

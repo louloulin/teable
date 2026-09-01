@@ -16,8 +16,4 @@ export { AiAppBuilderController } from './ai-app-builder.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AiAppBuilderAuthService } from './ai-app-builder.auth.service';
-export { AiAppBuilderService } from './ai-app-builder.service';
-export { IAppVo } from './ai-app-builder.service';
-export { IAppVersionVo } from './ai-app-builder.service';
-export { IAppSecretVo } from './ai-app-builder.service';
-export { IAppFileVo } from './ai-app-builder.service';
+export { AiAppBuilderService, IAppVo, IAppVersionVo, IAppSecretVo, IAppFileVo } from './ai-app-builder.service';

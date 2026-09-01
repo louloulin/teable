@@ -8,35 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { RiskEventQueryModule } from './risk-event-query.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { RiskEventQueryAdminController } from './risk-event-query.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { RiskEventQueryAuthService } from './risk-event-query.auth.service';
-export { isRiskDecision } from './risk-event-query.service';
-export { isRiskBand } from './risk-event-query.service';
-export { isRiskEventKind } from './risk-event-query.service';
-export { validateFilter } from './risk-event-query.service';
-export { normalizeFilter } from './risk-event-query.service';
-export { buildQuery } from './risk-event-query.service';
-export { toWhere } from './risk-event-query.service';
-export { cursorWhere } from './risk-event-query.service';
-export { orderBy } from './risk-event-query.service';
-export { nextCursor } from './risk-event-query.service';
-export { matchRow } from './risk-event-query.service';
-export { paginate } from './risk-event-query.service';
+export { isRiskDecision, isRiskBand, isRiskEventKind, validateFilter, normalizeFilter, buildQuery, toWhere, cursorWhere, orderBy, nextCursor, matchRow, paginate } from './risk-event-query.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { RISK_DEFAULT_LIMIT } from './risk-event-query.types';
-export { RISK_MAX_LIMIT } from './risk-event-query.types';
-export { RISK_MAX_TERM_LENGTH } from './risk-event-query.types';
-export { RISK_MAX_ORGS_PER_QUERY } from './risk-event-query.types';
-export { RISK_MAX_ACTORS_PER_QUERY } from './risk-event-query.types';
-export { RISK_DECISION_KINDS } from './risk-event-query.types';
-export { RISK_BAND_KINDS } from './risk-event-query.types';
-export { RISK_EVENT_KINDS } from './risk-event-query.types';
-export { RiskDecisionKind } from './risk-event-query.types';
-export { RiskBandKind } from './risk-event-query.types';
-export { RiskEventKind } from './risk-event-query.types';
-export { RiskOrdering } from './risk-event-query.types';
-export { IRiskEventCursor } from './risk-event-query.types';
-export { IRiskEventFilter } from './risk-event-query.types';
-export { IRiskEventQuery } from './risk-event-query.types';
-export { IRiskEventRow } from './risk-event-query.types';
+export { RISK_DEFAULT_LIMIT, RISK_MAX_LIMIT, RISK_MAX_TERM_LENGTH, RISK_MAX_ORGS_PER_QUERY, RISK_MAX_ACTORS_PER_QUERY, RISK_DECISION_KINDS, RISK_BAND_KINDS, RISK_EVENT_KINDS, RiskDecisionKind, RiskBandKind, RiskEventKind, RiskOrdering, IRiskEventCursor, IRiskEventFilter, IRiskEventQuery, IRiskEventRow } from './risk-event-query.types';

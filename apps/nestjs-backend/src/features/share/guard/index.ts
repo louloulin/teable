@@ -14,7 +14,5 @@ export { ShareAuthLocalGuard } from './share-auth-local.guard';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SHARE_JWT_STRATEGY } from './constant';
-export { IS_SHARE_LINK_VIEW } from './link-view.decorator';
-export { ShareLinkView } from './link-view.decorator';
-export { IS_SHARE_SUBMIT_KEY } from './submit.decorator';
-export { ShareSubmit } from './submit.decorator';
+export { IS_SHARE_LINK_VIEW, ShareLinkView } from './link-view.decorator';
+export { IS_SHARE_SUBMIT_KEY, ShareSubmit } from './submit.decorator';

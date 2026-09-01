@@ -10,23 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { MainBootstrapAuthService } from './main-bootstrap.auth.service';
-export { validateBootstrapInput } from './main-bootstrap.service';
-export { buildPlan } from './main-bootstrap.service';
-export { transition } from './main-bootstrap.service';
-export { isValidTransition } from './main-bootstrap.service';
-export { defaultPlan } from './main-bootstrap.service';
-export { recordShutdown } from './main-bootstrap.service';
-export { requiredStepCount } from './main-bootstrap.service';
-export { isStopped } from './main-bootstrap.service';
-export { applyShutdown } from './main-bootstrap.service';
-export { isStepCompleted } from './main-bootstrap.service';
+export { validateBootstrapInput, buildPlan, transition, isValidTransition, defaultPlan, recordShutdown, requiredStepCount, isStopped, applyShutdown, isStepCompleted } from './main-bootstrap.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_PORT } from './main-bootstrap.types';
-export { DEFAULT_SHUTDOWN_TIMEOUT_MS } from './main-bootstrap.types';
-export { MAX_STEPS } from './main-bootstrap.types';
-export { LifecycleState } from './main-bootstrap.types';
-export { IBootstrapInput } from './main-bootstrap.types';
-export { IBootstrapStep } from './main-bootstrap.types';
-export { IBootstrapPlan } from './main-bootstrap.types';
-export { IShutdownSignal } from './main-bootstrap.types';
+export { DEFAULT_PORT, DEFAULT_SHUTDOWN_TIMEOUT_MS, MAX_STEPS, LifecycleState, IBootstrapInput, IBootstrapStep, IBootstrapPlan, IShutdownSignal } from './main-bootstrap.types';

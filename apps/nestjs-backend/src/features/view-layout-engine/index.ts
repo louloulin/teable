@@ -10,38 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ViewLayoutEngineAuthService } from './view-layout-engine.auth.service';
-export { effectiveViewport } from './view-layout-engine.service';
-export { layoutGrid } from './view-layout-engine.service';
-export { layoutKanban } from './view-layout-engine.service';
-export { layoutGallery } from './view-layout-engine.service';
-export { layoutCalendar } from './view-layout-engine.service';
-export { layoutForm } from './view-layout-engine.service';
-export { layoutMap } from './view-layout-engine.service';
-export { layoutTimeline } from './view-layout-engine.service';
-export { computeLayout } from './view-layout-engine.service';
+export { effectiveViewport, layoutGrid, layoutKanban, layoutGallery, layoutCalendar, layoutForm, layoutMap, layoutTimeline, computeLayout } from './view-layout-engine.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_HEADER_HEIGHT } from './view-layout-engine.types';
-export { DEFAULT_ROW_HEIGHT } from './view-layout-engine.types';
-export { DEFAULT_GALLERY_CARD_SIZE } from './view-layout-engine.types';
-export { DEFAULT_KANBAN_CARD_HEIGHT } from './view-layout-engine.types';
-export { DEFAULT_TIMELINE_ROW_HEIGHT } from './view-layout-engine.types';
-export { DEFAULT_CALENDAR_DAY_SIZE } from './view-layout-engine.types';
-export { ViewportSpec } from './view-layout-engine.types';
-export { CellPosition } from './view-layout-engine.types';
-export { Rect } from './view-layout-engine.types';
-export { GridLayoutCell } from './view-layout-engine.types';
-export { GridLayoutSpec } from './view-layout-engine.types';
-export { KanbanLayoutColumn } from './view-layout-engine.types';
-export { KanbanLayoutSpec } from './view-layout-engine.types';
-export { GalleryLayoutCard } from './view-layout-engine.types';
-export { GalleryLayoutSpec } from './view-layout-engine.types';
-export { CalendarLayoutCell } from './view-layout-engine.types';
-export { CalendarLayoutSpec } from './view-layout-engine.types';
-export { FormLayoutField } from './view-layout-engine.types';
-export { FormLayoutSpec } from './view-layout-engine.types';
-export { MapLayoutMarker } from './view-layout-engine.types';
-export { MapLayoutSpec } from './view-layout-engine.types';
-export { TimelineLayoutBar } from './view-layout-engine.types';
-export { TimelineLayoutSpec } from './view-layout-engine.types';
-export { ViewLayoutSpec } from './view-layout-engine.types';
+export { DEFAULT_HEADER_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_GALLERY_CARD_SIZE, DEFAULT_KANBAN_CARD_HEIGHT, DEFAULT_TIMELINE_ROW_HEIGHT, DEFAULT_CALENDAR_DAY_SIZE, ViewportSpec, CellPosition, Rect, GridLayoutCell, GridLayoutSpec, KanbanLayoutColumn, KanbanLayoutSpec, GalleryLayoutCard, GalleryLayoutSpec, CalendarLayoutCell, CalendarLayoutSpec, FormLayoutField, FormLayoutSpec, MapLayoutMarker, MapLayoutSpec, TimelineLayoutBar, TimelineLayoutSpec, ViewLayoutSpec } from './view-layout-engine.types';

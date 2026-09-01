@@ -8,25 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { FederatedSsoModule } from './federated-sso.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { FederatedSsoAdminController } from './federated-sso.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { FederatedSsoAuthService } from './federated-sso.auth.service';
-export { sortProviders } from './federated-sso.service';
-export { emailDomain } from './federated-sso.service';
-export { discoverProvider } from './federated-sso.service';
-export { validateOidcConfig } from './federated-sso.service';
-export { validateSamlConfig } from './federated-sso.service';
-export { validateProvider } from './federated-sso.service';
-export { buildSession } from './federated-sso.service';
-export { oidcAuthorizeUrl } from './federated-sso.service';
-export { samlLoginUrl } from './federated-sso.service';
-export { DEFAULT_SSO_SESSION_TTL_SECONDS } from './federated-sso.service';
-export { OIDC_DEFAULT_SCOPES } from './federated-sso.service';
+export { sortProviders, emailDomain, discoverProvider, validateOidcConfig, validateSamlConfig, validateProvider, buildSession, oidcAuthorizeUrl, samlLoginUrl, DEFAULT_SSO_SESSION_TTL_SECONDS, OIDC_DEFAULT_SCOPES } from './federated-sso.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SsoProtocol } from './federated-sso.types';
-export { IOidcProviderConfig } from './federated-sso.types';
-export { ISamlProviderConfig } from './federated-sso.types';
-export { ISsoProvider } from './federated-sso.types';
-export { ISsoDiscoveryRequest } from './federated-sso.types';
-export { ISsoDiscoveryResult } from './federated-sso.types';
-export { IFederatedSession } from './federated-sso.types';
+export { SsoProtocol, IOidcProviderConfig, ISamlProviderConfig, ISsoProvider, ISsoDiscoveryRequest, ISsoDiscoveryResult, IFederatedSession } from './federated-sso.types';

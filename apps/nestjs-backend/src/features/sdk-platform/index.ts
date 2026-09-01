@@ -10,42 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SdkPlatformAuthService } from './sdk-platform.auth.service';
-export { isValidClientId } from './sdk-platform.service';
-export { isValidLanguage } from './sdk-platform.service';
-export { isValidChannel } from './sdk-platform.service';
-export { isValidSecretFormat } from './sdk-platform.service';
-export { isValidVersion } from './sdk-platform.service';
-export { generateClientId } from './sdk-platform.service';
-export { generateClientSecret } from './sdk-platform.service';
-export { generateApiToken } from './sdk-platform.service';
-export { hashSecret } from './sdk-platform.service';
-export { constantTimeEquals } from './sdk-platform.service';
-export { parseScopes } from './sdk-platform.service';
-export { stringifyScopes } from './sdk-platform.service';
-export { tokenHasAnyScope } from './sdk-platform.service';
-export { tokenLastFour } from './sdk-platform.service';
-export { buildAppRow } from './sdk-platform.service';
-export { isTokenExpired } from './sdk-platform.service';
-export { isValidTokenStatusTransition } from './sdk-platform.service';
-export { buildTokenRow } from './sdk-platform.service';
-export { foldUsage } from './sdk-platform.service';
-export { isValidOutcome } from './sdk-platform.service';
-export { IUsageAggregate } from './sdk-platform.service';
+export { isValidClientId, isValidLanguage, isValidChannel, isValidSecretFormat, isValidVersion, generateClientId, generateClientSecret, generateApiToken, hashSecret, constantTimeEquals, parseScopes, stringifyScopes, tokenHasAnyScope, tokenLastFour, buildAppRow, isTokenExpired, isValidTokenStatusTransition, buildTokenRow, foldUsage, isValidOutcome, IUsageAggregate } from './sdk-platform.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_LANGUAGES } from './sdk-platform.types';
-export { SUPPORTED_CHANNELS } from './sdk-platform.types';
-export { DEFAULT_TOKEN_PREFIX } from './sdk-platform.types';
-export { SdkLanguage } from './sdk-platform.types';
-export { SdkTokenStatus } from './sdk-platform.types';
-export { SdkOutcome } from './sdk-platform.types';
-export { SdkChannel } from './sdk-platform.types';
-export { ISdkApp } from './sdk-platform.types';
-export { ISdkToken } from './sdk-platform.types';
-export { ISdkTokenReveal } from './sdk-platform.types';
-export { ISdkUsageLog } from './sdk-platform.types';
-export { ISdkRelease } from './sdk-platform.types';
-export { IRegisterAppInput } from './sdk-platform.types';
-export { IMintTokenInput } from './sdk-platform.types';
-export { IRecordUsageInput } from './sdk-platform.types';
-export { IPublishReleaseInput } from './sdk-platform.types';
+export { SUPPORTED_LANGUAGES, SUPPORTED_CHANNELS, DEFAULT_TOKEN_PREFIX, SdkLanguage, SdkTokenStatus, SdkOutcome, SdkChannel, ISdkApp, ISdkToken, ISdkTokenReveal, ISdkUsageLog, ISdkRelease, IRegisterAppInput, IMintTokenInput, IRecordUsageInput, IPublishReleaseInput } from './sdk-platform.types';

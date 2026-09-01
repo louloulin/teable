@@ -10,33 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AirtableSyncAuthService } from './airtable-sync.auth.service';
-export { hashFieldMap } from './airtable-sync.service';
-export { parseFieldMap } from './airtable-sync.service';
-export { stringifyFieldMap } from './airtable-sync.service';
-export { isValidDirection } from './airtable-sync.service';
-export { isValidStatusTransition } from './airtable-sync.service';
-export { buildMappingRow } from './airtable-sync.service';
-export { applyMappingUpdate } from './airtable-sync.service';
-export { resolveConflict } from './airtable-sync.service';
-export { deriveAllowedMutations } from './airtable-sync.service';
-export { foldSyncRecords } from './airtable-sync.service';
-export { isFieldMapStale } from './airtable-sync.service';
-export { buildSyncRecordId } from './airtable-sync.service';
+export { hashFieldMap, parseFieldMap, stringifyFieldMap, isValidDirection, isValidStatusTransition, buildMappingRow, applyMappingUpdate, resolveConflict, deriveAllowedMutations, foldSyncRecords, isFieldMapStale, buildSyncRecordId } from './airtable-sync.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_SYNC_DIRECTIONS } from './airtable-sync.types';
-export { SyncDirection } from './airtable-sync.types';
-export { MappingStatus } from './airtable-sync.types';
-export { SyncRecordState } from './airtable-sync.types';
-export { SyncRunDirection } from './airtable-sync.types';
-export { SyncRunStatus } from './airtable-sync.types';
-export { IAirtableFieldMap } from './airtable-sync.types';
-export { IAirtableConnection } from './airtable-sync.types';
-export { IAirtableTableMapping } from './airtable-sync.types';
-export { IAirtableSyncRecord } from './airtable-sync.types';
-export { IAirtableSyncLog } from './airtable-sync.types';
-export { ICreateConnectionInput } from './airtable-sync.types';
-export { ICreateMappingInput } from './airtable-sync.types';
-export { IUpdateMappingInput } from './airtable-sync.types';
-export { ISyncCandidate } from './airtable-sync.types';
-export { ISyncDiffSummary } from './airtable-sync.types';
+export { SUPPORTED_SYNC_DIRECTIONS, SyncDirection, MappingStatus, SyncRecordState, SyncRunDirection, SyncRunStatus, IAirtableFieldMap, IAirtableConnection, IAirtableTableMapping, IAirtableSyncRecord, IAirtableSyncLog, ICreateConnectionInput, ICreateMappingInput, IUpdateMappingInput, ISyncCandidate, ISyncDiffSummary } from './airtable-sync.types';

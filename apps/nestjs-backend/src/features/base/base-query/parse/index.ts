@@ -9,8 +9,7 @@
  */
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { getQueryColumnTypeByFieldInstance } from './utils';
-export { createBaseQueryFieldInstance } from './utils';
+export { getQueryColumnTypeByFieldInstance, createBaseQueryFieldInstance } from './utils';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { QueryAggregation } from './aggregation';

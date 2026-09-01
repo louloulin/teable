@@ -17,46 +17,18 @@ export { AutomationController } from './automation.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AutomationAiBuilderService } from './automation-ai-builder.service';
-export { AutomationRateLimitService } from './automation-rate-limit.service';
-export { AutomationRateLimitKind } from './automation-rate-limit.service';
+export { AutomationRateLimitService, AutomationRateLimitKind } from './automation-rate-limit.service';
 export { AutomationService } from './automation.service';
-export { IMBridgeService } from './im-bridge.service';
-export { __test } from './im-bridge.service';
-export { IMProvider } from './im-bridge.service';
-export { IIMActionConfig } from './im-bridge.service';
-export { WebhookDispatcher } from './webhook-dispatcher.service';
-export { signBody } from './webhook-dispatcher.service';
-export { IWebhookActionConfig } from './webhook-dispatcher.service';
+export { IMBridgeService, __test, IMProvider, IIMActionConfig } from './im-bridge.service';
+export { WebhookDispatcher, signBody, IWebhookActionConfig } from './webhook-dispatcher.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { AUTOMATION_RUN_STATUSES } from './automation.types';
-export { AUTOMATION_TRIGGER_TYPES } from './automation.types';
-export { AUTOMATION_ACTION_TYPES } from './automation.types';
-export { AutomationTriggerType } from './automation.types';
-export { AutomationActionType } from './automation.types';
-export { AutomationRunStatus } from './automation.types';
-export { AutomationAdminRunStatus } from './automation.types';
-export { IAutomationRow } from './automation.types';
-export { IAutomationTriggerRow } from './automation.types';
-export { IAutomationActionRow } from './automation.types';
-export { IAutomationRunRow } from './automation.types';
-export { IAutomationRunStep } from './automation.types';
-export { IAutomationDetail } from './automation.types';
-export { IAutomationCreateInput } from './automation.types';
-export { IAutomationUpdateInput } from './automation.types';
-export { IAutomationDraft } from './automation.types';
-export { IAutomationAiDraftInput } from './automation.types';
-export { IAutomationAiDraftResult } from './automation.types';
-export { IAutomationTriggerInput } from './automation.types';
-export { IAutomationCondition } from './automation.types';
+export { AUTOMATION_RUN_STATUSES, AUTOMATION_TRIGGER_TYPES, AUTOMATION_ACTION_TYPES, AutomationTriggerType, AutomationActionType, AutomationRunStatus, AutomationAdminRunStatus, IAutomationRow, IAutomationTriggerRow, IAutomationActionRow, IAutomationRunRow, IAutomationRunStep, IAutomationDetail, IAutomationCreateInput, IAutomationUpdateInput, IAutomationDraft, IAutomationAiDraftInput, IAutomationAiDraftResult, IAutomationTriggerInput, IAutomationCondition } from './automation.types';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { AUTOMATION_SCHEDULE_QUEUE } from './automation-schedule.constants';
-export { AUTOMATION_SCHEDULE_JOB } from './automation-schedule.constants';
+export { AUTOMATION_SCHEDULE_QUEUE, AUTOMATION_SCHEDULE_JOB } from './automation-schedule.constants';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { AutomationEventListener } from './automation-event.listener';
 export { AutomationScheduleProcessor } from './automation-schedule.processor';
-export { listScriptSamples } from './script-samples';
-export { SCRIPT_SAMPLES } from './script-samples';
-export { IScriptSample } from './script-samples';
+export { listScriptSamples, SCRIPT_SAMPLES, IScriptSample } from './script-samples';

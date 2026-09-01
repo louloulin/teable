@@ -19,6 +19,4 @@ export { EnterpriseReadinessController } from './enterprise-readiness.controller
 // ─── Services ─────────────────────────────────────────────────────
 export { AdminOpenApiService } from './admin-open-api.service';
 export { AdminTableQueryOpsService } from './admin-table-query-ops.service';
-export { EnterpriseReadinessService } from './enterprise-readiness.service';
-export { CapabilityDescriptor } from './enterprise-readiness.service';
-export { EnterpriseReadinessReport } from './enterprise-readiness.service';
+export { EnterpriseReadinessService, CapabilityDescriptor, CloudExclusiveGap, CloudGapCoverage, EnterpriseReadinessReport } from './enterprise-readiness.service';

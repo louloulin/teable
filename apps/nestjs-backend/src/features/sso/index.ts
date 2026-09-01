@@ -17,23 +17,11 @@ export { SsoController } from './sso.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SsoAuthService } from './sso-auth.service';
-export { SsoFederationService } from './sso-federation.service';
-export { ISamlAttributePayload } from './sso-federation.service';
-export { IOidcAttributePayload } from './sso-federation.service';
-export { IUnifiedUserClaims } from './sso-federation.service';
+export { SsoFederationService, ISamlAttributePayload, IOidcAttributePayload, IUnifiedUserClaims } from './sso-federation.service';
 export { SsoService } from './sso.service';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { SSO_LOGIN_STATE_TTL_MS } from './sso.constants';
-export { SSO_DISCOVERY_CACHE_TTL_MS } from './sso.constants';
-export { SSO_JWKS_CACHE_TTL_MS } from './sso.constants';
-export { SSO_LOGIN_PATH } from './sso.constants';
-export { SSO_CALLBACK_PATH } from './sso.constants';
-export { SSO_LOGIN_STATE_CLEANUP_QUEUE } from './sso.constants';
-export { SSO_LOGIN_STATE_CLEANUP_REPEAT_MS } from './sso.constants';
-export { ISsoDiscoveryDoc } from './sso.constants';
-export { ISsoIdTokenClaims } from './sso.constants';
-export { ISsoProviderConfig } from './sso.constants';
+export { SSO_LOGIN_STATE_TTL_MS, SSO_DISCOVERY_CACHE_TTL_MS, SSO_JWKS_CACHE_TTL_MS, SSO_LOGIN_PATH, SSO_CALLBACK_PATH, SSO_LOGIN_STATE_CLEANUP_QUEUE, SSO_LOGIN_STATE_CLEANUP_REPEAT_MS, ISsoDiscoveryDoc, ISsoIdTokenClaims, ISsoProviderConfig } from './sso.constants';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SsoLoginStateCleanupProcessor } from './sso-login-state-cleanup.processor';

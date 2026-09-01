@@ -8,37 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { FullTextSearchModule } from './full-text-search.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { FullTextSearchController } from './full-text-search.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { FullTextSearchAuthService } from './full-text-search.auth.service';
-export { normalizeText } from './full-text-search.service';
-export { tokenize } from './full-text-search.service';
-export { filterTokens } from './full-text-search.service';
-export { buildBigrams } from './full-text-search.service';
-export { buildIndexedDocument } from './full-text-search.service';
-export { parseQueryString } from './full-text-search.service';
-export { validateQuery } from './full-text-search.service';
-export { normalizeQuery } from './full-text-search.service';
-export { scoreDocument } from './full-text-search.service';
-export { normalizeScore } from './full-text-search.service';
-export { findTokenOffset } from './full-text-search.service';
-export { searchDocuments } from './full-text-search.service';
-export { buildSearchQuery } from './full-text-search.service';
-export { shouldIndexField } from './full-text-search.service';
+export { normalizeText, tokenize, filterTokens, buildBigrams, buildIndexedDocument, parseQueryString, validateQuery, normalizeQuery, scoreDocument, normalizeScore, findTokenOffset, searchDocuments, buildSearchQuery, shouldIndexField } from './full-text-search.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_SEARCH_LIMIT } from './full-text-search.types';
-export { MAX_SEARCH_LIMIT } from './full-text-search.types';
-export { DEFAULT_MATCH_MODE } from './full-text-search.types';
-export { DEFAULT_SORT } from './full-text-search.types';
-export { MIN_TOKEN_LENGTH } from './full-text-search.types';
-export { MAX_TOKEN_LENGTH } from './full-text-search.types';
-export { MAX_PHRASE_TOKENS } from './full-text-search.types';
-export { SearchMatchMode } from './full-text-search.types';
-export { SearchSort } from './full-text-search.types';
-export { IIndexedField } from './full-text-search.types';
-export { IIndexDocumentInput } from './full-text-search.types';
-export { IIndexedDocument } from './full-text-search.types';
-export { ISearchToken } from './full-text-search.types';
-export { ISearchQuery } from './full-text-search.types';
-export { ISearchHit } from './full-text-search.types';
-export { ISearchResult } from './full-text-search.types';
+export { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT, DEFAULT_MATCH_MODE, DEFAULT_SORT, MIN_TOKEN_LENGTH, MAX_TOKEN_LENGTH, MAX_PHRASE_TOKENS, SearchMatchMode, SearchSort, IIndexedField, IIndexDocumentInput, IIndexedDocument, ISearchToken, ISearchQuery, ISearchHit, ISearchResult } from './full-text-search.types';

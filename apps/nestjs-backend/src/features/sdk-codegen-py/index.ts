@@ -10,19 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SdkCodegenPyAuthService } from './sdk-codegen-py.auth.service';
-export { jsTypeToPy } from './sdk-codegen-py.service';
-export { pathToFString } from './sdk-codegen-py.service';
-export { schemaToDataclass } from './sdk-codegen-py.service';
-export { opToAsyncMethod } from './sdk-codegen-py.service';
-export { groupByTagPy } from './sdk-codegen-py.service';
-export { generatePySdk } from './sdk-codegen-py.service';
+export { jsTypeToPy, pathToFString, schemaToDataclass, opToAsyncMethod, groupByTagPy, generatePySdk } from './sdk-codegen-py.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SDK_PY_DEFAULT_PACKAGE } from './sdk-codegen-py.types';
-export { SDK_PY_DEFAULT_VERSION } from './sdk-codegen-py.types';
-export { SDK_PY_MIN_PYTHON } from './sdk-codegen-py.types';
-export { OpenApiOperationPy } from './sdk-codegen-py.types';
-export { OpenApiSchemaPy } from './sdk-codegen-py.types';
-export { OpenApiDocumentPy } from './sdk-codegen-py.types';
-export { GeneratedPyFile } from './sdk-codegen-py.types';
-export { PyCodegenResult } from './sdk-codegen-py.types';
+export { SDK_PY_DEFAULT_PACKAGE, SDK_PY_DEFAULT_VERSION, SDK_PY_MIN_PYTHON, OpenApiOperationPy, OpenApiSchemaPy, OpenApiDocumentPy, GeneratedPyFile, PyCodegenResult } from './sdk-codegen-py.types';

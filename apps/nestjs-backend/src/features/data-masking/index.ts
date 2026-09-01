@@ -16,27 +16,7 @@ export { DataMaskingController } from './data-masking.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { DataMaskingAuthService } from './data-masking.auth.service';
-export { isValidStrategy } from './data-masking.service';
-export { isValidScope } from './data-masking.service';
-export { isValidRole } from './data-masking.service';
-export { validateCreateInput } from './data-masking.service';
-export { validatePartialRule } from './data-masking.service';
-export { validateRegexRule } from './data-masking.service';
-export { applyPolicy } from './data-masking.service';
-export { applyStrategy } from './data-masking.service';
-export { applyPolicies } from './data-masking.service';
-export { viewerMaySee } from './data-masking.service';
+export { isValidStrategy, isValidScope, isValidRole, validateCreateInput, validatePartialRule, validateRegexRule, applyPolicy, applyStrategy, applyPolicies, viewerMaySee } from './data-masking.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_PARTIAL_KEEP_PREFIX } from './data-masking.types';
-export { DEFAULT_PARTIAL_KEEP_SUFFIX } from './data-masking.types';
-export { DEFAULT_PARTIAL_MASK } from './data-masking.types';
-export { HASH_PREFIX } from './data-masking.types';
-export { MaskingStrategy } from './data-masking.types';
-export { MaskingScope } from './data-masking.types';
-export { MaskingRole } from './data-masking.types';
-export { IRegexRule } from './data-masking.types';
-export { IPartialRule } from './data-masking.types';
-export { IMaskingPolicy } from './data-masking.types';
-export { IMaskedFieldRow } from './data-masking.types';
-export { ICreatePolicyInput } from './data-masking.types';
+export { DEFAULT_PARTIAL_KEEP_PREFIX, DEFAULT_PARTIAL_KEEP_SUFFIX, DEFAULT_PARTIAL_MASK, HASH_PREFIX, MaskingStrategy, MaskingScope, MaskingRole, IRegexRule, IPartialRule, IMaskingPolicy, IMaskedFieldRow, ICreatePolicyInput } from './data-masking.types';

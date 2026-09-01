@@ -8,33 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { OrgQuotaReservationModule } from './org-quota-reservation.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { OrgQuotaReservationController } from './org-quota-reservation.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { OrgQuotaReservationAuthService } from './org-quota-reservation.auth.service';
-export { isReservationStatus } from './org-quota-reservation.service';
-export { isReservationPriority } from './org-quota-reservation.service';
-export { maxReservationsPerOrg } from './org-quota-reservation.service';
-export { defaultReservationTtlMs } from './org-quota-reservation.service';
-export { priorityRank } from './org-quota-reservation.service';
-export { validateReservation } from './org-quota-reservation.service';
-export { normalizeReservation } from './org-quota-reservation.service';
-export { sweepExpired } from './org-quota-reservation.service';
-export { totalReserved } from './org-quota-reservation.service';
-export { releaseReservation } from './org-quota-reservation.service';
-export { consumeReservation } from './org-quota-reservation.service';
-export { decideReservation } from './org-quota-reservation.service';
-export { canReserveMore } from './org-quota-reservation.service';
-export { canEvict } from './org-quota-reservation.service';
+export { isReservationStatus, isReservationPriority, maxReservationsPerOrg, defaultReservationTtlMs, priorityRank, validateReservation, normalizeReservation, sweepExpired, totalReserved, releaseReservation, consumeReservation, decideReservation, canReserveMore, canEvict } from './org-quota-reservation.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_RESERVATIONS_PER_ORG } from './org-quota-reservation.types';
-export { DEFAULT_RESERVATION_TTL_MS } from './org-quota-reservation.types';
-export { MIN_RESERVATION_AMOUNT } from './org-quota-reservation.types';
-export { RESERVATION_STATUSES } from './org-quota-reservation.types';
-export { RESERVATION_PRIORITIES } from './org-quota-reservation.types';
-export { PRIORITY_RANK } from './org-quota-reservation.types';
-export { RESERVATION_STATUS_LABELS } from './org-quota-reservation.types';
-export { ReservationStatus } from './org-quota-reservation.types';
-export { ReservationPriority } from './org-quota-reservation.types';
-export { IOrgQuotaReservation } from './org-quota-reservation.types';
-export { IReservationDecision } from './org-quota-reservation.types';
-export { IOrgQuotaReservationOptions } from './org-quota-reservation.types';
+export { MAX_RESERVATIONS_PER_ORG, DEFAULT_RESERVATION_TTL_MS, MIN_RESERVATION_AMOUNT, RESERVATION_STATUSES, RESERVATION_PRIORITIES, PRIORITY_RANK, RESERVATION_STATUS_LABELS, ReservationStatus, ReservationPriority, IOrgQuotaReservation, IReservationDecision, IOrgQuotaReservationOptions } from './org-quota-reservation.types';

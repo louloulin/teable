@@ -8,29 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { LoginRiskModule } from './login-risk.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { LoginRiskAdminController } from './login-risk.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { LoginRiskAuthService } from './login-risk.auth.service';
-export { validateFingerprint } from './login-risk.service';
-export { isKnownDevice } from './login-risk.service';
-export { geoDistanceKm } from './login-risk.service';
-export { isImpossibleTravel } from './login-risk.service';
-export { isFailedBurst } from './login-risk.service';
-export { isSuspiciousUserAgent } from './login-risk.service';
-export { daysSinceLastSuccess } from './login-risk.service';
-export { evaluate } from './login-risk.service';
-export { decideOutcome } from './login-risk.service';
-export { pushFingerprint } from './login-risk.service';
+export { validateFingerprint, isKnownDevice, geoDistanceKm, isImpossibleTravel, isFailedBurst, isSuspiciousUserAgent, daysSinceLastSuccess, evaluate, decideOutcome, pushFingerprint } from './login-risk.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_RECENT_FINGERPRINTS } from './login-risk.types';
-export { MAX_FAILED_LOGINS_PER_MIN } from './login-risk.types';
-export { IMPOSSIBLE_TRAVEL_KMH } from './login-risk.types';
-export { NEW_LOCATION_DISTANCE_KM } from './login-risk.types';
-export { FAILED_BURST_WINDOW_MS } from './login-risk.types';
-export { LOGIN_RISK_REASON_LABELS } from './login-risk.types';
-export { LoginOutcome } from './login-risk.types';
-export { ILoginFingerprint } from './login-risk.types';
-export { ILoginAttempt } from './login-risk.types';
-export { ILoginHistory } from './login-risk.types';
-export { ILoginRiskInput } from './login-risk.types';
-export { ILoginRiskOutput } from './login-risk.types';
+export { MAX_RECENT_FINGERPRINTS, MAX_FAILED_LOGINS_PER_MIN, IMPOSSIBLE_TRAVEL_KMH, NEW_LOCATION_DISTANCE_KM, FAILED_BURST_WINDOW_MS, LOGIN_RISK_REASON_LABELS, LoginOutcome, ILoginFingerprint, ILoginAttempt, ILoginHistory, ILoginRiskInput, ILoginRiskOutput } from './login-risk.types';

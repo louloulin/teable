@@ -18,19 +18,7 @@ export { GenericConnectorController } from './generic-connector.controller';
 export { GenericConnectorService } from './generic-connector.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { GenericAdapterType } from './generic-connector.types';
-export { GenericSourceSpec } from './generic-connector.types';
-export { GenericRecord } from './generic-connector.types';
-export { GenericFetchResult } from './generic-connector.types';
-export { GenericAdapterInfo } from './generic-connector.types';
-export { GenericConnectionProbe } from './generic-connector.types';
+export { GenericAdapterType, GenericSourceSpec, GenericRecord, GenericFetchResult, GenericAdapterInfo, GenericConnectionProbe } from './generic-connector.types';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { registerAdapter } from './generic-connector.adapters';
-export { getAdapter } from './generic-connector.adapters';
-export { listAdapterTypes } from './generic-connector.adapters';
-export { listAdapterInfos } from './generic-connector.adapters';
-export { jsonEndpointAdapter } from './generic-connector.adapters';
-export { restApiAdapter } from './generic-connector.adapters';
-export { csvUrlAdapter } from './generic-connector.adapters';
-export { GenericAdapterFn } from './generic-connector.adapters';
+export { registerAdapter, getAdapter, listAdapterTypes, listAdapterInfos, jsonEndpointAdapter, restApiAdapter, csvUrlAdapter, GenericAdapterFn } from './generic-connector.adapters';

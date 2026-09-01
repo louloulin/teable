@@ -9,28 +9,13 @@
  */
 
 // ─── Services ─────────────────────────────────────────────────────
-export { ComputedDependencyCollectorService } from './computed-dependency-collector.service';
-export { ICellBasicContext } from './computed-dependency-collector.service';
-export { IComputedImpactByTable } from './computed-dependency-collector.service';
-export { IComputedCollectResult } from './computed-dependency-collector.service';
-export { IFieldChangeSource } from './computed-dependency-collector.service';
+export { ComputedDependencyCollectorService, ICellBasicContext, IComputedImpactByTable, IComputedCollectResult, IFieldChangeSource } from './computed-dependency-collector.service';
 export { ComputedEvaluatorService } from './computed-evaluator.service';
 export { ComputedOrchestratorService } from './computed-orchestrator.service';
 export { PersistedComputedBackfillService } from './persisted-computed-backfill.service';
 export { RecordComputedUpdateService } from './record-computed-update.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { RecordIdBatchStrategy } from './computed-pagination.strategy';
-export { AutoNumberCursorStrategy } from './computed-pagination.strategy';
-export { IComputedRowResult } from './computed-pagination.strategy';
-export { PaginationBatchHandler } from './computed-pagination.strategy';
-export { IPaginationContext } from './computed-pagination.strategy';
-export { IRecordPaginationStrategy } from './computed-pagination.strategy';
-export { buildResultImpact } from './computed-utils';
-export { IImpactGroup } from './computed-utils';
-export { IImpactMap } from './computed-utils';
-export { IResultImpact } from './computed-utils';
-export { LinkCascadeResolver } from './link-cascade-resolver';
-export { ILinkEdge } from './link-cascade-resolver';
-export { IExplicitLinkSeed } from './link-cascade-resolver';
-export { IAllTableLinkSeed } from './link-cascade-resolver';
+export { RecordIdBatchStrategy, AutoNumberCursorStrategy, IComputedRowResult, PaginationBatchHandler, IPaginationContext, IRecordPaginationStrategy } from './computed-pagination.strategy';
+export { buildResultImpact, IImpactGroup, IImpactMap, IResultImpact } from './computed-utils';
+export { LinkCascadeResolver, ILinkEdge, IExplicitLinkSeed, IAllTableLinkSeed } from './link-cascade-resolver';

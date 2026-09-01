@@ -15,8 +15,6 @@ export { AggregationModule } from './aggregation.module';
 export { AggregationService } from './aggregation.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { IAggregationService } from './aggregation.service.interface';
-export { IWithView } from './aggregation.service.interface';
-export { ICustomFieldStats } from './aggregation.service.interface';
+export { IAggregationService, IWithView, ICustomFieldStats } from './aggregation.service.interface';
 export { InjectAggregationService } from './aggregation.service.provider';
 export { AGGREGATION_SERVICE_SYMBOL } from './aggregation.service.symbol';

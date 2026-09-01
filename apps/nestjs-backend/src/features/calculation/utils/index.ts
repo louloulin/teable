@@ -9,20 +9,8 @@
  */
 
 // ─── Other public exports ─────────────────────────────────────────
-export { changeToOp } from './changes';
-export { formatChangesToOps } from './changes';
-export { mergeDuplicateChange } from './changes';
-export { ICellChange } from './changes';
-export { ICellContext } from './changes';
-export { composeOpMaps } from './compose-maps';
-export { IOpsMap } from './compose-maps';
+export { changeToOp, formatChangesToOps, mergeDuplicateChange, ICellChange, ICellContext } from './changes';
+export { composeOpMaps, IOpsMap } from './compose-maps';
 export { isLinkCellValue } from './detect-link';
-export { hasCycle } from './dfs';
-export { prependStartFieldIds } from './dfs';
-export { getTopoOrders } from './dfs';
-export { topoOrderWithStart } from './dfs';
-export { filterDirectedGraph } from './dfs';
-export { pruneGraph } from './dfs';
-export { ITopoItem } from './dfs';
-export { IGraphItem } from './dfs';
+export { hasCycle, prependStartFieldIds, getTopoOrders, topoOrderWithStart, filterDirectedGraph, pruneGraph, ITopoItem, IGraphItem } from './dfs';
 export { nameConsole } from './name-console';

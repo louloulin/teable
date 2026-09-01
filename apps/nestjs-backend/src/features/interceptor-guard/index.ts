@@ -10,22 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { InterceptorGuardAuthService } from './interceptor-guard.auth.service';
-export { validateAuth } from './interceptor-guard.service';
-export { isAuthorized } from './interceptor-guard.service';
-export { buildError } from './interceptor-guard.service';
-export { statusFor } from './interceptor-guard.service';
-export { buildAudit } from './interceptor-guard.service';
-export { shouldDeny } from './interceptor-guard.service';
-export { outcomeFor } from './interceptor-guard.service';
+export { validateAuth, isAuthorized, buildError, statusFor, buildAudit, shouldDeny, outcomeFor } from './interceptor-guard.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_PRINCIPAL_LENGTH } from './interceptor-guard.types';
-export { MAX_TRACE_ID_LENGTH } from './interceptor-guard.types';
-export { MAX_AUDIT_CONTEXT_KEYS } from './interceptor-guard.types';
-export { ROLE_ADMIN } from './interceptor-guard.types';
-export { ROLE_OWNER } from './interceptor-guard.types';
-export { AuditAction } from './interceptor-guard.types';
-export { ErrorCode } from './interceptor-guard.types';
-export { IAuthContext } from './interceptor-guard.types';
-export { IErrorEnvelope } from './interceptor-guard.types';
-export { IAuditRecord } from './interceptor-guard.types';
+export { MAX_PRINCIPAL_LENGTH, MAX_TRACE_ID_LENGTH, MAX_AUDIT_CONTEXT_KEYS, ROLE_ADMIN, ROLE_OWNER, AuditAction, ErrorCode, IAuthContext, IErrorEnvelope, IAuditRecord } from './interceptor-guard.types';

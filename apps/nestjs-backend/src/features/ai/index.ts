@@ -17,23 +17,12 @@ export { AiStreamingController } from './ai-streaming.controller';
 export { AiController } from './ai.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { AiGatewayModelsService } from './ai-gateway-models.service';
-export { AI_GATEWAY_MODELS_CACHE_KEY } from './ai-gateway-models.service';
-export { AiStreamingService } from './ai-streaming.service';
-export { IStreamChunk } from './ai-streaming.service';
-export { IStreamErrorChunk } from './ai-streaming.service';
-export { IAiStreamEvent } from './ai-streaming.service';
-export { AiService } from './ai.service';
-export { INSTANCE_PROVIDER_NAME } from './ai.service';
-export { ILanguageModelV2 } from './ai.service';
-export { IResolvedModelMapping } from './ai.service';
+export { AiGatewayModelsService, AI_GATEWAY_MODELS_CACHE_KEY } from './ai-gateway-models.service';
+export { AiStreamingService, IStreamChunk, IStreamErrorChunk, IAiStreamEvent } from './ai-streaming.service';
+export { AiService, INSTANCE_PROVIDER_NAME, ILanguageModelV2, IResolvedModelMapping } from './ai.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { renderPromptTemplate } from './ai-field-prompt.builder';
-export { buildAiFieldPrompt } from './ai-field-prompt.builder';
-export { collectAiFieldSourceIds } from './ai-field-prompt.builder';
+export { renderPromptTemplate, buildAiFieldPrompt, collectAiFieldSourceIds } from './ai-field-prompt.builder';
 export { AiFieldRecordListener } from './ai-field-record.listener';
 export { TASK_MODEL_MAP } from './constant';
-export { modelProviders } from './util';
-export { getAdaptedProviderOptions } from './util';
-export { getTaskModelKey } from './util';
+export { modelProviders, getAdaptedProviderOptions, getTaskModelKey } from './util';

@@ -10,25 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { E2ETestUtilsAuthService } from './e2e-test-utils.auth.service';
-export { validateFixture } from './e2e-test-utils.service';
-export { validateOrg } from './e2e-test-utils.service';
-export { validateCall } from './e2e-test-utils.service';
-export { composeHeaders } from './e2e-test-utils.service';
-export { buildCall } from './e2e-test-utils.service';
-export { runAssertion } from './e2e-test-utils.service';
-export { deepEqual } from './e2e-test-utils.service';
-export { emptyResult } from './e2e-test-utils.service';
-export { findUser } from './e2e-test-utils.service';
-export { tokenFor } from './e2e-test-utils.service';
+export { validateFixture, validateOrg, validateCall, composeHeaders, buildCall, runAssertion, deepEqual, emptyResult, findUser, tokenFor } from './e2e-test-utils.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_USERS_PER_FIXTURE } from './e2e-test-utils.types';
-export { MAX_FIXTURES } from './e2e-test-utils.types';
-export { MAX_HEADER_COUNT } from './e2e-test-utils.types';
-export { ITestUser } from './e2e-test-utils.types';
-export { ITestOrg } from './e2e-test-utils.types';
-export { ITestFixture } from './e2e-test-utils.types';
-export { IApiCallInput } from './e2e-test-utils.types';
-export { IApiCallResult } from './e2e-test-utils.types';
-export { IAssertionInput } from './e2e-test-utils.types';
-export { IAssertionResult } from './e2e-test-utils.types';
+export { MAX_USERS_PER_FIXTURE, MAX_FIXTURES, MAX_HEADER_COUNT, ITestUser, ITestOrg, ITestFixture, IApiCallInput, IApiCallResult, IAssertionInput, IAssertionResult } from './e2e-test-utils.types';

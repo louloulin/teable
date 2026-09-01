@@ -8,36 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { QuotaAnomalyModule } from './quota-anomaly.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { QuotaAnomalyAdminController } from './quota-anomaly.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { QuotaAnomalyAuthService } from './quota-anomaly.auth.service';
-export { isQuotaMetric } from './quota-anomaly.service';
-export { isNotificationChannel } from './quota-anomaly.service';
-export { validateSample } from './quota-anomaly.service';
-export { buildWindow } from './quota-anomaly.service';
-export { appendSample } from './quota-anomaly.service';
-export { medianValue } from './quota-anomaly.service';
-export { capRatio } from './quota-anomaly.service';
-export { burstRatio } from './quota-anomaly.service';
-export { severityFromRatios } from './quota-anomaly.service';
-export { channelsForSeverity } from './quota-anomaly.service';
-export { capChannels } from './quota-anomaly.service';
-export { buildReport } from './quota-anomaly.service';
-export { evaluateWindow } from './quota-anomaly.service';
-export { trimReports } from './quota-anomaly.service';
+export { isQuotaMetric, isNotificationChannel, validateSample, buildWindow, appendSample, medianValue, capRatio, burstRatio, severityFromRatios, channelsForSeverity, capChannels, buildReport, evaluateWindow, trimReports } from './quota-anomaly.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ANOMALY_RATIO_WARNING } from './quota-anomaly.types';
-export { ANOMALY_RATIO_CRITICAL } from './quota-anomaly.types';
-export { ANOMALY_CAP_RATIO_WARNING } from './quota-anomaly.types';
-export { ANOMALY_CAP_RATIO_CRITICAL } from './quota-anomaly.types';
-export { MAX_WINDOW_SAMPLES } from './quota-anomaly.types';
-export { MAX_CHANNELS_PER_REPORT } from './quota-anomaly.types';
-export { ANOMALY_METRICS } from './quota-anomaly.types';
-export { ANOMALY_SEVERITIES } from './quota-anomaly.types';
-export { ANOMALY_CHANNELS } from './quota-anomaly.types';
-export { QuotaMetric } from './quota-anomaly.types';
-export { AnomalySeverity } from './quota-anomaly.types';
-export { NotificationChannel } from './quota-anomaly.types';
-export { IQuotaSample } from './quota-anomaly.types';
-export { IQuotaWindow } from './quota-anomaly.types';
-export { IAnomalyReport } from './quota-anomaly.types';
+export { ANOMALY_RATIO_WARNING, ANOMALY_RATIO_CRITICAL, ANOMALY_CAP_RATIO_WARNING, ANOMALY_CAP_RATIO_CRITICAL, MAX_WINDOW_SAMPLES, MAX_CHANNELS_PER_REPORT, ANOMALY_METRICS, ANOMALY_SEVERITIES, ANOMALY_CHANNELS, QuotaMetric, AnomalySeverity, NotificationChannel, IQuotaSample, IQuotaWindow, IAnomalyReport } from './quota-anomaly.types';

@@ -10,30 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { IntegrationConnectorAuthService } from './integration-connector.auth.service';
-export { isValidProviderCode } from './integration-connector.service';
-export { resolveBundledProvider } from './integration-connector.service';
-export { generateWebhookSecret } from './integration-connector.service';
-export { hashPayload } from './integration-connector.service';
-export { signCatchHook } from './integration-connector.service';
-export { verifyCatchHookSignature } from './integration-connector.service';
-export { isValidInstallStatusTransition } from './integration-connector.service';
-export { buildInstallRow } from './integration-connector.service';
-export { applyInstallUpdate } from './integration-connector.service';
-export { buildCatchHookUrl } from './integration-connector.service';
-export { isDuplicateDelivery } from './integration-connector.service';
-export { resolveProvider } from './integration-connector.service';
+export { isValidProviderCode, resolveBundledProvider, generateWebhookSecret, hashPayload, signCatchHook, verifyCatchHookSignature, isValidInstallStatusTransition, buildInstallRow, applyInstallUpdate, buildCatchHookUrl, isDuplicateDelivery, resolveProvider } from './integration-connector.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_PROVIDERS } from './integration-connector.types';
-export { IntegrationCategory } from './integration-connector.types';
-export { IntegrationAuthType } from './integration-connector.types';
-export { IntegrationWebhookStyle } from './integration-connector.types';
-export { InstallStatus } from './integration-connector.types';
-export { EventDirection } from './integration-connector.types';
-export { DeliveryStatus } from './integration-connector.types';
-export { IIntegrationProvider } from './integration-connector.types';
-export { IIntegrationInstall } from './integration-connector.types';
-export { IIntegrationEventLog } from './integration-connector.types';
-export { ICreateInstallInput } from './integration-connector.types';
-export { IUpdateInstallInput } from './integration-connector.types';
-export { ICatchHookDelivery } from './integration-connector.types';
+export { SUPPORTED_PROVIDERS, IntegrationCategory, IntegrationAuthType, IntegrationWebhookStyle, InstallStatus, EventDirection, DeliveryStatus, IIntegrationProvider, IIntegrationInstall, IIntegrationEventLog, ICreateInstallInput, IUpdateInstallInput, ICatchHookDelivery } from './integration-connector.types';

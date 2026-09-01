@@ -10,17 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { DataExchangeAuditAuthService } from './data-exchange-audit.auth.service';
-export { validateEvent } from './data-exchange-audit.service';
-export { appendEvent } from './data-exchange-audit.service';
-export { verifyChain } from './data-exchange-audit.service';
-export { queryEvents } from './data-exchange-audit.service';
-export { lastHash } from './data-exchange-audit.service';
+export { validateEvent, appendEvent, verifyChain, queryEvents, lastHash } from './data-exchange-audit.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { hashEvent } from './data-exchange-audit.types';
-export { AUDIT_HASH_ALGO } from './data-exchange-audit.types';
-export { MAX_AUDIT_EVENTS_PER_ORG } from './data-exchange-audit.types';
-export { MAX_AUDIT_METADATA_BYTES } from './data-exchange-audit.types';
-export { AuditAction } from './data-exchange-audit.types';
-export { IAuditEvent } from './data-exchange-audit.types';
-export { IAuditQuery } from './data-exchange-audit.types';
+export { hashEvent, AUDIT_HASH_ALGO, MAX_AUDIT_EVENTS_PER_ORG, MAX_AUDIT_METADATA_BYTES, AuditAction, IAuditEvent, IAuditQuery } from './data-exchange-audit.types';

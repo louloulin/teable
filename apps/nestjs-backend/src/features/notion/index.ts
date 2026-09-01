@@ -15,38 +15,11 @@ export { NotionModule } from './notion.module';
 export { NotionController } from './notion.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { NotionImportService } from './notion-import.service';
-export { INotionImportResult } from './notion-import.service';
-export { NotionOAuthService } from './notion-oauth.service';
-export { NOTION_TOKEN_SETTING_KEY } from './notion-oauth.service';
-export { INotionStoredTokensBySpace } from './notion-oauth.service';
-export { INotionOAuthServiceDeps } from './notion-oauth.service';
+export { NotionImportService, INotionImportResult } from './notion-import.service';
+export { NotionOAuthService, NOTION_TOKEN_SETTING_KEY, INotionStoredTokensBySpace, INotionOAuthServiceDeps } from './notion-oauth.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { NotionApiError } from './notion.types';
-export { NOTION_API_VERSION } from './notion.types';
-export { NOTION_API_BASE } from './notion.types';
-export { NOTION_OAUTH_AUTHORIZE } from './notion.types';
-export { NOTION_OAUTH_TOKEN } from './notion.types';
-export { notionFetch } from './notion.types';
-export { INotionOAuthTokens } from './notion.types';
-export { INotionDatabaseListItem } from './notion.types';
-export { INotionPageListItem } from './notion.types';
-export { INotionPageListResult } from './notion.types';
-export { INotionNotionPageListQuery } from './notion.types';
-export { INotionRichText } from './notion.types';
-export { INotionPropertyValue } from './notion.types';
-export { INotionDatabaseSchema } from './notion.types';
-export { INotionPropertySchema } from './notion.types';
-export { INotionFetchOptions } from './notion.types';
+export { NotionApiError, NOTION_API_VERSION, NOTION_API_BASE, NOTION_OAUTH_AUTHORIZE, NOTION_OAUTH_TOKEN, notionFetch, INotionOAuthTokens, INotionDatabaseListItem, INotionPageListItem, INotionPageListResult, INotionNotionPageListQuery, INotionRichText, INotionPropertyValue, INotionDatabaseSchema, INotionPropertySchema, INotionFetchOptions } from './notion.types';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { SUPPORTED_NOTION_TYPES } from './notion-schema-mapper';
-export { mapNotionPropertyToField } from './notion-schema-mapper';
-export { mapNotionDatabaseSchema } from './notion-schema-mapper';
-export { notionPropertyValueToCell } from './notion-schema-mapper';
-export { notionPageToRecord } from './notion-schema-mapper';
-export { INotionFieldMapping } from './notion-schema-mapper';
-export { INotionSchemaMappingResult } from './notion-schema-mapper';
-export { NotionPropertyType } from './notion-schema-mapper';
-export { INotionRecordValue } from './notion-schema-mapper';
+export { SUPPORTED_NOTION_TYPES, mapNotionPropertyToField, mapNotionDatabaseSchema, notionPropertyValueToCell, notionPageToRecord, INotionFieldMapping, INotionSchemaMappingResult, NotionPropertyType, INotionRecordValue } from './notion-schema-mapper';

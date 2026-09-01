@@ -10,22 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ComplianceEvidenceCollectorAuthService } from './compliance-evidence-collector.auth.service';
-export { buildEvidenceId } from './compliance-evidence-collector.service';
-export { hashContent } from './compliance-evidence-collector.service';
-export { isEvidenceIdValid } from './compliance-evidence-collector.service';
-export { filterRecords } from './compliance-evidence-collector.service';
-export { collectEvidence } from './compliance-evidence-collector.service';
-export { groupByControl } from './compliance-evidence-collector.service';
-export { presentEvidence } from './compliance-evidence-collector.service';
-export { totals } from './compliance-evidence-collector.service';
-export { isFresh } from './compliance-evidence-collector.service';
-export { dropStale } from './compliance-evidence-collector.service';
+export { buildEvidenceId, hashContent, isEvidenceIdValid, filterRecords, collectEvidence, groupByControl, presentEvidence, totals, isFresh, dropStale } from './compliance-evidence-collector.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { EVIDENCE_ID_RE } from './compliance-evidence-collector.types';
-export { DEFAULT_EVIDENCE_WINDOW_DAYS } from './compliance-evidence-collector.types';
-export { DEFAULT_MAX_PER_CONTROL } from './compliance-evidence-collector.types';
-export { EvidenceRecord } from './compliance-evidence-collector.types';
-export { EvidenceCollectorOptions } from './compliance-evidence-collector.types';
-export { CollectionResult } from './compliance-evidence-collector.types';
-export { EvidenceQuery } from './compliance-evidence-collector.types';
+export { EVIDENCE_ID_RE, DEFAULT_EVIDENCE_WINDOW_DAYS, DEFAULT_MAX_PER_CONTROL, EvidenceRecord, EvidenceCollectorOptions, CollectionResult, EvidenceQuery } from './compliance-evidence-collector.types';

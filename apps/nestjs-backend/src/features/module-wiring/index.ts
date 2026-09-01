@@ -10,16 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ModuleWiringAuthService } from './module-wiring.auth.service';
-export { validateEntry } from './module-wiring.service';
-export { buildManifest } from './module-wiring.service';
-export { isComplete } from './module-wiring.service';
-export { coverageStats } from './module-wiring.service';
-export { diffManifests } from './module-wiring.service';
-export { patchEntry } from './module-wiring.service';
+export { validateEntry, buildManifest, isComplete, coverageStats, diffManifests, patchEntry } from './module-wiring.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { FEATURE_MODULE_NAMES } from './module-wiring.types';
-export { MAX_MODULES } from './module-wiring.types';
-export { FeatureModule } from './module-wiring.types';
-export { IModuleEntry } from './module-wiring.types';
-export { IWiringManifest } from './module-wiring.types';
+export { FEATURE_MODULE_NAMES, MAX_MODULES, FeatureModule, IModuleEntry, IWiringManifest } from './module-wiring.types';

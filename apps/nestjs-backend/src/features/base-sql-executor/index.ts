@@ -15,11 +15,8 @@ export { BaseSqlExecutorModule } from './base-sql-executor.module';
 export { BaseSqlExecutorService } from './base-sql-executor.service';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { validateRoleOperations } from './utils';
-export { checkTableAccess } from './utils';
-export { getTableNames } from './utils';
+export { validateRoleOperations, checkTableAccess, getTableNames } from './utils';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { allowedFunctions } from './allowed-functions';
-export { BASE_READ_ONLY_ROLE_PREFIX } from './const';
-export { BASE_SCHEMA_TABLE_READ_ONLY_ROLE_NAME } from './const';
+export { BASE_READ_ONLY_ROLE_PREFIX, BASE_SCHEMA_TABLE_READ_ONLY_ROLE_NAME } from './const';

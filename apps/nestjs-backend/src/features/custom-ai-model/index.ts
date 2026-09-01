@@ -18,11 +18,4 @@ export { CustomAiModelController } from './custom-ai-model.controller';
 export { CustomAiModelAuthService } from './custom-ai-model.auth.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_CUSTOM_PROVIDERS } from './custom-ai-model.types';
-export { CustomAiProvider } from './custom-ai-model.types';
-export { CustomAiIsolation } from './custom-ai-model.types';
-export { ICustomAiModel } from './custom-ai-model.types';
-export { ICreateCustomAiModelInput } from './custom-ai-model.types';
-export { IUpdateCustomAiModelInput } from './custom-ai-model.types';
-export { ICustomAiModelTestResult } from './custom-ai-model.types';
-export { ICustomAiModelUsage } from './custom-ai-model.types';
+export { SUPPORTED_CUSTOM_PROVIDERS, CustomAiProvider, CustomAiIsolation, ICustomAiModel, ICreateCustomAiModelInput, IUpdateCustomAiModelInput, ICustomAiModelTestResult, ICustomAiModelUsage } from './custom-ai-model.types';

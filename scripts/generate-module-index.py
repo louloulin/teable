@@ -54,6 +54,16 @@ def extract_local_exports(file_path: Path) -> list[str]:
         text = file_path.read_text()
     except (FileNotFoundError, UnicodeDecodeError):
         return []
+    # Strip block + line comments so `/* export class Foo */` does not
+    # fool the regex below.
+    text = re.sub(r"/\*[\s\S]*?\*/", "", text)
+    text = re.sub(r"//[^\n]*", "", text)
+    # Strip `export { ... } from '...';` (re-exports) and `export { ... };`
+    # (re-exports of locally declared names). These are not declarations
+    # of new symbols; we only want top-level `export class/function/const/
+    # type/interface/enum` declarations.
+    text = re.sub(r"^\s*export\s*\{[^}]*\}\s*(?:from\s*[\'\"][^\'\"]+[\'\"])?\s*;?\s*$",
+                  "", text, flags=re.MULTILINE)
     names: list[str] = []
     for rx in (EX_REG := (
         EXPORT_CLASS_RE,
@@ -160,14 +170,29 @@ def generate_index(module_dir: Path | str) -> str:
             header = f"// ─── Other public exports ─────────────────────────────────────────"
         lines.append("")
         lines.append(header)
+        # Track symbols emitted in this run so we never duplicate across
+        # files in the same directory (e.g. a type re-exported from a
+        # sibling file should appear once, not twice).
+        emitted: set[str] = set()
         for f, names in items:
             stem = f.stem
             if not names:
-                # No top-level exports detected — emit star re-export.
-                lines.append(f"export * from './{stem}';")
+                # No top-level exports detected — emit star re-export,
+                # but only if we have not already emitted one for this
+                # file's stem (defensive).
+                star_key = f"*{stem}"
+                if star_key not in emitted:
+                    lines.append(f"export * from './{stem}';")
+                    emitted.add(star_key)
                 continue
-            for n in names:
-                lines.append(f"export {{ {n} }} from './{stem}';")
+            # Group names from the same file into a single `export { a, b, c }`
+            # statement to keep the barrel compact.
+            new_names = [n for n in names if n not in emitted]
+            if not new_names:
+                continue
+            lines.append(f"export {{ {', '.join(new_names)} }} from './{stem}';")
+            for n in new_names:
+                emitted.add(n)
 
     if not has_any:
         return None

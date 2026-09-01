@@ -10,24 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { DataExchangeAuthService } from './data-exchange.auth.service';
-export { escapeCsvCell } from './data-exchange.service';
-export { buildCsv } from './data-exchange.service';
-export { parseCsv } from './data-exchange.service';
-export { buildJson } from './data-exchange.service';
-export { parseJson } from './data-exchange.service';
-export { buildXlsxBase64 } from './data-exchange.service';
-export { exportTable } from './data-exchange.service';
-export { validateRows } from './data-exchange.service';
-export { IJsonEnvelope } from './data-exchange.service';
+export { escapeCsvCell, buildCsv, parseCsv, buildJson, parseJson, buildXlsxBase64, exportTable, validateRows, IJsonEnvelope } from './data-exchange.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_IMPORT_ROWS } from './data-exchange.types';
-export { MAX_CELL_BYTES } from './data-exchange.types';
-export { ExportFormat } from './data-exchange.types';
-export { ImportFormat } from './data-exchange.types';
-export { IColumn } from './data-exchange.types';
-export { IRow } from './data-exchange.types';
-export { ITableData } from './data-exchange.types';
-export { IExportResult } from './data-exchange.types';
-export { IImportSummary } from './data-exchange.types';
-export { IRowStore } from './data-exchange.types';
+export { MAX_IMPORT_ROWS, MAX_CELL_BYTES, ExportFormat, ImportFormat, IColumn, IRow, ITableData, IExportResult, IImportSummary, IRowStore } from './data-exchange.types';

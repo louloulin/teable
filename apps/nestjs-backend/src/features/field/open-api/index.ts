@@ -16,5 +16,4 @@ export { FieldOpenApiController } from './field-open-api.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { FieldOpenApiV2Service } from './field-open-api-v2.service';
-export { FieldOpenApiService } from './field-open-api.service';
-export { ILegacyDeleteFieldsPayloadSnapshot } from './field-open-api.service';
+export { FieldOpenApiService, ILegacyDeleteFieldsPayloadSnapshot } from './field-open-api.service';

@@ -18,14 +18,4 @@ export { OAuthController } from './oauth.controller';
 export { OAuthService } from './oauth.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { OAUTH_SCOPES } from './oauth.types';
-export { DEFAULT_ACCESS_TOKEN_TTL_SEC } from './oauth.types';
-export { DEFAULT_REFRESH_TOKEN_TTL_SEC } from './oauth.types';
-export { DEFAULT_AUTHORIZATION_CODE_TTL_SEC } from './oauth.types';
-export { OAuthScope } from './oauth.types';
-export { IOAuthApplicationRow } from './oauth.types';
-export { IAuthorizeRequest } from './oauth.types';
-export { ITokenRequest } from './oauth.types';
-export { ITokenResponse } from './oauth.types';
-export { ICreateApplicationInput } from './oauth.types';
-export { ICreateApplicationResult } from './oauth.types';
+export { OAUTH_SCOPES, DEFAULT_ACCESS_TOKEN_TTL_SEC, DEFAULT_REFRESH_TOKEN_TTL_SEC, DEFAULT_AUTHORIZATION_CODE_TTL_SEC, OAuthScope, IOAuthApplicationRow, IAuthorizeRequest, ITokenRequest, ITokenResponse, ICreateApplicationInput, ICreateApplicationResult } from './oauth.types';

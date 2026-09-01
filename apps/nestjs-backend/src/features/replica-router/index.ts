@@ -10,27 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ReplicaRouterAuthService } from './replica-router.auth.service';
-export { isValidKind } from './replica-router.service';
-export { isValidStatus } from './replica-router.service';
-export { isValidPolicy } from './replica-router.service';
-export { validateReplicaInput } from './replica-router.service';
-export { buildReplicaRow } from './replica-router.service';
-export { regionHash } from './replica-router.service';
-export { pickNearest } from './replica-router.service';
-export { pickRoundRobin } from './replica-router.service';
-export { foldHealthCheck } from './replica-router.service';
-export { decideRoute } from './replica-router.service';
-export { lagBucket } from './replica-router.service';
-export { POLICY_DESCRIPTIONS } from './replica-router.service';
+export { isValidKind, isValidStatus, isValidPolicy, validateReplicaInput, buildReplicaRow, regionHash, pickNearest, pickRoundRobin, foldHealthCheck, decideRoute, lagBucket, POLICY_DESCRIPTIONS } from './replica-router.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_MAX_LAG_MS } from './replica-router.types';
-export { DEFAULT_WEIGHT } from './replica-router.types';
-export { ReplicaKind } from './replica-router.types';
-export { ReplicaStatus } from './replica-router.types';
-export { RoutingPolicy } from './replica-router.types';
-export { IReadReplica } from './replica-router.types';
-export { IReadRouteLog } from './replica-router.types';
-export { IRegisterReplicaInput } from './replica-router.types';
-export { IRouteDecision } from './replica-router.types';
-export { IHealthCheck } from './replica-router.types';
+export { DEFAULT_MAX_LAG_MS, DEFAULT_WEIGHT, ReplicaKind, ReplicaStatus, RoutingPolicy, IReadReplica, IReadRouteLog, IRegisterReplicaInput, IRouteDecision, IHealthCheck } from './replica-router.types';

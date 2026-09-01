@@ -20,8 +20,4 @@ export { AuthService } from './auth.service';
 export { PermissionService } from './permission.service';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { pickUserMe } from './utils';
-export { getTemplateHeader } from './utils';
-export { getBaseShareHeader } from './utils';
-export { getShareViewHeader } from './utils';
-export { IPickUserMe } from './utils';
+export { pickUserMe, getTemplateHeader, getBaseShareHeader, getShareViewHeader, IPickUserMe } from './utils';

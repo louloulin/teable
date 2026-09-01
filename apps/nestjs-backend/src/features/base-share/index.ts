@@ -16,7 +16,5 @@ export { BaseShareOpenController } from './base-share-open.controller';
 export { BaseShareController } from './base-share.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { BaseShareAuthService } from './base-share-auth.service';
-export { IBaseShareInfo } from './base-share-auth.service';
-export { IJwtBaseShareInfo } from './base-share-auth.service';
+export { BaseShareAuthService, IBaseShareInfo, IJwtBaseShareInfo } from './base-share-auth.service';
 export { BaseShareService } from './base-share.service';

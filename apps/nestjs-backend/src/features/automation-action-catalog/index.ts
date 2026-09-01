@@ -10,27 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AutomationActionCatalogAuthService } from './automation-action-catalog.auth.service';
-export { indexActionCatalog } from './automation-action-catalog.service';
-export { getActionSpec } from './automation-action-catalog.service';
-export { groupActionsByCategory } from './automation-action-catalog.service';
-export { listActionsByCategory } from './automation-action-catalog.service';
-export { validateActionConfig } from './automation-action-catalog.service';
-export { computeRetryDelay } from './automation-action-catalog.service';
-export { isRollbackable } from './automation-action-catalog.service';
-export { mergeActionCatalogs } from './automation-action-catalog.service';
-export { capActionCatalog } from './automation-action-catalog.service';
-export { serializeActionCatalog } from './automation-action-catalog.service';
-export { summarizeActionCatalog } from './automation-action-catalog.service';
-export { BUILTIN_ACTION_CATALOG } from './automation-action-catalog.service';
+export { indexActionCatalog, getActionSpec, groupActionsByCategory, listActionsByCategory, validateActionConfig, computeRetryDelay, isRollbackable, mergeActionCatalogs, capActionCatalog, serializeActionCatalog, summarizeActionCatalog, BUILTIN_ACTION_CATALOG } from './automation-action-catalog.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_ACTION_CATALOG_TYPES } from './automation-action-catalog.types';
-export { MAX_ACTION_FIELDS_PER_TYPE } from './automation-action-catalog.types';
-export { DEFAULT_ACTION_RETRY } from './automation-action-catalog.types';
-export { AutomationActionCategory } from './automation-action-catalog.types';
-export { IActionFieldSpec } from './automation-action-catalog.types';
-export { IActionRetrySpec } from './automation-action-catalog.types';
-export { IActionTypeSpec } from './automation-action-catalog.types';
-export { IActionCatalog } from './automation-action-catalog.types';
-export { IActionValidationIssue } from './automation-action-catalog.types';
-export { IActionValidationResult } from './automation-action-catalog.types';
+export { MAX_ACTION_CATALOG_TYPES, MAX_ACTION_FIELDS_PER_TYPE, DEFAULT_ACTION_RETRY, AutomationActionCategory, IActionFieldSpec, IActionRetrySpec, IActionTypeSpec, IActionCatalog, IActionValidationIssue, IActionValidationResult } from './automation-action-catalog.types';

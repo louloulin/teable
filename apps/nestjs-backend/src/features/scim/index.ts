@@ -17,22 +17,10 @@ export { ScimController } from './scim.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ScimAuthService } from './scim.auth.service';
-export { ScimService } from './scim.service';
-export { generateScimToken } from './scim.service';
-export { hashScimToken } from './scim.service';
-export { parseBearerHeader } from './scim.service';
-export { userToScim } from './scim.service';
-export { scimToUserPatch } from './scim.service';
-export { groupToScim } from './scim.service';
-export { toListResponse } from './scim.service';
-export { matchesFilter } from './scim.service';
+export { ScimService, generateScimToken, hashScimToken, parseBearerHeader, userToScim, scimToUserPatch, groupToScim, toListResponse, matchesFilter } from './scim.service';
 
 // ─── Guards ───────────────────────────────────────────────────────
 export { ScimAuthGuard } from './scim-auth.guard';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IScimTokenRow } from './scim.types';
-export { IScimUser } from './scim.types';
-export { IScimGroup } from './scim.types';
-export { IScimListResponse } from './scim.types';
-export { IScimAuthContext } from './scim.types';
+export { IScimTokenRow, IScimUser, IScimGroup, IScimListResponse, IScimAuthContext } from './scim.types';

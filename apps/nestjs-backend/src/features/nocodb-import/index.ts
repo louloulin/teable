@@ -18,10 +18,7 @@ export { NocoDbImportController } from './nocodb-import.controller';
 export { NocoDbImportService } from './nocodb-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { NocoDbBase } from './nocodb-import.types';
-export { NocoDbTable } from './nocodb-import.types';
-export { NocoDbRow } from './nocodb-import.types';
-export { NocoDbConnectionProbe } from './nocodb-import.types';
+export { NocoDbBase, NocoDbTable, NocoDbRow, NocoDbConnectionProbe } from './nocodb-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { NocoDbApiClient } from './nocodb-api.client';

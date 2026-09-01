@@ -10,20 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { E2eGuardSmokeAuthService } from './e2e-guard-smoke.auth.service';
-export { validateGuardCase } from './e2e-guard-smoke.service';
-export { guardOutcomeFor } from './e2e-guard-smoke.service';
-export { capGuardCases } from './e2e-guard-smoke.service';
-export { guardFailures } from './e2e-guard-smoke.service';
-export { guardPassRate } from './e2e-guard-smoke.service';
-export { buildCanonicalCases } from './e2e-guard-smoke.service';
-export { envelopeForCase } from './e2e-guard-smoke.service';
-export { statusForOutcome } from './e2e-guard-smoke.service';
+export { validateGuardCase, guardOutcomeFor, capGuardCases, guardFailures, guardPassRate, buildCanonicalCases, envelopeForCase, statusForOutcome } from './e2e-guard-smoke.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_GUARD_CASES } from './e2e-guard-smoke.types';
-export { MAX_GUARD_RESULTS } from './e2e-guard-smoke.types';
-export { GuardSmokeOutcome } from './e2e-guard-smoke.types';
-export { IGuardSmokeCase } from './e2e-guard-smoke.types';
-export { IGuardSmokeResult } from './e2e-guard-smoke.types';
-export { IGuardSmokeReport } from './e2e-guard-smoke.types';
-export { IGuardSmokeExecutor } from './e2e-guard-smoke.types';
+export { MAX_GUARD_CASES, MAX_GUARD_RESULTS, GuardSmokeOutcome, IGuardSmokeCase, IGuardSmokeResult, IGuardSmokeReport, IGuardSmokeExecutor } from './e2e-guard-smoke.types';

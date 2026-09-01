@@ -18,9 +18,4 @@ export { ConditionalFormatController } from './conditional-format.controller';
 export { ConditionalFormatService } from './conditional-format.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { CF_OPERATORS } from './conditional-format.types';
-export { CfOperator } from './conditional-format.types';
-export { ICfStyle } from './conditional-format.types';
-export { ICfRuleRow } from './conditional-format.types';
-export { ICfRuleInput } from './conditional-format.types';
-export { ICfEvaluationResult } from './conditional-format.types';
+export { CF_OPERATORS, CfOperator, ICfStyle, ICfRuleRow, ICfRuleInput, ICfEvaluationResult } from './conditional-format.types';

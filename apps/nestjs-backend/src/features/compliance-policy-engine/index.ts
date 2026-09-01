@@ -8,31 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { CompliancePolicyEngineModule } from './compliance-policy-engine.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { CompliancePolicyEngineController } from './compliance-policy-engine.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { CompliancePolicyEngineAuthService } from './compliance-policy-engine.auth.service';
-export { buildRuleId } from './compliance-policy-engine.service';
-export { isRuleIdValid } from './compliance-policy-engine.service';
-export { buildBundle } from './compliance-policy-engine.service';
-export { findRule } from './compliance-policy-engine.service';
-export { filterBySeverity } from './compliance-policy-engine.service';
-export { isRuleValid } from './compliance-policy-engine.service';
-export { evaluateBundle } from './compliance-policy-engine.service';
-export { evaluateRule } from './compliance-policy-engine.service';
-export { shouldBlock } from './compliance-policy-engine.service';
-export { filterViolations } from './compliance-policy-engine.service';
-export { maxSeverity } from './compliance-policy-engine.service';
-export { actionsForViolation } from './compliance-policy-engine.service';
-export { bundleHash } from './compliance-policy-engine.service';
-export { BUILTIN_POLICIES } from './compliance-policy-engine.service';
+export { buildRuleId, isRuleIdValid, buildBundle, findRule, filterBySeverity, isRuleValid, evaluateBundle, evaluateRule, shouldBlock, filterViolations, maxSeverity, actionsForViolation, bundleHash, BUILTIN_POLICIES } from './compliance-policy-engine.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { POLICY_RULE_ID_RE } from './compliance-policy-engine.types';
-export { DEFAULT_POLICY_BUNDLE_VERSION } from './compliance-policy-engine.types';
-export { SEVERITY_RANK } from './compliance-policy-engine.types';
-export { PolicySeverity } from './compliance-policy-engine.types';
-export { PolicyAction } from './compliance-policy-engine.types';
-export { PolicyRule } from './compliance-policy-engine.types';
-export { PolicyContext } from './compliance-policy-engine.types';
-export { PolicyViolation } from './compliance-policy-engine.types';
-export { PolicyEvalResult } from './compliance-policy-engine.types';
-export { PolicyBundle } from './compliance-policy-engine.types';
+export { POLICY_RULE_ID_RE, DEFAULT_POLICY_BUNDLE_VERSION, SEVERITY_RANK, PolicySeverity, PolicyAction, PolicyRule, PolicyContext, PolicyViolation, PolicyEvalResult, PolicyBundle } from './compliance-policy-engine.types';

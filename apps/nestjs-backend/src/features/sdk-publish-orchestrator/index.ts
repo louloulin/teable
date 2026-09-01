@@ -10,24 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SdkPublishOrchestratorAuthService } from './sdk-publish-orchestrator.auth.service';
-export { bumpVersion } from './sdk-publish-orchestrator.service';
-export { bumpPackages } from './sdk-publish-orchestrator.service';
-export { buildPlan } from './sdk-publish-orchestrator.service';
-export { publishCommand } from './sdk-publish-orchestrator.service';
-export { renderChangelog } from './sdk-publish-orchestrator.service';
-export { detectChanges } from './sdk-publish-orchestrator.service';
-export { allSigned } from './sdk-publish-orchestrator.service';
-export { publishOrder } from './sdk-publish-orchestrator.service';
-export { runPublish } from './sdk-publish-orchestrator.service';
-export { summarizePublish } from './sdk-publish-orchestrator.service';
+export { bumpVersion, bumpPackages, buildPlan, publishCommand, renderChangelog, detectChanges, allSigned, publishOrder, runPublish, summarizePublish } from './sdk-publish-orchestrator.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_TAG } from './sdk-publish-orchestrator.types';
-export { Registry } from './sdk-publish-orchestrator.types';
-export { PackageDescriptor } from './sdk-publish-orchestrator.types';
-export { BumpType } from './sdk-publish-orchestrator.types';
-export { PublishStep } from './sdk-publish-orchestrator.types';
-export { ChangelogEntry } from './sdk-publish-orchestrator.types';
-export { PublishPlan } from './sdk-publish-orchestrator.types';
-export { PublishReport } from './sdk-publish-orchestrator.types';
-export { PublishOptions } from './sdk-publish-orchestrator.types';
+export { DEFAULT_TAG, Registry, PackageDescriptor, BumpType, PublishStep, ChangelogEntry, PublishPlan, PublishReport, PublishOptions } from './sdk-publish-orchestrator.types';

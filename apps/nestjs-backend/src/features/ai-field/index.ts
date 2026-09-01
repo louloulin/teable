@@ -10,40 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AiFieldAuthService } from './ai-field.auth.service';
-export { isValidOperation } from './ai-field.service';
-export { isValidModel } from './ai-field.service';
-export { isValidStatusTransition } from './ai-field.service';
-export { validateConfig } from './ai-field.service';
-export { stringifyConfig } from './ai-field.service';
-export { hashConfig } from './ai-field.service';
-export { estimateTokens } from './ai-field.service';
-export { renderPrompt } from './ai-field.service';
-export { buildDefaultPrompt } from './ai-field.service';
-export { buildAiFieldRow } from './ai-field.service';
-export { guardOutput } from './ai-field.service';
-export { foldRuns } from './ai-field.service';
-export { buildRunRow } from './ai-field.service';
-export { parseSourceFieldIds } from './ai-field.service';
-export { parseConfig } from './ai-field.service';
-export { buildTemplateRow } from './ai-field.service';
-export { DEFAULT_TEMPLATES } from './ai-field.service';
+export { isValidOperation, isValidModel, isValidStatusTransition, validateConfig, stringifyConfig, hashConfig, estimateTokens, renderPrompt, buildDefaultPrompt, buildAiFieldRow, guardOutput, foldRuns, buildRunRow, parseSourceFieldIds, parseConfig, buildTemplateRow, DEFAULT_TEMPLATES } from './ai-field.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_OPERATIONS } from './ai-field.types';
-export { SUPPORTED_MODELS } from './ai-field.types';
-export { AiFieldOperation } from './ai-field.types';
-export { AiFieldStatus } from './ai-field.types';
-export { AiRunStatus } from './ai-field.types';
-export { IClassifyConfig } from './ai-field.types';
-export { ISummarizeConfig } from './ai-field.types';
-export { ITranslateConfig } from './ai-field.types';
-export { AiFieldConfig } from './ai-field.types';
-export { IAiField } from './ai-field.types';
-export { IAiFieldRun } from './ai-field.types';
-export { IAiFieldTemplate } from './ai-field.types';
-export { ICreateAiFieldInput } from './ai-field.types';
-export { IUpdateAiFieldInput } from './ai-field.types';
-export { IRunAiFieldInput } from './ai-field.types';
-export { IAiRunResult } from './ai-field.types';
-export { IUsageAggregate } from './ai-field.types';
-export { ICreateTemplateInput } from './ai-field.types';
+export { SUPPORTED_OPERATIONS, SUPPORTED_MODELS, AiFieldOperation, AiFieldStatus, AiRunStatus, IClassifyConfig, ISummarizeConfig, ITranslateConfig, AiFieldConfig, IAiField, IAiFieldRun, IAiFieldTemplate, ICreateAiFieldInput, IUpdateAiFieldInput, IRunAiFieldInput, IAiRunResult, IUsageAggregate, ICreateTemplateInput } from './ai-field.types';

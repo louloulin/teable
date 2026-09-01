@@ -19,5 +19,4 @@ export { MailSenderOpenApiController } from './mail-sender-open-api.controller';
 export { MailSenderOpenApiService } from './mail-sender-open-api.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { MailSenderMergeProcessor } from './mail-sender.merge.processor';
-export { MAIL_SENDER_QUEUE } from './mail-sender.merge.processor';
+export { MailSenderMergeProcessor, MAIL_SENDER_QUEUE } from './mail-sender.merge.processor';

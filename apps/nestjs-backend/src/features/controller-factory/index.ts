@@ -10,17 +10,5 @@
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { ControllerFactoryAuthService } from './controller-factory.auth.service';
-export { validateRoute } from './controller-factory.service';
-export { validateController } from './controller-factory.service';
-export { buildRouteTable } from './controller-factory.service';
-export { findController } from './controller-factory.service';
-export { findRoute } from './controller-factory.service';
-export { totalRoutes } from './controller-factory.service';
-export { authedRoutes } from './controller-factory.service';
-export { appendController } from './controller-factory.service';
-export { MAX_CONTROLLERS } from './controller-factory.types';
-export { MAX_ROUTES_PER_CONTROLLER } from './controller-factory.types';
-export { CrudVerb } from './controller-factory.types';
-export { IRouteSpec } from './controller-factory.types';
-export { IControllerSpec } from './controller-factory.types';
-export { IRouteTable } from './controller-factory.types';
+export { validateRoute, validateController, buildRouteTable, findController, findRoute, totalRoutes, authedRoutes, appendController } from './controller-factory.service';
+export { MAX_CONTROLLERS, MAX_ROUTES_PER_CONTROLLER, CrudVerb, IRouteSpec, IControllerSpec, IRouteTable } from './controller-factory.types';

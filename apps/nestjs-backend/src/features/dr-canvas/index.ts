@@ -16,30 +16,7 @@ export { DrCanvasController } from './dr-canvas.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { DrCanvasAuthService } from './dr-canvas.auth.service';
-export { validateDrCanvas } from './dr-canvas.service';
-export { topoSortDr } from './dr-canvas.service';
-export { planDrExecution } from './dr-canvas.service';
-export { addDrNode } from './dr-canvas.service';
-export { removeDrNode } from './dr-canvas.service';
-export { addDrEdge } from './dr-canvas.service';
-export { removeDrEdge } from './dr-canvas.service';
-export { moveDrNode } from './dr-canvas.service';
-export { findDrNodeByCheckpoint } from './dr-canvas.service';
-export { listDrCheckpoints } from './dr-canvas.service';
-export { serializeDrCanvas } from './dr-canvas.service';
-export { summarizeDrCanvas } from './dr-canvas.service';
+export { validateDrCanvas, topoSortDr, planDrExecution, addDrNode, removeDrNode, addDrEdge, removeDrEdge, moveDrNode, findDrNodeByCheckpoint, listDrCheckpoints, serializeDrCanvas, summarizeDrCanvas } from './dr-canvas.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_DR_CANVAS_NODES } from './dr-canvas.types';
-export { MAX_DR_CANVAS_EDGES } from './dr-canvas.types';
-export { DR_NODE_ID_RE } from './dr-canvas.types';
-export { DrNodeKind } from './dr-canvas.types';
-export { DrCheckpointSpec } from './dr-canvas.types';
-export { DrNodeSpec } from './dr-canvas.types';
-export { DrEdgeSpec } from './dr-canvas.types';
-export { DrCanvasSpec } from './dr-canvas.types';
-export { DrValidationCode } from './dr-canvas.types';
-export { DrValidationIssue } from './dr-canvas.types';
-export { DrValidationResult } from './dr-canvas.types';
-export { DrExecutionStep } from './dr-canvas.types';
-export { DrExecutionPlan } from './dr-canvas.types';
+export { MAX_DR_CANVAS_NODES, MAX_DR_CANVAS_EDGES, DR_NODE_ID_RE, DrNodeKind, DrCheckpointSpec, DrNodeSpec, DrEdgeSpec, DrCanvasSpec, DrValidationCode, DrValidationIssue, DrValidationResult, DrExecutionStep, DrExecutionPlan } from './dr-canvas.types';

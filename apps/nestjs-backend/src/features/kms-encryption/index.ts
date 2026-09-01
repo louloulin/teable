@@ -10,35 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { KmsEncryptionAuthService } from './kms-encryption.auth.service';
-export { isValidAlgorithm } from './kms-encryption.service';
-export { isValidKeyState } from './kms-encryption.service';
-export { randomBytes } from './kms-encryption.service';
-export { validateCreateKeyInput } from './kms-encryption.service';
-export { validateEncryptInput } from './kms-encryption.service';
-export { byteLengthUtf8 } from './kms-encryption.service';
-export { toBase64 } from './kms-encryption.service';
-export { fromBase64 } from './kms-encryption.service';
-export { makeIv } from './kms-encryption.service';
-export { makeDek } from './kms-encryption.service';
-export { encryptWithDek } from './kms-encryption.service';
-export { decryptWithDek } from './kms-encryption.service';
-export { buildEnvelope } from './kms-encryption.service';
-export { parseEnvelope } from './kms-encryption.service';
-export { pickEncryptionKey } from './kms-encryption.service';
-export { authTagBytes } from './kms-encryption.service';
-export { canDecryptWith } from './kms-encryption.service';
-export { IKmsProvider } from './kms-encryption.service';
+export { isValidAlgorithm, isValidKeyState, randomBytes, validateCreateKeyInput, validateEncryptInput, byteLengthUtf8, toBase64, fromBase64, makeIv, makeDek, encryptWithDek, decryptWithDek, buildEnvelope, parseEnvelope, pickEncryptionKey, authTagBytes, canDecryptWith, IKmsProvider } from './kms-encryption.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_ENCRYPTION_ALGORITHM } from './kms-encryption.types';
-export { DEFAULT_IV_BYTES } from './kms-encryption.types';
-export { DEFAULT_AUTH_TAG_BITS } from './kms-encryption.types';
-export { DEFAULT_DEK_BYTES } from './kms-encryption.types';
-export { MAX_PLAINTEXT_BYTES } from './kms-encryption.types';
-export { KEY_ID_PREFIX } from './kms-encryption.types';
-export { EncryptionAlgorithm } from './kms-encryption.types';
-export { KeyState } from './kms-encryption.types';
-export { IEncryptionKey } from './kms-encryption.types';
-export { IEncryptionEnvelope } from './kms-encryption.types';
-export { IEncryptInput } from './kms-encryption.types';
-export { ICreateKeyInput } from './kms-encryption.types';
+export { DEFAULT_ENCRYPTION_ALGORITHM, DEFAULT_IV_BYTES, DEFAULT_AUTH_TAG_BITS, DEFAULT_DEK_BYTES, MAX_PLAINTEXT_BYTES, KEY_ID_PREFIX, EncryptionAlgorithm, KeyState, IEncryptionKey, IEncryptionEnvelope, IEncryptInput, ICreateKeyInput } from './kms-encryption.types';

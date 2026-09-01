@@ -9,15 +9,10 @@
  */
 
 // ─── NestJS module ────────────────────────────────────────────────
-export { MailSenderModule } from './mail-sender.module';
-export { MailSenderModuleOptions } from './mail-sender.module';
+export { MailSenderModule, MailSenderModuleOptions } from './mail-sender.module';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { MailSenderService } from './mail-sender.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { truncateMailName } from './mail-helpers';
-export { helpers } from './mail-helpers';
-export { verifyTransport } from './mail-helpers';
-export { buildEmailFrom } from './mail-helpers';
-export { ISendMailOptions } from './mail-helpers';
+export { truncateMailName, helpers, verifyTransport, buildEmailFrom, ISendMailOptions } from './mail-helpers';

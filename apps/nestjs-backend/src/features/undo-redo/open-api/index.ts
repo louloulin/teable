@@ -15,10 +15,7 @@ export { UndoRedoModule } from './undo-redo.module';
 export { UndoRedoController } from './undo-redo.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { UndoRedoService } from './undo-redo.service';
-export { X_TEABLE_UNDO_REDO_ENGINE_HEADER } from './undo-redo.service';
-export { IUndoRedoEngine } from './undo-redo.service';
+export { UndoRedoService, X_TEABLE_UNDO_REDO_ENGINE_HEADER, IUndoRedoEngine } from './undo-redo.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { UNDO_REDO_ENGINE_PREFERENCE_TTL_SECONDS } from './undo-redo-engine-preference';
-export { buildUndoRedoEnginePreferenceKey } from './undo-redo-engine-preference';
+export { UNDO_REDO_ENGINE_PREFERENCE_TTL_SECONDS, buildUndoRedoEnginePreferenceKey } from './undo-redo-engine-preference';

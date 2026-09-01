@@ -13,35 +13,7 @@ export { PresenceModule } from './presence.module';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { PresenceAuthService } from './presence.auth.service';
-export { isValidScope } from './presence.service';
-export { isValidStatus } from './presence.service';
-export { isValidColor } from './presence.service';
-export { validateJoinInput } from './presence.service';
-export { validateCursor } from './presence.service';
-export { validateCursorShape } from './presence.service';
-export { validateTickInput } from './presence.service';
-export { validateUpdateStatusInput } from './presence.service';
-export { validateQueryInput } from './presence.service';
-export { deriveStatusOnTick } from './presence.service';
-export { computeExpiresAt } from './presence.service';
-export { isSessionExpired } from './presence.service';
-export { filterByQuery } from './presence.service';
-export { liveSessions } from './presence.service';
-export { diffSessions } from './presence.service';
-export { applyJoinPolicy } from './presence.service';
-export { IPresenceDiff } from './presence.service';
+export { isValidScope, isValidStatus, isValidColor, validateJoinInput, validateCursor, validateCursorShape, validateTickInput, validateUpdateStatusInput, validateQueryInput, deriveStatusOnTick, computeExpiresAt, isSessionExpired, filterByQuery, liveSessions, diffSessions, applyJoinPolicy, IPresenceDiff } from './presence.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_HEARTBEAT_TTL_MS } from './presence.types';
-export { DEFAULT_CURSOR_COLOR_PATTERN } from './presence.types';
-export { DEFAULT_DISPLAY_NAME_MAX_LENGTH } from './presence.types';
-export { DEFAULT_MAX_SESSIONS_PER_USER_PER_SCOPE } from './presence.types';
-export { PresenceScope } from './presence.types';
-export { PresenceStatus } from './presence.types';
-export { ICursorState } from './presence.types';
-export { IPresenceSession } from './presence.types';
-export { IJoinPresenceInput } from './presence.types';
-export { IUpdateCursorInput } from './presence.types';
-export { IUpdateStatusInput } from './presence.types';
-export { ITickInput } from './presence.types';
-export { IPresenceQueryInput } from './presence.types';
+export { DEFAULT_HEARTBEAT_TTL_MS, DEFAULT_CURSOR_COLOR_PATTERN, DEFAULT_DISPLAY_NAME_MAX_LENGTH, DEFAULT_MAX_SESSIONS_PER_USER_PER_SCOPE, PresenceScope, PresenceStatus, ICursorState, IPresenceSession, IJoinPresenceInput, IUpdateCursorInput, IUpdateStatusInput, ITickInput, IPresenceQueryInput } from './presence.types';

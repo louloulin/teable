@@ -12,6 +12,4 @@
 export { BuiltinAssetsInitModule } from './builtin-assets-init.module';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { BuiltinAssetsInitService } from './builtin-assets-init.service';
-export { EMAIL_LOGO_TOKEN } from './builtin-assets-init.service';
-export { IBuiltinAssetConfig } from './builtin-assets-init.service';
+export { BuiltinAssetsInitService, EMAIL_LOGO_TOKEN, IBuiltinAssetConfig } from './builtin-assets-init.service';

@@ -10,20 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { OpenApiExportAuthService } from './openapi-export.auth.service';
-export { buildExportPath } from './openapi-export.service';
-export { validateTarget } from './openapi-export.service';
-export { validateShape } from './openapi-export.service';
-export { serializeDocument } from './openapi-export.service';
-export { planExport } from './openapi-export.service';
-export { capTargets } from './openapi-export.service';
-export { enabledTargets } from './openapi-export.service';
-export { resolveCollision } from './openapi-export.service';
-export { parsePayload } from './openapi-export.service';
-export { defaultTargetFor } from './openapi-export.service';
+export { buildExportPath, validateTarget, validateShape, serializeDocument, planExport, capTargets, enabledTargets, resolveCollision, parsePayload, defaultTargetFor } from './openapi-export.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_EXPORT_TARGETS } from './openapi-export.types';
-export { MAX_DOC_BYTES } from './openapi-export.types';
-export { IOpenApiExportTarget } from './openapi-export.types';
-export { ISerializedDocument } from './openapi-export.types';
-export { IExportPlan } from './openapi-export.types';
+export { MAX_EXPORT_TARGETS, MAX_DOC_BYTES, IOpenApiExportTarget, ISerializedDocument, IExportPlan } from './openapi-export.types';

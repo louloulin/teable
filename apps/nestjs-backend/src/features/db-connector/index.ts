@@ -8,32 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { DbConnectorModule } from './db-connector.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { DbConnectorController } from './db-connector.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { DbConnectorAuthService } from './db-connector.auth.service';
-export { isValidKind } from './db-connector.service';
-export { isValidSyncMode } from './db-connector.service';
-export { isValidSyncStatus } from './db-connector.service';
-export { validateCreateInput } from './db-connector.service';
-export { validateConfigShape } from './db-connector.service';
-export { isValidSchedule } from './db-connector.service';
-export { validateStartSyncInput } from './db-connector.service';
-export { canStartSync } from './db-connector.service';
-export { deriveSyncStatus } from './db-connector.service';
-export { resolvePageSize } from './db-connector.service';
-export { testConnectionConfig } from './db-connector.service';
-export { isTerminalStatus } from './db-connector.service';
-export { isManualRunAllowed } from './db-connector.service';
+export { isValidKind, isValidSyncMode, isValidSyncStatus, validateCreateInput, validateConfigShape, isValidSchedule, validateStartSyncInput, canStartSync, deriveSyncStatus, resolvePageSize, testConnectionConfig, isTerminalStatus, isManualRunAllowed } from './db-connector.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_CONNECTOR_NAME_MAX_LENGTH } from './db-connector.types';
-export { DEFAULT_SCHEDULE_MAX_LENGTH } from './db-connector.types';
-export { DEFAULT_PAGE_SIZE } from './db-connector.types';
-export { DbConnectorKind } from './db-connector.types';
-export { DbConnectorSyncStatus } from './db-connector.types';
-export { DbConnectorSyncMode } from './db-connector.types';
-export { IDbConnector } from './db-connector.types';
-export { IDbConnectorSync } from './db-connector.types';
-export { ICreateConnectorInput } from './db-connector.types';
-export { ITestConnectionInput } from './db-connector.types';
-export { ITestConnectionResult } from './db-connector.types';
-export { IStartSyncInput } from './db-connector.types';
+export { DEFAULT_CONNECTOR_NAME_MAX_LENGTH, DEFAULT_SCHEDULE_MAX_LENGTH, DEFAULT_PAGE_SIZE, DbConnectorKind, DbConnectorSyncStatus, DbConnectorSyncMode, IDbConnector, IDbConnectorSync, ICreateConnectorInput, ITestConnectionInput, ITestConnectionResult, IStartSyncInput } from './db-connector.types';

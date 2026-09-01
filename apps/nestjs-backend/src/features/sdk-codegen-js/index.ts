@@ -10,19 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { SdkCodegenJsAuthService } from './sdk-codegen-js.auth.service';
-export { groupByTag } from './sdk-codegen-js.service';
-export { pathToColonForm } from './sdk-codegen-js.service';
-export { schemaToInterface } from './sdk-codegen-js.service';
-export { opToMethod } from './sdk-codegen-js.service';
-export { generateSdk } from './sdk-codegen-js.service';
-export { tsTypeOf } from './sdk-codegen-js.service';
+export { groupByTag, pathToColonForm, schemaToInterface, opToMethod, generateSdk, tsTypeOf } from './sdk-codegen-js.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SDK_JS_DEFAULT_PACKAGE_NAME } from './sdk-codegen-js.types';
-export { SDK_JS_DEFAULT_VERSION } from './sdk-codegen-js.types';
-export { OpenApiOperation } from './sdk-codegen-js.types';
-export { OpenApiParameter } from './sdk-codegen-js.types';
-export { OpenApiSchema } from './sdk-codegen-js.types';
-export { OpenApiDocument } from './sdk-codegen-js.types';
-export { GeneratedSdkFile } from './sdk-codegen-js.types';
-export { SdkCodegenResult } from './sdk-codegen-js.types';
+export { SDK_JS_DEFAULT_PACKAGE_NAME, SDK_JS_DEFAULT_VERSION, OpenApiOperation, OpenApiParameter, OpenApiSchema, OpenApiDocument, GeneratedSdkFile, SdkCodegenResult } from './sdk-codegen-js.types';

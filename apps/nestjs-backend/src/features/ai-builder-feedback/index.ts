@@ -10,35 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AiBuilderFeedbackAuthService } from './ai-builder-feedback.auth.service';
-export { computeEditDiff } from './ai-builder-feedback.service';
-export { diffToSignatures } from './ai-builder-feedback.service';
-export { buildFeedbackRow } from './ai-builder-feedback.service';
-export { groupByModelEntityType } from './ai-builder-feedback.service';
-export { parseGroupKey } from './ai-builder-feedback.service';
-export { aggregateBucket } from './ai-builder-feedback.service';
-export { isTrusted } from './ai-builder-feedback.service';
-export { rankMetrics } from './ai-builder-feedback.service';
-export { summarize } from './ai-builder-feedback.service';
-export { pickPreferredModel } from './ai-builder-feedback.service';
-export { metricToTemplateScore } from './ai-builder-feedback.service';
-export { isScoreImprovement } from './ai-builder-feedback.service';
-export { applyFeedbackToPrompt } from './ai-builder-feedback.service';
-export { buildTemplateId } from './ai-builder-feedback.service';
+export { computeEditDiff, diffToSignatures, buildFeedbackRow, groupByModelEntityType, parseGroupKey, aggregateBucket, isTrusted, rankMetrics, summarize, pickPreferredModel, metricToTemplateScore, isScoreImprovement, applyFeedbackToPrompt, buildTemplateId } from './ai-builder-feedback.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { outcomeFromStatus } from './ai-builder-feedback.types';
-export { DEFAULT_MIN_SAMPLE_SIZE } from './ai-builder-feedback.types';
-export { DEFAULT_EDIT_MAGNITUDE_WEIGHT } from './ai-builder-feedback.types';
-export { MAX_PROMPT_TEMPLATE_SCORE } from './ai-builder-feedback.types';
-export { MIN_PROMPT_TEMPLATE_SCORE } from './ai-builder-feedback.types';
-export { FeedbackOutcome } from './ai-builder-feedback.types';
-export { IProposalFeedback } from './ai-builder-feedback.types';
-export { IAiBuilderFeedbackMetrics } from './ai-builder-feedback.types';
-export { IPromptTemplateScore } from './ai-builder-feedback.types';
-export { IFeedbackSummary } from './ai-builder-feedback.types';
-export { IEditDiff } from './ai-builder-feedback.types';
-export { IProposalLike } from './ai-builder-feedback.types';
-export { IBuilderViewProposalLite } from './ai-builder-feedback.types';
-export { IAggregateFeedbackOptions } from './ai-builder-feedback.types';
-export { EditSignatureKind } from './ai-builder-feedback.types';
-export { IEditSignature } from './ai-builder-feedback.types';
+export { outcomeFromStatus, DEFAULT_MIN_SAMPLE_SIZE, DEFAULT_EDIT_MAGNITUDE_WEIGHT, MAX_PROMPT_TEMPLATE_SCORE, MIN_PROMPT_TEMPLATE_SCORE, FeedbackOutcome, IProposalFeedback, IAiBuilderFeedbackMetrics, IPromptTemplateScore, IFeedbackSummary, IEditDiff, IProposalLike, IBuilderViewProposalLite, IAggregateFeedbackOptions, EditSignatureKind, IEditSignature } from './ai-builder-feedback.types';

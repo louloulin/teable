@@ -10,25 +10,14 @@
 
 // ─── Other public exports ─────────────────────────────────────────
 export { ConvertFieldV2Operation } from './convert-field-v2.operation';
-export { ConvertFieldOperation } from './convert-field.operation';
-export { IConvertFieldPayload } from './convert-field.operation';
-export { CreateFieldsOperation } from './create-fields.operation';
-export { ICreateFieldsPayload } from './create-fields.operation';
-export { CreateRecordsOperation } from './create-records.operation';
-export { ICreateRecordsPayload } from './create-records.operation';
-export { CreateViewOperation } from './create-view.operation';
-export { ICreateViewPayload } from './create-view.operation';
-export { DeleteFieldsOperation } from './delete-fields.operation';
-export { IDeleteFieldsPayload } from './delete-fields.operation';
-export { DeleteRecordsOperation } from './delete-records.operation';
-export { IDeleteRecordsPayload } from './delete-records.operation';
-export { DeleteViewOperation } from './delete-view.operation';
-export { IDeleteViewPayload } from './delete-view.operation';
-export { PasteSelectionOperation } from './paste-selection.operation';
-export { IPasteSelectionPayload } from './paste-selection.operation';
-export { UpdateRecordsOrderOperation } from './update-records-order.operation';
-export { IUpdateRecordsOrderPayload } from './update-records-order.operation';
-export { UpdateRecordsOperation } from './update-records.operation';
-export { IUpdateRecordsPayload } from './update-records.operation';
-export { UpdateViewOperation } from './update-view.operation';
-export { IUpdateViewPayload } from './update-view.operation';
+export { ConvertFieldOperation, IConvertFieldPayload } from './convert-field.operation';
+export { CreateFieldsOperation, ICreateFieldsPayload } from './create-fields.operation';
+export { CreateRecordsOperation, ICreateRecordsPayload } from './create-records.operation';
+export { CreateViewOperation, ICreateViewPayload } from './create-view.operation';
+export { DeleteFieldsOperation, IDeleteFieldsPayload } from './delete-fields.operation';
+export { DeleteRecordsOperation, IDeleteRecordsPayload } from './delete-records.operation';
+export { DeleteViewOperation, IDeleteViewPayload } from './delete-view.operation';
+export { PasteSelectionOperation, IPasteSelectionPayload } from './paste-selection.operation';
+export { UpdateRecordsOrderOperation, IUpdateRecordsOrderPayload } from './update-records-order.operation';
+export { UpdateRecordsOperation, IUpdateRecordsPayload } from './update-records.operation';
+export { UpdateViewOperation, IUpdateViewPayload } from './update-view.operation';

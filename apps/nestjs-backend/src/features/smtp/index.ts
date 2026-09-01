@@ -15,13 +15,7 @@ export { SmtpModule } from './smtp.module';
 export { SmtpController } from './smtp.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { SmtpService } from './smtp.service';
-export { __test } from './smtp.service';
-export { ISocketLike } from './smtp.service';
-export { ICreateConnection } from './smtp.service';
+export { SmtpService, __test, ISocketLike, ICreateConnection } from './smtp.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { ISmtpConfig } from './smtp.types';
-export { ISendMailInput } from './smtp.types';
-export { ISendMailResult } from './smtp.types';
-export { IBuildMessageParts } from './smtp.types';
+export { ISmtpConfig, ISendMailInput, ISendMailResult, IBuildMessageParts } from './smtp.types';

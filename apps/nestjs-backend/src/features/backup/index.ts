@@ -15,14 +15,7 @@ export { BackupModule } from './backup.module';
 export { BackupController } from './backup.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { InMemoryBackupStore } from './backup.service';
-export { BackupService } from './backup.service';
+export { InMemoryBackupStore, BackupService } from './backup.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MergeMode } from './backup.types';
-export { IBackupManifest } from './backup.types';
-export { ICreateBackupInput } from './backup.types';
-export { IRestoreInput } from './backup.types';
-export { ISnapshotRow } from './backup.types';
-export { IRestoreLogRow } from './backup.types';
-export { IBackupStore } from './backup.types';
+export { MergeMode, IBackupManifest, ICreateBackupInput, IRestoreInput, ISnapshotRow, IRestoreLogRow, IBackupStore } from './backup.types';

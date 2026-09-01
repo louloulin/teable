@@ -10,9 +10,7 @@
 
 // ─── Other public exports ─────────────────────────────────────────
 export { CalendarViewDto } from './calendar-view.dto';
-export { createViewInstanceByRaw } from './factory';
-export { createViewVoByRaw } from './factory';
-export { IViewInstance } from './factory';
+export { createViewInstanceByRaw, createViewVoByRaw, IViewInstance } from './factory';
 export { FormViewDto } from './form-view.dto';
 export { GalleryViewDto } from './gallery-view.dto';
 export { GridViewDto } from './grid-view.dto';

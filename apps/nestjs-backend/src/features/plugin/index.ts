@@ -19,5 +19,4 @@ export { PluginAuthService } from './plugin-auth.service';
 export { PluginService } from './plugin.service';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { generateSecret } from './utils';
-export { validateSecret } from './utils';
+export { generateSecret, validateSecret } from './utils';

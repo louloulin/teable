@@ -19,19 +19,10 @@ export { OAuthController } from './oauth.controller';
 export { OAuthAppInitService } from './oauth-app-init.service';
 export { OAuthServerService } from './oauth-server.service';
 export { OAuthService } from './oauth.service';
-export { PkceService } from './pkce.service';
-export { IPkceAuthorizeParams } from './pkce.service';
+export { PkceService, IPkceAuthorizeParams } from './pkce.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IClientBase } from './types';
-export { IAuthorizeClient } from './types';
-export { IExchangeClient } from './types';
-export { IPkceExchangeClient } from './types';
-export { ITokenClient } from './types';
-export { IOAuth2Server } from './types';
-export { IOAuthStoreOption } from './types';
-export { IClient } from './types';
-export { IAuthorizeRequest } from './types';
+export { IClientBase, IAuthorizeClient, IExchangeClient, IPkceExchangeClient, ITokenClient, IOAuth2Server, IOAuthStoreOption, IClient, IAuthorizeRequest } from './types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { OAuthTxStore } from './oauth-tx-store';

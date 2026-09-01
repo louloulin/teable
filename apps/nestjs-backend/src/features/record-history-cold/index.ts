@@ -9,72 +9,18 @@
  */
 
 // ─── NestJS module ────────────────────────────────────────────────
-export { RecordHistoryColdCoreModule } from './record-history-cold.module';
-export { RecordHistoryColdModule } from './record-history-cold.module';
+export { RecordHistoryColdCoreModule, RecordHistoryColdModule } from './record-history-cold.module';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { RecordHistoryColdReadService } from './record-history-cold-read.service';
-export { encodeColdCursor } from './record-history-cold-read.service';
-export { decodeColdCursor } from './record-history-cold-read.service';
-export { IMergedHistoryRow } from './record-history-cold-read.service';
-export { ICollectHistoryRowsInput } from './record-history-cold-read.service';
-export { ICollectHistoryRowsResult } from './record-history-cold-read.service';
-export { ColdReadDeadlineError } from './record-history-cold-storage.service';
-export { RecordHistoryColdStorageService } from './record-history-cold-storage.service';
-export { RecordHistoryCompactorService } from './record-history-compactor.service';
-export { ICompactMonthResult } from './record-history-compactor.service';
-export { RecordHistoryFlusherService } from './record-history-flusher.service';
-export { nextReadBatchLimit } from './record-history-flusher.service';
-export { IColdFlushOptions } from './record-history-flusher.service';
-export { ITableFlushResult } from './record-history-flusher.service';
-export { IColdFlushRunResult } from './record-history-flusher.service';
+export { RecordHistoryColdReadService, encodeColdCursor, decodeColdCursor, IMergedHistoryRow, ICollectHistoryRowsInput, ICollectHistoryRowsResult } from './record-history-cold-read.service';
+export { ColdReadDeadlineError, RecordHistoryColdStorageService } from './record-history-cold-storage.service';
+export { RecordHistoryCompactorService, ICompactMonthResult } from './record-history-compactor.service';
+export { RecordHistoryFlusherService, nextReadBatchLimit, IColdFlushOptions, ITableFlushResult, IColdFlushRunResult } from './record-history-flusher.service';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BucketMergeFeeder } from './bucket-merge-feeder';
-export { SortMemoryBudget } from './external-sort';
-export { ExternalRowSorter } from './external-sort';
-export { approxColdRowBytes } from './external-sort';
-export { RECORD_HISTORY_COLD_VERSION } from './part-codec';
-export { STATS_SET_CAP } from './part-codec';
-export { hasZstd } from './part-codec';
-export { partFileSuffix } from './part-codec';
-export { createPartCompressor } from './part-codec';
-export { createPartDecompressor } from './part-codec';
-export { coldRootDir } from './part-codec';
-export { tablePrefix } from './part-codec';
-export { monthPrefix } from './part-codec';
-export { statsKey } from './part-codec';
-export { buildPartKey } from './part-codec';
-export { parsePartKey } from './part-codec';
-export { bucketOfDate } from './part-codec';
-export { bucketId } from './part-codec';
-export { serializeHeader } from './part-codec';
-export { serializeRow } from './part-codec';
-export { coldTruncatedMarker } from './part-codec';
-export { truncateColdValue } from './part-codec';
-export { truncateColdRow } from './part-codec';
-export { serializeFooter } from './part-codec';
-export { createRowHasher } from './part-codec';
-export { parsePartLine } from './part-codec';
-export { compareRowAsc } from './part-codec';
-export { buildRecordBloom } from './part-codec';
-export { bloomMightContain } from './part-codec';
-export { compareRowByTimeDesc } from './part-codec';
-export { IColdHistoryRow } from './part-codec';
-export { IPartBucket } from './part-codec';
-export { IPartHeader } from './part-codec';
-export { IPartFooter } from './part-codec';
-export { IParsedPartKey } from './part-codec';
-export { IRecordBloom } from './part-codec';
-export { IPartStatsEntry } from './part-codec';
-export { ITableColdStats } from './part-codec';
-export { IParsedPartLine } from './part-codec';
-export { PartWriter } from './part-writer';
-export { IPartStore } from './part-writer';
-export { IPartWriterOptions } from './part-writer';
-export { IPartWriteMetrics } from './part-writer';
-export { recordHistoryColdConfig } from './record-history-cold.config';
-export { mapWithConcurrency } from './record-history-cold.config';
-export { IRecordHistoryColdConfig } from './record-history-cold.config';
-export { RecordHistoryColdProcessor } from './record-history-cold.processor';
-export { RECORD_HISTORY_COLD_QUEUE } from './record-history-cold.processor';
+export { SortMemoryBudget, ExternalRowSorter, approxColdRowBytes } from './external-sort';
+export { RECORD_HISTORY_COLD_VERSION, STATS_SET_CAP, hasZstd, partFileSuffix, createPartCompressor, createPartDecompressor, coldRootDir, tablePrefix, monthPrefix, statsKey, buildPartKey, parsePartKey, bucketOfDate, bucketId, serializeHeader, serializeRow, coldTruncatedMarker, truncateColdValue, truncateColdRow, serializeFooter, createRowHasher, parsePartLine, compareRowAsc, buildRecordBloom, bloomMightContain, compareRowByTimeDesc, IColdHistoryRow, IPartBucket, IPartHeader, IPartFooter, IParsedPartKey, IRecordBloom, IPartStatsEntry, ITableColdStats, IParsedPartLine } from './part-codec';
+export { PartWriter, IPartStore, IPartWriterOptions, IPartWriteMetrics } from './part-writer';
+export { recordHistoryColdConfig, mapWithConcurrency, IRecordHistoryColdConfig } from './record-history-cold.config';
+export { RecordHistoryColdProcessor, RECORD_HISTORY_COLD_QUEUE } from './record-history-cold.processor';

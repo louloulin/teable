@@ -18,6 +18,4 @@ export { TablePermissionService } from './table-permission.service';
 export { TableService } from './table.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { DEFAULT_FIELDS } from './constant';
-export { DEFAULT_VIEWS } from './constant';
-export { DEFAULT_RECORD_DATA } from './constant';
+export { DEFAULT_FIELDS, DEFAULT_VIEWS, DEFAULT_RECORD_DATA } from './constant';

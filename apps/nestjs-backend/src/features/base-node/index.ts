@@ -18,12 +18,9 @@ export { BaseNodeController } from './base-node.controller';
 export { BaseNodeService } from './base-node.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IBaseNodePermissionContext } from './types';
-export { BaseNodeAction } from './types';
+export { IBaseNodePermissionContext, BaseNodeAction } from './types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BaseNodeListener } from './base-node.listener';
-export { checkBaseNodePermission } from './base-node.permission.helper';
-export { checkBaseNodePermissionCreate } from './base-node.permission.helper';
-export { buildBatchUpdateSql } from './helper';
-export { presenceHandler } from './helper';
+export { checkBaseNodePermission, checkBaseNodePermissionCreate } from './base-node.permission.helper';
+export { buildBatchUpdateSql, presenceHandler } from './helper';

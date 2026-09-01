@@ -16,18 +16,7 @@ export { ConflictReplayController } from './conflict-replay.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ConflictReplayAuthService } from './conflict-replay.auth.service';
-export { validateEvent } from './conflict-replay.service';
-export { enqueue } from './conflict-replay.service';
-export { canRetry } from './conflict-replay.service';
-export { markAttempt } from './conflict-replay.service';
-export { replay } from './conflict-replay.service';
-export { drain } from './conflict-replay.service';
-export { toAttempt } from './conflict-replay.service';
+export { validateEvent, enqueue, canRetry, markAttempt, replay, drain, toAttempt } from './conflict-replay.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_CONFLICT_ATTEMPTS } from './conflict-replay.types';
-export { MAX_QUEUE_SIZE } from './conflict-replay.types';
-export { IDEMPOTENCY_DEDUP_WINDOW_MS } from './conflict-replay.types';
-export { ConflictKind } from './conflict-replay.types';
-export { IConflictEvent } from './conflict-replay.types';
-export { IReplayAttempt } from './conflict-replay.types';
+export { MAX_CONFLICT_ATTEMPTS, MAX_QUEUE_SIZE, IDEMPOTENCY_DEDUP_WINDOW_MS, ConflictKind, IConflictEvent, IReplayAttempt } from './conflict-replay.types';

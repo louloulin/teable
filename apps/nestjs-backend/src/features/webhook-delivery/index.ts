@@ -16,37 +16,13 @@ export { WebhookDeliveryAdminController } from './webhook-delivery.admin.control
 
 // ─── Services ─────────────────────────────────────────────────────
 export { WebhookDeliveryAuthService } from './webhook-delivery.auth.service';
-export { isWebhookStatus } from './webhook-delivery.service';
-export { isTerminalStatus } from './webhook-delivery.service';
-export { computeBackoff } from './webhook-delivery.service';
-export { signBody } from './webhook-delivery.service';
-export { buildRequestHeaders } from './webhook-delivery.service';
-export { isValidUrl } from './webhook-delivery.service';
-export { endpointAcceptsEvent } from './webhook-delivery.service';
-export { decideNextStatus } from './webhook-delivery.service';
-export { toRow } from './webhook-delivery.service';
-export { pickDueDeliveries } from './webhook-delivery.service';
-export { newDeliveryId } from './webhook-delivery.service';
-export { buildPayload } from './webhook-delivery.service';
+export { isWebhookStatus, isTerminalStatus, computeBackoff, signBody, buildRequestHeaders, isValidUrl, endpointAcceptsEvent, decideNextStatus, toRow, pickDueDeliveries, newDeliveryId, buildPayload } from './webhook-delivery.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_MAX_ATTEMPTS } from './webhook-delivery.types';
-export { DEFAULT_TIMEOUT_MS } from './webhook-delivery.types';
-export { DEFAULT_BASE_BACKOFF_MS } from './webhook-delivery.types';
-export { DEFAULT_MAX_BACKOFF_MS } from './webhook-delivery.types';
-export { MAX_BACKOFF_MULTIPLIER } from './webhook-delivery.types';
-export { WebhookStatus } from './webhook-delivery.types';
-export { WebhookMethod } from './webhook-delivery.types';
-export { IWebhookEndpoint } from './webhook-delivery.types';
-export { IWebhookPayload } from './webhook-delivery.types';
-export { IWebhookDelivery } from './webhook-delivery.types';
-export { IDispatchResult } from './webhook-delivery.types';
-export { IWebhookDispatcher } from './webhook-delivery.types';
+export { DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT_MS, DEFAULT_BASE_BACKOFF_MS, DEFAULT_MAX_BACKOFF_MS, MAX_BACKOFF_MULTIPLIER, WebhookStatus, WebhookMethod, IWebhookEndpoint, IWebhookPayload, IWebhookDelivery, IDispatchResult, IWebhookDispatcher } from './webhook-delivery.types';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { WEBHOOK_DELIVERY_QUEUE } from './webhook-delivery.constants';
-export { WEBHOOK_DELIVERY_DISPATCH_JOB } from './webhook-delivery.constants';
-export { WEBHOOK_DELIVERY_REPEAT_MS } from './webhook-delivery.constants';
+export { WEBHOOK_DELIVERY_QUEUE, WEBHOOK_DELIVERY_DISPATCH_JOB, WEBHOOK_DELIVERY_REPEAT_MS } from './webhook-delivery.constants';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { HttpWebhookDispatcher } from './http-webhook.dispatcher';

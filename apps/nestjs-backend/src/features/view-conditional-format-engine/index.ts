@@ -10,17 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ViewConditionalFormatEngineAuthService } from './view-conditional-format-engine.auth.service';
-export { evaluateRule } from './view-conditional-format-engine.service';
-export { applyRules } from './view-conditional-format-engine.service';
-export { firstMatch } from './view-conditional-format-engine.service';
-export { countMatches } from './view-conditional-format-engine.service';
-export { isRuleValid } from './view-conditional-format-engine.service';
-export { filterValid } from './view-conditional-format-engine.service';
+export { evaluateRule, applyRules, firstMatch, countMatches, isRuleValid, filterValid } from './view-conditional-format-engine.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { FORMAT_COLORS } from './view-conditional-format-engine.types';
-export { FORMAT_ICONS } from './view-conditional-format-engine.types';
-export { FormatRule } from './view-conditional-format-engine.types';
-export { FormatCellInput } from './view-conditional-format-engine.types';
-export { FormatStyleDirective } from './view-conditional-format-engine.types';
-export { FormatResult } from './view-conditional-format-engine.types';
+export { FORMAT_COLORS, FORMAT_ICONS, FormatRule, FormatCellInput, FormatStyleDirective, FormatResult } from './view-conditional-format-engine.types';

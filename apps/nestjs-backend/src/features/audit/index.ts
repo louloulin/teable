@@ -12,29 +12,13 @@
 export { AuditSourceModule } from './audit.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
-export { AuditLogController } from './audit-log.controller';
-export { AuditOperationsSummaryController } from './audit-log.controller';
-export { parseAuditFilter } from './audit-log.controller';
+export { AuditLogController, AuditOperationsSummaryController, parseAuditFilter } from './audit-log.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { AuditLogService } from './audit-log.service';
-export { IAuditLogFilter } from './audit-log.service';
-export { IAuditLogPage } from './audit-log.service';
-export { IAuditLogSummary } from './audit-log.service';
-export { IAuditLogRow } from './audit-log.service';
+export { AuditLogService, IAuditLogFilter, IAuditLogPage, IAuditLogSummary, IAuditLogRow } from './audit-log.service';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { AuditLogListener } from './audit-log.listener';
-export { AuditScope } from './audit-scope';
-export { IAuditAction } from './audit-scope';
-export { IAuditOperation } from './audit-scope';
-export { INewAuditOperationInput } from './audit-scope';
-export { IEmitAtomicAuditInput } from './audit-scope';
-export { Audit } from './audit.decorator';
-export { IAuditCtx } from './audit.decorator';
-export { IAuditEmitDirective } from './audit.decorator';
-export { IAuditResolved } from './audit.decorator';
-export { IAuditDeclarativeConfig } from './audit.decorator';
-export { IAuditResolverFn } from './audit.decorator';
-export { IAuditConfig } from './audit.decorator';
+export { AuditScope, IAuditAction, IAuditOperation, INewAuditOperationInput, IEmitAtomicAuditInput } from './audit-scope';
+export { Audit, IAuditCtx, IAuditEmitDirective, IAuditResolved, IAuditDeclarativeConfig, IAuditResolverFn, IAuditConfig } from './audit.decorator';
 export { RecordAuditListener } from './record-audit.listener';

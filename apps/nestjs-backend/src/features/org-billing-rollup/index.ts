@@ -8,38 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { OrgBillingRollupModule } from './org-billing-rollup.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { OrgBillingRollupController } from './org-billing-rollup.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { OrgBillingRollupAuthService } from './org-billing-rollup.auth.service';
-export { isLineKind } from './org-billing-rollup.service';
-export { isCurrency } from './org-billing-rollup.service';
-export { isDunningLevel } from './org-billing-rollup.service';
-export { toMinor } from './org-billing-rollup.service';
-export { toMajor } from './org-billing-rollup.service';
-export { periodKey } from './org-billing-rollup.service';
-export { validateLineItem } from './org-billing-rollup.service';
-export { decideDunningLevel } from './org-billing-rollup.service';
-export { sumCredits } from './org-billing-rollup.service';
-export { filterLineItems } from './org-billing-rollup.service';
-export { emptyByKind } from './org-billing-rollup.service';
-export { consolidateLineItems } from './org-billing-rollup.service';
-export { rollupAllOrgs } from './org-billing-rollup.service';
-export { isEmptyRollup } from './org-billing-rollup.service';
-export { exceedsCap } from './org-billing-rollup.service';
-export { testHelpers } from './org-billing-rollup.service';
+export { isLineKind, isCurrency, isDunningLevel, toMinor, toMajor, periodKey, validateLineItem, decideDunningLevel, sumCredits, filterLineItems, emptyByKind, consolidateLineItems, rollupAllOrgs, isEmptyRollup, exceedsCap, testHelpers } from './org-billing-rollup.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_PAST_DUE_30_DAYS } from './org-billing-rollup.types';
-export { DEFAULT_PAST_DUE_60_DAYS } from './org-billing-rollup.types';
-export { DEFAULT_PAST_DUE_90_DAYS } from './org-billing-rollup.types';
-export { MAX_LINE_ITEMS_PER_ROLLUP } from './org-billing-rollup.types';
-export { MAX_BASES_PER_ORG } from './org-billing-rollup.types';
-export { MINOR_UNIT_FACTOR } from './org-billing-rollup.types';
-export { BILLING_LINE_KIND_LABELS } from './org-billing-rollup.types';
-export { DUNNING_LEVEL_LABELS } from './org-billing-rollup.types';
-export { Currency } from './org-billing-rollup.types';
-export { BillingLineKind } from './org-billing-rollup.types';
-export { DunningLevel } from './org-billing-rollup.types';
-export { IBillingLineItem } from './org-billing-rollup.types';
-export { IBillingCredit } from './org-billing-rollup.types';
-export { IBillingRollup } from './org-billing-rollup.types';
-export { IOrgBillingRollupOptions } from './org-billing-rollup.types';
+export { DEFAULT_PAST_DUE_30_DAYS, DEFAULT_PAST_DUE_60_DAYS, DEFAULT_PAST_DUE_90_DAYS, MAX_LINE_ITEMS_PER_ROLLUP, MAX_BASES_PER_ORG, MINOR_UNIT_FACTOR, BILLING_LINE_KIND_LABELS, DUNNING_LEVEL_LABELS, Currency, BillingLineKind, DunningLevel, IBillingLineItem, IBillingCredit, IBillingRollup, IOrgBillingRollupOptions } from './org-billing-rollup.types';

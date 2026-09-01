@@ -15,11 +15,7 @@ export { BaseImportCsvModule } from './base-import-csv.module';
 export { BaseImportJunctionCsvModule } from './base-import-junction-csv.module';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { BaseImportAttachmentsCsvQueueProcessor } from './base-import-attachments-csv.processor';
-export { BASE_IMPORT_ATTACHMENTS_CSV_QUEUE } from './base-import-attachments-csv.processor';
-export { BaseImportAttachmentsQueueProcessor } from './base-import-attachments.processor';
-export { BASE_IMPORT_ATTACHMENTS_QUEUE } from './base-import-attachments.processor';
-export { BaseImportCsvQueueProcessor } from './base-import-csv.processor';
-export { BASE_IMPORT_CSV_QUEUE } from './base-import-csv.processor';
-export { BaseImportJunctionCsvQueueProcessor } from './base-import-junction.processor';
-export { BASE_IMPORT_JUNCTION_CSV_QUEUE } from './base-import-junction.processor';
+export { BaseImportAttachmentsCsvQueueProcessor, BASE_IMPORT_ATTACHMENTS_CSV_QUEUE } from './base-import-attachments-csv.processor';
+export { BaseImportAttachmentsQueueProcessor, BASE_IMPORT_ATTACHMENTS_QUEUE } from './base-import-attachments.processor';
+export { BaseImportCsvQueueProcessor, BASE_IMPORT_CSV_QUEUE } from './base-import-csv.processor';
+export { BaseImportJunctionCsvQueueProcessor, BASE_IMPORT_JUNCTION_CSV_QUEUE } from './base-import-junction.processor';

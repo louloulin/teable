@@ -13,14 +13,7 @@ export { IpAllowlistModule } from './ip-allowlist.module';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { IpAllowlistAuthService } from './ip-allowlist.auth.service';
-export { parseCidr } from './ip-allowlist.service';
-export { parseIp } from './ip-allowlist.service';
-export { ipInCidr } from './ip-allowlist.service';
-export { decide } from './ip-allowlist.service';
-export { extractClientIp } from './ip-allowlist.service';
-export { coerceMode } from './ip-allowlist.service';
+export { parseCidr, parseIp, ipInCidr, decide, extractClientIp, coerceMode } from './ip-allowlist.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IpAllowlistMode } from './ip-allowlist.types';
-export { IIpAllowlistEntry } from './ip-allowlist.types';
-export { IIpAllowlistDecision } from './ip-allowlist.types';
+export { IpAllowlistMode, IIpAllowlistEntry, IIpAllowlistDecision } from './ip-allowlist.types';

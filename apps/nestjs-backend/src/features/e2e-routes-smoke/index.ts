@@ -10,22 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { E2eRoutesSmokeAuthService } from './e2e-routes-smoke.auth.service';
-export { validateSmokeCase } from './e2e-routes-smoke.service';
-export { expectedStatusFor } from './e2e-routes-smoke.service';
-export { crudVerbToHttp } from './e2e-routes-smoke.service';
-export { buildSmokePath } from './e2e-routes-smoke.service';
-export { resolveRoute } from './e2e-routes-smoke.service';
-export { expandControllerToCases } from './e2e-routes-smoke.service';
-export { capCases } from './e2e-routes-smoke.service';
-export { failures } from './e2e-routes-smoke.service';
-export { passRate } from './e2e-routes-smoke.service';
-export { coversAuthedRoutes } from './e2e-routes-smoke.service';
+export { validateSmokeCase, expectedStatusFor, crudVerbToHttp, buildSmokePath, resolveRoute, expandControllerToCases, capCases, failures, passRate, coversAuthedRoutes } from './e2e-routes-smoke.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_SMOKE_CASES } from './e2e-routes-smoke.types';
-export { MAX_SMOKE_RESULTS } from './e2e-routes-smoke.types';
-export { SmokeStatus } from './e2e-routes-smoke.types';
-export { IRouteSmokeCase } from './e2e-routes-smoke.types';
-export { IRouteSmokeResult } from './e2e-routes-smoke.types';
-export { IRouteSmokeReport } from './e2e-routes-smoke.types';
-export { ISmokeInvoker } from './e2e-routes-smoke.types';
+export { MAX_SMOKE_CASES, MAX_SMOKE_RESULTS, SmokeStatus, IRouteSmokeCase, IRouteSmokeResult, IRouteSmokeReport, ISmokeInvoker } from './e2e-routes-smoke.types';

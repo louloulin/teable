@@ -16,12 +16,9 @@ export { ShareModule } from './share.module';
 export { ShareController } from './share.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { ShareAuthService } from './share-auth.service';
-export { IShareViewInfo } from './share-auth.service';
-export { IJwtShareInfo } from './share-auth.service';
+export { ShareAuthService, IShareViewInfo } from './share-auth.service';
 export { ShareSocketService } from './share-socket.service';
-export { ShareService } from './share.service';
-export { IJwtShareInfo } from './share.service';
+export { ShareService, IJwtShareInfo } from './share.service';
 
 // ─── Utilities ────────────────────────────────────────────────────
 export { isLinkRecordSelectionQuery } from './share-link-query.util';

@@ -16,30 +16,10 @@ export { LicenseKeySelfAdminController } from './license-key-self.admin.controll
 
 // ─── Services ─────────────────────────────────────────────────────
 export { LicenseKeySelfAuthService } from './license-key-self.auth.service';
-export { isLicenseTier } from './license-key-self.service';
-export { tierRank } from './license-key-self.service';
-export { changeDirection } from './license-key-self.service';
-export { isReachable } from './license-key-self.service';
-export { validateTierChange } from './license-key-self.service';
-export { cooldownStatus } from './license-key-self.service';
-export { prorationPreview } from './license-key-self.service';
-export { buildAudit } from './license-key-self.service';
-export { nextCooldownFrom } from './license-key-self.service';
-export { appendAudit } from './license-key-self.service';
+export { isLicenseTier, tierRank, changeDirection, isReachable, validateTierChange, cooldownStatus, prorationPreview, buildAudit, nextCooldownFrom, appendAudit } from './license-key-self.service';
 
 // ─── Guards ───────────────────────────────────────────────────────
 export { LicenseKeySelfAdminGuard } from './license-key-self.admin.guard';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { LICENSE_TIERS } from './license-key-self.types';
-export { LICENSE_TIER_RANK } from './license-key-self.types';
-export { LICENSE_COOLDOWN_MS } from './license-key-self.types';
-export { LICENSE_MAX_SCHEDULE_MS } from './license-key-self.types';
-export { LICENSE_PRORATION_CYCLE_DAYS } from './license-key-self.types';
-export { LICENSE_TIER_CENTS } from './license-key-self.types';
-export { LicenseTier } from './license-key-self.types';
-export { TierChangeDirection } from './license-key-self.types';
-export { ITierChangeRequest } from './license-key-self.types';
-export { ITierChangeAudit } from './license-key-self.types';
-export { IProrationPreview } from './license-key-self.types';
-export { ICooldownStatus } from './license-key-self.types';
+export { LICENSE_TIERS, LICENSE_TIER_RANK, LICENSE_COOLDOWN_MS, LICENSE_MAX_SCHEDULE_MS, LICENSE_PRORATION_CYCLE_DAYS, LICENSE_TIER_CENTS, LicenseTier, TierChangeDirection, ITierChangeRequest, ITierChangeAudit, IProrationPreview, ICooldownStatus } from './license-key-self.types';

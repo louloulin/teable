@@ -8,22 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { AppModuleWiringModule } from './app-module-wiring.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { AppModuleWiringController } from './app-module-wiring.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { AppModuleWiringAuthService } from './app-module-wiring.auth.service';
-export { validateWire } from './app-module-wiring.service';
-export { buildManifest } from './app-module-wiring.service';
-export { findWire } from './app-module-wiring.service';
-export { mergeManifests } from './app-module-wiring.service';
-export { filterByCategory } from './app-module-wiring.service';
-export { filterByRound } from './app-module-wiring.service';
-export { requiredNames } from './app-module-wiring.service';
-export { hasAllRequired } from './app-module-wiring.service';
-export { installOrder } from './app-module-wiring.service';
-export { count } from './app-module-wiring.service';
+export { validateWire, buildManifest, findWire, mergeManifests, filterByCategory, filterByRound, requiredNames, hasAllRequired, installOrder, count } from './app-module-wiring.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { STAGES_90_TO_94_MODULES } from './app-module-wiring.types';
-export { MAX_MODULES } from './app-module-wiring.types';
-export { WireCategory } from './app-module-wiring.types';
-export { IModuleWire } from './app-module-wiring.types';
-export { IWiringManifest } from './app-module-wiring.types';
+export { STAGES_90_TO_94_MODULES, MAX_MODULES, WireCategory, IModuleWire, IWiringManifest } from './app-module-wiring.types';

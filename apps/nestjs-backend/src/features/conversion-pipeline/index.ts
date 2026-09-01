@@ -10,19 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ConversionPipelineAuthService } from './conversion-pipeline.auth.service';
-export { validatePipeline } from './conversion-pipeline.service';
-export { validateStep } from './conversion-pipeline.service';
-export { matchesFilter } from './conversion-pipeline.service';
-export { runStep } from './conversion-pipeline.service';
-export { runPipeline } from './conversion-pipeline.service';
-export { appendPipeline } from './conversion-pipeline.service';
-export { reorderSteps } from './conversion-pipeline.service';
+export { validatePipeline, validateStep, matchesFilter, runStep, runPipeline, appendPipeline, reorderSteps } from './conversion-pipeline.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_STEPS_PER_PIPELINE } from './conversion-pipeline.types';
-export { MAX_PIPELINES_PER_ORG } from './conversion-pipeline.types';
-export { IPipelineFilter } from './conversion-pipeline.types';
-export { IPipelineStep } from './conversion-pipeline.types';
-export { IPipeline } from './conversion-pipeline.types';
-export { IStepExecution } from './conversion-pipeline.types';
-export { IPipelineRun } from './conversion-pipeline.types';
+export { MAX_STEPS_PER_PIPELINE, MAX_PIPELINES_PER_ORG, IPipelineFilter, IPipelineStep, IPipeline, IStepExecution, IPipelineRun } from './conversion-pipeline.types';

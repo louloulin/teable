@@ -10,25 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ComplianceControlMapAuthService } from './compliance-control-map.auth.service';
-export { requirementsFor } from './compliance-control-map.service';
-export { buildControlMap } from './compliance-control-map.service';
-export { filterByFramework } from './compliance-control-map.service';
-export { filterByCategory } from './compliance-control-map.service';
-export { updateStatus } from './compliance-control-map.service';
-export { isControlIdValid } from './compliance-control-map.service';
-export { findMissingEvidence } from './compliance-control-map.service';
-export { coveragePercent } from './compliance-control-map.service';
-export { serializeMap } from './compliance-control-map.service';
-export { hashMap } from './compliance-control-map.service';
-export { BUILTIN_CONTROLS } from './compliance-control-map.service';
+export { requirementsFor, buildControlMap, filterByFramework, filterByCategory, updateStatus, isControlIdValid, findMissingEvidence, coveragePercent, serializeMap, hashMap, BUILTIN_CONTROLS } from './compliance-control-map.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { CONTROL_ID_RE } from './compliance-control-map.types';
-export { ControlFramework } from './compliance-control-map.types';
-export { ControlCategory } from './compliance-control-map.types';
-export { ControlStatus } from './compliance-control-map.types';
-export { ControlItem } from './compliance-control-map.types';
-export { EvidenceKind } from './compliance-control-map.types';
-export { EvidenceRequirement } from './compliance-control-map.types';
-export { ControlMapEntry } from './compliance-control-map.types';
-export { ControlCoverageReport } from './compliance-control-map.types';
+export { CONTROL_ID_RE, ControlFramework, ControlCategory, ControlStatus, ControlItem, EvidenceKind, EvidenceRequirement, ControlMapEntry, ControlCoverageReport } from './compliance-control-map.types';

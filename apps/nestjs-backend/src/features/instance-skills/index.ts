@@ -15,5 +15,4 @@ export { InstanceSkillModule } from './instance-skill.module';
 export { InstanceSkillController } from './instance-skill.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { InstanceSkillService } from './instance-skill.service';
-export { InstanceSkill } from './instance-skill.service';
+export { InstanceSkillService, InstanceSkill } from './instance-skill.service';

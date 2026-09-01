@@ -16,29 +16,7 @@ export { MapViewAuthController } from './map-view.auth.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { MapViewAuthService } from './map-view.auth.service';
-export { isGeoSource } from './map-view.service';
-export { isValidLatLng } from './map-view.service';
-export { haversineKm } from './map-view.service';
-export { parseCombined } from './map-view.service';
-export { resolveMarker } from './map-view.service';
-export { applyRegionFilter } from './map-view.service';
-export { countryOf } from './map-view.service';
-export { inBoundingBox } from './map-view.service';
-export { inPolygon } from './map-view.service';
-export { clusterMarkers } from './map-view.service';
-export { averagePoint } from './map-view.service';
-export { pixelsToKm } from './map-view.service';
-export { validateConfig } from './map-view.service';
-export { IRowLike } from './map-view.service';
+export { isGeoSource, isValidLatLng, haversineKm, parseCombined, resolveMarker, applyRegionFilter, countryOf, inBoundingBox, inPolygon, clusterMarkers, averagePoint, pixelsToKm, validateConfig, IRowLike } from './map-view.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_MAP_ZOOM } from './map-view.types';
-export { DEFAULT_CLUSTER_RADIUS } from './map-view.types';
-export { MAX_MARKERS } from './map-view.types';
-export { IGeoPoint } from './map-view.types';
-export { GeoSource } from './map-view.types';
-export { IMapViewConfig } from './map-view.types';
-export { IMapMarker } from './map-view.types';
-export { IMapCluster } from './map-view.types';
-export { IBoundingBox } from './map-view.types';
-export { IMapRegionFilter } from './map-view.types';
+export { DEFAULT_MAP_ZOOM, DEFAULT_CLUSTER_RADIUS, MAX_MARKERS, IGeoPoint, GeoSource, IMapViewConfig, IMapMarker, IMapCluster, IBoundingBox, IMapRegionFilter } from './map-view.types';

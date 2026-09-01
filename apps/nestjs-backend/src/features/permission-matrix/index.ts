@@ -18,21 +18,11 @@ export { PermissionMatrixController } from './permission-matrix.controller';
 export { PermissionMatrixService } from './permission-matrix.service';
 
 // ─── Guards ───────────────────────────────────────────────────────
-export { PermissionGuard } from './permission.guard';
-export { PERMISSION_ACTION_META } from './permission.guard';
-export { RequirePermission } from './permission.guard';
-export { PermissionAction } from './permission.guard';
+export { PermissionGuard, PERMISSION_ACTION_META, RequirePermission, PermissionAction } from './permission.guard';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { filterReferencesCurrentUser } from './permission-matrix.constants';
-export { PERMISSION_MATRIX_CAPABILITY } from './permission-matrix.constants';
-export { CURRENT_USER_SENTINEL } from './permission-matrix.constants';
-export { PermissionFilter } from './permission-matrix.constants';
-export { IPermissionRoleVo } from './permission-matrix.constants';
+export { filterReferencesCurrentUser, PERMISSION_MATRIX_CAPABILITY, CURRENT_USER_SENTINEL, PermissionFilter, IPermissionRoleVo } from './permission-matrix.constants';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { applyPermissionFilter } from './permission-filter-merge';
-export { applyPermissionFilterToRecordQuery } from './permission-filter-merge';
-export { PermissionInterceptor } from './permission.interceptor';
-export { PERMISSION_INTERCEPTOR_META } from './permission.interceptor';
-export { RequirePermissionFilter } from './permission.interceptor';
+export { applyPermissionFilter, applyPermissionFilterToRecordQuery } from './permission-filter-merge';
+export { PermissionInterceptor, PERMISSION_INTERCEPTOR_META, RequirePermissionFilter } from './permission.interceptor';

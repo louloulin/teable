@@ -8,35 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { OrgQuotaModule } from './org-quota.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { OrgQuotaController } from './org-quota.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { OrgQuotaAuthService } from './org-quota.auth.service';
-export { normalizeEnvelope } from './org-quota.service';
-export { validateEnvelope } from './org-quota.service';
-export { computeRemaining } from './org-quota.service';
-export { decideQuota } from './org-quota.service';
-export { buildOverage } from './org-quota.service';
-export { pickNextBase } from './org-quota.service';
-export { applyGrant } from './org-quota.service';
-export { emptyFairnessState } from './org-quota.service';
-export { decayFairness } from './org-quota.service';
-export { aggregateUsage } from './org-quota.service';
-export { applyOptions } from './org-quota.service';
-export { testHelpers } from './org-quota.service';
+export { normalizeEnvelope, validateEnvelope, computeRemaining, decideQuota, buildOverage, pickNextBase, applyGrant, emptyFairnessState, decayFairness, aggregateUsage, applyOptions, testHelpers } from './org-quota.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_ORG_SOFT_FRACTION } from './org-quota.types';
-export { DEFAULT_ORG_POLICY } from './org-quota.types';
-export { MAX_ORG_QUOTA_KINDS } from './org-quota.types';
-export { FAIRNESS_DECAY } from './org-quota.types';
-export { FAIRNESS_BOOST } from './org-quota.types';
-export { ORG_QUOTA_KINDS } from './org-quota.types';
-export { ORG_QUOTA_LABELS } from './org-quota.types';
-export { QuotaKind } from './org-quota.types';
-export { OveragePolicy } from './org-quota.types';
-export { GrantDecision } from './org-quota.types';
-export { IOrgQuotaEnvelope } from './org-quota.types';
-export { IOrgQuotaUsage } from './org-quota.types';
-export { IOrgQuotaOverage } from './org-quota.types';
-export { IFairnessState } from './org-quota.types';
-export { IOrgQuotaCheckResult } from './org-quota.types';
-export { IOrgQuotaOptions } from './org-quota.types';
+export { DEFAULT_ORG_SOFT_FRACTION, DEFAULT_ORG_POLICY, MAX_ORG_QUOTA_KINDS, FAIRNESS_DECAY, FAIRNESS_BOOST, ORG_QUOTA_KINDS, ORG_QUOTA_LABELS, QuotaKind, OveragePolicy, GrantDecision, IOrgQuotaEnvelope, IOrgQuotaUsage, IOrgQuotaOverage, IFairnessState, IOrgQuotaCheckResult, IOrgQuotaOptions } from './org-quota.types';

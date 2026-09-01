@@ -11,6 +11,8 @@
 // ─── NestJS module ────────────────────────────────────────────────
 export { RiskControlModule } from './risk-control.module';
 
+// ─── Controllers ──────────────────────────────────────────────────
+export { RiskControlController } from './risk-control.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
-export { RiskControlService } from './risk-control.service';
-export { IRiskCheckType } from './risk-control.service';
+export { RiskControlService, IRiskCheckType } from './risk-control.service';

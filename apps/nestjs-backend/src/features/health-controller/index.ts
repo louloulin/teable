@@ -10,18 +10,5 @@
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { HealthControllerAuthService } from './health-controller.auth.service';
-export { validateCheck } from './health-controller.service';
-export { aggregateState } from './health-controller.service';
-export { buildSnapshot } from './health-controller.service';
-export { statusForState } from './health-controller.service';
-export { isLive } from './health-controller.service';
-export { isReady } from './health-controller.service';
-export { failures } from './health-controller.service';
-export { checkCount } from './health-controller.service';
-export { passRate } from './health-controller.service';
-export { syntheticCheck } from './health-controller.service';
-export { MAX_CHECKS } from './health-controller.types';
-export { MAX_CHECK_NAME_LENGTH } from './health-controller.types';
-export { HealthState } from './health-controller.types';
-export { ICheckResult } from './health-controller.types';
-export { IHealthSnapshot } from './health-controller.types';
+export { validateCheck, aggregateState, buildSnapshot, statusForState, isLive, isReady, failures, checkCount, passRate, syntheticCheck } from './health-controller.service';
+export { MAX_CHECKS, MAX_CHECK_NAME_LENGTH, HealthState, ICheckResult, IHealthSnapshot } from './health-controller.types';

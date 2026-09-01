@@ -8,28 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { OrgBanListModule } from './org-ban-list.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { OrgBanListAdminController } from './org-ban-list.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { OrgBanListAuthService } from './org-ban-list.auth.service';
-export { isBanEntryKind } from './org-ban-list.service';
-export { isBanListMode } from './org-ban-list.service';
-export { maxBanEntriesPerOrg } from './org-ban-list.service';
-export { validateEntry } from './org-ban-list.service';
-export { normalizeEntry } from './org-ban-list.service';
-export { isEffective } from './org-ban-list.service';
-export { decideForCandidate } from './org-ban-list.service';
-export { appendAudit } from './org-ban-list.service';
-export { buildAudit } from './org-ban-list.service';
-export { revokeEntry } from './org-ban-list.service';
-export { remainingLifetimeMs } from './org-ban-list.service';
+export { isBanEntryKind, isBanListMode, maxBanEntriesPerOrg, validateEntry, normalizeEntry, isEffective, decideForCandidate, appendAudit, buildAudit, revokeEntry, remainingLifetimeMs } from './org-ban-list.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_BAN_ENTRIES_PER_ORG } from './org-ban-list.types';
-export { MAX_AUDIT_PER_ENTRY } from './org-ban-list.types';
-export { BAN_ENTRY_VALUE_MAX } from './org-ban-list.types';
-export { BAN_KINDS } from './org-ban-list.types';
-export { BAN_MODES } from './org-ban-list.types';
-export { BAN_KIND_LABELS } from './org-ban-list.types';
-export { BanEntryKind } from './org-ban-list.types';
-export { BanListMode } from './org-ban-list.types';
-export { IBanEntry } from './org-ban-list.types';
-export { IBanAudit } from './org-ban-list.types';
+export { MAX_BAN_ENTRIES_PER_ORG, MAX_AUDIT_PER_ENTRY, BAN_ENTRY_VALUE_MAX, BAN_KINDS, BAN_MODES, BAN_KIND_LABELS, BanEntryKind, BanListMode, IBanEntry, IBanAudit } from './org-ban-list.types';

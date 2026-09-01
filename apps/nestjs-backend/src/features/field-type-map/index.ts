@@ -10,17 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { FieldTypeMapAuthService } from './field-type-map.auth.service';
-export { isFieldDataKind } from './field-type-map.service';
-export { defaultMatrix } from './field-type-map.service';
-export { lookupMap } from './field-type-map.service';
-export { isLossy } from './field-type-map.service';
-export { validateMap } from './field-type-map.service';
-export { coerce } from './field-type-map.service';
-export { setMap } from './field-type-map.service';
+export { isFieldDataKind, defaultMatrix, lookupMap, isLossy, validateMap, coerce, setMap } from './field-type-map.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { FIELD_DATA_KINDS } from './field-type-map.types';
-export { MAX_FIELD_MAPS } from './field-type-map.types';
-export { FieldDataKind } from './field-type-map.types';
-export { FieldConversion } from './field-type-map.types';
-export { IFieldTypeMap } from './field-type-map.types';
+export { FIELD_DATA_KINDS, MAX_FIELD_MAPS, FieldDataKind, FieldConversion, IFieldTypeMap } from './field-type-map.types';

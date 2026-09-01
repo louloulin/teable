@@ -8,35 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { AuditRetentionModule } from './audit-retention.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { AuditRetentionAdminController } from './audit-retention.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { AuditRetentionAuthService } from './audit-retention.auth.service';
-export { isStorageTarget } from './audit-retention.service';
-export { defaultHotDays } from './audit-retention.service';
-export { defaultColdDays } from './audit-retention.service';
-export { maxHotDays } from './audit-retention.service';
-export { maxColdDays } from './audit-retention.service';
-export { validatePolicy } from './audit-retention.service';
-export { normalizePolicy } from './audit-retention.service';
-export { decideTier } from './audit-retention.service';
-export { planSweep } from './audit-retention.service';
-export { batchEvents } from './audit-retention.service';
-export { estimateStorageBytes } from './audit-retention.service';
-export { startJob } from './audit-retention.service';
-export { finishJob } from './audit-retention.service';
-export { suggestPolicyForPlan } from './audit-retention.service';
+export { isStorageTarget, defaultHotDays, defaultColdDays, maxHotDays, maxColdDays, validatePolicy, normalizePolicy, decideTier, planSweep, batchEvents, estimateStorageBytes, startJob, finishJob, suggestPolicyForPlan } from './audit-retention.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_HOT_DAYS } from './audit-retention.types';
-export { DEFAULT_COLD_DAYS } from './audit-retention.types';
-export { MAX_HOT_DAYS } from './audit-retention.types';
-export { MAX_COLD_DAYS } from './audit-retention.types';
-export { MAX_BATCH } from './audit-retention.types';
-export { STORAGE_TARGETS } from './audit-retention.types';
-export { RETENTION_TIER_LABELS } from './audit-retention.types';
-export { RetentionTier } from './audit-retention.types';
-export { StorageTarget } from './audit-retention.types';
-export { IAuditRetentionPolicy } from './audit-retention.types';
-export { IAuditEvent } from './audit-retention.types';
-export { IRetentionDecision } from './audit-retention.types';
-export { IRetentionJob } from './audit-retention.types';
-export { IAuditRetentionOptions } from './audit-retention.types';
+export { DEFAULT_HOT_DAYS, DEFAULT_COLD_DAYS, MAX_HOT_DAYS, MAX_COLD_DAYS, MAX_BATCH, STORAGE_TARGETS, RETENTION_TIER_LABELS, RetentionTier, StorageTarget, IAuditRetentionPolicy, IAuditEvent, IRetentionDecision, IRetentionJob, IAuditRetentionOptions } from './audit-retention.types';

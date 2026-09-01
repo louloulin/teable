@@ -10,28 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { E2eFixtureReplayAuthService } from './e2e-fixture-replay.auth.service';
-export { deriveSessionId } from './e2e-fixture-replay.service';
-export { planReplaySteps } from './e2e-fixture-replay.service';
-export { validateReplayRequest } from './e2e-fixture-replay.service';
-export { startSession } from './e2e-fixture-replay.service';
-export { markReplaying } from './e2e-fixture-replay.service';
-export { applyStepResult } from './e2e-fixture-replay.service';
-export { finalize } from './e2e-fixture-replay.service';
-export { summarize } from './e2e-fixture-replay.service';
-export { isTerminal } from './e2e-fixture-replay.service';
-export { capSteps } from './e2e-fixture-replay.service';
-export { findStep } from './e2e-fixture-replay.service';
-export { stepsByOp } from './e2e-fixture-replay.service';
-export { allPassed } from './e2e-fixture-replay.service';
-export { userCount } from './e2e-fixture-replay.service';
-export { hasToken } from './e2e-fixture-replay.service';
-export { findUser } from './e2e-fixture-replay.service';
+export { deriveSessionId, planReplaySteps, validateReplayRequest, startSession, markReplaying, applyStepResult, finalize, summarize, isTerminal, capSteps, findStep, stepsByOp, allPassed, userCount, hasToken, findUser } from './e2e-fixture-replay.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_REPLAY_STEPS } from './e2e-fixture-replay.types';
-export { MAX_REPLAY_SESSIONS } from './e2e-fixture-replay.types';
-export { ReplayStatus } from './e2e-fixture-replay.types';
-export { IReplayStep } from './e2e-fixture-replay.types';
-export { IFixtureReplaySession } from './e2e-fixture-replay.types';
-export { IReplaySummary } from './e2e-fixture-replay.types';
-export { IReplayRequest } from './e2e-fixture-replay.types';
+export { MAX_REPLAY_STEPS, MAX_REPLAY_SESSIONS, ReplayStatus, IReplayStep, IFixtureReplaySession, IReplaySummary, IReplayRequest } from './e2e-fixture-replay.types';

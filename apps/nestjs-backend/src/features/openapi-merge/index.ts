@@ -10,20 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { OpenApiMergeAuthService } from './openapi-merge.auth.service';
-export { validateMergeInput } from './openapi-merge.service';
-export { controllerSpecToOperations } from './openapi-merge.service';
-export { controllerRouteToOperation } from './openapi-merge.service';
-export { pathParamsFromTemplate } from './openapi-merge.service';
-export { mergeOpenApiDocuments } from './openapi-merge.service';
-export { findAcross } from './openapi-merge.service';
-export { listOperationIds } from './openapi-merge.service';
-export { countSchemas } from './openapi-merge.service';
-export { hasDuplicates } from './openapi-merge.service';
+export { validateMergeInput, controllerSpecToOperations, controllerRouteToOperation, pathParamsFromTemplate, mergeOpenApiDocuments, findAcross, listOperationIds, countSchemas, hasDuplicates } from './openapi-merge.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_MERGE_INPUTS } from './openapi-merge.types';
-export { MAX_MERGE_OUTPUT_OPS } from './openapi-merge.types';
-export { MergeConflictPolicy } from './openapi-merge.types';
-export { IOpenApiMergeInput } from './openapi-merge.types';
-export { IOpenApiMergeResult } from './openapi-merge.types';
-export { IControllerSpecToOpsInput } from './openapi-merge.types';
+export { MAX_MERGE_INPUTS, MAX_MERGE_OUTPUT_OPS, MergeConflictPolicy, IOpenApiMergeInput, IOpenApiMergeResult, IControllerSpecToOpsInput } from './openapi-merge.types';

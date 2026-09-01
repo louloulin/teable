@@ -16,37 +16,7 @@ export { OrgCustomRoleController } from './org-custom-role.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { OrgCustomRoleAuthService } from './org-custom-role.auth.service';
-export { isCapability } from './org-custom-role.service';
-export { isScopeKind } from './org-custom-role.service';
-export { isBuiltInRole } from './org-custom-role.service';
-export { maxRoles } from './org-custom-role.service';
-export { maxCaps } from './org-custom-role.service';
-export { maxScopes } from './org-custom-role.service';
-export { validateScope } from './org-custom-role.service';
-export { validateRole } from './org-custom-role.service';
-export { normalizeRole } from './org-custom-role.service';
-export { canRegisterMore } from './org-custom-role.service';
-export { normalizeAssignment } from './org-custom-role.service';
-export { validateAssignment } from './org-custom-role.service';
-export { roleGrants } from './org-custom-role.service';
-export { roleAppliesToBase } from './org-custom-role.service';
-export { resolveInherited } from './org-custom-role.service';
-export { applicableScopes } from './org-custom-role.service';
-export { decideAccess } from './org-custom-role.service';
-export { testHelpers } from './org-custom-role.service';
+export { isCapability, isScopeKind, isBuiltInRole, maxRoles, maxCaps, maxScopes, validateScope, validateRole, normalizeRole, canRegisterMore, normalizeAssignment, validateAssignment, roleGrants, roleAppliesToBase, resolveInherited, applicableScopes, decideAccess, testHelpers } from './org-custom-role.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_CUSTOM_ROLES_PER_ORG } from './org-custom-role.types';
-export { MAX_CAPABILITIES_PER_ROLE } from './org-custom-role.types';
-export { MAX_SCOPES_PER_ROLE } from './org-custom-role.types';
-export { MAX_NAME_LENGTH } from './org-custom-role.types';
-export { MAX_DESCRIPTION_LENGTH } from './org-custom-role.types';
-export { BUILT_IN_ROLE_CAPABILITIES } from './org-custom-role.types';
-export { CUSTOM_ROLE_CAPABILITY_LABELS } from './org-custom-role.types';
-export { BuiltInRole } from './org-custom-role.types';
-export { CustomRoleCapability } from './org-custom-role.types';
-export { RoleScopeKind } from './org-custom-role.types';
-export { IRoleScope } from './org-custom-role.types';
-export { ICustomRole } from './org-custom-role.types';
-export { IRoleAssignment } from './org-custom-role.types';
-export { IOrgCustomRoleOptions } from './org-custom-role.types';
+export { MAX_CUSTOM_ROLES_PER_ORG, MAX_CAPABILITIES_PER_ROLE, MAX_SCOPES_PER_ROLE, MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, BUILT_IN_ROLE_CAPABILITIES, CUSTOM_ROLE_CAPABILITY_LABELS, BuiltInRole, CustomRoleCapability, RoleScopeKind, IRoleScope, ICustomRole, IRoleAssignment, IOrgCustomRoleOptions } from './org-custom-role.types';

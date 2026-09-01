@@ -12,18 +12,14 @@
 export { RecordModule } from './record.module';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { RecordPermissionService } from './record-permission.service';
-export { IWrapViewQuery } from './record-permission.service';
-export { IRecordReadQuerySource } from './record-permission.service';
+export { RecordPermissionService, IWrapViewQuery, IRecordReadQuerySource } from './record-permission.service';
 export { RecordQueryService } from './record-query.service';
-export { RecordService } from './record.service';
-export { IRecordInnerRo } from './record.service';
+export { RecordService, IRecordInnerRo } from './record.service';
 export { ShareViewScopeService } from './share-view-scope.service';
 export { UserNameListener } from './user-name.listener.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IFieldRaws } from './type';
-export { IUpdateRecordsInternalRo } from './type';
+export { IFieldRaws, IUpdateRecordsInternalRo } from './type';
 export { TypeCastAndValidate } from './typecast.validate';
 
 // ─── Other public exports ─────────────────────────────────────────

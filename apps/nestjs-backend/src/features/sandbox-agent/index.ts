@@ -15,5 +15,4 @@ export { SandboxAgentModule } from './sandbox-agent.module';
 export { SandboxAgentController } from './sandbox-agent.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { SandboxAgentService } from './sandbox-agent.service';
-export { ISandboxRuntimeStatus } from './sandbox-agent.service';
+export { SandboxAgentService, ISandboxRuntimeStatus } from './sandbox-agent.service';

@@ -12,23 +12,8 @@
 export { CalculationModule } from './calculation.module';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { BatchService } from './batch.service';
-export { IOpsData } from './batch.service';
-export { FieldCalculationService } from './field-calculation.service';
-export { ITopoOrdersContext } from './field-calculation.service';
-export { LinkService } from './link.service';
-export { IFkRecordMap } from './link.service';
-export { IFkRecordItem } from './link.service';
-export { IRecordMapByTableId } from './link.service';
-export { IFieldMapByTableId } from './link.service';
-export { ILinkCellContext } from './link.service';
-export { ReferenceService } from './reference.service';
-export { ITopoItem } from './reference.service';
-export { ITopoItemWithRecords } from './reference.service';
-export { IGraphItem } from './reference.service';
-export { IRecordMap } from './reference.service';
-export { IRecordItem } from './reference.service';
-export { IRecordData } from './reference.service';
-export { IRelatedRecordItem } from './reference.service';
-export { ITopoLinkOrder } from './reference.service';
+export { BatchService, IOpsData } from './batch.service';
+export { FieldCalculationService, ITopoOrdersContext } from './field-calculation.service';
+export { LinkService, IFkRecordMap, IFkRecordItem, IRecordMapByTableId, IFieldMapByTableId, ILinkCellContext } from './link.service';
+export { ReferenceService, ITopoItem, ITopoItemWithRecords, IGraphItem, IRecordMap, IRecordItem, IRecordData, IRelatedRecordItem, ITopoLinkOrder } from './reference.service';
 export { SystemFieldService } from './system-field.service';

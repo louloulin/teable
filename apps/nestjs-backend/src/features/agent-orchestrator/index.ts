@@ -9,30 +9,15 @@
  */
 
 // ─── NestJS module ────────────────────────────────────────────────
-export { AgentOrchestratorModule } from './agent-orchestrator.module';
+export { AgentOrchestratorModule, __testing__buildCuppyTools } from './agent-orchestrator.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { AgentOrchestratorController } from './agent-orchestrator.controller';
 export { CuppyController } from './cuppy.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { AgentOrchestratorService } from './agent-orchestrator.service';
-export { ILlmCallResult } from './agent-orchestrator.service';
-export { ILlmClient } from './agent-orchestrator.service';
-export { IPromptRouter } from './agent-orchestrator.service';
+export { AgentOrchestratorService, ILlmCallResult, ILlmClient, IPromptRouter } from './agent-orchestrator.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { ConversationStore } from './agent-orchestrator';
-export { InMemoryAdapterRegistry } from './agent-orchestrator';
-export { ConversationId } from './agent-orchestrator';
-export { UserId } from './agent-orchestrator';
-export { InboundMessage } from './agent-orchestrator';
-export { OutboundReply } from './agent-orchestrator';
-export { Tool } from './agent-orchestrator';
-export { ConversationContext } from './agent-orchestrator';
-export { IMAdapter } from './agent-orchestrator';
-export { AdapterRegistry } from './agent-orchestrator';
-export { BuiltInEchoLlm } from './built-in-echo-llm';
-export { IEchoLlmArgs } from './built-in-echo-llm';
-export { IEchoLlmResult } from './built-in-echo-llm';
-export { ICuppyEchoLlm } from './built-in-echo-llm';
+export { ConversationStore, InMemoryAdapterRegistry, ConversationId, UserId, InboundMessage, OutboundReply, Tool, ConversationContext, IMAdapter, AdapterRegistry } from './agent-orchestrator';
+export { BuiltInEchoLlm, IEchoLlmArgs, IEchoLlmResult, ICuppyEchoLlm } from './built-in-echo-llm';

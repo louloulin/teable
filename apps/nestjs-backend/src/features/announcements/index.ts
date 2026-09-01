@@ -12,12 +12,7 @@
 export { AnnouncementsModule } from './announcements.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
-export { AnnouncementsAdminController } from './announcements.controller';
-export { AnnouncementsController } from './announcements.controller';
+export { AnnouncementsAdminController, AnnouncementsController } from './announcements.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { AnnouncementsService } from './announcements.service';
-export { AnnouncementForm } from './announcements.service';
-export { AnnouncementLevel } from './announcements.service';
-export { AnnouncementAudience } from './announcements.service';
-export { ICreateAnnouncementInput } from './announcements.service';
+export { AnnouncementsService, AnnouncementForm, AnnouncementLevel, AnnouncementAudience, ICreateAnnouncementInput } from './announcements.service';

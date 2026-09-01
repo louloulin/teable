@@ -16,23 +16,7 @@ export { TenantReplayService } from './tenant-replay.service';
 export { TenantSnapshotService } from './tenant-snapshot.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IAnonymizePolicy } from './tenant-replay.types';
-export { IReplayOptions } from './tenant-replay.types';
-export { ITableRecordStats } from './tenant-replay.types';
-export { IBaseSnapshot } from './tenant-replay.types';
-export { ITableSnapshot } from './tenant-replay.types';
-export { IUserSnapshot } from './tenant-replay.types';
-export { ITenantSnapshot } from './tenant-replay.types';
-export { IReplayError } from './tenant-replay.types';
-export { IReplayCounts } from './tenant-replay.types';
-export { IReplayReport } from './tenant-replay.types';
+export { IAnonymizePolicy, IReplayOptions, ITableRecordStats, IBaseSnapshot, ITableSnapshot, IUserSnapshot, ITenantSnapshot, IReplayError, IReplayCounts, IReplayReport } from './tenant-replay.types';
 
 // ─── Utilities ────────────────────────────────────────────────────
-export { SYSTEM_USER_ID } from './tenant-anonymize.util';
-export { REPLAY_RUN_TAG_PREFIX } from './tenant-anonymize.util';
-export { buildReplayClsStore } from './tenant-anonymize.util';
-export { scrubEmail } from './tenant-anonymize.util';
-export { scrubName } from './tenant-anonymize.util';
-export { anonymizeUser } from './tenant-anonymize.util';
-export { anonymizeSnapshot } from './tenant-anonymize.util';
-export { structuredCloneSafe } from './tenant-anonymize.util';
+export { SYSTEM_USER_ID, REPLAY_RUN_TAG_PREFIX, buildReplayClsStore, scrubEmail, scrubName, anonymizeUser, anonymizeSnapshot, structuredCloneSafe } from './tenant-anonymize.util';

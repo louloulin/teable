@@ -9,25 +9,15 @@
  */
 
 // ─── NestJS module ────────────────────────────────────────────────
-export { WorkspaceMirrorModule } from './workspace-mirror.module';
-export { WorkspaceMirrorService } from './workspace-mirror.module';
+export { WorkspaceMirrorModule, WorkspaceMirrorService } from './workspace-mirror.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { WorkspaceMirrorController } from './workspace-mirror.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export { WorkspaceMirrorAuthService } from './workspace-mirror.auth.service';
-export { MirrorConfigValidationError } from './workspace-mirror.config.service';
-export { MirrorConfigNotFoundError } from './workspace-mirror.config.service';
-export { WorkspaceMirrorConfigService } from './workspace-mirror.config.service';
-export { nextRecordId } from './workspace-mirror.service';
-export { validateMirrorConfig } from './workspace-mirror.service';
-export { nextSeq } from './workspace-mirror.service';
-export { batchRecords } from './workspace-mirror.service';
-export { buildBatchResult } from './workspace-mirror.service';
-export { computeLag } from './workspace-mirror.service';
-export { summarizeLags } from './workspace-mirror.service';
-export { pickNextStandby } from './workspace-mirror.service';
+export { MirrorConfigValidationError, MirrorConfigNotFoundError, WorkspaceMirrorConfigService } from './workspace-mirror.config.service';
+export { nextRecordId, validateMirrorConfig, nextSeq, batchRecords, buildBatchResult, computeLag, summarizeLags, pickNextStandby } from './workspace-mirror.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export * from './workspace-mirror.types';

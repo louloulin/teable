@@ -8,36 +8,16 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { BillingModule } from './billing.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { BillingCheckoutController } from './billing-checkout.controller';
+export { BillingController } from './billing.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { BillingAuthService } from './billing.auth.service';
-export { signWebhook } from './billing.service';
-export { verifyWebhookSignature } from './billing.service';
-export { parseEventPayload } from './billing.service';
-export { resolvePlan } from './billing.service';
-export { computePlanAmount } from './billing.service';
-export { canAddSeats } from './billing.service';
-export { isValidSubscriptionTransition } from './billing.service';
-export { isInvoiceTerminal } from './billing.service';
-export { isValidInvoiceTransition } from './billing.service';
-export { buildSubscriptionRow } from './billing.service';
-export { applySubscriptionUpdate } from './billing.service';
-export { buildInvoiceRow } from './billing.service';
-export { isHandledEvent } from './billing.service';
-export { buildWebhookEventId } from './billing.service';
-export { HANDLED_EVENT_TYPES } from './billing.service';
-export { DEFAULT_EVENT_DISPATCH } from './billing.service';
+export { signWebhook, verifyWebhookSignature, parseEventPayload, resolvePlan, computePlanAmount, canAddSeats, isValidSubscriptionTransition, isInvoiceTerminal, isValidInvoiceTransition, buildSubscriptionRow, applySubscriptionUpdate, buildInvoiceRow, isHandledEvent, buildWebhookEventId, HANDLED_EVENT_TYPES, DEFAULT_EVENT_DISPATCH } from './billing.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { PLAN_TABLE } from './billing.types';
-export { SubscriptionStatus } from './billing.types';
-export { InvoiceStatus } from './billing.types';
-export { BillingPlanCode } from './billing.types';
-export { ISubscription } from './billing.types';
-export { IInvoice } from './billing.types';
-export { IWebhookEvent } from './billing.types';
-export { ICreateSubscriptionInput } from './billing.types';
-export { IUpdateSubscriptionInput } from './billing.types';
-export { ICreateInvoiceInput } from './billing.types';
-export { IResolvedWebhook } from './billing.types';
-export { BillingEventHandler } from './billing.types';
-export { IPlanDescriptor } from './billing.types';
+export { PLAN_TABLE, SubscriptionStatus, InvoiceStatus, BillingPlanCode, ISubscription, IInvoice, IWebhookEvent, ICreateSubscriptionInput, IUpdateSubscriptionInput, ICreateInvoiceInput, IResolvedWebhook, BillingEventHandler, IPlanDescriptor } from './billing.types';

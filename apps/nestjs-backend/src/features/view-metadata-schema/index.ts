@@ -10,39 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { ViewMetadataSchemaAuthService } from './view-metadata-schema.auth.service';
-export { emptyViewMetadata } from './view-metadata-schema.service';
-export { validateViewMetadata } from './view-metadata-schema.service';
-export { addColumn } from './view-metadata-schema.service';
-export { removeColumn } from './view-metadata-schema.service';
-export { reorderColumns } from './view-metadata-schema.service';
-export { setColumnWidth } from './view-metadata-schema.service';
-export { toggleColumnHidden } from './view-metadata-schema.service';
-export { toggleColumnPinned } from './view-metadata-schema.service';
-export { addFilter } from './view-metadata-schema.service';
-export { addSort } from './view-metadata-schema.service';
-export { addGroup } from './view-metadata-schema.service';
-export { addCondFormat } from './view-metadata-schema.service';
-export { listVisibleColumns } from './view-metadata-schema.service';
-export { listPinnedColumns } from './view-metadata-schema.service';
-export { totalWidth } from './view-metadata-schema.service';
-export { serializeViewMetadata } from './view-metadata-schema.service';
-export { summarizeViewMetadata } from './view-metadata-schema.service';
-export { migrateViewMetadata } from './view-metadata-schema.service';
+export { emptyViewMetadata, validateViewMetadata, addColumn, removeColumn, reorderColumns, setColumnWidth, toggleColumnHidden, toggleColumnPinned, addFilter, addSort, addGroup, addCondFormat, listVisibleColumns, listPinnedColumns, totalWidth, serializeViewMetadata, summarizeViewMetadata, migrateViewMetadata } from './view-metadata-schema.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_VIEW_COLUMNS } from './view-metadata-schema.types';
-export { MAX_VIEW_FILTERS } from './view-metadata-schema.types';
-export { MAX_VIEW_SORTS } from './view-metadata-schema.types';
-export { MAX_VIEW_GROUPS } from './view-metadata-schema.types';
-export { MAX_VIEW_COND_FORMATS } from './view-metadata-schema.types';
-export { VIEW_NAME_RE } from './view-metadata-schema.types';
-export { ViewKind } from './view-metadata-schema.types';
-export { ViewLayoutDirection } from './view-metadata-schema.types';
-export { ViewColumnSpec } from './view-metadata-schema.types';
-export { ViewFilterSpec } from './view-metadata-schema.types';
-export { ViewSortSpec } from './view-metadata-schema.types';
-export { ViewGroupSpec } from './view-metadata-schema.types';
-export { ViewCondFormatSpec } from './view-metadata-schema.types';
-export { ViewMetadataSpec } from './view-metadata-schema.types';
-export { ViewMetadataValidationIssue } from './view-metadata-schema.types';
-export { ViewMetadataValidationResult } from './view-metadata-schema.types';
+export { MAX_VIEW_COLUMNS, MAX_VIEW_FILTERS, MAX_VIEW_SORTS, MAX_VIEW_GROUPS, MAX_VIEW_COND_FORMATS, VIEW_NAME_RE, ViewKind, ViewLayoutDirection, ViewColumnSpec, ViewFilterSpec, ViewSortSpec, ViewGroupSpec, ViewCondFormatSpec, ViewMetadataSpec, ViewMetadataValidationIssue, ViewMetadataValidationResult } from './view-metadata-schema.types';

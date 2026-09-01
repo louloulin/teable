@@ -9,16 +9,10 @@
  */
 
 // ─── NestJS module ────────────────────────────────────────────────
-export { AiCostForecasterModule } from './ai-cost-forecaster.module';
-export { AiCostForecasterUsageLoaderProvider } from './ai-cost-forecaster.module';
+export { AiCostForecasterModule, AiCostForecasterUsageLoaderProvider } from './ai-cost-forecaster.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
-export { AiCostForecasterController } from './ai-cost-forecaster.controller';
-export { UsageLoader } from './ai-cost-forecaster.controller';
+export { AiCostForecasterController, UsageLoader } from './ai-cost-forecaster.controller';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { linearSlope } from './ai-cost-forecaster';
-export { forecastCredits } from './ai-cost-forecaster';
-export { UsageRow } from './ai-cost-forecaster';
-export { ForecastInput } from './ai-cost-forecaster';
-export { ForecastOutput } from './ai-cost-forecaster';
+export { linearSlope, forecastCredits, UsageRow, ForecastInput, ForecastOutput } from './ai-cost-forecaster';

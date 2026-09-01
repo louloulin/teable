@@ -10,32 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { NotificationCenterAuthService } from './notification-center.auth.service';
-export { isValidKind } from './notification-center.service';
-export { isValidChannel } from './notification-center.service';
-export { isValidDeliveryStatus } from './notification-center.service';
-export { validateCreateInput } from './notification-center.service';
-export { extractMentions } from './notification-center.service';
-export { isInQuietHours } from './notification-center.service';
-export { defaultPreferences } from './notification-center.service';
-export { resolveChannels } from './notification-center.service';
-export { buildNotification } from './notification-center.service';
-export { buildDelivery } from './notification-center.service';
-export { markDeliverySent } from './notification-center.service';
-export { markDeliveryFailed } from './notification-center.service';
-export { isDeliveryExhausted } from './notification-center.service';
-export { markDeliverySkipped } from './notification-center.service';
-export { markRead } from './notification-center.service';
-export { countUnread } from './notification-center.service';
-export { validatePreferences } from './notification-center.service';
+export { isValidKind, isValidChannel, isValidDeliveryStatus, validateCreateInput, extractMentions, isInQuietHours, defaultPreferences, resolveChannels, buildNotification, buildDelivery, markDeliverySent, markDeliveryFailed, isDeliveryExhausted, markDeliverySkipped, markRead, countUnread, validatePreferences } from './notification-center.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_TITLE_MAX_LENGTH } from './notification-center.types';
-export { DEFAULT_BODY_MAX_LENGTH } from './notification-center.types';
-export { NotificationKind } from './notification-center.types';
-export { NotificationChannel } from './notification-center.types';
-export { DeliveryStatus } from './notification-center.types';
-export { INotification } from './notification-center.types';
-export { INotificationDelivery } from './notification-center.types';
-export { INotificationPreference } from './notification-center.types';
-export { ICreateNotificationInput } from './notification-center.types';
-export { INotificationDispatchResult } from './notification-center.types';
+export { DEFAULT_TITLE_MAX_LENGTH, DEFAULT_BODY_MAX_LENGTH, NotificationKind, NotificationChannel, DeliveryStatus, INotification, INotificationDelivery, INotificationPreference, ICreateNotificationInput, INotificationDispatchResult } from './notification-center.types';

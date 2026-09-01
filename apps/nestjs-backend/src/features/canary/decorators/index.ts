@@ -9,5 +9,4 @@
  */
 
 // ─── Other public exports ─────────────────────────────────────────
-export { USE_V2_FEATURE_KEY } from './use-v2-feature.decorator';
-export { UseV2Feature } from './use-v2-feature.decorator';
+export { USE_V2_FEATURE_KEY, UseV2Feature } from './use-v2-feature.decorator';

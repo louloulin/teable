@@ -10,29 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { AutomationCanvasAuthService } from './automation-canvas.auth.service';
-export { resolveNodeRef } from './automation-canvas.service';
-export { validateCanvasGraph } from './automation-canvas.service';
-export { topoSort } from './automation-canvas.service';
-export { planCanvasExecution } from './automation-canvas.service';
-export { addNode } from './automation-canvas.service';
-export { removeNode } from './automation-canvas.service';
-export { addEdge } from './automation-canvas.service';
-export { removeEdge } from './automation-canvas.service';
-export { moveNode } from './automation-canvas.service';
-export { serializeGraph } from './automation-canvas.service';
-export { summarizeCanvas } from './automation-canvas.service';
-export { groupNodesByKind } from './automation-canvas.service';
+export { resolveNodeRef, validateCanvasGraph, topoSort, planCanvasExecution, addNode, removeNode, addEdge, removeEdge, moveNode, serializeGraph, summarizeCanvas, groupNodesByKind } from './automation-canvas.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_CANVAS_NODES } from './automation-canvas.types';
-export { MAX_CANVAS_EDGES } from './automation-canvas.types';
-export { CANVAS_NODE_ID_RE } from './automation-canvas.types';
-export { CanvasNodeKind } from './automation-canvas.types';
-export { CanvasNodeSpec } from './automation-canvas.types';
-export { CanvasEdgeSpec } from './automation-canvas.types';
-export { CanvasGraphSpec } from './automation-canvas.types';
-export { CanvasValidationCode } from './automation-canvas.types';
-export { CanvasValidationIssue } from './automation-canvas.types';
-export { CanvasValidationResult } from './automation-canvas.types';
-export { CanvasExecutionStep } from './automation-canvas.types';
-export { CanvasExecutionPlan } from './automation-canvas.types';
+export { MAX_CANVAS_NODES, MAX_CANVAS_EDGES, CANVAS_NODE_ID_RE, CanvasNodeKind, CanvasNodeSpec, CanvasEdgeSpec, CanvasGraphSpec, CanvasValidationCode, CanvasValidationIssue, CanvasValidationResult, CanvasExecutionStep, CanvasExecutionPlan } from './automation-canvas.types';

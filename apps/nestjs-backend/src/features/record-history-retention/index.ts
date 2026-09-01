@@ -9,20 +9,8 @@
  */
 
 // ─── Services ─────────────────────────────────────────────────────
-export { PrismaSubscriberLookup } from './record-history-retention.auth.service';
-export { RecordHistoryRetentionAuthService } from './record-history-retention.auth.service';
-export { ISubscriberLookup } from './record-history-retention.auth.service';
-export { resolveRetention } from './record-history-retention.service';
-export { isExpired } from './record-history-retention.service';
-export { suggestCron } from './record-history-retention.service';
-export { listPolicies } from './record-history-retention.service';
-export { describeResolution } from './record-history-retention.service';
-export { PLAN_RETENTION_POLICIES } from './record-history-retention.service';
-export { DEFAULT_PURGE_CRON } from './record-history-retention.service';
+export { PrismaSubscriberLookup, RecordHistoryRetentionAuthService, ISubscriberLookup } from './record-history-retention.auth.service';
+export { resolveRetention, isExpired, suggestCron, listPolicies, describeResolution, PLAN_RETENTION_POLICIES, DEFAULT_PURGE_CRON } from './record-history-retention.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { PlanTier } from './record-history-retention.types';
-export { IPlanRetentionPolicy } from './record-history-retention.types';
-export { ISubscriberContext } from './record-history-retention.types';
-export { IResolvedRetention } from './record-history-retention.types';
-export { IRetentionQueryResult } from './record-history-retention.types';
+export { PlanTier, IPlanRetentionPolicy, ISubscriberContext, IResolvedRetention, IRetentionQueryResult } from './record-history-retention.types';

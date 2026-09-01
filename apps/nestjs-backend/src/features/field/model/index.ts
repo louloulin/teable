@@ -9,12 +9,5 @@
  */
 
 // ─── Other public exports ─────────────────────────────────────────
-export { rawField2FieldObj } from './factory';
-export { fieldCore2FieldInstance } from './factory';
-export { createFieldInstanceByRaw } from './factory';
-export { createFieldInstanceByVo } from './factory';
-export { convertFieldInstanceToFieldVo } from './factory';
-export { applyFieldPropertyOpsAndCreateInstance } from './factory';
-export { IFieldInstance } from './factory';
-export { IFieldMap } from './factory';
+export { rawField2FieldObj, fieldCore2FieldInstance, createFieldInstanceByRaw, createFieldInstanceByVo, convertFieldInstanceToFieldVo, applyFieldPropertyOpsAndCreateInstance, IFieldInstance, IFieldMap } from './factory';
 export { FieldBase } from './field-base';

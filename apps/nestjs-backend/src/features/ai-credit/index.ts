@@ -8,22 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { AiCreditModule } from './ai-credit.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { AiCreditController } from './ai-credit.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { AiCreditAuthService } from './ai-credit.auth.service';
-export { monthBucketFromDate } from './ai-credit.service';
-export { monthBucketToStart } from './ai-credit.service';
-export { monthsBetween } from './ai-credit.service';
-export { applyEntry } from './ai-credit.service';
-export { summarizeMonth } from './ai-credit.service';
-export { checkAllowance } from './ai-credit.service';
-export { buildCheckResult } from './ai-credit.service';
-export { computeCarryover } from './ai-credit.service';
-export { coerceAction } from './ai-credit.service';
-export { AI_CREDIT_ACTIONS } from './ai-credit.service';
+export { monthBucketFromDate, monthBucketToStart, monthsBetween, applyEntry, summarizeMonth, checkAllowance, buildCheckResult, computeCarryover, coerceAction, AI_CREDIT_ACTIONS } from './ai-credit.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { AiCreditAction } from './ai-credit.types';
-export { IAiCreditEntry } from './ai-credit.types';
-export { IAiCreditUsageRow } from './ai-credit.types';
-export { IAiCreditCheckInput } from './ai-credit.types';
-export { IAiCreditCheckResult } from './ai-credit.types';
+export { AiCreditAction, IAiCreditEntry, IAiCreditUsageRow, IAiCreditCheckInput, IAiCreditCheckResult } from './ai-credit.types';

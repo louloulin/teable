@@ -15,12 +15,7 @@ export { SkillScopeModule } from './skill-scope.module';
 export { SkillScopeController } from './skill-scope.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { SkillScopeService } from './skill-scope.service';
+export { SkillScopeService, SkillInput } from './skill-scope.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export type { ScopedSkill, ResolvedSkills, SkillResolutionContext, SkillScope } from './skill-scope.types';
-export {
-  PERSONAL_SKILL_KEY_PREFIX,
-  BASE_SKILL_KEY_PREFIX,
-  SPACE_SKILL_KEY_PREFIX,
-} from './skill-scope.types';
+export { PERSONAL_SKILL_KEY_PREFIX, BASE_SKILL_KEY_PREFIX, SPACE_SKILL_KEY_PREFIX, SkillScope, ScopedSkill, SkillResolutionContext, ResolvedSkills } from './skill-scope.types';

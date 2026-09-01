@@ -18,5 +18,4 @@ export { AccessTokenController } from './access-token.controller';
 export { AccessTokenService } from './access-token.service';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { getAccessToken } from './access-token.encryptor';
-export { splitAccessToken } from './access-token.encryptor';
+export { getAccessToken, splitAccessToken } from './access-token.encryptor';

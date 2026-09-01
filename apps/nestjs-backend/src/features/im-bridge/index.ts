@@ -15,15 +15,11 @@ export { ImBridgeModule } from './im-bridge.module';
 export { TeamsConfigController } from './teams-config.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { TeamsConfigService } from './teams-config.service';
-export { __teamsConfigTest } from './teams-config.service';
+export { TeamsConfigService, __teamsConfigTest } from './teams-config.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { IBridgeMessage } from './im-bridge.types';
-export { IBridgeAdapter } from './im-bridge.types';
+export { IBridgeMessage, IBridgeAdapter } from './im-bridge.types';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { buildAdapterRegistry } from './im-bridge.registry';
-export { resolveAdapter } from './im-bridge.registry';
-export { IBridgeAdapterRegistry } from './im-bridge.registry';
+export { buildAdapterRegistry, resolveAdapter, IBridgeAdapterRegistry } from './im-bridge.registry';
 export { TeamsAdapter } from './teams.adapter';

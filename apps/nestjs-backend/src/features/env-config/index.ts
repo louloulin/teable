@@ -10,18 +10,7 @@
 
 // ─── Services ─────────────────────────────────────────────────────
 export { EnvConfigAuthService } from './env-config.auth.service';
-export { validateEnvSpec } from './env-config.service';
-export { resolveOne } from './env-config.service';
-export { resolveAll } from './env-config.service';
-export { required } from './env-config.service';
-export { optional } from './env-config.service';
-export { boolEnv } from './env-config.service';
-export { numberEnv } from './env-config.service';
-export { banner } from './env-config.service';
+export { validateEnvSpec, resolveOne, resolveAll, required, optional, boolEnv, numberEnv, banner } from './env-config.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { MAX_ENV_SPECS } from './env-config.types';
-export { MAX_ENV_VALUE_LENGTH } from './env-config.types';
-export { EnvKind } from './env-config.types';
-export { IEnvSpec } from './env-config.types';
-export { IEnvReport } from './env-config.types';
+export { MAX_ENV_SPECS, MAX_ENV_VALUE_LENGTH, EnvKind, IEnvSpec, IEnvReport } from './env-config.types';

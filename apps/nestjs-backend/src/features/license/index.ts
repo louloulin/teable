@@ -16,14 +16,11 @@ export { LicenseActivationController } from './license-activation.controller';
 export { LicenseCapabilityController } from './license-capability.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
-export { LicenseCapabilityService } from './license-capability.service';
-export { LicenseCapability } from './license-capability.service';
+export { LicenseCapabilityService, LicenseCapability } from './license-capability.service';
 export { LicenseService } from './license.service';
 
 // ─── Guards ───────────────────────────────────────────────────────
 export { LicenseCapabilityGuard } from './license-capability.guard';
 
 // ─── Constants ────────────────────────────────────────────────────
-export { NO_LICENSE_SENTINEL } from './license.constants';
-export { ILicenseClaims } from './license.constants';
-export { IResolvedLicense } from './license.constants';
+export { NO_LICENSE_SENTINEL, ILicenseClaims, IResolvedLicense } from './license.constants';

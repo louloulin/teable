@@ -12,15 +12,5 @@
 export { AutomationRunCleanupModule } from './automation-run-cleanup.module';
 
 // ─── Other public exports ─────────────────────────────────────────
-export { AutomationRunCleanupProcessor } from './automation-run-cleanup.processor';
-export { AUTOMATION_RUN_CLEANUP_QUEUE } from './automation-run-cleanup.processor';
-export { AUTOMATION_RUN_CLEANUP_TICK_JOB } from './automation-run-cleanup.processor';
-export { AUTOMATION_RUN_CLEANUP_REPEAT_MS } from './automation-run-cleanup.processor';
-export { IAutomationRunCleanupTickResult } from './automation-run-cleanup.processor';
-export { getRetentionDaysForPlan } from './retention-policy';
-export { getRetentionMsForPlan } from './retention-policy';
-export { getRetentionDaysForPlanLike } from './retention-policy';
-export { MS_PER_DAY } from './retention-policy';
-export { DEFAULT_RETENTION_DAYS } from './retention-policy';
-export { RetentionKind } from './retention-policy';
-export { RetentionPlan } from './retention-policy';
+export { AutomationRunCleanupProcessor, AUTOMATION_RUN_CLEANUP_QUEUE, AUTOMATION_RUN_CLEANUP_TICK_JOB, AUTOMATION_RUN_CLEANUP_REPEAT_MS, IAutomationRunCleanupTickResult } from './automation-run-cleanup.processor';
+export { getRetentionDaysForPlan, getRetentionMsForPlan, getRetentionDaysForPlanLike, MS_PER_DAY, DEFAULT_RETENTION_DAYS, RetentionKind, RetentionPlan } from './retention-policy';

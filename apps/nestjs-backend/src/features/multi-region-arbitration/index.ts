@@ -8,43 +8,15 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { MultiRegionArbitrationModule } from './multi-region-arbitration.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { MultiRegionArbitrationController } from './multi-region-arbitration.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { MultiRegionArbitrationAuthService } from './multi-region-arbitration.auth.service';
-export { isValidResourceKey } from './multi-region-arbitration.service';
-export { isValidRegionId } from './multi-region-arbitration.service';
-export { isClockWithinSkew } from './multi-region-arbitration.service';
-export { fleetSkew } from './multi-region-arbitration.service';
-export { isSplitBrain } from './multi-region-arbitration.service';
-export { resolveTtl } from './multi-region-arbitration.service';
-export { resolveResolution } from './multi-region-arbitration.service';
-export { validateRequest } from './multi-region-arbitration.service';
-export { isLeaseLive } from './multi-region-arbitration.service';
-export { arbitrateWrite } from './multi-region-arbitration.service';
-export { detectSplitBrain } from './multi-region-arbitration.service';
-export { recordConflict } from './multi-region-arbitration.service';
-export { enqueueReplay } from './multi-region-arbitration.service';
-export { readyReplays } from './multi-region-arbitration.service';
-export { markReplayed } from './multi-region-arbitration.service';
-export { pruneQueue } from './multi-region-arbitration.service';
-export { testHelpers } from './multi-region-arbitration.service';
+export { isValidResourceKey, isValidRegionId, isClockWithinSkew, fleetSkew, isSplitBrain, resolveTtl, resolveResolution, validateRequest, isLeaseLive, arbitrateWrite, detectSplitBrain, recordConflict, enqueueReplay, readyReplays, markReplayed, pruneQueue, testHelpers } from './multi-region-arbitration.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { DEFAULT_LEASE_TTL_MS } from './multi-region-arbitration.types';
-export { MAX_LEASE_TTL_MS } from './multi-region-arbitration.types';
-export { DEFAULT_MAX_SKEW_MS } from './multi-region-arbitration.types';
-export { DEFAULT_RESOLUTION } from './multi-region-arbitration.types';
-export { MAX_RESOURCE_KEY_LENGTH } from './multi-region-arbitration.types';
-export { MAX_REPLAY_QUEUE_DEPTH } from './multi-region-arbitration.types';
-export { REPLAY_BACKOFF_BASE_MS } from './multi-region-arbitration.types';
-export { REPLAY_BACKOFF_CAP_MS } from './multi-region-arbitration.types';
-export { RESOURCE_KEY_KIND_LABELS } from './multi-region-arbitration.types';
-export { RegionId } from './multi-region-arbitration.types';
-export { LeaseState } from './multi-region-arbitration.types';
-export { ConflictResolution } from './multi-region-arbitration.types';
-export { IWriteLease } from './multi-region-arbitration.types';
-export { IRegionClock } from './multi-region-arbitration.types';
-export { IWriteRequest } from './multi-region-arbitration.types';
-export { ArbitrationDecision } from './multi-region-arbitration.types';
-export { IConflictRecord } from './multi-region-arbitration.types';
-export { IReplayQueueEntry } from './multi-region-arbitration.types';
-export { IMultiRegionArbitrationOptions } from './multi-region-arbitration.types';
+export { DEFAULT_LEASE_TTL_MS, MAX_LEASE_TTL_MS, DEFAULT_MAX_SKEW_MS, DEFAULT_RESOLUTION, MAX_RESOURCE_KEY_LENGTH, MAX_REPLAY_QUEUE_DEPTH, REPLAY_BACKOFF_BASE_MS, REPLAY_BACKOFF_CAP_MS, RESOURCE_KEY_KIND_LABELS, RegionId, LeaseState, ConflictResolution, IWriteLease, IRegionClock, IWriteRequest, ArbitrationDecision, IConflictRecord, IReplayQueueEntry, IMultiRegionArbitrationOptions } from './multi-region-arbitration.types';
