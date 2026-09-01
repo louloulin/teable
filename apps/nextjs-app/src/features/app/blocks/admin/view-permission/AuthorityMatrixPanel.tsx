@@ -1,12 +1,15 @@
 /**
  * V15 — Authority Matrix (Cloud §权限矩阵) complete configuration UI.
- * Backend endpoints: /api/permission-matrix/...
+ * Backend endpoints: /api/admin/permission-matrix/...
  *   Roles:        POST|GET /roles, DELETE /roles/:id, PUT /roles/:id/enabled
  *   Field rule:   PUT /roles/:id/field-permission
  *   Row filter:   PUT /roles/:id/record-filter
  *   View access:  PUT|GET /roles/:id/view-access
  *   Members:      POST|DELETE /members
  *   Import/Export:PUT|GET /roles/:id/import-export, DELETE /roles/:id/import-export/:tableId
+ *   App access:   PUT /roles/:id/app-access             (Cloud §应用权限)
+ *   Workflow:     PUT /roles/:id/workflow-access         (Cloud §工作流权限)
+ *   Default role: PUT|GET /default-role                  (Cloud §默认角色)
  *
  * License: AGPL-3.0
  */
@@ -36,7 +39,7 @@ import {
   Textarea,
 } from '@teable/ui-lib';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
-import { Filter, KeyRound, Lock, Plus, Shield, Trash2, Users, View } from 'lucide-react';
+import { AppWindow, Filter, KeyRound, Lock, Plus, Shield, Star, Trash2, Users, View, Workflow } from 'lucide-react';
 import { useState } from 'react';
 
 /* ─────────── Types ─────────── */
@@ -99,13 +102,13 @@ function RolesTab({ baseId }: { baseId: string }) {
     enabled: Boolean(baseId),
     queryFn: () =>
       axios
-        .get<{ roles: IRoleRow[] }>(`/api/permission-matrix/roles`, { params: { baseId } })
+        .get<{ roles: IRoleRow[] }>(`/api/admin/permission-matrix/roles`, { params: { baseId } })
         .then((r) => (r.data as unknown as { roles?: IRoleRow[] }).roles ?? []),
   });
 
   const create = useMutation({
     mutationFn: () =>
-      axios.post(`/api/permission-matrix/roles`, {
+      axios.post(`/api/admin/permission-matrix/roles`, {
         baseId,
         name: newName.trim(),
         description: newDesc.trim() || undefined,
@@ -121,7 +124,7 @@ function RolesTab({ baseId }: { baseId: string }) {
 
   const remove = useMutation({
     mutationFn: (roleId: string) =>
-      axios.delete(`/api/permission-matrix/roles/${roleId}`, { params: { baseId } }),
+      axios.delete(`/api/admin/permission-matrix/roles/${roleId}`, { params: { baseId } }),
     onSuccess: () => {
       toast.success('Role deleted');
       void queryClient.invalidateQueries({ queryKey: ['authority-matrix', 'roles'] });
@@ -131,7 +134,7 @@ function RolesTab({ baseId }: { baseId: string }) {
 
   const toggleEnabled = useMutation({
     mutationFn: (r: IRoleRow) =>
-      axios.put(`/api/permission-matrix/roles/${r.id}/enabled`, {
+      axios.put(`/api/admin/permission-matrix/roles/${r.id}/enabled`, {
         baseId,
         enabled: !r.enabled,
       }),
@@ -228,6 +231,248 @@ function RolesTab({ baseId }: { baseId: string }) {
   );
 }
 
+/* ─────────── App Access Tab (Cloud §应用权限) ─────────── */
+
+function AppAccessTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] }) {
+  const queryClient = useQueryClient();
+  const [roleId, setRoleId] = useState<string>(roles[0]?.id ?? '');
+  const [appId, setAppId] = useState('');
+  const [access, setAccess] = useState<'none' | 'accessible' | 'editable'>('accessible');
+
+  const save = useMutation({
+    mutationFn: () =>
+      axios.put(`/api/admin/permission-matrix/roles/${roleId}/app-access`, {
+        baseId,
+        appId,
+        access,
+      }),
+    onSuccess: () => {
+      toast.success('App access saved');
+      void queryClient.invalidateQueries({ queryKey: ['authority-matrix'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <AppWindow className="h-4 w-4" /> App-level permission
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Choose whether this role can open the App. Cloud §应用权限 — accessible / none.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Label className="text-xs">Role</Label>
+        <Select value={roleId} onValueChange={setRoleId}>
+          <SelectTrigger className="h-8 text-xs" data-testid="authority-app-role">
+            <SelectValue placeholder="Pick a role" />
+          </SelectTrigger>
+          <SelectContent>
+            {roles.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Label className="text-xs">App ID</Label>
+        <Input
+          value={appId}
+          onChange={(e) => setAppId(e.target.value)}
+          placeholder="app_xxx"
+          className="h-8 text-xs font-mono"
+          data-testid="authority-app-id"
+        />
+
+        <Label className="text-xs">Access</Label>
+        <Select value={access} onValueChange={(v) => setAccess(v as typeof access)}>
+          <SelectTrigger className="h-8 text-xs" data-testid="authority-app-access">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="accessible">accessible</SelectItem>
+            <SelectItem value="none">none</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          disabled={!roleId || !appId || save.isPending}
+          onClick={() => save.mutate()}
+          data-testid="authority-app-save"
+        >
+          <AppWindow className="mr-1 h-3 w-3" /> Save app rule
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─────────── Workflow Access Tab (Cloud §工作流权限) ─────────── */
+
+function WorkflowAccessTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] }) {
+  const queryClient = useQueryClient();
+  const [roleId, setRoleId] = useState<string>(roles[0]?.id ?? '');
+  const [workflowId, setWorkflowId] = useState('');
+  const [access, setAccess] = useState<'none' | 'accessible' | 'editable'>('accessible');
+
+  const save = useMutation({
+    mutationFn: () =>
+      axios.put(`/api/admin/permission-matrix/roles/${roleId}/workflow-access`, {
+        baseId,
+        workflowId,
+        access,
+      }),
+    onSuccess: () => {
+      toast.success('Workflow access saved');
+      void queryClient.invalidateQueries({ queryKey: ['authority-matrix'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Workflow className="h-4 w-4" /> Workflow-level permission
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Choose whether this role can open the Automation workflow. Cloud §工作流权限 — accessible / none.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Label className="text-xs">Role</Label>
+        <Select value={roleId} onValueChange={setRoleId}>
+          <SelectTrigger className="h-8 text-xs" data-testid="authority-workflow-role">
+            <SelectValue placeholder="Pick a role" />
+          </SelectTrigger>
+          <SelectContent>
+            {roles.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Label className="text-xs">Workflow ID</Label>
+        <Input
+          value={workflowId}
+          onChange={(e) => setWorkflowId(e.target.value)}
+          placeholder="wfl_xxx"
+          className="h-8 text-xs font-mono"
+          data-testid="authority-workflow-id"
+        />
+
+        <Label className="text-xs">Access</Label>
+        <Select value={access} onValueChange={(v) => setAccess(v as typeof access)}>
+          <SelectTrigger className="h-8 text-xs" data-testid="authority-workflow-access">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="accessible">accessible</SelectItem>
+            <SelectItem value="none">none</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          disabled={!roleId || !workflowId || save.isPending}
+          onClick={() => save.mutate()}
+          data-testid="authority-workflow-save"
+        >
+          <Workflow className="mr-1 h-3 w-3" /> Save workflow rule
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─────────── Default Role Tab (Cloud §默认角色) ─────────── */
+
+function DefaultRoleTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] }) {
+  const queryClient = useQueryClient();
+  const current = useQuery({
+    queryKey: ['authority-matrix', 'default-role', baseId],
+    queryFn: async () => {
+      const r = await axios.get<{ defaultRoleId: string | null }>(
+        `/api/admin/permission-matrix/default-role`,
+        { params: { baseId } }
+      );
+      return r.data;
+    },
+    enabled: !!baseId,
+  });
+  const [roleId, setRoleId] = useState<string>('');
+
+  const save = useMutation({
+    mutationFn: () =>
+      axios.put(`/api/admin/permission-matrix/default-role`, {
+        baseId,
+        roleId: roleId || null,
+      }),
+    onSuccess: () => {
+      toast.success('Default role saved');
+      void queryClient.invalidateQueries({ queryKey: ['authority-matrix'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const currentId = current.data?.defaultRoleId ?? '';
+  const effective = roleId || currentId;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Star className="h-4 w-4" /> Default role for unassigned members
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Members with no custom role will inherit the access below. Pick a role or clear it to deny
+          access. Cloud §默认角色 — applies only to users with no explicit role assignment.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Label className="text-xs">Role</Label>
+        <Select value={effective || 'none'} onValueChange={setRoleId}>
+          <SelectTrigger className="h-8 text-xs" data-testid="authority-defaultrole-select">
+            <SelectValue placeholder="(none — no default)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">(none — no default)</SelectItem>
+            {roles.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="rounded border bg-muted/30 p-2 text-xs">
+          <div>
+            Current server default:{' '}
+            <Badge variant="outline" className="font-mono">
+              {current.data?.defaultRoleId ?? '(unset)'}
+            </Badge>
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          disabled={save.isPending}
+          onClick={() => save.mutate()}
+          data-testid="authority-defaultrole-save"
+        >
+          <Star className="mr-1 h-3 w-3" /> Save default role
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 /* ─────────── Field Permissions Tab ─────────── */
 
 function FieldPermissionsTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] }) {
@@ -239,7 +484,7 @@ function FieldPermissionsTab({ baseId, roles }: { baseId: string; roles: IRoleRo
 
   const save = useMutation({
     mutationFn: () =>
-      axios.put(`/api/permission-matrix/roles/${roleId}/field-permission`, {
+      axios.put(`/api/admin/permission-matrix/roles/${roleId}/field-permission`, {
         baseId,
         rules: [{ tableId, fieldId, permission }],
       }),
@@ -328,7 +573,7 @@ function RecordFiltersTab({ baseId, roles }: { baseId: string; roles: IRoleRow[]
       } catch {
         throw new Error('filter must be valid JSON');
       }
-      return axios.put(`/api/permission-matrix/roles/${roleId}/record-filter`, {
+      return axios.put(`/api/admin/permission-matrix/roles/${roleId}/record-filter`, {
         baseId,
         filters: [{ tableId, filter: parsed }],
       });
@@ -401,7 +646,7 @@ function ViewAccessTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] })
 
   const save = useMutation({
     mutationFn: () =>
-      axios.put(`/api/permission-matrix/roles/${roleId}/view-access`, {
+      axios.put(`/api/admin/permission-matrix/roles/${roleId}/view-access`, {
         baseId,
         views: [{ tableId, viewId }],
       }),
@@ -471,7 +716,7 @@ function ImportExportTab({ baseId, roles }: { baseId: string; roles: IRoleRow[] 
 
   const save = useMutation({
     mutationFn: () =>
-      axios.put(`/api/permission-matrix/roles/${roleId}/import-export`, {
+      axios.put(`/api/admin/permission-matrix/roles/${roleId}/import-export`, {
         baseId,
         entries: [{ tableId, permission }],
       }),
@@ -537,11 +782,11 @@ export function AuthorityMatrixPanel({ baseId: baseIdProp }: { baseId?: string }
     enabled: Boolean(effectiveBaseId),
     queryFn: () =>
       axios
-        .get<{ roles: IRoleRow[] }>(`/api/permission-matrix/roles`, { params: { baseId: effectiveBaseId } })
+        .get<{ roles: IRoleRow[] }>(`/api/admin/permission-matrix/roles`, { params: { baseId: effectiveBaseId } })
         .then((r) => (r.data as unknown as { roles?: IRoleRow[] }).roles ?? []),
   });
 
-  if (!baseIdProp) {
+  if (!effectiveBaseId) {
     return (
       <div className="space-y-3 p-3">
         <Card>
@@ -573,9 +818,15 @@ export function AuthorityMatrixPanel({ baseId: baseIdProp }: { baseId?: string }
   return (
     <div className="p-3" data-testid="authority-matrix-panel">
       <Tabs defaultValue="roles">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="roles" className="text-xs" data-testid="authority-tab-roles">
             <Users className="mr-1 h-3 w-3" /> Roles
+          </TabsTrigger>
+          <TabsTrigger value="app" className="text-xs" data-testid="authority-tab-app">
+            <AppWindow className="mr-1 h-3 w-3" /> App
+          </TabsTrigger>
+          <TabsTrigger value="workflow" className="text-xs" data-testid="authority-tab-workflow">
+            <Workflow className="mr-1 h-3 w-3" /> Flow
           </TabsTrigger>
           <TabsTrigger value="field" className="text-xs">
             <Lock className="mr-1 h-3 w-3" /> Field
@@ -589,10 +840,19 @@ export function AuthorityMatrixPanel({ baseId: baseIdProp }: { baseId?: string }
           <TabsTrigger value="impexp" className="text-xs">
             <KeyRound className="mr-1 h-3 w-3" /> Import
           </TabsTrigger>
+          <TabsTrigger value="defaultrole" className="text-xs" data-testid="authority-tab-defaultrole">
+            <Star className="mr-1 h-3 w-3" /> Default
+          </TabsTrigger>
         </TabsList>
         <ScrollArea className="mt-3 h-[500px]">
           <TabsContent value="roles">
             <RolesTab baseId={effectiveBaseId} />
+          </TabsContent>
+          <TabsContent value="app">
+            <AppAccessTab baseId={effectiveBaseId} roles={roleList} />
+          </TabsContent>
+          <TabsContent value="workflow">
+            <WorkflowAccessTab baseId={effectiveBaseId} roles={roleList} />
           </TabsContent>
           <TabsContent value="field">
             <FieldPermissionsTab baseId={effectiveBaseId} roles={roleList} />
@@ -605,6 +865,9 @@ export function AuthorityMatrixPanel({ baseId: baseIdProp }: { baseId?: string }
           </TabsContent>
           <TabsContent value="impexp">
             <ImportExportTab baseId={effectiveBaseId} roles={roleList} />
+          </TabsContent>
+          <TabsContent value="defaultrole">
+            <DefaultRoleTab baseId={effectiveBaseId} roles={roleList} />
           </TabsContent>
         </ScrollArea>
       </Tabs>
