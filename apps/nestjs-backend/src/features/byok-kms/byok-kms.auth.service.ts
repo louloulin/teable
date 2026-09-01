@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '@teable/db-main-prisma';
@@ -53,7 +54,7 @@ export interface IMasterKeyProvider {
 export class LocalMasterKeyProvider implements IMasterKeyProvider {
   readonly provider: KmsProvider = 'local';
   private readonly masterKeys = new Map<string, Buffer>();
-  constructor(seedMaster?: Buffer) {
+  constructor(@Optional() seedMaster?: Buffer) {
     if (seedMaster) this.masterKeys.set('__default__', seedMaster);
   }
   registerMaterial(keyId: string, raw: Buffer): void {
@@ -75,7 +76,7 @@ export class LocalMasterKeyProvider implements IMasterKeyProvider {
 export class ByokKmsAuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly provider: IMasterKeyProvider
+    private readonly provider: LocalMasterKeyProvider
   ) {}
 
   async registerKey(input: IRegisterKeyInput): Promise<ICustomerKmsKey> {

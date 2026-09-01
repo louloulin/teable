@@ -345,7 +345,13 @@ export class AgentOrchestratorService {
   listNodeRefs(conversationId: string): Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return [];
-    return (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+    return (ctx.scratchpad['_node_refs'] as Array<{
+      nodeId: string;
+      kind: string;
+      refId: string;
+      label: string;
+      addedAt: string;
+    }>) || [];
   }
 
   addNodeRef(
@@ -376,7 +382,13 @@ export class AgentOrchestratorService {
   listFiles(conversationId: string): Array<{ fileId: string; name: string; mime: string; size: number; createdAt: string }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return [];
-    return (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+    return (ctx.scratchpad['_files'] as Array<{
+      fileId: string;
+      name: string;
+      mime: string;
+      size: number;
+      createdAt: string;
+    }>) || [];
   }
 
   addFile(

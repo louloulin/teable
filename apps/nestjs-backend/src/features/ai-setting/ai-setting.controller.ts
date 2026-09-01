@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AiSettingAuthService } from './ai-setting.auth.service';
+import type { IAiSetting } from './ai-setting.types';
 
 const AiGuard = LicenseCapabilityGuard.for('ai');
 
@@ -76,7 +77,7 @@ export class AiSettingController {
 
   @Put()
   async update(@Body(new ZodValidationPipe(updateSchema)) body: UpdateBody): Promise<unknown> {
-    return this.auth.update(body);
+    return this.auth.update(body as Partial<IAiSetting>);
   }
 
   @Post('enable')

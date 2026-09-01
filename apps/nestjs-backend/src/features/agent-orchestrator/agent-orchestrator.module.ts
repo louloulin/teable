@@ -22,6 +22,7 @@ import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
 import { TableOpenApiService } from '../table/open-api/table-open-api.service';
 import { AgentOrchestratorController } from './agent-orchestrator.controller';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
+import { BuiltInEchoLlm } from './built-in-echo-llm';
 import { CuppyController } from './cuppy.controller';
 
 @Module({
@@ -91,48 +92,64 @@ import { CuppyController } from './cuppy.controller';
     {
       provide: 'CUPPY_LLM_CLIENT',
       inject: [AiService],
-      useFactory: (ai: AiService) => ({
-        async chat(args: {
-          baseId?: string;
-          system: string;
-          messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
-          tools: Array<{
-            name: string;
-            description: string;
-            parameters: Record<string, unknown>;
-          }>;
-          executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
-        }) {
-          if (!args.baseId) throw new Error('baseId is required for configured Cuppy AI');
-          const model = await ai.getChatModelInstance(args.baseId);
-          type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
-          const tools: GenerateTools = Object.fromEntries(
-            args.tools.map((definition) => [
-              definition.name,
-              tool({
-                description: definition.description,
-                inputSchema: jsonSchema(definition.parameters),
-                execute: (input) =>
-                  args.executeTool(definition.name, input as Record<string, unknown>),
-              }),
-            ])
-          );
-          const result = await generateText({
-            model: model.lg,
-            system: args.system,
-            messages: args.messages
-              .filter(
-                (message): message is { role: 'user' | 'assistant'; content: string } =>
-                  message.role !== 'tool'
-              )
-              .map((message) => ({ role: message.role, content: message.content })),
-            tools,
-            stopWhen: stepCountIs(3),
-          });
-          return { text: result.text };
-        },
-      }),
+      useFactory: (ai: AiService) => {
+        const echo = new BuiltInEchoLlm();
+        return {
+          async chat(args: {
+            baseId?: string;
+            system: string;
+            messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+            tools: Array<{
+              name: string;
+              description: string;
+              parameters: Record<string, unknown>;
+            }>;
+            executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+          }) {
+            // No baseId → no configured provider can run. Fall back to built-in
+            // echo so `/api/cuppy/chat` works out of the box on fresh self-hosted
+            // installs.
+            if (!args.baseId) {
+              return echo.chat(args);
+            }
+            try {
+              const model = await ai.getChatModelInstance(args.baseId);
+              type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
+              const tools: GenerateTools = Object.fromEntries(
+                args.tools.map((definition) => [
+                  definition.name,
+                  tool({
+                    description: definition.description,
+                    inputSchema: jsonSchema(definition.parameters),
+                    execute: (input) =>
+                      args.executeTool(definition.name, input as Record<string, unknown>),
+                  }),
+                ])
+              );
+              const result = await generateText({
+                model: model.lg,
+                system: args.system,
+                messages: args.messages
+                  .filter(
+                    (message): message is { role: 'user' | 'assistant'; content: string } =>
+                      message.role !== 'tool'
+                  )
+                  .map((message) => ({ role: message.role, content: message.content })),
+                tools,
+                stopWhen: stepCountIs(3),
+              });
+              return { text: result.text };
+            } catch {
+              // Real provider lookup failed (no OPENAI_API_KEY, no BYOK, no admin
+              // gateway). Surface a deterministic echo so the chat endpoint never
+              // returns an opaque 503 to the UI.
+              return echo.chat(args);
+            }
+          },
+        };
+      },
     },
+    BuiltInEchoLlm,
   ],
   exports: [AgentOrchestratorService],
 })

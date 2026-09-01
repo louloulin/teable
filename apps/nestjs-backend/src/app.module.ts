@@ -31,6 +31,8 @@ import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuditExportModule } from './features/audit-export/audit-export.module';
 import { BillingModule } from './features/billing/billing.module';
+import { ByokKmsModule } from './features/byok-kms/byok-kms.module';
+import { ByokLlmModule } from './features/byok-llm/byok-llm.module';
 import { AuthModule } from './features/auth/auth.module';
 import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
@@ -201,6 +203,8 @@ export const appModules = {
     DataMaskingModule,
     AuditExportModule,
     BillingModule,
+    ByokKmsModule,
+    ByokLlmModule,
     ApiExplorerModule,
     ScimModule,
     PermissionMatrixModule,

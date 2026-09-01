@@ -19,10 +19,10 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
       filterDataByParentId: (tableId: string) => this.getFieldsInCache(tableId),
       getLoaderData: () => this.cls.get('dataLoaderCache.fieldData'),
       setLoaderData: (data: IFieldLoaderData) => this.cls.set('dataLoaderCache.fieldData', data),
-      findManyByParentId: <K extends keyof IFieldLoaderItem>(
+      findManyByParentId: (
         tableId: string,
-        keys?: Partial<Record<K, IFieldLoaderItem[K][]>>
-      ) => {
+        keys?: Partial<Record<keyof IFieldLoaderItem, unknown[]>>
+      ): Promise<IFieldLoaderItem[]> => {
         this.cacheSet++;
         return this.prismaService.txClient().field.findMany({
           where: {
@@ -31,18 +31,18 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
             ...(keys
               ? Object.keys(keys).reduce(
                   (acc, kStr) => {
-                    const key = kStr as K;
-                    const value = keys[key];
+                    const key = kStr as keyof IFieldLoaderItem;
+                    const value = keys[key] as unknown[] | undefined;
                     if (value) {
                       if (value.length === 1) {
-                        acc[key] = value[0];
+                        (acc as Record<string, unknown>)[key] = value[0];
                       } else {
-                        acc[key] = { in: value };
+                        (acc as Record<string, unknown>)[key] = { in: value };
                       }
                     }
                     return acc;
                   },
-                  {} as Partial<Record<K, IFieldLoaderItem[K] | { in: IFieldLoaderItem[K][] }>>
+                  {} as Record<string, unknown>
                 )
               : {}),
           },

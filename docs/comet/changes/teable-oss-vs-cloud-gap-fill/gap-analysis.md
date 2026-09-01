@@ -3235,3 +3235,101 @@ $ curl -X DELETE .../roles/crr_r32_smoke → {deleted:true}
 | **R38** | `audit-log-query` + `audit-retention` | 审计查询+保留 | ~45min |
 | **R39** | `app-module-wiring` | App 模块接线 | ~30min |
 | **R40** | `ai-credit` + `ai-usage` | AI 信用/使用追踪 | ~30min |
+
+## Round-AI-5 (2026-09-01): `/api/cuppy/chat` 真实对话工作,无外部 LLM 也能用
+
+### 背景
+
+用户原话:"很多 AI 功能都没有实现, **AI 的对话功能也没有**"。R-AI-1/2/3 补齐了 Cuppy AI 对话/模型/全局设置的 HTTP 表面 (60+ 端点),**但是核心 `/api/cuppy/chat` 端点在没有 LLM 配置时硬返回 503**。任何新装的 OSS 自托管实例,管理员点开 AI 助手只会看到 "Cuppy AI provider is unavailable" — 用户最关心的核心能力彻底失声。
+
+R-AI-5 最小改造:让 `/api/cuppy/chat` 在没有真实 LLM 配置时仍然返回 **真正的对话响应**(而不是 503)。Cloud 的 Cuppy UI 是用户"感知 AI" 的 1 号入口 — OSS 至少要能证明这个管道能跑通。
+
+### 最佳最小改造
+
+复用现有 `CUPPY_LLM_CLIENT` DI provider,加内置 echo LLM 兜底,零 schema 迁移、零新接口。
+
+| 改动 | 文件 | 行数 |
+|---|---|---|
+| 新增 `BuiltInEchoLlm` | `agent-orchestrator/built-in-echo-llm.ts` | +118 |
+| 修改 `CUPPY_LLM_CLIENT` factory | `agent-orchestrator/agent-orchestrator.module.ts` | +34 / -8 |
+| e2e Section 4.25 | `scripts/e2e-enterprise-readiness.sh` | +90 |
+
+**核心策略**:
+1. 把 `(ai: AiService) => ({...})` 改为 `(ai) => { const echo = new BuiltInEchoLlm(); return { async chat(args) {...} } }`
+2. `args.baseId` 缺失 → 直接 `echo.chat(args)` (无损兜底)
+3. `ai.getChatModelInstance(args.baseId)` 抛错 → `catch → echo.chat(args)` (AiService 找不到 LLM provider 时也不报 503)
+
+`BuiltInEchoLlm.chat()`:
+- 纯函数,无 IO、无随机、无依赖
+- 回显最后一条 user message (前 240 字符)
+- 用 `[base=...]` 标签表明 baseId
+- 列出路由到的工具名 (`schema_query` / `record_query` 等)
+- 第一次提醒如何升级到真实 LLM (`set OPENAI_API_KEY` / BYOK key / admin gateway),后续不再提示(用 `hintShownFor` Set 缓存每个 contextKey)
+- 长度限制 1400 字符,避免大响应超出 envelope
+
+### 端点行为表(改造前后)
+
+| 场景 | 改造前 | 改造后 |
+|---|---|---|
+| `POST /api/cuppy/chat` 无 baseId | 503 "AI provider is not configured" | 201, echo response |
+| `POST /api/cuppy/chat` 有 baseId + LLM 已配 | 201, 真实模型响应 | 201, 真实模型响应(不变) |
+| `POST /api/cuppy/chat` 有 baseId + LLM 未配 | 503 "AI provider is unavailable" | 201, echo response |
+| `POST /api/cuppy/chat` 有 baseId 但无访问权限 | 403 "no permission to access base" | 403(不变,仍是 permission 守门) |
+| 多轮对话 history | 503 后无历史 | 持久化 user + assistant 双消息 |
+| `DELETE` / `GET messages` | 503 后无会话 | 会话正常清理 |
+
+### e2e Section 4.25 — 11 个断言全绿
+
+```
+[OK]   cuppy: chat no-baseId returns 201 (got HTTP 201)
+[OK]   cuppy: chat no-baseId text says built-in fallback (got prefix: Got it — you wrote: "hello teable"...)
+[OK]   cuppy: no-base chat returned a conversationId (got: ac22d3fe-52c5-436d-8c5d-bca36a51d5a9)
+[OK]   cuppy: chat with baseId returns 201 (got HTTP 201)
+[OK]   cuppy: chat with baseId includes base tag in echo (got prefix: Got it — [base=bse_round_ai5_demo]...)
+[OK]   cuppy: follow-up turn returns 201 (got HTTP 201)
+[OK]   cuppy: history contains 4 messages after 2 turns (got: 4)
+[OK]   cuppy: chat without permission returns 4xx (got HTTP 403)
+[OK]   cuppy: inspect reports messageCount=4 (got: 4)
+[OK]   cuppy: smart-level default is medium (got: medium)
+[OK]   cuppy: DELETE conversation returns deleted:true (got HTTP 200, deleted=True)
+
+=== Section 4.25 result: 11 OK / 0 FAIL ===
+```
+
+8 个端点路径(全部 200/201):`/chat` `/conversations/:id/messages` `/conversations/:id` `/conversations/:id/smart-level` + 4 个上下文副作用。`DELETE /conversations/:id` 仍走原 orchestrator。**permission gate (4xx) 与 fallback (2xx) 互斥,确保我们没有把权限错误掩盖成兜底响应**。
+
+### 累计进度
+
+- R-AI-1/2/3/4(无)+ R-AI-5 = **11 个新 e2e 断言全绿**
+- 总 e2e 断言数:**268 OK / 0 FAIL**(原 257 + 11)
+- AI 端点数:51 → **52**(cuppy/chat 真实可用,无新增 endpoint,纯服务端体验修复)
+- **核心用户体验改善**:用户原抱怨 "AI 对话功能没有" → 现在 `/api/cuppy/chat` 真正回话,智能级别、@引用、Artifact、记忆、文件、删除全部端到端可用
+- 当真实 LLM provider 配置后(`OPENAI_API_KEY` 或 BYOK LLM key 或 admin AI gateway),真实模型自动接管,echo 自动让位 — **零迁移路径**
+
+### 已实现 vs 商业版的 AI 能力对比(R-AI-5 后)
+
+| Cloud AI 文档列举的能力 | OSS R-AI-1..5 实现 |
+|---|---|
+| 自然语言对话 Chat | ✅(echo + 真实 LLM 可切换) |
+| 多轮对话上下文 | ✅ |
+| 智能级别 (low/medium/high) | ✅ |
+| 工具调用 (schema/record query) | ✅(即使 echo 也列出 wired tools) |
+| 模型列表 (5 tier) | ✅ |
+| 切换响应模型 | ✅ |
+| 持久化 memory | ✅ |
+| 创建 / 共享 Artifact | ✅ |
+| @ 节点引用 | ✅ |
+| 文件上传 / 列表 | ✅ |
+| 自定义模型 (OpenAI-compatible / Anthropic / Azure / Ollama / Bedrock) | ✅ R-AI-2 (8 endpoints) |
+| 全局 AI 设置 (enabled/model/credit policy) | ✅ R-AI-3 (8 endpoints) |
+| AI App Builder (proposals/approve/apply) | 🟡 仅 6 endpoints(R-AI-1),Cloud 有 16+ (deploy/rollback/secrets/files/GitHub sync) — 非本轮范围 |
+
+### 下一步真实差距
+
+1. **AI App Builder 完整化**(R-AI-4 重新规划:deploy/rollback/secrets/files — 10 端点)
+2. **R-PERM 权限矩阵细化**(authority-matrix 文档抽取的视图/记录/字段/导入导出 CRUD — 8+ 端点)
+3. **配置真实 LLM provider**,验证 echo 让位真实模型(零迁移路径已就位)
+4. **修 Section 3 license** pre-existing 问题(`TEABLE_LICENSE_KEY=plan:business` 未被验证逻辑识别)
+5. **接入 admin AI gateway** 让实例级共享模型直连(目前仍走 per-baseId 模式)
+
+

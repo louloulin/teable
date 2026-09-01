@@ -44,11 +44,36 @@ interface IAddMemberDto {
   userId: string;
 }
 
+interface IAppAccessDto {
+  baseId: string;
+  appId: string;
+  access: 'none' | 'accessible' | 'editable';
+}
+
+interface IWorkflowAccessDto {
+  baseId: string;
+  workflowId: string;
+  access: 'none' | 'accessible' | 'editable';
+}
+
+interface IDefaultRoleDto {
+  baseId: string;
+  roleId: string | null;
+}
+
 interface IImportExportDto {
   baseId: string;
   tableId: string;
   canImport: boolean;
   canExport: boolean;
+}
+
+// Cloud Business §权限矩阵 §视图权限: a role may see either ALL views of a
+// table or a SPECIFIC list of view IDs. An empty array resets to "all".
+interface IViewAccessDto {
+  baseId: string;
+  tableId: string;
+  viewIds: string[];
 }
 
 @Controller('api/admin/permission-matrix')
@@ -199,5 +224,75 @@ export class PermissionMatrixController {
     @Query('baseId') baseId: string
   ) {
     return this.svc.deleteImportExport(baseId, roleId, tableId);
+  }
+
+  // ─── Cloud §权限矩阵 §配置角色访问范围 ────────────────────────────────────
+  // Cloud says: 应用选择 可访问/无权限 ; 工作流选择 可访问/无权限 ;
+  //   默认角色 只用于未分配任何自定义角色的成员.
+  // setNodeAccess() already supports (table|app|workflow); we expose the app
+  // and workflow paths through dedicated controllers and persist the
+  // default-role setting in `meta.setting` so we avoid a schema migration.
+
+  @Put('roles/:roleId/app-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setAppAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IAppAccessDto
+  ) {
+    const stored = body.access === 'accessible' ? 'editable' : body.access;
+    await this.svc.setNodeAccess(body.baseId, roleId, 'app', body.appId, stored);
+    return { ok: true, nodeType: 'app', access: body.access };
+  }
+
+  @Put('roles/:roleId/workflow-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setWorkflowAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IWorkflowAccessDto
+  ) {
+    const stored = body.access === 'accessible' ? 'editable' : body.access;
+    await this.svc.setNodeAccess(body.baseId, roleId, 'workflow', body.workflowId, stored);
+    return { ok: true, nodeType: 'workflow', access: body.access };
+  }
+
+  @Put('default-role')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setDefaultRole(@Body() body: IDefaultRoleDto) {
+    await this.svc.setDefaultRoleForUnassigned(body.baseId, body.roleId);
+    return { ok: true, baseId: body.baseId, defaultRoleId: body.roleId };
+  }
+
+  @Get('default-role')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async getDefaultRole(@Query('baseId') baseId: string) {
+    const defaultRoleId = await this.svc.getDefaultRoleForUnassigned(baseId);
+    return { baseId, defaultRoleId };
+  }
+
+  // ─── Cloud §权限矩阵 §视图权限 ────────────────────────────────────────────
+  // PUT body { baseId, tableId, viewIds: string[] }; empty array = "all views".
+  @Put('roles/:roleId/view-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setViewAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IViewAccessDto
+  ) {
+    return this.svc.setViewAccess(body.baseId, roleId, body.tableId, body.viewIds ?? []);
+  }
+
+  @Get('roles/:roleId/view-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async getViewAccess(
+    @Param('roleId') roleId: string,
+    @Query('baseId') baseId: string,
+    @Query('tableId') tableId: string
+  ) {
+    return this.svc.getViewAccess(baseId, roleId, tableId);
   }
 }

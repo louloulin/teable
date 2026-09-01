@@ -12,6 +12,19 @@ export type CapabilityDescriptor = {
   [key: string]: unknown;
 };
 
+export type CloudExclusiveGap = {
+  key: string;
+  name: string;
+  category: 'migration' | 'scripting' | 'integration';
+  cloudDocPath: string;
+  status: 'implemented' | 'partial' | 'not_implemented';
+  ossFramework?: string;
+  notes?: string;
+  ossFrameworkPresent?: boolean;
+  reasonCategory?: 'implemented' | 'driver_missing' | 'framework_missing' | 'sandbox_missing' | 'spec_only';
+  implementationOrder?: number;
+};
+
 export type EnterpriseReadinessReport = {
   instance: { uptimeSec: number; generatedAt: string };
   plan: {
@@ -20,6 +33,7 @@ export type EnterpriseReadinessReport = {
     licenseSource: 'env' | 'runtime' | 'none';
   };
   capabilities: Record<string, CapabilityDescriptor>;
+  cloudGap: CloudExclusiveGap[];
   quotas: {
     rows: { current: number; limit: number | null };
     attachments: { currentBytes: number; limitBytes: number | null };
@@ -357,7 +371,7 @@ export class EnterpriseReadinessService {
   migrationSourceRegistry(): Array<{
     key: string;
     implemented: boolean;
-    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
+    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending';
   }> {
     const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending'> = {
       airtable_import: 'airtable-import',
@@ -575,6 +589,43 @@ export class EnterpriseReadinessService {
   }
 
   /**
+   * Emit a capability entry that uses a feature-level key (e.g.
+   * `conflict_replay`) instead of a table-level key (`conflict_event`).
+   * Probes the same table as `safeProbe` but renames the key to match
+   * Cloud's capability naming so the readiness report surfaces both.
+   */
+  private async featureAlias(
+    key: string,
+    moduleName: string,
+    statsKey: string,
+    modelName: string
+  ): Promise<ExternalCapability> {
+    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await fn();
+      } catch (err) {
+        this.logger.warn(
+          `external capability probe (${modelName}) failed: ${(err as Error).message}`
+        );
+        return fallback;
+      }
+    };
+    const count = await safe(async () => {
+      const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
+        `SELECT count(*)::int AS count FROM "meta"."${modelName}"`
+      );
+      return Number(rows?.[0]?.count ?? 0);
+    }, 0);
+    return {
+      key,
+      module: moduleName,
+      enabled: count > 0,
+      reason: count === 0 ? `no_${modelName}_rows_yet` : undefined,
+      stats: { [statsKey]: count },
+    };
+  }
+
+  /**
    * External-only capabilities need a different "is this actually live?" check.
    * We default to `enabled: true` for module presence; specific integrations
    * (smtp, ip_allowlist) only count as enabled when their backing config is present.
@@ -734,6 +785,33 @@ export class EnterpriseReadinessService {
       await this.safeProbe('comment_subscription', 'comments', 'commentSubscription'),
       // Backup / cross-cutting
       await this.safeProbe('backup_restore_log', 'backup', 'backupRestoreLog'),
+
+      // ─── Feature-level aliases for Cloud parity ─────────────────────
+      // The table-level probes above use table names as keys. Cloud's
+      // capability naming uses feature names (e.g. `conflict_replay` not
+      // `conflict_event`). Emit duplicate entries with feature-level keys
+      // so the readiness report surfaces the same view Cloud operators see.
+      await this.featureAlias('billing', 'billing', 'billingInvoice', 'billing_invoice'),
+      await this.featureAlias('billing', 'billing', 'billingCredit', 'billing_credit'),
+      await this.featureAlias(
+        'data_residency',
+        'data-residency',
+        'dataResidencyPolicy',
+        'data_residency_policy'
+      ),
+      await this.featureAlias(
+        'conflict_replay',
+        'conflict-replay',
+        'conflictEvent',
+        'conflict_event'
+      ),
+      await this.featureAlias(
+        'cross_base_federation',
+        'cross-base-federation',
+        'federationEvent',
+        'federation_event'
+      ),
+      await this.featureAlias('org_custom_role', 'org-custom-role', 'customRole', 'custom_role'),
 
       // ─── Round-4: register wired OSS enterprise modules ─────────────
       // These modules are imported into app.module.ts / global.module.ts.
@@ -1055,7 +1133,8 @@ export class EnterpriseReadinessService {
     const recentImplementations: Array<{ key: string; name: string; notes: string }> = [];
     for (const g of gaps) {
       byCategory[g.category] = (byCategory[g.category] ?? 0) + 1;
-      byReasonCategory[g.reasonCategory] = (byReasonCategory[g.reasonCategory] ?? 0) + 1;
+      const reasonCategory = g.reasonCategory ?? 'unknown';
+      byReasonCategory[reasonCategory] = (byReasonCategory[reasonCategory] ?? 0) + 1;
       if (g.status === 'implemented') {
         implementedKeys.push(g.key);
         // "Recent" = implemented in R15+

@@ -28,7 +28,7 @@ export class BaserowImportService {
 
   async listTables(baseUrl: string, token: string, baseId: number) {
     const client = new BaserowApiClient(baseUrl, token);
-    const databases = await client['fetchJson' as never]('/api/applications/').catch(() => []);
+    const databases = await client.listDatabases().catch(() => []);
     return { baseId, count: Array.isArray(databases) ? databases.length : 0 };
   }
 
