@@ -52,7 +52,13 @@ not from individual files.
 Run the generator to (re)create the barrel:
 
 ```bash
+# Top-level feature modules only (default — backward compatible)
 python3 scripts/generate-module-index.py
+
+# Every nested helper subdirectory that contains .ts source files
+# (guard/, open-api/, utils/, plugins/, ...). Use --only-missing to
+# avoid touching the hand-written barrels written before R-INFRA-1b.
+python3 scripts/generate-module-index.py --recursive --only-missing
 ```
 
 The script:
@@ -66,6 +72,10 @@ The script:
    grouped re-exports.
 4. **Refuses to overwrite hand-written barrels unless `--force` is passed.**
    Use `--check` to dry-run.
+5. **Directories containing only `.hbs` / `.mjs` / non-TS source**
+   (e.g. `mail-sender/templates/`, `airtable-import/test-scripts/`)
+   are intentionally NOT given an index.ts — they are not TypeScript
+   modules and should not be imported as such.
 
 ### Manual additions
 

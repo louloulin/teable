@@ -170,8 +170,7 @@ def generate_index(module_dir: Path | str) -> str:
                 lines.append(f"export {{ {n} }} from './{stem}';")
 
     if not has_any:
-        lines.append("")
-        lines.append("// (no public exports detected in this module)")
+        return None
 
     lines.append("")
     return "\n".join(lines)
@@ -185,6 +184,12 @@ def main(argv: list[str]) -> int:
     dry = "--check" in argv
     if dry:
         argv.remove("--check")
+    recursive = "--recursive" in argv
+    if recursive:
+        argv.remove("--recursive")
+    only_missing = "--only-missing" in argv
+    if only_missing:
+        argv.remove("--only-missing")
 
     raw_targets = argv[1:] or [str(FEATURES_DIR)]
     # Expand: if a target is itself a directory containing feature modules,
@@ -194,6 +199,27 @@ def main(argv: list[str]) -> int:
     for t in raw_targets:
         target_path = Path(t)
         if not target_path.is_dir():
+            continue
+        if recursive:
+            # Walk every nested directory that contains at least one source
+            # file (post-skip). Guarantees 100% index.ts coverage across
+            # helper subdirs (guard/, open-api/, utils/, plugins/, ...),
+            # not only top-level feature modules.
+            for d in sorted(target_path.rglob("*")):
+                if not d.is_dir():
+                    continue
+                if d.name == "node_modules" or "/node_modules/" in str(d):
+                    continue
+                if any(
+                    f.is_file()
+                    and f.suffix == ".ts"
+                    and f.name not in SKIP_FILES
+                    and not any(f.name.endswith(suf) for suf in SKIP_SUFFIXES)
+                    for f in d.iterdir()
+                ):
+                    targets.append(str(d))
+            if str(target_path) not in targets:
+                targets.append(str(target_path))
             continue
         # Heuristic: a "module dir" has *.module.ts or *.service.ts inside;
         # otherwise treat it as a parent of multiple modules.
@@ -207,15 +233,24 @@ def main(argv: list[str]) -> int:
     written = 0
     skipped = 0
     would_write = 0
+    changed_files: list[str] = []
     for target in targets:
         module_dir = Path(target)
         if not module_dir.is_dir():
             continue
         index_path = module_dir / "index.ts"
         new_content = generate_index(module_dir)
+        if new_content is None:
+            # No source files (after skip). Don't create a stale empty
+            # barrel — the directory contains only non-TS files (e.g.
+            # .hbs / .mjs) or is a pure container. Skip entirely.
+            continue
         existing = index_path.read_text() if index_path.exists() else None
 
         if existing is not None:
+            if only_missing:
+                skipped += 1
+                continue
             if not force:
                 skipped += 1
                 continue
@@ -228,11 +263,19 @@ def main(argv: list[str]) -> int:
             continue
         index_path.write_text(new_content)
         written += 1
+        changed_files.append(str(index_path.relative_to(ROOT)))
 
     if dry:
         print(f"generate-module-index: would_write {would_write}, skipped {skipped}")
     else:
-        print(f"generate-module-index: wrote {written}, skipped {skipped} (use --force to overwrite existing)")
+        print(
+            f"generate-module-index: wrote {written}, skipped {skipped} "
+            f"(use --force to overwrite, --only-missing to skip existing)"
+        )
+        if changed_files:
+            print("first 25 newly created/modified files:")
+            for f in changed_files[:25]:
+                print(f"  + {f}")
     return 0
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
