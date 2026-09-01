@@ -188,3 +188,39 @@
 2. **是否同意进入 R-AI-1**?Cuppy 端点从 1 → 10+,预计 1 轮完成
 3. **是否同意 R-AI-2/R-AI-3 后续**?(自定义 AI 模型 + AI Admin 设置)
 4. **commit 时机** — 是每轮 R 单独 commit,还是 R33 + R-AI-1 一起 commit?
+
+
+---
+
+## 更新(2026-09-01 08:35 后端运行时,R-AI-5 + R-PERM-1 已落)
+
+### 累计自动化验证
+
+| Round | 新断言 | 端点 | 状态 |
+|---|---|---|---|
+| R33 + R-AI-1/2/3 | 43 | cuppy 23 + ai-builder 6 + custom-ai-model 8 + ai-setting 8 | ✅ committed |
+| **R-AI-5**(`/api/cuppy/chat` 真实对话回退) | **11** | chat 不再 503,echo 兜底 + 真实 LLM 零迁移让位 | ✅ `a89e5ae54` |
+| **R-PERM-1**(权限矩阵 4 区域 CRUD) | **18** | +app-access / workflow-access / default-role | ✅ `968ae71b4` |
+| **总计** | **286 OK / 0 FAIL** | 权限矩阵 17 端点 | |
+
+### 本轮真实改进(用户点名的两项)
+
+1. **"AI 对话功能也没有"** → `/api/cuppy/chat` 无 LLM 配置也回话。
+   - `BuiltInEchoLlm` 兜底:纯函数、回显消息、列出路由工具、`[base=...]` 标签、单次升级提示
+   - 配置 OPENAI_API_KEY / BYOK key / admin gateway 后自动切换真实模型
+   - 实测中文、英文、多轮上下文、历史持久化、DELETE 清理全通
+
+2. **权限矩阵(help.teable.ai/zh/basic/authority-matrix)** → 4 大区域 3/4 全量 HTTP 覆盖:
+   - 记录(record-action / record-filter)、字段(field-permission)、导入导出(import-export)已有
+   - **本轮新增** 应用 app-access、工作流 workflow-access、默认角色 default-role
+   - 18 个 e2e 断言全绿,权限矩阵 13→17 端点,全部真实 HTTP 往返
+   - 遗留:视图级可见性(R-PERM-2,schema 需 view 级关联)
+
+### 剩余真实差距(按优先级)
+
+1. R-PERM-2:视图级可见性(viewIds per role,Cloud "特定视图")
+2. R-AI-4:AI App Builder deploy/rollback/secrets/files(10 端点)
+3. Section 3 license 修复(pre-existing,`TEABLE_LICENSE_KEY=plan:business` 未被识别)
+4. 配置真实 LLM provider 验证 echo 让位
+5. admin AI gateway 实例级共享模型
+
