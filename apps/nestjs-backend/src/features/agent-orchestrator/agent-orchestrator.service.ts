@@ -50,6 +50,15 @@ export interface ILlmClient {
    * have a real upstream (built-in echo) should emit the entire text in one
    * or two deltas followed by the closing chunk.
    */
+  /** Backward-compat alias — older callers/tests reference `stream`. */
+  stream?(args: {
+    baseId?: string;
+    system: string;
+    messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+    tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+    executeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+    abortSignal?: AbortSignal;
+  }): AsyncGenerator<{ delta: string; value?: string; done: boolean }>;
   chatStream?(args: {
     baseId?: string;
     system: string;
@@ -245,8 +254,9 @@ export class AgentOrchestratorService {
       .join('\n\n');
 
     let llmStream: AsyncGenerator<{ delta: string; value?: string; done: boolean }> | undefined;
-    if (this.llm?.chatStream) {
-      llmStream = this.llm.chatStream({
+    const streamImpl = this.llm?.chatStream ?? this.llm?.stream;
+    if (streamImpl) {
+      llmStream = streamImpl({
         baseId: inboundBaseId,
         system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
         messages: ctx.messages.map((m) => ({
@@ -286,6 +296,19 @@ export class AgentOrchestratorService {
     }
 
     this.store.appendMessage(ctx, 'assistant', accumulated);
+  }
+
+  /**
+   * Backward-compat alias of {@link chatStream} — older tests reference
+   * `stream`. Both names share the same signature.
+   */
+  async *stream(
+    conversationId: string,
+    userId: string,
+    inbound: InboundMessage,
+    abortSignal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+    yield* this.chatStream(conversationId, userId, inbound, abortSignal);
   }
 
   /** Test seam — load a conversation by id without mutating it. */

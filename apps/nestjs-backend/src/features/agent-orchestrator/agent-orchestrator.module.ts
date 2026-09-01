@@ -359,6 +359,10 @@ import { CuppyController } from './cuppy.controller';
               clearTimeout(timer);
             }
           },
+          /** Backward-compat alias of chatStream — older callers/tests reference `stream`. */
+          stream: async function* (args: Parameters<NonNullable<{ chatStream?: unknown }>['chatStream']>[0]) {
+            yield* (this as { chatStream: (a: unknown) => AsyncGenerator<{ delta: string; value?: string; done: boolean }> }).chatStream(args);
+          }.bind(this),
         };
       },
     },
