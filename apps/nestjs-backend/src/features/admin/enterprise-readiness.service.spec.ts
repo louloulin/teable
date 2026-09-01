@@ -113,3 +113,45 @@ it('R-PERM-3 batch: comment_subscription / approval_workflow / dashboard / dr_ca
     expect(cap.reason, `${key} should have no reason`).toBeUndefined();
   }
 });
+
+it('R-PERM-4 batch: airtable_connection / federation_event / ai_credit_ledger / ai_credit_grant_policy / custom_role / api_rate_limit all flip to enabled', async () => {
+  const svc = buildService();
+  const report = await svc.report();
+  for (const key of [
+    'airtable_connection',
+    'federation_event',
+    'ai_credit_ledger',
+    'ai_credit_grant_policy',
+    'custom_role',
+    'api_rate_limit',
+  ]) {
+    const cap = report.capabilities[key];
+    expect(cap, `capability ${key} should be defined`).toBeDefined();
+    expect(cap.enabled, `${key} should be enabled`).toBe(true);
+    expect(cap.reason, `${key} should have no reason`).toBeUndefined();
+  }
+  // api_rate_limit must surface the enforcement marker (was opt_out_self_hosted)
+  const apiRateLimit = report.capabilities.api_rate_limit;
+  expect(apiRateLimit.enforcement, 'api_rate_limit should report app_guard enforcement').toBe('app_guard');
+  expect(apiRateLimit.plan).toBeDefined();
+});
+
+it('R-PERM-4 batch: remaining 8 DB-empty gates STAY disabled (no controller flip)', async () => {
+  const svc = buildService();
+  const report = await svc.report();
+  for (const key of [
+    'billing_invoice',
+    'billing_credit',
+    'cross_org_admin_grant',
+    'db_connector',
+    'db_connector_sync',
+    'data_db_connection',
+    'ai_usage_bucket',
+    'app_module_wire',
+  ]) {
+    const cap = report.capabilities[key];
+    expect(cap, `capability ${key} should be defined`).toBeDefined();
+    expect(cap.enabled, `${key} should stay false`).toBe(false);
+    expect(cap.reason, `${key} should have a no_rows reason`).toMatch(/^no_/);
+  }
+});

@@ -749,22 +749,32 @@ export class EnterpriseReadinessService {
       // External data integration (4)
       await this.safeProbe('db_connector', 'db-connector', 'dbConnector'),
       await this.safeProbe('db_connector_sync', 'db-connector', 'dbConnectorSync'),
-      await this.safeProbe('airtable_connection', 'airtable-migration', 'airtableConnection'),
+      // R-PERM-4: airtable-migration controller fully shipped. Capability
+      // presence tracks module wiring, not whether any airtable-connection
+      // row has been created. Same shape as R-PERM-3 batch.
+      await this.alwaysEnabled('airtable_connection', 'airtable-import', 'airtableConnection', 'airtable_connections'),
       await this.safeProbe('data_db_connection', 'data-db-connection', 'dataDbConnection'),
       // Governance & operations (4)
       await this.alwaysEnabled('approval_workflow', 'approval', 'approvalWorkflow', 'approval_workflow'),
       await this.alwaysEnabled('conditional_format_rule', 'conditional-format', 'conditionalFormatRule', 'conditional_format_rule'),
       await this.alwaysEnabled('conflict_event', 'conflict', 'conflictEvent', 'conflict_event'),
-      await this.safeProbe('federation_event', 'federation', 'federationEvent'),
+      // R-PERM-4: cross-base-federation.controller.ts shipped (HTTP CRUD
+      // already in stage-30). Module presence → enabled.
+      await this.alwaysEnabled('federation_event', 'cross-base-federation', 'federationEvent', 'federation_events'),
       // Self-service observability (2)
       await this.alwaysEnabled('dashboard', 'dashboard', 'dashboard', 'dashboard'),
       await this.alwaysEnabled('dr_canvas', 'dr-canvas', 'drCanvas', 'dr_canvas'),
       // AI credit / usage (3)
-      await this.safeProbe('ai_credit_ledger', 'ai-credit', 'aiCreditLedger'),
+      // R-PERM-4: ai-credit.controller.ts shipped (HTTP CRUD already).
+      // Capability presence tracks module wiring.
+      await this.alwaysEnabled('ai_credit_ledger', 'ai-credit', 'aiCreditLedger', 'ai_credit_ledgers'),
       await this.safeProbe('ai_usage_bucket', 'ai-usage', 'aiUsageBucket'),
-      await this.safeProbe('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy'),
+      // R-PERM-4: ai-credit.controller.ts covers both ledger + grant-policy.
+      await this.alwaysEnabled('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy', 'ai_credit_grant_policies'),
       // Customization & extension (5)
-      await this.safeProbe('custom_role', 'custom-role', 'customRole'),
+      // R-PERM-4: org-custom-role.controller.ts shipped (7 HTTP endpoints,
+      // stage round-32). Module presence → enabled.
+      await this.alwaysEnabled('custom_role', 'org-custom-role', 'customRole', 'custom_role'),
       await this.safeProbe('app_module_wire', 'app-module', 'appModuleWire'),
       await this.alwaysEnabled('automation_canvas_revision', 'automation', 'automationCanvasRevision', 'automation_canvas_revision'),
       await this.alwaysEnabled('automation_secret', 'automation', 'automationSecret', 'automation_secret'),
@@ -788,12 +798,14 @@ export class EnterpriseReadinessService {
       },
       // Cloud Business §API rate limit: 10 req/s plan-aware guard wired
       // as APP_GUARD in global.module.ts (api-rate-limit/api-rate-limit.guard.ts).
+      // R-PERM-4: api-rate-limit guard is registered as APP_GUARD (always on).
+      // The limit itself is still plan-derived (no limit under self_hosted;
+      // 10 req/s on business; etc). Capability presence ≠ enforcement tier.
       {
         key: 'api_rate_limit',
         module: 'api-rate-limit',
-        enabled: this.caps.currentPlan() !== 'self_hosted',
-        reason: this.caps.currentPlan() === 'self_hosted' ? 'opt_out_self_hosted' : undefined,
-        stats: { limitPerSecond: 10, plan: this.caps.currentPlan() },
+        enabled: true,
+        stats: { limitPerSecond: 10, plan: this.caps.currentPlan(), enforcement: 'app_guard' },
       },
       // OSS data_masking module wired (app.module.ts:175). Always on when
       // module loaded; flips off only if a future flag disables it.
