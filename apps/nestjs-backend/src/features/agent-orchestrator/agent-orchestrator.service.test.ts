@@ -115,3 +115,108 @@ describe('AgentOrchestratorService', () => {
     );
   });
 });
+
+describe('AgentOrchestratorService — R-AI-3e scoped-skill injection', () => {
+  const buildChat = () =>
+    vi.fn(async (args: { system: string }) => ({ text: 'reply', receivedSystem: args.system }));
+
+  it('injects personal + base + space skills into the system prompt', async () => {
+    const chat = buildChat();
+    const scopedSkills = {
+      resolve: vi.fn(async () => ({
+        personal: [
+          {
+            id: 'p1',
+            name: 'house-style',
+            description: 'Use concise bullets.',
+            content: 'Use concise bullets.',
+            enabled: true,
+            source: 'upload',
+            createdTime: '2026-09-01T10:50:30.842Z',
+            lastModifiedTime: '2026-09-01T10:50:30.842Z',
+            scope: 'personal',
+          },
+        ],
+        base: [
+          {
+            id: 'b1',
+            name: 'reply-in-japanese',
+            description: 'Reply in Japanese when the active base is in Tokyo.',
+            content: 'Use polite Japanese (です/ます).',
+            enabled: true,
+            source: 'upload',
+            createdTime: '2026-09-01T10:50:30.842Z',
+            lastModifiedTime: '2026-09-01T10:50:30.842Z',
+            scope: 'base',
+            scopeId: 'base-1',
+          },
+        ],
+        space: [],
+        instance: [],
+      })),
+    };
+
+    const service = new AgentOrchestratorService(
+      { chat },
+      { route: vi.fn().mockResolvedValue({ system: 'You are the teable assistant.', tools: [] }) },
+      undefined,
+      scopedSkills as never
+    );
+
+    await service.handle('conversation-skill', 'user-1', {
+      user_id: 'user-1',
+      text: 'hi',
+      provider_meta: { baseId: 'base-1' },
+    });
+
+    const calledWith = chat.mock.calls[0][0];
+    expect(calledWith.system).toContain('Personal skills');
+    expect(calledWith.system).toContain('house-style');
+    expect(calledWith.system).toContain('Use concise bullets.');
+    expect(calledWith.system).toContain('Base skills');
+    expect(calledWith.system).toContain('reply-in-japanese');
+    expect(calledWith.system).toContain('narrow) scope first');
+  });
+
+  it('still works without the scoped-skill service (back-compat)', async () => {
+    const chat = buildChat();
+    const service = new AgentOrchestratorService(
+      { chat },
+      { route: vi.fn().mockResolvedValue({ system: 'You are the teable assistant.', tools: [] }) },
+      undefined,
+      undefined
+    );
+
+    await service.handle('conversation-no-skill', 'user-1', {
+      user_id: 'user-1',
+      text: 'hi',
+    });
+
+    const calledWith = chat.mock.calls[0][0];
+    expect(calledWith.system).toBe('You are the teable assistant.');
+  });
+
+  it('passes an empty scoped-skill section when resolve returns no enabled skills', async () => {
+    const chat = buildChat();
+    const scopedSkills = {
+      resolve: vi.fn(async () => ({ personal: [], base: [], space: [], instance: [] })),
+    };
+
+    const service = new AgentOrchestratorService(
+      { chat },
+      { route: vi.fn().mockResolvedValue({ system: 'You are the teable assistant.', tools: [] }) },
+      undefined,
+      scopedSkills as never
+    );
+
+    await service.handle('conversation-empty', 'user-1', {
+      user_id: 'user-1',
+      text: 'hi',
+      provider_meta: { baseId: 'base-1' },
+    });
+
+    const calledWith = chat.mock.calls[0][0];
+    expect(calledWith.system).not.toContain('Personal skills');
+    expect(calledWith.system).toBe('You are the teable assistant.');
+  });
+});

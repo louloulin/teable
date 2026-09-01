@@ -91,4 +91,40 @@ export class LoginRiskAuthService {
     }
     return { actorId, recent, failedCountByDay: {}, lastSuccessAt };
   }
+
+  /**
+   * Evaluate a login risk for an admin-supplied (actorId, email, ip)
+   * triple. Constructs a minimal fingerprint with placeholder geo/UA
+   * fields so admins can probe likely risk bands without replaying a
+   * real attempt through the auth surface.
+   */
+  scoreFor(input: {
+    actorId: string;
+    email?: string;
+    ip: string;
+    countryCode?: string;
+    userAgent?: string;
+    now?: string;
+  }): ILoginRiskOutput {
+    const fingerprint: ILoginFingerprint = {
+      deviceId: 'admin-probe',
+      ip: input.ip,
+      countryCode: input.countryCode ?? '',
+      regionCode: '',
+      tzOffsetMinutes: 0,
+      userAgent: input.userAgent ?? 'admin-probe',
+    };
+    const history: ILoginHistory = {
+      actorId: input.actorId,
+      recent: [],
+      failedCountByDay: {},
+      lastSuccessAt: null,
+    };
+    return evaluate({
+      fingerprint,
+      history,
+      recentFailed: [],
+      now: input.now ?? new Date().toISOString(),
+    });
+  }
 }

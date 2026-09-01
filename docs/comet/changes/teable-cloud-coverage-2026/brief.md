@@ -1,5 +1,30 @@
 # Cloud 商业版 真实功能差距 — 第二轮深度填补
 
+## 当前真实进度（2026-09-01）
+
+本轮验证拆分为两个指标，避免把 capability wiring 误报为商业版功能等价：
+
+- **能力接线进度：80/80（100%）**。表示 readiness controller/module 已接入、能力守卫可通过，且已有 admin smoke 覆盖；不表示每项已经具备 Cloud 全部业务行为。
+- **可核验的 Cloud 行为覆盖：约 73%**。Skills、AI usage、BYOK、风险控制、审计保留、配额/计费、跨空间授权、Data DB 连接和合规审计包已有可运行 API 或服务实现，并已覆盖关键持久化闭环；Cuppy chat 现在提供 `record_create` / `field_describe` / `automation_trigger` 三个真实工具，调用会真正落到 `RecordOpenApiService.createRecords`、`TableOpenApiService.getTable`、`AutomationService.trigger`。前端管理面、OpenAPI 契约、数据库集成测试和部分 AI 业务行为仍不完整。
+- **当前已修复的真实持久化缺口**：`cross-org-admin` 使用 `crossOrgAdminGrant` Prisma 模型并以 `revokedAt` 软撤销；`data-db-connection` 使用真实 `DataDbConnection` 模型，URL 加密存储、指纹去重、schema 解析和脱敏返回。
+- **本轮新增完成**：合规审计包现在写入 `meta.compliance_audit_pack`，支持生成、列表、计数、详情查询，并通过重启后读取验证；迁移同时修复了 Prisma `schema=meta` 的部署路径。
+- **本轮新增完成 (二)**：Cuppy chat 已注册 `record_create` / `field_describe` / `automation_trigger` 三个工具，调用会真正落到 `RecordOpenApiService.createRecords`、`TableOpenApiService.getTable`、`AutomationService.trigger`；`/api/cuppy/chat` 在没有 baseId 时返回结构化 `baseId is required`，不再伪装成功。
+- **尚未达到 Cloud parity 的项目**：新 admin 能力尚未全部接入前端 sidebar；新 endpoint 尚未全面进入 `@teable/openapi`；AI Chat 的自然语言分析/可视化/创建工作流仍需与官方文档逐项对照；多数验证仍为 service/unit mock；Comet Native 本地选择状态损坏，待 Runtime 恢复后继续验收。
+
+本轮不宣称“商业版 100% 等价”。官方权限矩阵的核心是按空间、基地、角色和协作关系进行授权；因此旧实现中将 `orgId/scopes` 当作数据库字段的做法不符合当前真实 schema，现仅保留明确标注的兼容别名。
+
+## 后续计划
+
+1. 对照官方 AI Chat、Custom AI Model、Connect Everything 文档，补齐真实对话上下文、数据分析、可视化和创建动作，而不是只保留聊天路由。
+2. 将新增企业 API 纳入 `@teable/openapi`，补充前端 Admin 页面、权限矩阵入口和错误态展示。
+3. 为 `compliance_audit_pack`、`cross_org_admin_grant`、`data_db_connection` 增加 PostgreSQL 集成测试及迁移 CI gate。
+4. 完成审计包对象存储适配、下载/导出权限、保留策略和审计事件关联。
+5. 修复 Comet Native 的 portable state 后，再运行 Runtime Verifier；在此之前不宣称 change 已归档或目标已完成。
+1. 把 `record_create` / `field_describe` / `automation_trigger` 写入 `meta.cuppy_tool_invocations`，记录 conversationId、tool、调用结果摘要，作为后续审计与对账基础。
+2. 补齐 Connect Everything（外部 OAuth/MCP 接入、Airtable/Baserow 等数据迁移）的真实驱动实现。
+3. 为新模块增加端到端集成测试（service + 数据库），替换当前的 mock 单元测试。
+4. 接入 `apps/nextjs-app` 的真实页面：审计包下载入口、AI Chat 工具结果展示、权限矩阵错误态。
+
 > Follow-on after `teable-oss-vs-cloud-gap-fill` (archive/done, 89/89)
 > 全新 read of Cloud 商业版帮助文档 (2026-09-01):
 > - `https://help.teable.ai/zh/basic/authority-matrix` (权限矩阵官方)

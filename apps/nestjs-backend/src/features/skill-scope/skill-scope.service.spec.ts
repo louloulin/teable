@@ -12,7 +12,7 @@ import { SkillScopeService } from './skill-scope.service';
 import type { ScopedSkill } from './skill-scope.types';
 
 const mockSetting = new Map<string, string>();
-const mockCollaborator: Array<{ resourceType: string; resourceId: string; userId: string; role: string }> = [];
+const mockCollaborator: Array<{ resourceType: string; resourceId: string; principalId: string; principalType: string; roleName: string }> = [];
 
 const prismaStub = {
   setting: {
@@ -39,7 +39,7 @@ const prismaStub = {
         if (c.principalId !== where.principalId) return false;
         if (where.principalType && c.principalType !== where.principalType) return false;
         return true;
-      }).map((c) => ({ roleName: c.role }))
+      }).map((c) => ({ roleName: c.roleName }))
     ),
   },
 };
@@ -110,8 +110,8 @@ describe('R-AI-3e Personal scope', () => {
 // ─── Base ───────────────────────────────────────────────────
 describe('R-AI-3e Base scope', () => {
   beforeEach(() => {
-    mockCollaborator.push({ resourceType: 'base', resourceId: 'b1', principalId: 'userA', principalType: 'user', role: 'editor' });
-    mockCollaborator.push({ resourceType: 'base', resourceId: 'b2', principalId: 'userA', principalType: 'user', role: 'viewer' });
+    mockCollaborator.push({ resourceType: 'base', resourceId: 'b1', principalId: 'userA', principalType: 'user', roleName: 'editor' });
+    mockCollaborator.push({ resourceType: 'base', resourceId: 'b2', principalId: 'userA', principalType: 'user', roleName: 'viewer' });
   });
 
   it('listBase allows any collab role (read)', async () => {
@@ -154,7 +154,7 @@ describe('R-AI-3e Base scope', () => {
 
   it('different bases keep separate lists', async () => {
     const svc = buildService();
-    mockCollaborator.push({ resourceType: 'base', resourceId: 'b3', principalId: 'userA', principalType: 'user', role: 'editor' });
+    mockCollaborator.push({ resourceType: 'base', resourceId: 'b3', principalId: 'userA', principalType: 'user', roleName: 'editor' });
     await svc.addBase('userA', 'b1', { name: 'x', content: 'A' });
     await svc.addBase('userA', 'b3', { name: 'x', content: 'B' });
     expect((await svc.listBase('userA', 'b1'))[0].content).toBe('A');
@@ -165,13 +165,13 @@ describe('R-AI-3e Base scope', () => {
 // ─── Space ──────────────────────────────────────────────────
 describe('R-AI-3e Space scope', () => {
   it('addSpace rejects viewer role', async () => {
-    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', principalId: 'userA', principalType: 'user', role: 'editor' });
+    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', principalId: 'userA', principalType: 'user', roleName: 'editor' });
     const svc = buildService();
     await expect(svc.addSpace('userA', 'sp1', { name: 's', content: 'x' })).rejects.toThrow(/space admin/);
   });
 
   it('addSpace accepts owner/admin', async () => {
-    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', principalId: 'userA', principalType: 'user', role: 'owner' });
+    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', principalId: 'userA', principalType: 'user', roleName: 'owner' });
     const svc = buildService();
     const skill = await svc.addSpace('userA', 'sp1', { name: 's', content: 'x' });
     expect(skill.scope).toBe('space');
@@ -199,8 +199,8 @@ describe('R-AI-3e resolve() priority chain', () => {
   });
 
   it('resolve fetches base + space when context provides ids', async () => {
-    mockCollaborator.push({ resourceType: 'base', resourceId: 'b1', userId: 'userA', role: 'viewer' });
-    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', userId: 'userA', role: 'admin' });
+    mockCollaborator.push({ resourceType: 'base', resourceId: 'b1', principalId: 'userA', principalType: 'user', roleName: 'viewer' });
+    mockCollaborator.push({ resourceType: 'space', resourceId: 'sp1', principalId: 'userA', principalType: 'user', roleName: 'admin' });
     const svc = buildService();
     seedSkills('personal_skills_v1:userA', [
       {

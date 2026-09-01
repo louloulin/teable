@@ -8,9 +8,11 @@ import type { IRiskEventRow } from './risk-event-query.types';
 interface IPrismaMock {
   riskDecision: {
     findMany: (args: unknown) => Promise<Array<Record<string, unknown>>>;
+    count: (args: unknown) => Promise<number>;
   };
   loginAttempt: {
     findMany: (args: unknown) => Promise<Array<Record<string, unknown>>>;
+    count: (args: unknown) => Promise<number>;
   };
   orgBanAudit: {
     findMany: (args: unknown) => Promise<Array<Record<string, unknown>>>;
@@ -19,8 +21,8 @@ interface IPrismaMock {
 
 function makePrisma(): IPrismaMock {
   return {
-    riskDecision: { findMany: vi.fn().mockResolvedValue([]) },
-    loginAttempt: { findMany: vi.fn().mockResolvedValue([]) },
+    riskDecision: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) },
+    loginAttempt: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) },
     orgBanAudit: { findMany: vi.fn().mockResolvedValue([]) },
   };
 }
@@ -118,6 +120,38 @@ describe('RiskEventQueryAuthService.searchDecisions', () => {
     expect(out.rows[0]!.kind).toBe('risk-decision');
     expect(prisma.recent === undefined ? prisma.riskDecision.findMany : null).toBeDefined();
   });
+
+  it('uses RiskDecision field names for filters and ordering', async () => {
+    const prisma = makePrisma();
+    const svc = new RiskEventQueryAuthService(prisma as never);
+    await svc.searchDecisions({
+      filter: {
+        decisions: ['hard-block'],
+        from: '2026-01-01T00:00:00Z',
+        to: '2026-02-01T00:00:00Z',
+      },
+    });
+    const args = (prisma.riskDecision.findMany as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
+      where: Record<string, unknown>;
+      orderBy: Array<Record<string, string>>;
+    };
+    expect(args.where).toMatchObject({
+      action: { in: ['hard-block'] },
+      createdAt: { gte: '2026-01-01T00:00:00Z', lt: '2026-02-01T00:00:00Z' },
+    });
+    expect(args.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
+    expect(JSON.stringify(args.where)).not.toContain('occurredAt');
+  });
+
+  it('countDecisions uses createdAt instead of the unified occurredAt name', async () => {
+    const prisma = makePrisma();
+    const svc = new RiskEventQueryAuthService(prisma as never);
+    await svc.countDecisions({ filter: { from: '2026-01-01T00:00:00Z' } });
+    const args = (prisma.riskDecision.count as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
+      where: Record<string, unknown>;
+    };
+    expect(args.where).toEqual({ createdAt: { gte: '2026-01-01T00:00:00Z' } });
+  });
 });
 
 describe('RiskEventQueryAuthService.searchLoginAttempts', () => {
@@ -139,6 +173,19 @@ describe('RiskEventQueryAuthService.searchLoginAttempts', () => {
     const out = await svc.searchLoginAttempts({ filter: {} });
     expect(out.rows.length).toBe(1);
     expect(out.rows[0]!.kind).toBe('login-attempt');
+  });
+
+  it('keeps LoginAttempt filters on occurredAt and outcome', async () => {
+    const prisma = makePrisma();
+    const svc = new RiskEventQueryAuthService(prisma as never);
+    await svc.searchLoginAttempts({ filter: { decisions: ['allow'], text: 'curl' } });
+    const args = (prisma.loginAttempt.findMany as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
+      where: Record<string, unknown>;
+      orderBy: Array<Record<string, string>>;
+    };
+    expect(args.where).toMatchObject({ outcome: { in: ['success'] } });
+    expect(args.where).toHaveProperty('OR');
+    expect(args.orderBy).toEqual([{ occurredAt: 'desc' }, { id: 'desc' }]);
   });
 });
 

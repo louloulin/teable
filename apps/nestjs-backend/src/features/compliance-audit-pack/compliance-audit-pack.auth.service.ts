@@ -66,6 +66,75 @@ export class ComplianceAuditPackAuthService {
     return hasAllFormats(pack);
   }
 
+  async persist(pack: AuditPack, createdBy?: string): Promise<AuditPack> {
+    await this.prisma.complianceAuditPack.upsert({
+      where: { id: pack.meta.packId },
+      create: {
+        id: pack.meta.packId,
+        framework: pack.meta.framework,
+        periodFrom: pack.meta.periodFrom,
+        periodTo: pack.meta.periodTo,
+        generatedAt: new Date(pack.meta.generatedAt),
+        contentHash: pack.meta.contentHash,
+        totalBytes: pack.meta.totalBytes,
+        artifactCount: pack.meta.artifactCount,
+        artifacts: JSON.parse(JSON.stringify(pack.artifacts)) as any,
+        createdBy: createdBy ?? null,
+      },
+      update: {
+        framework: pack.meta.framework,
+        periodFrom: pack.meta.periodFrom,
+        periodTo: pack.meta.periodTo,
+        generatedAt: new Date(pack.meta.generatedAt),
+        contentHash: pack.meta.contentHash,
+        totalBytes: pack.meta.totalBytes,
+        artifactCount: pack.meta.artifactCount,
+        artifacts: JSON.parse(JSON.stringify(pack.artifacts)) as any,
+      },
+    });
+    return pack;
+  }
+
+  async listPersisted() {
+    return this.prisma.complianceAuditPack.findMany({
+      select: {
+        id: true,
+        framework: true,
+        periodFrom: true,
+        periodTo: true,
+        generatedAt: true,
+        contentHash: true,
+        totalBytes: true,
+        artifactCount: true,
+        createdBy: true,
+        createdTime: true,
+      },
+      orderBy: { createdTime: 'desc' },
+    });
+  }
+
+  async getPersisted(id: string): Promise<AuditPack | null> {
+    const row = await this.prisma.complianceAuditPack.findUnique({ where: { id } });
+    if (!row) return null;
+    return {
+      meta: {
+        packId: row.id,
+        generatedAt: row.generatedAt.toISOString(),
+        framework: row.framework as AuditPack['meta']['framework'],
+        periodFrom: row.periodFrom,
+        periodTo: row.periodTo,
+        contentHash: row.contentHash,
+        totalBytes: row.totalBytes,
+        artifactCount: row.artifactCount,
+      },
+      artifacts: row.artifacts as unknown as AuditPack['artifacts'],
+    };
+  }
+
+  async countPersisted(): Promise<number> {
+    return this.prisma.complianceAuditPack.count();
+  }
+
   async ping(): Promise<boolean> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;

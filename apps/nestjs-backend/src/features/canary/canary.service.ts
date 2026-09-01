@@ -215,4 +215,32 @@ export class CanaryService {
 
     return { useV2: false, reason: 'feature_not_enabled' };
   }
+
+
+  /**
+   * Start a canary release for the given spaces. Persists the new config
+   * via the setting store so subsequent reads see the change.
+   */
+  async startCanary(input: {
+    spaceIds: string[];
+    forceV2All?: boolean;
+  }): Promise<ICanaryConfig> {
+    const next: ICanaryConfig = {
+      enabled: true,
+      spaceIds: input.spaceIds,
+      ...(input.forceV2All !== undefined ? { forceV2All: input.forceV2All } : {}),
+    };
+    await this.settingService.updateSetting({ [SettingKey.CANARY_CONFIG]: next });
+    return next;
+  }
+
+  /**
+   * Roll back the active canary — disables it and clears the spaceIds
+   * list. Returns the cleared config.
+   */
+  async rollbackCanary(): Promise<ICanaryConfig> {
+    const next: ICanaryConfig = { enabled: false, spaceIds: [] };
+    await this.settingService.updateSetting({ [SettingKey.CANARY_CONFIG]: next });
+    return next;
+  }
 }

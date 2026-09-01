@@ -31,6 +31,7 @@ import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuditExportModule } from './features/audit-export/audit-export.module';
+import { AuditRetentionModule } from './features/audit-retention/audit-retention.module';
 import { AuthModule } from './features/auth/auth.module';
 import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
@@ -51,7 +52,15 @@ import { DataResidencyModule } from './features/data-residency/data-residency.mo
 import { CrossBaseFederationModule } from './features/cross-base-federation/cross-base-federation.module';
 import { CustomAiModelModule } from './features/custom-ai-model/custom-ai-model.module';
 import { ConflictReplayModule } from './features/conflict-replay/conflict-replay.module';
+import { ComplianceAuditPackModule } from './features/compliance-audit-pack/compliance-audit-pack.module';
+import { CompliancePolicyEngineModule } from './features/compliance-policy-engine/compliance-policy-engine.module';
+import { CrossOrgAdminModule } from './features/cross-org-admin';
+import { DataDbConnectionModule } from './features/data-db-connection';
+import { OrgBanListModule } from './features/org-ban-list/org-ban-list.module';
 import { OrgCustomRoleModule } from './features/org-custom-role/org-custom-role.module';
+import { OrgBillingRollupModule } from './features/org-billing-rollup/org-billing-rollup.module';
+import { OrgQuotaModule } from './features/org-quota/org-quota.module';
+import { OrgQuotaReservationModule } from './features/org-quota-reservation/org-quota-reservation.module';
 import { DrCanvasModule } from './features/dr-canvas/dr-canvas.module';
 import { DataMaskingModule } from './features/data-masking/data-masking.module';
 import { DatabaseViewModule } from './features/database-view/database-view.module';
@@ -59,7 +68,9 @@ import { DomainVerificationModule } from './features/domain-verification/domain-
 import { EmailDomainClaimModule } from './features/email-domain-claim/email-domain-claim.module';
 import { EvalHarnessModule } from './features/eval-harness/eval-harness.module';
 import { ExportOpenApiModule } from './features/export/open-api/export-open-api.module';
+import { FederatedSsoModule } from './features/federated-sso/federated-sso.module';
 import { FieldOpenApiModule } from './features/field/open-api/field-open-api.module';
+import { FullTextSearchModule } from './features/full-text-search/full-text-search.module';
 import { GenericConnectorModule } from './features/generic-connector/generic-connector.module';
 import { GoogleSheetsModule } from './features/google-sheets/google-sheets.module';
 import { GraphModule } from './features/graph/graph.module';
@@ -72,6 +83,7 @@ import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
 import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
 import { LicenseModule } from './features/license/license.module';
+import { LoginRiskModule } from './features/login-risk/login-risk.module';
 import { GridProViewModule } from './features/grid-pro-view/grid-pro-view.module';
 import { MapViewModule } from './features/map-view/map-view.module';
 import { TimelineViewModule } from './features/timeline-view/timeline-view.module';
@@ -79,6 +91,7 @@ import { LicenseKeySelfModule } from './features/license-key-self/license-key-se
 import { MailSenderOpenApiModule } from './features/mail-sender/open-api/mail-sender-open-api.module';
 import { MailSenderMergeModule } from './features/mail-sender/open-api/mail-sender.merge.module';
 import { ModelFinetunePipelineModule } from './features/model-finetune-pipeline/model-finetune-pipeline.module';
+import { MultiRegionArbitrationModule } from './features/multi-region-arbitration/multi-region-arbitration.module';
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { NotionModule } from './features/notion/notion.module';
@@ -93,11 +106,15 @@ import { PluginContextMenuModule } from './features/plugin-context-menu/plugin-c
 import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
 import { PresenceModule } from './features/presence/presence.module';
 import { QuotaModule } from './features/quota/quota.module';
+import { QuotaAnomalyModule } from './features/quota-anomaly/quota-anomaly.module';
 import { RecordHistoryColdModule } from './features/record-history-cold/record-history-cold.module';
 import { AutomationRunCleanupModule } from './features/retention/automation-run-cleanup.module';
 import { RiskControlModule } from './features/risk-control/risk-control.module';
+import { RiskEventQueryModule } from './features/risk-event-query/risk-event-query.module';
+import { RiskPolicyModule } from './features/risk-policy/risk-policy.module';
 import { SandboxAgentModule } from './features/sandbox-agent/sandbox-agent.module';
 import { ScimModule } from './features/scim/scim.module';
+import { SeatMeteringModule } from './features/seat-metering/seat-metering.module';
 import { SelectionModule } from './features/selection/selection.module';
 import { AdminOpenApiModule as SettingAdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
@@ -107,6 +124,7 @@ import { SmtpModule } from './features/smtp/smtp.module';
 import { SpaceModule } from './features/space/space.module';
 import { SsoModule } from './features/sso/sso.module';
 import { SamlModule } from './features/saml/saml.module';
+import { StorageMeteringModule } from './features/storage-metering/storage-metering.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
 import { TotpModule } from './features/totp/totp.module';
 import { TrashModule } from './features/trash/trash.module';
@@ -189,19 +207,29 @@ export const appModules = {
     PinModule,
     SettingAdminOpenApiModule,
     CanaryModule,
+    FullTextSearchModule,
+    MultiRegionArbitrationModule,
     LicenseModule,
     LicenseKeySelfModule,
+    LoginRiskModule,
     QuotaModule,
+    QuotaAnomalyModule,
     DomainVerificationModule,
     CustomDomainModule,
     IpAllowlistModule,
     EmailDomainClaimModule,
     RiskControlModule,
+    RiskEventQueryModule,
+    RiskPolicyModule,
+    SeatMeteringModule,
+    StorageMeteringModule,
     SsoModule,
     SamlModule,
+    FederatedSsoModule,
     TotpModule,
     DataMaskingModule,
     AuditExportModule,
+    AuditRetentionModule,
     ApiExplorerModule,
     ScimModule,
     PermissionMatrixModule,
@@ -214,7 +242,15 @@ export const appModules = {
     CrossBaseFederationModule,
     CustomAiModelModule,
     ConflictReplayModule,
+    ComplianceAuditPackModule,
+    CompliancePolicyEngineModule,
+    CrossOrgAdminModule,
+    DataDbConnectionModule,
+    OrgBillingRollupModule,
+    OrgBanListModule,
     OrgCustomRoleModule,
+    OrgQuotaModule,
+    OrgQuotaReservationModule,
     DrCanvasModule,
     DatabaseViewModule,
     GraphModule,

@@ -1947,6 +1947,27 @@ model AuditEvent {
   @@map("audit_event")
 }
 
+// Durable compliance export metadata and artifacts. The artifact payload is
+// JSON so deployments can later move large bodies to object storage without
+// changing the admin API contract.
+model ComplianceAuditPack {
+  id           String   @id
+  framework    String
+  periodFrom   String   @map("period_from")
+  periodTo     String   @map("period_to")
+  generatedAt  DateTime @map("generated_at")
+  contentHash  String   @unique @map("content_hash")
+  totalBytes   Int      @map("total_bytes")
+  artifactCount Int     @map("artifact_count")
+  artifacts    Json
+  createdBy    String?  @map("created_by")
+  createdTime  DateTime @default(now()) @map("created_time")
+
+  @@index([generatedAt])
+  @@index([createdTime])
+  @@map("compliance_audit_pack")
+}
+
 // Stage 24 — outbound SIEM webhook subscriptions. Operators paste a
 // URL + a shared HMAC secret; events are batched and POSTed.
 model SiemWebhook {

@@ -14,6 +14,8 @@
 import { Inject, Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { CuppyPromptRouter } from '../cuppy-prompt-router/cuppy-prompt-router';
 import { InstanceSkillService } from '../instance-skills/instance-skill.service';
+import { SkillScopeService } from '../skill-scope/skill-scope.service';
+import type { ScopedSkill } from '../skill-scope/skill-scope.types';
 import type {
   ConversationContext,
   InboundMessage,
@@ -55,7 +57,8 @@ export class AgentOrchestratorService {
   constructor(
     @Optional() @Inject('CUPPY_LLM_CLIENT') private readonly llm?: ILlmClient,
     @Optional() @Inject(CuppyPromptRouter) private readonly router?: IPromptRouter,
-    @Optional() @Inject(InstanceSkillService) private readonly instanceSkills?: InstanceSkillService
+    @Optional() @Inject(InstanceSkillService) private readonly instanceSkills?: InstanceSkillService,
+    @Optional() @Inject(SkillScopeService) private readonly scopedSkills?: SkillScopeService
   ) {}
 
   registerTool(tool: Tool): void {
@@ -126,14 +129,25 @@ export class AgentOrchestratorService {
       throw new ServiceUnavailableException('Cuppy AI provider is not configured');
     }
     try {
+      // R-AI-3e: pull instance skills (admin-curated, applies to everyone)
+      // and 3-layer scoped skills (personal → base → space, narrow-wins).
+      // Both are concatenated into the system prompt so the model has the
+      // full skill context for the active user + base.
       const instanceSkillContext = this.instanceSkills
         ? await this.instanceSkills.enabledPromptContext()
         : '';
+      const scopedSkillContext = this.scopedSkills
+        ? await this.buildScopedSkillPrompt({
+            userId: inbound.user_id,
+            baseId: inboundBaseId,
+          })
+        : '';
+      const skillContext = [instanceSkillContext, scopedSkillContext]
+        .filter((s) => s.length > 0)
+        .join('\n\n');
       llmResult = await this.llm.chat({
         baseId: inboundBaseId,
-        system: instanceSkillContext
-          ? `${routed.system}\n\n${instanceSkillContext}`
-          : routed.system,
+        system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
         messages: ctx.messages.map((message) => ({
           role: message.role === 'tool' ? 'user' : message.role,
           content: message.role === 'tool' ? `[tool result] ${message.content}` : message.content,
@@ -413,4 +427,41 @@ export class AgentOrchestratorService {
       { id: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet', tier: 'pro' },
     ];
   }
+  /**
+   * R-AI-3e: format the 3-layer scoped skills as a system-prompt section.
+   * Returns an empty string when no skills are configured or when the
+   * service is not wired (e.g. tests).
+   */
+  private async buildScopedSkillPrompt(ctx: {
+    userId: string;
+    baseId?: string;
+  }): Promise<string> {
+    if (!this.scopedSkills) return '';
+    let resolved;
+    try {
+      resolved = await this.scopedSkills.resolve(ctx);
+    } catch {
+      return '';
+    }
+    const formatBucket = (label: string, skills: ScopedSkill[]): string[] => {
+      if (skills.length === 0) return [];
+      const lines = skills.map(
+        (s) => `- [${s.scope}] ${s.name}: ${s.description}\n  ${s.content}`
+      );
+      return [`${label} (${skills.length}):`, ...lines];
+    };
+    const sections = [
+      formatBucket('Personal skills', resolved.personal),
+      formatBucket('Base skills', resolved.base),
+      formatBucket('Space skills', resolved.space),
+    ].filter((s) => s.length > 0);
+    if (sections.length === 0) return '';
+    return [
+      'The following scoped skills are available for this conversation. ' +
+        'Apply the most specific (narrow) scope first: personal > base > space > instance.',
+      ...sections,
+    ].join('\n');
+  }
+
+
 }

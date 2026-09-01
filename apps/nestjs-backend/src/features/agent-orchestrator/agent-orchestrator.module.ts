@@ -16,10 +16,13 @@ import { AiService } from '../ai/ai.service';
 import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
 import { InstanceSkillModule } from '../instance-skills/instance-skill.module';
 import { LicenseModule } from '../license/license.module';
+import { SkillScopeModule } from '../skill-scope/skill-scope.module';
 import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
 import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
 import { TableOpenApiService } from '../table/open-api/table-open-api.service';
+import { AutomationService } from '../automation/automation.service';
+import { AutomationModule } from '../automation/automation.module';
 import { AgentOrchestratorController } from './agent-orchestrator.controller';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 import { BuiltInEchoLlm } from './built-in-echo-llm';
@@ -30,20 +33,23 @@ import { CuppyController } from './cuppy.controller';
   imports: [
     LicenseModule,
     InstanceSkillModule,
+    SkillScopeModule,
     CuppyPromptRouterModule,
     AiModule,
     TableOpenApiModule,
     RecordOpenApiModule,
+    AutomationModule,
   ],
   providers: [
     AgentOrchestratorService,
     {
       provide: 'CUPPY_BUILTIN_TOOLS',
-      inject: [AgentOrchestratorService, TableOpenApiService, RecordOpenApiService],
+      inject: [AgentOrchestratorService, TableOpenApiService, RecordOpenApiService, AutomationService],
       useFactory: (
         orchestrator: AgentOrchestratorService,
         tables: TableOpenApiService,
-        records: RecordOpenApiService
+        records: RecordOpenApiService,
+        automations: AutomationService
       ) => {
         orchestrator.registerTool({
           name: 'schema_query',
@@ -84,6 +90,93 @@ import { CuppyController } from './cuppy.controller';
               take: Math.min(50, Math.max(1, Number(args.take) || 20)),
               skip: Math.max(0, Number(args.skip) || 0),
             } as never);
+          },
+        });
+        orchestrator.registerTool({
+          name: 'record_create',
+          description: 'Create a single record in the current base. Requires baseId + tableId + field values + fieldKeyType; otherwise it returns an explicit error.',
+          parameters: {
+            type: 'object',
+            properties: {
+              tableId: { type: 'string' },
+              fieldKeyType: { type: 'string', enum: ['id', 'name', 'dbFieldName'] },
+              fields: {
+                type: 'object',
+                additionalProperties: true,
+              },
+            },
+            required: ['tableId', 'fields', 'fieldKeyType'],
+            additionalProperties: false,
+          },
+          invoke: async (args, ctx) => {
+            const tableId = typeof args.tableId === 'string' ? args.tableId : '';
+            if (!tableId) return { error: 'tableId is required' };
+            if (!ctx.base_id) return { error: 'baseId is required' };
+            if (!args.fields || typeof args.fields !== 'object') {
+              return { error: 'fields object is required' };
+            }
+            try {
+              const created = await records.createRecords(
+                tableId,
+                {
+                  records: [{ fields: args.fields as Record<string, unknown> }],
+                },
+                false,
+                'cuppy' as never
+              );
+              return { recordCount: created.records?.length ?? 0 };
+            } catch (error) {
+              return { error: error instanceof Error ? error.message : 'create failed' };
+            }
+          },
+        });
+        orchestrator.registerTool({
+          name: 'field_describe',
+          description: 'Describe one or all fields of a table by returning names, types, options.',
+          parameters: {
+            type: 'object',
+            properties: {
+              tableId: { type: 'string' },
+              fieldId: { type: 'string' },
+            },
+            required: ['tableId'],
+            additionalProperties: false,
+          },
+          invoke: async (args, ctx) => {
+            const tableId = typeof args.tableId === 'string' ? args.tableId : '';
+            if (!tableId) return { error: 'tableId is required' };
+            if (!ctx.base_id) return { error: 'baseId is required' };
+            try {
+              const table = await tables.getTable(ctx.base_id, tableId);
+              const fields = Array.isArray((table as Record).fields) ? (table as { fields: Array<Record<string, unknown>> }).fields : [];
+              if (typeof args.fieldId === 'string' && args.fieldId.length > 0) {
+                const match = fields.find((field) => field['id'] === args.fieldId || field['name'] === args.fieldId);
+                return { field: match ?? null };
+              }
+              return { fields };
+            } catch (error) {
+              return { error: error instanceof Error ? error.message : 'describe failed' };
+            }
+          },
+        });
+        orchestrator.registerTool({
+          name: 'automation_trigger',
+          description: 'Trigger a saved automation by id and return the resulting run id.',
+          parameters: {
+            type: 'object',
+            properties: { automationId: { type: 'string' } },
+            required: ['automationId'],
+            additionalProperties: false,
+          },
+          invoke: async (args) => {
+            const automationId = typeof args.automationId === 'string' ? args.automationId : '';
+            if (!automationId) return { error: 'automationId is required' };
+            try {
+              const run = await automations.trigger(automationId, { trigger: 'cuppy' } as never);
+              return { runId: run?.id ?? null };
+            } catch (error) {
+              return { error: error instanceof Error ? error.message : 'trigger failed' };
+            }
           },
         });
         return true;
@@ -172,3 +265,74 @@ import { CuppyController } from './cuppy.controller';
   exports: [AgentOrchestratorService],
 })
 export class AgentOrchestratorModule {}
+
+// Test-only seam: re-export the factory so unit tests can wire the same tool
+// registration without bootstrapping the entire DI graph. Production callers
+// resolve the providers through NestJS as usual.
+export const __testing__buildCuppyTools = (
+  tables: { getTable(baseId: string, tableId: string): Promise<unknown>; getTables(baseId: string): Promise<unknown> },
+  records: { getRecords(tableId: string, query: unknown): Promise<unknown>; createRecords(tableId: string, body: unknown, ignoreMissingFields: boolean, isAiInternal: string): Promise<{ records?: unknown[] }> },
+  automations: { trigger(automationId: string, input: unknown): Promise<{ id?: string }> }
+) => {
+  return {
+    record_create: {
+      schema: {
+        type: 'object',
+        properties: {
+          tableId: { type: 'string' },
+          fieldKeyType: { type: 'string', enum: ['id', 'name', 'dbFieldName'] },
+          fields: { type: 'object', additionalProperties: true },
+        },
+        required: ['tableId', 'fields', 'fieldKeyType'],
+        additionalProperties: false,
+      },
+      run: async (
+        ctx: { base_id?: string },
+        args: { tableId?: string; fieldKeyType?: string; fields?: Record<string, unknown> }
+      ): Promise<unknown> => {
+        if (!args.tableId) return { error: 'tableId is required' };
+        if (!ctx.base_id) return { error: 'baseId is required' };
+        if (!args.fields || typeof args.fields !== 'object') return { error: 'fields object is required' };
+        const created = await records.createRecords(
+          args.tableId,
+          { records: [{ fields: args.fields }] },
+          false,
+          'cuppy' as never
+        );
+        return { recordCount: created.records?.length ?? 0 };
+      },
+    },
+    field_describe: {
+      schema: {
+        type: 'object',
+        properties: { tableId: { type: 'string' }, fieldId: { type: 'string' } },
+        required: ['tableId'],
+        additionalProperties: false,
+      },
+      run: async (ctx: { base_id?: string }, args: { tableId?: string; fieldId?: string }) => {
+        if (!args.tableId) return { error: 'tableId is required' };
+        if (!ctx.base_id) return { error: 'baseId is required' };
+        const table = (await tables.getTable(ctx.base_id, args.tableId)) as { fields?: Array<Record<string, unknown>> };
+        const fields = Array.isArray(table.fields) ? table.fields : [];
+        if (args.fieldId) {
+          const match = fields.find((f) => f['id'] === args.fieldId || f['name'] === args.fieldId);
+          return { field: match ?? null };
+        }
+        return { fields };
+      },
+    },
+    automation_trigger: {
+      schema: {
+        type: 'object',
+        properties: { automationId: { type: 'string' } },
+        required: ['automationId'],
+        additionalProperties: false,
+      },
+      run: async (_ctx: unknown, args: { automationId?: string }) => {
+        if (!args.automationId) return { error: 'automationId is required' };
+        const run = await automations.trigger(args.automationId, { trigger: 'cuppy' } as never);
+        return { runId: run?.id ?? null };
+      },
+    },
+  };
+};

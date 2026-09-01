@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* eslint-disable @typescript-eslint/naming-convention */
 /**
  * Org ban list — NestJS auth service (Stage 77).
@@ -113,6 +114,32 @@ export class OrgBanListAuthService {
       },
     });
     return { entry: next, audit };
+  }
+
+
+  /** List persisted entries for an org (admin read-only). */
+  async listEntries(input: {
+    orgId: string;
+    kind?: BanEntryKind;
+    mode?: BanListMode;
+    includeRevoked?: boolean;
+  }): Promise<IBanEntry[]> {
+    const where: Record<string, unknown> = { orgId: input.orgId };
+    if (input.kind) where['kind'] = input.kind;
+    if (input.mode) where['mode'] = input.mode;
+    if (!input.includeRevoked) where['revokedAt'] = null;
+    const rows = await this.prisma.orgBanEntry.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((r) => this.rowToEntry(r));
+  }
+
+  /** Count persisted entries for an org (admin read-only). */
+  async countEntries(input: { orgId: string; includeRevoked?: boolean }): Promise<number> {
+    const where: Record<string, unknown> = { orgId: input.orgId };
+    if (!input.includeRevoked) where['revokedAt'] = null;
+    return this.prisma.orgBanEntry.count({ where });
   }
 
   /** Lookup audit log for an entry. */

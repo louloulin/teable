@@ -136,22 +136,49 @@ it('R-PERM-4 batch: airtable_connection / federation_event / ai_credit_ledger / 
   expect(apiRateLimit.plan).toBeDefined();
 });
 
-it('R-PERM-4 batch: remaining 8 DB-empty gates STAY disabled (no controller flip)', async () => {
+it('R-INFRA-5: ALL DB-empty-gated capabilities are now enabled', async () => {
+  // After R-INFRA-3 (1) + R-INFRA-4 (5) + R-INFRA-5 (3) ship controllers
+  // for the previously DB-empty caps, every capability backed by a shipped
+  // controller should be enabled. Three external-only caps (smtp, ip_allowlist,
+  // customer_kms_key) require operator configuration and intentionally stay
+  // disabled until set up — those are separate from DB-empty gates.
+  const svc = buildService();
+  const report = await svc.report();
+  const OPERATOR_CONFIGURED: ReadonlyArray<string> = [
+    'smtp',
+    'ip_allowlist',
+    'customer_kms_key',
+  ];
+  const disabled = Object.entries(report.capabilities).filter(
+    ([, cap]) => !cap.enabled
+  );
+  const unexpected = disabled.filter(([k]) => !OPERATOR_CONFIGURED.includes(k));
+  expect(
+    unexpected,
+    `unexpected disabled caps: ${JSON.stringify(unexpected)}`
+  ).toEqual([]);
+});
+
+it('R-INFRA-3 + R-INFRA-4 + R-INFRA-5: 9 controllers flip their capabilities to enabled', async () => {
+  // Each capability is backed by a shipped controller (R-INFRA-3 + -4 + -5).
   const svc = buildService();
   const report = await svc.report();
   for (const key of [
+    // R-INFRA-3
+    'ai_usage_bucket',
+    // R-INFRA-4
     'billing_invoice',
     'billing_credit',
-    'cross_org_admin_grant',
+    'byok_llm_key',
     'db_connector',
     'db_connector_sync',
-    'data_db_connection',
-    'ai_usage_bucket',
+    // R-INFRA-5
     'app_module_wire',
+    'cross_org_admin_grant',
+    'data_db_connection',
   ]) {
     const cap = report.capabilities[key];
     expect(cap, `capability ${key} should be defined`).toBeDefined();
-    expect(cap.enabled, `${key} should stay false`).toBe(false);
-    expect(cap.reason, `${key} should have a no_rows reason`).toMatch(/^no_/);
+    expect(cap.enabled, `${key} should be enabled (controller-aware)`).toBe(true);
   }
 });

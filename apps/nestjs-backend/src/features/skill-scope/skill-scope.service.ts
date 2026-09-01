@@ -29,7 +29,7 @@ import {
 const MAX_SKILL_BYTES = 512 * 1024;
 const MAX_SKILLS = 100;
 
-type SkillInput = {
+export type SkillInput = {
   name: string;
   description?: string;
   content: string;

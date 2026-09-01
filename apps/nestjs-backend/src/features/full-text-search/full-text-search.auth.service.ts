@@ -96,6 +96,39 @@ export class FullTextSearchAuthService {
   }
 
   shouldIndexField = shouldIndexField;
+
+  /**
+   * Snapshot of the search index for an optional table. Used by the admin
+   * panel to show "is indexing healthy / how big is it".
+   */
+  async indexStatus(tableId?: string): Promise<{
+    tableId: string | null;
+    documentCount: number;
+    distinctFields: number;
+    indexTables: number;
+  }> {
+    const where = tableId ? { indexId: tableId } : undefined;
+    const [documentCount, distinctFields, indexTables] = await Promise.all([
+      this.prisma.searchDocument.count({ where }),
+      this.prisma.searchDocument
+        .findMany({
+          where,
+          select: { recordId: true },
+        })
+        .then((rows: Array<{ recordId: string }>) => {
+          const set = new Set<string>();
+          for (const r of rows) {
+            const sep = r.recordId.lastIndexOf(':');
+            set.add(sep > 0 ? r.recordId.slice(sep + 1) : r.recordId);
+          }
+          return set.size;
+        }),
+      this.prisma.searchDocument
+        .findMany({ select: { indexId: true }, distinct: ['indexId'] })
+        .then((rows: Array<{ indexId: string }>) => rows.length),
+    ]);
+    return { tableId: tableId ?? null, documentCount, distinctFields, indexTables };
+  }
 }
 
 function toDoc(r: ISearchDocumentRow): IIndexedDocument {
