@@ -116,10 +116,10 @@ export const ensureTableQueryOpsSchema = async (
     .addColumn('last_modified_time', 'timestamptz')
     .execute();
 
-  await sql`
-    ALTER TABLE table_query_observation_window
-    ADD COLUMN IF NOT EXISTS sql_diagnostics jsonb
-  `.execute(db);
+  await db.schema
+    .alterTable('table_query_observation_window')
+    .addColumn('sql_diagnostics', 'jsonb', (column) => column.ifNotExists())
+    .execute();
 
   await db.schema
     .createIndex('table_query_observation_window_unique_idx')
@@ -160,11 +160,14 @@ export const ensureTableQueryOpsSchema = async (
     .addColumn('last_modified_time', 'timestamptz')
     .execute();
 
-  await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS table_query_recommendation_open_unique_idx
-    ON table_query_recommendation (table_id, shape_hash, policy_version)
-    WHERE status = 'open'
-  `.execute(db);
+  await db.schema
+    .createIndex('table_query_recommendation_open_unique_idx')
+    .ifNotExists()
+    .on('table_query_recommendation')
+    .columns(['table_id', 'shape_hash', 'policy_version'])
+    .where(sql<boolean>`status = 'open'`)
+    .unique()
+    .execute();
 
   await db.schema
     .createTable('table_query_remediation_task')
@@ -226,17 +229,21 @@ export const ensureTableQueryOpsSchema = async (
     .addColumn('last_modified_time', 'timestamptz')
     .execute();
 
-  await sql`
-    ALTER TABLE table_query_search_vector_config
-    ADD COLUMN IF NOT EXISTS search_scope text NOT NULL DEFAULT 'all_fields'
-  `.execute(db);
-  await sql`
-    ALTER TABLE table_query_search_vector_config
-      ADD COLUMN IF NOT EXISTS semantics text NOT NULL DEFAULT 'lexical',
-      ADD COLUMN IF NOT EXISTS access_path text NOT NULL DEFAULT 'generated_tsvector',
-      ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'tsvector',
-      ADD COLUMN IF NOT EXISTS operator_class text
-  `.execute(db);
+  await db.schema
+    .alterTable('table_query_search_vector_config')
+    .addColumn('search_scope', 'text', (column) =>
+      column.notNull().defaultTo('all_fields').ifNotExists()
+    )
+    .execute();
+  await db.schema
+    .alterTable('table_query_search_vector_config')
+    .addColumn('semantics', 'text', (column) => column.notNull().defaultTo('lexical').ifNotExists())
+    .addColumn('access_path', 'text', (column) =>
+      column.notNull().defaultTo('generated_tsvector').ifNotExists()
+    )
+    .addColumn('provider', 'text', (column) => column.notNull().defaultTo('tsvector').ifNotExists())
+    .addColumn('operator_class', 'text', (column) => column.ifNotExists())
+    .execute();
 
   await db.schema
     .createIndex('table_query_search_vector_config_unique_idx')

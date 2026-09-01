@@ -112,6 +112,13 @@ import { CuppyController } from './cuppy.controller';
             if (!args.baseId) {
               return echo.chat(args);
             }
+            // R-AI-6: Bound the upstream LLM call with a short abort signal so a
+            // misconfigured/unreachable provider (e.g. sandbox with no internet)
+            // cannot stall the chat endpoint for 30+ seconds before falling back
+            // to the built-in echo. Honor CUPPY_LLM_TIMEOUT_MS for ops overrides.
+            const timeoutMs = Number(process.env.CUPPY_LLM_TIMEOUT_MS ?? 8000);
+            const llmAbort = new AbortController();
+            const timer = setTimeout(() => llmAbort.abort(), Math.max(1000, timeoutMs));
             try {
               const model = await ai.getChatModelInstance(args.baseId);
               type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
@@ -137,13 +144,24 @@ import { CuppyController } from './cuppy.controller';
                   .map((message) => ({ role: message.role, content: message.content })),
                 tools,
                 stopWhen: stepCountIs(3),
+                abortSignal: llmAbort.signal,
               });
               return { text: result.text };
-            } catch {
+            } catch (err) {
               // Real provider lookup failed (no OPENAI_API_KEY, no BYOK, no admin
-              // gateway). Surface a deterministic echo so the chat endpoint never
-              // returns an opaque 503 to the UI.
-              return echo.chat(args);
+              // gateway, network unreachable, or our own timeout fired). Surface
+              // a deterministic echo so the chat endpoint never returns an opaque
+              // 503 to the UI.
+              const reason =
+                llmAbort.signal.aborted
+                  ? `timeout after ${timeoutMs}ms`
+                  : (err as Error)?.message ?? 'unknown error';
+              return {
+                ...echo.chat(args),
+                text: `${echo.chat(args).text}\n\n[real-LLM provider fallback: ${reason}]`,
+              };
+            } finally {
+              clearTimeout(timer);
             }
           },
         };

@@ -151,7 +151,7 @@ export const buildUserJsonObjectFromSnapshotWithLookupExpr = (
       'email', u.email,
       'avatarUrl', '/api/attachments/read/public/avatar/'::text || u.id
     ))
-    FROM public.users u
+    FROM meta.users u
     WHERE u.id = ${idFallbackExpr}::text
     LIMIT 1
   )`;

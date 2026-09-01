@@ -142,12 +142,12 @@ export const createForeignKeyConstraintStatement = (
         IF EXISTS (
           SELECT 1
           FROM information_schema.tables
-          WHERE table_schema = 'public'
+          WHERE table_schema = 'meta'
             AND table_name = 'table_meta'
         ) THEN
           SELECT db_table_name
           INTO resolved_target_db_table_name
-          FROM public.table_meta
+          FROM meta.table_meta
           WHERE id = ${quoteLiteral(targetTableMetaId)}
             AND deleted_time IS NULL
           LIMIT 1;

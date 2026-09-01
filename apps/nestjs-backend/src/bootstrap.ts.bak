@@ -106,7 +106,7 @@ export async function bootstrap() {
 
   process.on('unhandledRejection', (reason: string, promise: Promise<unknown>) => {
     logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
-    /* changed: don't crash backend on v2 init errors */
+    throw reason;
   });
 
   process.on('uncaughtException', (error) => {

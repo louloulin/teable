@@ -3371,7 +3371,7 @@ export class PostgresTableRecordRepository implements core.ITableRecordRepositor
     try {
       const row = await sql<{ name: string | null; email: string | null }>`
         SELECT u.name, u.email
-        FROM public.users u
+        FROM meta.users u
         WHERE u.id = ${actorId}::text
         LIMIT 1
       `.execute(db);

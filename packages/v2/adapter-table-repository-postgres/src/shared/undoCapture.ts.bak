@@ -167,7 +167,7 @@ const hasUndoCaptureTrigger = async <DB>(db: DbOrTx<DB>, tableKey: string): Prom
       AND n.nspname = ${schema}
       AND c.relname = ${table}
       AND p.proname = '__teable_capture_undo_row'
-      AND p.pronamespace = 'public'::regnamespace
+      AND p.pronamespace = current_schema()::regnamespace
     ) AS "exists"
   `.execute(db);
 
