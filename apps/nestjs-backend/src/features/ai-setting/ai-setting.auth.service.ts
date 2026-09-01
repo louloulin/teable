@@ -43,6 +43,59 @@ function normalize(input: Partial<IAiSetting> | null | undefined, prev?: IAiSett
   };
 }
 
+
+function safeParseJson(raw: unknown): Record<string, unknown> {
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === 'object' && parsed !== null
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  if (raw && typeof raw === 'object') return raw as Record<string, unknown>;
+  return {};
+}
+
+/**
+ * Mirror `aiGatewayApiKey` / `aiGatewayBaseUrl` from the admin ai_setting
+ * module into the canonical `meta.setting.aiConfig` row so the AI runtime
+ * (`ai.service.ts`) can pick them up via SettingService.getSetting() and
+ * `SettingKey.AI_CONFIG = 'aiConfig'`. Without this mirror, admin UI changes
+ * never reach `ai.service` because it reads `name='aiConfig'` while this
+ * module persists to `name='ai_config'`.
+ */
+async function mirrorGatewayToAiConfig(
+  prisma: PrismaService,
+  setting: { aiGatewayApiKey: string | null; aiGatewayBaseUrl: string | null }
+): Promise<void> {
+  const AI_CONFIG_CANONICAL = 'aiConfig';
+  const existing = await prisma.setting.findFirst({
+    where: { name: AI_CONFIG_CANONICAL },
+    select: { content: true },
+  });
+  const merged = {
+    ...safeParseJson(existing?.content),
+    aiGatewayApiKey: setting.aiGatewayApiKey,
+    aiGatewayBaseUrl: setting.aiGatewayBaseUrl,
+  };
+  const userId = 'admin_ai_setting_mirror';
+  await prisma.setting.upsert({
+    where: { name: AI_CONFIG_CANONICAL },
+    create: {
+      name: AI_CONFIG_CANONICAL,
+      content: JSON.stringify(merged),
+      createdBy: userId,
+    },
+    update: {
+      content: JSON.stringify(merged),
+      lastModifiedBy: userId,
+    },
+  });
+}
+
 @Injectable()
 export class AiSettingAuthService {
   constructor(
@@ -88,6 +141,9 @@ export class AiSettingAuthService {
       create: { name: AI_CONFIG_NAME, content: json, createdBy: userId },
       update: { content: json, lastModifiedBy: userId },
     });
+    // R-AI-7b: mirror gateway fields to canonical aiConfig row so ai.service
+    // (which reads SettingKey.AI_CONFIG = 'aiConfig') actually picks them up.
+    await mirrorGatewayToAiConfig(this.prisma, next);
     return next;
   }
 

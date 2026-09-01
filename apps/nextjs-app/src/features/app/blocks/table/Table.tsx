@@ -39,6 +39,7 @@ import { FailAlert } from './FailAlert';
 import { useTableSeed } from './hooks/use-table-seed';
 import { useViewErrorHandler } from './hooks/use-view-error-handler';
 import { TableHeader } from './table-header/TableHeader';
+import { ChatContainer } from '@/features/app/components/chat-panel/ChatContainer';
 
 export interface ITableProps {
   fieldServerData: IFieldVo[];
@@ -212,7 +213,7 @@ export const Table: React.FC<ITableProps> = ({
                   <PluginContextMenu tableId={tableId} baseId={baseId} />
                   <DownloadAllAttachmentsDialog />
                   <CellDownloadHandler />
-                  {/* <ChatPanel /> */}
+                  <ChatContainer baseId={baseId as string} />
                 </div>
               </PersonalViewProvider>
             </FieldProvider>
