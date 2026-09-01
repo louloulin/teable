@@ -96,12 +96,14 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
   useEffect(() => {
     if (messagesQuery.data) {
       setMessages(
-        messagesQuery.data.map((m: ICuppyMessage) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          fallback: m.role === 'assistant' ? detectFallback(m.content) : undefined,
-        }))
+        messagesQuery.data
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            fallback: m.role === 'assistant' ? detectFallback(m.content) : undefined,
+          }))
       );
     }
   }, [messagesQuery.data]);
@@ -112,6 +114,9 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const [isStreaming, setIsStreaming] = useState(false);
+  const assistantIdRef = useRef<string | null>(null);
 
   const chatMutation = useMutation({
     mutationFn: (text: string) =>
@@ -172,11 +177,84 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
     },
   });
 
+  /**
+   * R-AI-11: Stream the reply through SSE so each token lands in the UI as
+   * soon as it arrives from the provider. Adds the user message immediately,
+   * then opens an assistant placeholder that grows with each delta.
+   */
+  const submitStream = async (text: string): Promise<void> => {
+    const userMsg: IDisplayMessage = {
+      id: genId(),
+      role: 'user',
+      content: text,
+    };
+    const assistantId = genId();
+    assistantIdRef.current = assistantId;
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: assistantId, role: 'assistant', content: '' },
+    ]);
+    setInput('');
+    setIsStreaming(true);
+    try {
+      for await (const chunk of cuppyApi.chatStream({
+        baseId,
+        conversationId,
+        message: text,
+      })) {
+        if (assistantIdRef.current !== assistantId) break;
+        if (chunk.conversationId) {
+          setConversationId((prev) => prev ?? chunk.conversationId);
+        }
+        if (chunk.error) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, content: `⚠️ ${chunk.error}`, fallback: 'error' as const }
+                : m
+            )
+          );
+          continue;
+        }
+        if (chunk.done) {
+          const final = chunk.value ?? '';
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, content: final, fallback: detectFallback(final) }
+                : m
+            )
+          );
+          break;
+        }
+        if (chunk.delta) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + chunk.delta } : m
+            )
+          );
+        }
+      }
+    } finally {
+      if (assistantIdRef.current === assistantId) {
+        assistantIdRef.current = null;
+      }
+      setIsStreaming(false);
+    }
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text || chatMutation.isPending) return;
-    chatMutation.mutate(text);
+    if (!text || isStreaming || chatMutation.isPending) return;
+    submitStream(text).catch((err) => {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      toast.error(`Cuppy stream failed: ${msg}`);
+      // Fallback to the non-streaming chat if the stream fails to even
+      // start (network error, unsupported browser, etc.).
+      chatMutation.mutate(text);
+    });
   };
 
   const models = (modelsQuery.data ?? []) as ICuppyModel[];
@@ -239,14 +317,14 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
           {messages.map((m) => (
             <ChatBubble key={m.id} message={m} />
           ))}
-          {chatMutation.isPending && (
+          {(isStreaming || chatMutation.isPending) && (
             <ChatBubble
               message={{
                 id: 'pending',
                 role: 'assistant',
                 content: '…thinking',
               }}
-              pending
+              pending={!isStreaming}
             />
           )}
         </div>
@@ -260,14 +338,14 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={baseId ? 'Ask Cuppy…' : 'Type anything (echo fallback)…'}
-          disabled={chatMutation.isPending}
+          disabled={isStreaming || chatMutation.isPending}
           maxLength={10_000}
           className="flex-1"
         />
         <Button
           type="submit"
           size="icon"
-          disabled={chatMutation.isPending || !input.trim()}
+          disabled={isStreaming || chatMutation.isPending || !input.trim()}
           aria-label="Send"
         >
           <Send className="h-4 w-4" />
