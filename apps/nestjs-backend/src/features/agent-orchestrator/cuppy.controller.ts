@@ -10,8 +10,11 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ClsService } from 'nestjs-cls';
 import { z } from 'zod';
 import type { IClsStore } from '../../types/cls';
@@ -139,6 +142,79 @@ export class CuppyController {
       provider_meta: { transport: 'http', ...(body.baseId ? { baseId: body.baseId } : {}) },
     });
     return { conversationId, text: reply.text };
+  }
+
+  /**
+   * R-AI-11: SSE-streamed chat. Mirrors `POST /chat` but pipes the LLM
+   * response to the client as `{delta, done, value}` events. Honors a
+   * client-side abort by cancelling the upstream LLM call mid-stream.
+   */
+  @Post('chat/stream')
+  async chatStream(
+    @Body(new ZodValidationPipe(cuppyChatSchema)) body: CuppyChatBody,
+    @Res() res: Response,
+    @Req() req: { on(event: 'close', listener: () => void): unknown }
+  ): Promise<void> {
+    const userId = this.requireUserId();
+    if (body.baseId) {
+      await this.permissionService.validPermissions(
+        body.baseId,
+        ['base|read'],
+        this.cls.get('accessTokenId')
+      );
+    }
+    const conversationId = body.conversationId ?? randomUUID();
+    const abortController = new AbortController();
+    req.on('close', () => {
+      try {
+        abortController.abort();
+      } catch {
+        // already aborted
+      }
+    });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const send = (payload: Record<string, unknown>) => {
+      try {
+        res.write(`data: ${JSON.stringify({ conversationId, ...payload })}\n\n`);
+        (res as Response & { flush?: () => void }).flush?.();
+      } catch {
+        // client gone
+      }
+    };
+
+    try {
+      for await (const chunk of this.orchestrator.chatStream(
+        conversationId,
+        userId,
+        {
+          user_id: userId,
+          text: body.message,
+          provider_meta: { transport: 'sse', ...(body.baseId ? { baseId: body.baseId } : {}) },
+        },
+        abortController.signal
+      )) {
+        if (res.writableEnded || res.destroyed) return;
+        if (chunk.done) {
+          send({ delta: '', value: chunk.value ?? '', done: true });
+        } else {
+          send({ delta: chunk.delta, done: false });
+        }
+      }
+    } catch (error) {
+      send({
+        delta: '',
+        done: true,
+        error: error instanceof Error ? error.message : 'stream failed',
+      });
+    } finally {
+      res.end();
+    }
   }
 
   // ──────────────────────────── 模型列表 ────────────────────────────

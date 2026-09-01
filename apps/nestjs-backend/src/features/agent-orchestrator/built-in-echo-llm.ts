@@ -49,6 +49,7 @@ export interface IEchoLlmResult {
 
 export interface ICuppyEchoLlm {
   chat(args: IEchoLlmArgs): Promise<IEchoLlmResult>;
+  chatStream?(args: IEchoLlmArgs, abortSignal?: AbortSignal): AsyncGenerator<{ delta: string; value?: string; done: boolean }>;
 }
 
 const MAX_ECHO_TEXT = 1_400;
@@ -93,5 +94,22 @@ export class BuiltInEchoLlm implements ICuppyEchoLlm {
     );
 
     return { text, provider: 'built-in-echo' };
+  }
+
+  /**
+   * Stream the deterministic echo in 4-5 word chunks so the frontend still
+   * gets progressive rendering when no real LLM is configured. Final chunk
+   * carries the full text as `value`.
+   */
+  async *chatStream(args: IEchoLlmArgs, abortSignal?: AbortSignal): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+    const result = this.chat(args);
+    const tokens = result.text.split(/(\s+)/);
+    let acc = '';
+    for (const token of tokens) {
+      if (abortSignal?.aborted) return;
+      acc += token;
+      yield { delta: token, done: false };
+    }
+    yield { delta: '', value: result.text, done: true };
   }
 }

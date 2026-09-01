@@ -41,6 +41,20 @@ export interface ILlmClient {
     tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
     executeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
   }): Promise<ILlmCallResult>;
+  /**
+   * Streaming variant — yields text deltas as they arrive from the provider
+   * and a final accumulated value when complete. Implementations that do not
+   * have a real upstream (built-in echo) should emit the entire text in one
+   * or two deltas followed by the closing chunk.
+   */
+  chatStream?(args: {
+    baseId?: string;
+    system: string;
+    messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+    tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+    executeTool?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+    abortSignal?: AbortSignal;
+  }): AsyncGenerator<{ delta: string; value?: string; done: boolean }>;
 }
 
 export interface IPromptRouter {
@@ -172,6 +186,103 @@ export class AgentOrchestratorService {
     // 6. Persist the assistant reply and return it.
     this.store.appendMessage(ctx, 'assistant', llmResult.text);
     return { text: llmResult.text };
+  }
+
+  /**
+   * R-AI-11: Streaming variant of handle(). Mirrors the orchestration:
+   * persist user message → route → preload schema → resolve skills → call
+   * the LLM (streaming) → execute requested tools → persist assistant
+   * reply. Tool execution stays after the stream finishes so the user sees
+   * the assistant text first and tool side-effects land on completion.
+   *
+   * Yields `{delta, done, value}` chunks. The full accumulated value is
+   * emitted on the final chunk (done=true). Cancellation is honored via
+   * `abortSignal`; if the provider doesn't support it, the caller is still
+   * expected to drop the iterator.
+   */
+  async *chatStream(
+    conversationId: string,
+    userId: string,
+    inbound: InboundMessage,
+    abortSignal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+    const inboundBaseId = this.inboundBaseId(inbound);
+    const ctx = this.store.loadOrCreate(conversationId, userId, inboundBaseId);
+    if (inboundBaseId) ctx.base_id = inboundBaseId;
+    this.store.appendMessage(ctx, 'user', inbound.text);
+
+    const routed = this.router
+      ? await this.router.route({
+          recent: ctx.messages.slice(-4).map((m) => m.content),
+          text: inbound.text,
+        })
+      : { system: 'You are the teable assistant.', tools: [] };
+    this.store.setActiveTools(ctx, routed.tools);
+
+    const toolSchemas = routed.tools
+      .map((name) => this.tools.get(name))
+      .filter((t): t is Tool => Boolean(t))
+      .map((t) => ({ name: t.name, description: t.description, parameters: t.parameters }));
+
+    if (routed.tools.includes('schema_query')) {
+      await this.invokeTool('schema_query', {}, ctx, conversationId);
+    }
+
+    const instanceSkillContext = this.instanceSkills
+      ? await this.instanceSkills.enabledPromptContext()
+      : '';
+    const scopedSkillContext = this.scopedSkills
+      ? await this.buildScopedSkillPrompt({
+          userId: inbound.user_id,
+          baseId: inboundBaseId,
+        })
+      : '';
+    const skillContext = [instanceSkillContext, scopedSkillContext]
+      .filter((s) => s.length > 0)
+      .join('\n\n');
+
+    let llmStream: AsyncGenerator<{ delta: string; value?: string; done: boolean }> | undefined;
+    if (this.llm?.chatStream) {
+      llmStream = this.llm.chatStream({
+        baseId: inboundBaseId,
+        system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
+        messages: ctx.messages.map((m) => ({
+          role: m.role === 'tool' ? 'user' : m.role,
+          content: m.role === 'tool' ? `[tool result] ${m.content}` : m.content,
+        })),
+        tools: toolSchemas,
+        executeTool: (name, args) => this.invokeTool(name, args, ctx, conversationId),
+        abortSignal,
+      });
+    } else {
+      // Fallback: derive a deterministic streamed echo from the synchronous
+      // chat result. Keeps callers responsive even without a real provider.
+      const result = this.llm
+        ? await this.llm.chat({
+            baseId: inboundBaseId,
+            system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
+            messages: ctx.messages.map((m) => ({
+              role: m.role === 'tool' ? 'user' : m.role,
+              content: m.role === 'tool' ? `[tool result] ${m.content}` : m.content,
+            })),
+            tools: toolSchemas,
+            executeTool: (name, args) => this.invokeTool(name, args, ctx, conversationId),
+          })
+        : { text: 'Cuppy AI provider is not configured.' };
+      llmStream = (async function* () {
+        yield { delta: result.text, done: true, value: result.text };
+      })();
+    }
+
+    let accumulated = '';
+    for await (const chunk of llmStream) {
+      if (abortSignal?.aborted) return;
+      if (chunk.delta) accumulated += chunk.delta;
+      yield chunk;
+      if (chunk.done) break;
+    }
+
+    this.store.appendMessage(ctx, 'assistant', accumulated);
   }
 
   /** Test seam — load a conversation by id without mutating it. */

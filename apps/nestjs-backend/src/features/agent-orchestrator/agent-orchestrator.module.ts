@@ -10,7 +10,7 @@
  */
 
 import { Module } from '@nestjs/common';
-import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
+import { generateText, jsonSchema, stepCountIs, streamText, tool } from 'ai';
 import { AiModule } from '../ai/ai.module';
 import { AiService } from '../ai/ai.service';
 import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
@@ -284,6 +284,75 @@ import { CuppyController } from './cuppy.controller';
                 ...echo.chat(args),
                 text: `${echo.chat(args).text}\n\n[real-LLM provider fallback: ${reason}]`,
               };
+            } finally {
+              clearTimeout(timer);
+            }
+          },
+          /**
+           * R-AI-11 streaming variant. Mirrors chat()'s timeout + fallback
+           * semantics but yields text deltas via `ai`'s streamText. The
+           * built-in echo client is used whenever the real provider is
+           * missing, misconfigured, or aborts past the timeout.
+           */
+          async *chatStream(args: {
+            baseId?: string;
+            system: string;
+            messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+            tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+            executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+            abortSignal?: AbortSignal;
+          }): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+            if (!args.baseId) {
+              yield* echo.chatStream(args);
+              return;
+            }
+            const timeoutMs = Number(process.env.CUPPY_LLM_TIMEOUT_MS ?? 8000);
+            const llmAbort = new AbortController();
+            const timer = setTimeout(() => llmAbort.abort(), Math.max(1000, timeoutMs));
+            args.abortSignal?.addEventListener('abort', () => llmAbort.abort());
+            try {
+              const model = await ai.getChatModelInstance(args.baseId);
+              const result = streamText({
+                model: model.lg,
+                system: args.system,
+                messages: args.messages
+                  .filter(
+                    (m): m is { role: 'user' | 'assistant'; content: string } => m.role !== 'tool'
+                  )
+                  .map((m) => ({ role: m.role, content: m.content })),
+                abortSignal: llmAbort.signal,
+              });
+              let acc = '';
+              for await (const delta of result.textStream) {
+                if (args.abortSignal?.aborted) return;
+                acc += delta;
+                yield { delta, done: false };
+              }
+              yield { delta: '', value: acc, done: true };
+            } catch (err) {
+              const reason = llmAbort.signal.aborted
+                ? `timeout after ${timeoutMs}ms`
+                : (err as Error)?.message ?? 'unknown error';
+              let streamed = false;
+              for await (const chunk of echo.chatStream(args)) {
+                streamed = true;
+                if (chunk.done) {
+                  yield {
+                    delta: '',
+                    value: `${chunk.value}\n\n[real-LLM provider fallback: ${reason}]`,
+                    done: true,
+                  };
+                } else {
+                  yield chunk;
+                }
+              }
+              if (!streamed) {
+                yield {
+                  delta: '',
+                  value: `[real-LLM provider fallback: ${reason}]`,
+                  done: true,
+                };
+              }
             } finally {
               clearTimeout(timer);
             }
