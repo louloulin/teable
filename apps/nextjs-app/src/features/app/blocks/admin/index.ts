@@ -21,6 +21,13 @@ export * from './byok';
 export * from './custom-ai-model';
 export * from './billing';
 
+export { SsoAdminPanel } from './sso-panel';
+export { SamlAdminPanel } from './saml-panel';
+export { TotpAdminPanel } from './totp-admin-panel';
+export { QuotaAdminPanel } from './quota-panel';
+export { AiCostAdminPanel } from './ai-cost-panel';
+export { AirtableAdminPanel } from './airtable-panel';
+
 // Enterprise-capability placeholder pages — bridge the OSS/Cloud gap so the
 // admin nav always resolves a real page even when the dedicated UI is not
 // shipped yet. Each page renders an honest description + the OSS backend

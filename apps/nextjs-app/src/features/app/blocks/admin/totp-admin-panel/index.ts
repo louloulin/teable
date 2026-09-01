@@ -1,0 +1,1 @@
+export { TotpAdminPanel } from './TotpAdminPanel';

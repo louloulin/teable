@@ -1,0 +1,1 @@
+export { SamlAdminPanel } from './SamlAdminPanel';

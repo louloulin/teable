@@ -210,4 +210,63 @@ export class TotpAuthService {
     }
     return null;
   }
+
+  /**
+   * V10 — admin: list every TOTP factor across all users so the
+   * `admin/totp` page can show a per-user enrollments table.
+   */
+  async adminListFactors(): Promise<
+    Array<{
+      factorId: string;
+      userId: string;
+      userEmail: string | null;
+      userName: string | null;
+      label: string;
+      enabled: boolean;
+      createdTime: Date;
+    }>
+  > {
+    const rows = await this.prisma.userTotpFactor.findMany({
+      orderBy: { createdTime: 'desc' },
+    });
+    const userIds = Array.from(new Set(rows.map((r) => r.userId)));
+    const users =
+      userIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, email: true, name: true },
+          });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return rows.map((r) => {
+      const u = userMap.get(r.userId);
+      return {
+        factorId: r.id,
+        userId: r.userId,
+        userEmail: u?.email ?? null,
+        userName: u?.name ?? null,
+        label: r.label,
+        enabled: r.enabled,
+        createdTime: r.createdTime,
+      };
+    });
+  }
+
+  /**
+   * V10 — admin: revoke a TOTP factor without owning the user. Used when
+   * the user is locked out and only an operator can disable the factor.
+   */
+  async adminDisableFactor(input: { factorId: string }): Promise<{ ok: true; factorId: string }> {
+    const factor = await this.prisma.userTotpFactor.findUnique({
+      where: { id: input.factorId },
+    });
+    if (!factor) {
+      throw new BadRequestException('factor not found');
+    }
+    await this.prisma.userTotpFactor.update({
+      where: { id: input.factorId },
+      data: { enabled: false },
+    });
+    return { ok: true, factorId: input.factorId };
+  }
 }

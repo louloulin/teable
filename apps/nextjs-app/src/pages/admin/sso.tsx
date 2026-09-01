@@ -1,6 +1,6 @@
 import type { GetServerSideProps } from 'next';
 import type { ReactElement } from 'react';
-import { EnterprisePlaceholderPage } from '@/features/app/blocks/admin';
+import { SsoAdminPanel } from '@/features/app/blocks/admin';
 import { AdminLayout } from '@/features/app/layouts/AdminLayout';
 import ensureLogin from '@/lib/ensureLogin';
 import { getTranslationsProps } from '@/lib/i18n';
@@ -8,14 +8,7 @@ import type { NextPageWithLayout } from '@/lib/type';
 import withAuthSSR, { ForbiddenError } from '@/lib/withAuthSSR';
 import withEnv from '@/lib/withEnv';
 
-const SsoAdminPage: NextPageWithLayout = () => (
-  <EnterprisePlaceholderPage
-    title="SSO (Single Sign-On)"
-    description="Configure SAML / OIDC identity providers for the instance."
-    cloudCapability="Cloud §admin-panel/sso"
-    ossBackend="POST /api/sso/callback"
-  />
-);
+const Page: NextPageWithLayout = () => <SsoAdminPanel />;
 
 export const getServerSideProps: GetServerSideProps = withEnv(
   ensureLogin(
@@ -27,8 +20,8 @@ export const getServerSideProps: GetServerSideProps = withEnv(
   )
 );
 
-SsoAdminPage.getLayout = function getLayout(page: ReactElement, pageProps) {
+Page.getLayout = function getLayout(page: ReactElement, pageProps) {
   return <AdminLayout {...pageProps}>{page}</AdminLayout>;
 };
 
-export default SsoAdminPage;
+export default Page;

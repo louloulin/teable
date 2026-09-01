@@ -196,6 +196,79 @@ export const AdminLayout: React.FC<{
       route: '/admin/teams',
       pathTo: '/admin/teams',
     },
+    {
+      Icon: Key,
+      label: 'BYOK (Bring Your Own Key)',
+      route: '/admin/byok',
+      pathTo: '/admin/byok',
+    },
+    {
+      Icon: ShieldUser,
+      label: 'Organization custom roles',
+      route: '/admin/org-custom-role',
+      pathTo: '/admin/org-custom-role',
+    },
+    {
+      Icon: FileText,
+      label: 'Billing',
+      route: '/admin/billing',
+      pathTo: '/admin/billing',
+    },
+    {
+      Icon: Database,
+      label: 'Cross-base federation',
+      route: '/admin/cross-base-federation',
+      pathTo: '/admin/cross-base-federation',
+    },
+    {
+      Icon: MagicAi,
+      label: 'Custom AI models',
+      route: '/admin/custom-ai-model',
+      pathTo: '/admin/custom-ai-model',
+    },
+    {
+      Icon: TemplateIcon,
+      label: 'DR canvas',
+      route: '/admin/dr-canvas',
+      pathTo: '/admin/dr-canvas',
+    },
+    {
+      Icon: ClipboardList,
+      label: 'Approval workflow',
+      route: '/admin/approval-workflow',
+      pathTo: '/admin/approval-workflow',
+    },
+    {
+      Icon: ShieldUser,
+      label: 'View permissions',
+      route: '/admin/view-permission',
+      pathTo: '/admin/view-permission',
+    },
+    {
+      Icon: ServerIcon,
+      label: 'Data residency',
+      route: '/admin/data-residency',
+      pathTo: '/admin/data-residency',
+    },
+    {
+      Icon: Code,
+      label: 'Custom domain',
+      route: '/admin/custom-domain',
+      pathTo: '/admin/custom-domain',
+    },
+    {
+      Icon: Code,
+      label: 'Conflict replay',
+      route: '/admin/conflict-replay',
+      pathTo: '/admin/conflict-replay',
+    },
+    {
+      Icon: ClipboardList,
+      label: 'Backup',
+      route: '/admin/backup',
+      pathTo: '/admin/backup',
+    },
+
   ];
 
   return (
