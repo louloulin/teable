@@ -219,7 +219,7 @@ describe('V2 action trigger field conversion (e2e)', () => {
         { name: 'Name', type: 'singleLineText' },
         {
           name: 'Status',
-          type: 'singleSelect',
+          type: FieldType.SingleSelect,
           options: { choices: [optionOpen, optionDone] },
         },
       ],
@@ -241,14 +241,14 @@ describe('V2 action trigger field conversion (e2e)', () => {
         {
           id: hostPrimaryFieldId,
           name: 'Name',
-          type: 'singleLineText',
+          type: FieldType.SingleLineText,
         },
         {
           id: linkFieldId,
           name: 'Link',
-          type: 'link',
+          type: FieldType.Link,
           options: {
-            relationship: 'manyOne',
+            relationship: Relationship.ManyOne,
             foreignTableId: foreignTable.id,
             lookupFieldId: foreignPrimaryFieldId,
             isOneWay: true,

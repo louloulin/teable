@@ -263,6 +263,42 @@ export const AdminLayout: React.FC<{
       pathTo: '/admin/conflict-replay',
     },
     {
+      Icon: ShieldUser,
+      label: 'SSO (Single Sign-On)',
+      route: '/admin/sso',
+      pathTo: '/admin/sso',
+    },
+    {
+      Icon: ShieldUser,
+      label: 'SAML providers',
+      route: '/admin/saml',
+      pathTo: '/admin/saml',
+    },
+    {
+      Icon: Key,
+      label: 'Per-user TOTP',
+      route: '/admin/totp',
+      pathTo: '/admin/totp',
+    },
+    {
+      Icon: ClipboardList,
+      label: 'Plan, row and seat quota',
+      route: '/admin/quota',
+      pathTo: '/admin/quota',
+    },
+    {
+      Icon: MagicAi,
+      label: 'Per-org AI token spend',
+      route: '/admin/ai-cost',
+      pathTo: '/admin/ai-cost',
+    },
+    {
+      Icon: FileSpreadsheet,
+      label: 'Airtable import & sync',
+      route: '/admin/airtable',
+      pathTo: '/admin/airtable',
+    },
+    {
       Icon: ClipboardList,
       label: 'Backup',
       route: '/admin/backup',

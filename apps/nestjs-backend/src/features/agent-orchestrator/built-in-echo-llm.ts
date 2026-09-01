@@ -69,7 +69,7 @@ function truncate(value: string, max: number): string {
 export class BuiltInEchoLlm implements ICuppyEchoLlm {
   private readonly hintShownFor = new Set<string>();
 
-  chat(args: IEchoLlmArgs): IEchoLlmResult {
+  async chat(args: IEchoLlmArgs): Promise<IEchoLlmResult> {
     const lastUser = [...args.messages].reverse().find((m) => m.role === 'user');
     const userText = lastUser ? truncate(lastUser.content, 240) : '(no user message)';
 
@@ -93,5 +93,15 @@ export class BuiltInEchoLlm implements ICuppyEchoLlm {
     );
 
     return { text, provider: 'built-in-echo' };
+  }
+
+  /**
+   * Streaming variant. Echo LLM has no real tokens — yield the full reply
+   * as a single chunk so SSE consumers and the orchestrator's accumulator
+   * path stay uniform across providers.
+   */
+  async *stream(args: IEchoLlmArgs): AsyncIterable<string> {
+    const result = await this.chat(args);
+    yield result.text;
   }
 }

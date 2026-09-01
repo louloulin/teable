@@ -1878,6 +1878,59 @@ model UserTotpBackupCode {
   @@map("user_totp_backup_code")
 }
 
+/// V12 — Cuppy long-term memory per conversation. Real persistent storage so
+/// memory survives backend restart. Cloud §ai/ai-chat 'Memory' feature.
+model CuppyMemory {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  key            String
+  value          String   @db.Text
+  createdBy      String   @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([conversationId, key])
+  @@index([conversationId])
+  @@map("cuppy_memory")
+}
+
+/// V13 — Cuppy Artifact persistence per conversation. Cloud §ai/ai-chat
+/// 'Artifact' feature: chart/report/card rendered inside the chat panel.
+model CuppyArtifact {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  name           String
+  /// One of: chart | report | page | card | doc
+  kind           String
+  /// Current version's content (JSON-string for chart, markdown for report/card/doc).
+  content        String   @db.Text
+  /// All versions as JSON array: [{ version, content, createdAt }, ...]
+  versions       Json
+  shared         Boolean  @default(false)
+  createdBy      String   @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([conversationId])
+  @@map("cuppy_artifact")
+}
+
+/// V14 — Cuppy @-node references per conversation. Cloud §ai/ai-chat
+/// '@' feature: attach table/view/app/automation/folder to chat context.
+model CuppyNodeRef {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  /// One of: table | view | app | automation | folder
+  kind           String
+  refId          String   @map("ref_id")
+  label          String
+  createdBy      String   @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@map("cuppy_node_ref")
+}
+
 // Stage 23 — SCIM 2.0 bearer tokens. Operators create a token per
 // IdP integration (Okta, Azure AD, Google Workspace…). Tokens are
 // presented as `Authorization: Bearer <token>`; we hash at rest so a

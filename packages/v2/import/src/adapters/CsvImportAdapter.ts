@@ -116,7 +116,7 @@ export class CsvImportAdapter implements IImportSourceAdapter {
   private async *createAsyncRowIterator(
     reader: ReadableStreamDefaultReader<Uint8Array>,
     initialBuffer: string,
-    decoder: TextDecoder,
+    decoder: InstanceType<typeof TextDecoder>,
     options?: IImportOptions
   ): AsyncIterable<ReadonlyArray<unknown>> {
     let buffer = initialBuffer;

@@ -202,7 +202,7 @@ const createSnapshotItem = (fieldId: string, table: unknown = { kind: 'domainTab
     ],
     records: [{ recordId: 'recCompat000000001', value: `${fieldId}:value` }],
   },
-});
+  } as never);
 
 describe('V2FieldDeleteSnapshotSink', () => {
   it('prepares an explicit completion with v2 delete snapshots, frozen view ops, and references', async () => {

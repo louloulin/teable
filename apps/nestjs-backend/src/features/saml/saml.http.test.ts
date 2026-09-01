@@ -89,7 +89,7 @@ describe('SamlController (HTTP integration)', () => {
   it('exposes /healthz via stub controller (sanity)', async () => {
     const res = await fetch(`${baseUrl}/healthz`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as { xml?: string };
     expect(body).toEqual({ ok: true });
   });
 
@@ -97,7 +97,7 @@ describe('SamlController (HTTP integration)', () => {
     buildMetadata.mockReturnValueOnce('<EntityDescriptor>stub</EntityDescriptor>');
     const res = await fetch(`${baseUrl}/api/auth/saml/metadata?name=AcmeCorp`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as { xml?: string };
     expect(body.xml).toContain('EntityDescriptor');
     expect(buildMetadata).toHaveBeenCalled();
   });

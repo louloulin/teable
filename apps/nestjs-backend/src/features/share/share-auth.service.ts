@@ -20,10 +20,7 @@ export interface IShareViewInfo {
   shareMeta?: IShareViewMeta;
 }
 
-export interface IJwtShareInfo {
-  shareId: string;
-  password: string;
-}
+import type { IJwtShareInfo } from './share.service';
 
 @Injectable()
 export class ShareAuthService {

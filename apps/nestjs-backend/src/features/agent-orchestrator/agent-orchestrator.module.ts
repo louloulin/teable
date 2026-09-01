@@ -9,6 +9,7 @@
  * License: AGPL-3.0
  */
 
+import { PrismaModule } from '@teable/db-main-prisma';
 import { Module } from '@nestjs/common';
 import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
 import { AiModule } from '../ai/ai.module';
@@ -28,6 +29,7 @@ import { CuppyController } from './cuppy.controller';
 @Module({
   controllers: [AgentOrchestratorController, CuppyController],
   imports: [
+    PrismaModule,
     LicenseModule,
     InstanceSkillModule,
     CuppyPromptRouterModule,
@@ -94,6 +96,39 @@ import { CuppyController } from './cuppy.controller';
       inject: [AiService],
       useFactory: (ai: AiService) => {
         const echo = new BuiltInEchoLlm();
+        const buildTools = (
+          args: {
+            tools: Array<{
+              name: string;
+              description: string;
+              parameters: Record<string, unknown>;
+            }>;
+            executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+          }
+        ) => {
+          type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
+          const tools: GenerateTools = Object.fromEntries(
+            args.tools.map((definition) => [
+              definition.name,
+              tool({
+                description: definition.description,
+                inputSchema: jsonSchema(definition.parameters),
+                execute: (input) =>
+                  args.executeTool(definition.name, input as Record<string, unknown>),
+              }),
+            ])
+          );
+          return tools;
+        };
+        const chatMessagesOf = (args: {
+          messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+        }) =>
+          args.messages
+            .filter(
+              (message): message is { role: 'user' | 'assistant'; content: string } =>
+                message.role !== 'tool'
+            )
+            .map((message) => ({ role: message.role, content: message.content }));
         return {
           async chat(args: {
             baseId?: string;
@@ -121,28 +156,11 @@ import { CuppyController } from './cuppy.controller';
             const timer = setTimeout(() => llmAbort.abort(), Math.max(1000, timeoutMs));
             try {
               const model = await ai.getChatModelInstance(args.baseId);
-              type GenerateTools = NonNullable<Parameters<typeof generateText>[0]['tools']>;
-              const tools: GenerateTools = Object.fromEntries(
-                args.tools.map((definition) => [
-                  definition.name,
-                  tool({
-                    description: definition.description,
-                    inputSchema: jsonSchema(definition.parameters),
-                    execute: (input) =>
-                      args.executeTool(definition.name, input as Record<string, unknown>),
-                  }),
-                ])
-              );
               const result = await generateText({
                 model: model.lg,
                 system: args.system,
-                messages: args.messages
-                  .filter(
-                    (message): message is { role: 'user' | 'assistant'; content: string } =>
-                      message.role !== 'tool'
-                  )
-                  .map((message) => ({ role: message.role, content: message.content })),
-                tools,
+                messages: chatMessagesOf(args),
+                tools: buildTools(args),
                 stopWhen: stepCountIs(3),
                 abortSignal: llmAbort.signal,
               });
@@ -156,12 +174,68 @@ import { CuppyController } from './cuppy.controller';
                 llmAbort.signal.aborted
                   ? `timeout after ${timeoutMs}ms`
                   : (err as Error)?.message ?? 'unknown error';
+              const fallback = await echo.chat(args);
               return {
-                ...echo.chat(args),
-                text: `${echo.chat(args).text}\n\n[real-LLM provider fallback: ${reason}]`,
+                ...fallback,
+                text: `${fallback.text}\n\n[real-LLM provider fallback: ${reason}]`,
               };
             } finally {
               clearTimeout(timer);
+            }
+          },
+          async *stream(args: {
+            baseId?: string;
+            system: string;
+            messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
+            tools: Array<{
+              name: string;
+              description: string;
+              parameters: Record<string, unknown>;
+            }>;
+            executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+            signal?: AbortSignal;
+          }): AsyncIterable<string> {
+            // R-AI-7: Cuppy chat SSE streaming. Mirrors `chat()` so the same
+            // provider-resolution + timeout + fallback semantics apply. The
+            // `textStream` from `ai` is an AsyncIterable<string>, so we yield
+            // through directly. No baseId → echo LLM streams its single chunk.
+            if (!args.baseId) {
+              for await (const chunk of echo.stream(args)) yield chunk;
+              return;
+            }
+            const timeoutMs = Number(process.env.CUPPY_LLM_TIMEOUT_MS ?? 8000);
+            const llmAbort = new AbortController();
+            const upstream = args.signal;
+            const onUpstreamAbort = () => llmAbort.abort();
+            upstream?.addEventListener('abort', onUpstreamAbort);
+            const timer = setTimeout(() => llmAbort.abort(), Math.max(1000, timeoutMs));
+            try {
+              const model = await ai.getChatModelInstance(args.baseId);
+              // Import streamText lazily so cold-start cost stays on the chat
+              // path. The chat() branch above still uses generateText.
+              const { streamText: streamTextFn } = await import('ai');
+              const result = streamTextFn({
+                model: model.lg,
+                system: args.system,
+                messages: chatMessagesOf(args),
+                tools: buildTools(args),
+                stopWhen: stepCountIs(3),
+                abortSignal: llmAbort.signal,
+              });
+              for await (const delta of result.textStream) {
+                yield delta;
+              }
+            } catch (err) {
+              const reason =
+                llmAbort.signal.aborted
+                  ? `timeout/abort after ${timeoutMs}ms`
+                  : (err as Error)?.message ?? 'unknown error';
+              for await (const chunk of echo.stream(args)) {
+                yield `${chunk}\n\n[real-LLM provider fallback: ${reason}]`;
+              }
+            } finally {
+              clearTimeout(timer);
+              upstream?.removeEventListener('abort', onUpstreamAbort);
             }
           },
         };

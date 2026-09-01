@@ -11,7 +11,7 @@ import {
   ShareViewReadOnlyPermissions,
   isAnonymous,
 } from '@teable/core';
-import { ClsService } from 'nestjs-cls';
+import { ClsService, type ClsService as ClsServiceType } from 'nestjs-cls';
 import { CustomHttpException } from '../../../custom.exception';
 import type { IClsStore } from '../../../types/cls';
 import { AuthGuard } from '../../auth/guard/auth.guard';
@@ -62,7 +62,8 @@ export class ShareAuthGuard extends PassportAuthGuard([SHARE_JWT_STRATEGY]) {
       // (table-permission service, EE authority matrix, etc.). The actual
       // permission set is derived from shareMeta below, not from the viewer's
       // base/space role.
-      this.cls.set('shareViewId', shareInfo.shareId);
+      const shareViewCls = this.cls as ClsServiceType<{ shareViewId?: string }>;
+      shareViewCls.set('shareViewId', shareInfo.shareId);
 
       // submit route
       const isShareSubmit = this.reflector.getAllAndOverride<boolean>(IS_SHARE_SUBMIT_KEY, [
@@ -84,13 +85,15 @@ export class ShareAuthGuard extends PassportAuthGuard([SHARE_JWT_STRATEGY]) {
       );
 
       if (!currentUserId || isAnonymous(currentUserId)) {
-        this.cls.set('user', {
+        const userCls = this.cls as ClsServiceType<{ user: IClsStore['user'] }>;
+        userCls.set('user', {
           id: ANONYMOUS_USER_ID,
           name: ANONYMOUS_USER_ID,
           email: '',
         });
       }
-      this.cls.set(
+      const permissionsCls = this.cls as ClsServiceType<{ permissions: IClsStore['permissions'] }>;
+      permissionsCls.set(
         'permissions',
         canEdit ? ShareViewEditPermissions : ShareViewReadOnlyPermissions
       );

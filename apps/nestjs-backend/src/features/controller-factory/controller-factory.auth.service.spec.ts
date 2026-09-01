@@ -3,6 +3,7 @@
  */
 
 import { ControllerFactoryAuthService } from './controller-factory.auth.service';
+import type { IControllerSpec } from './controller-factory.types';
 
 interface IPrismaMock {
   controllerSpec: {
@@ -29,7 +30,7 @@ function makePrisma(): IPrismaMock {
   };
 }
 
-const baseController = () => ({
+const baseController = (): IControllerSpec => ({
   resource: 'risk-policies',
   routes: [
     { path: '/', verb: 'list', operationId: 'listRiskPolicies', authRequired: true },

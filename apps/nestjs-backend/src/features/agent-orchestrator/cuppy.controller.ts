@@ -10,12 +10,16 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { ClsService } from 'nestjs-cls';
 import { z } from 'zod';
 import type { IClsStore } from '../../types/cls';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
+import { AiStreamingService } from '../ai/ai-streaming.service';
 import { PermissionService } from '../auth/permission.service';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
@@ -110,7 +114,8 @@ export class CuppyController {
   constructor(
     private readonly orchestrator: AgentOrchestratorService,
     private readonly cls: ClsService<IClsStore>,
-    private readonly permissionService: PermissionService
+    private readonly permissionService: PermissionService,
+    private readonly aiStreaming: AiStreamingService
   ) {}
 
   private requireUserId(): string {
@@ -139,6 +144,76 @@ export class CuppyController {
       provider_meta: { transport: 'http', ...(body.baseId ? { baseId: body.baseId } : {}) },
     });
     return { conversationId, text: reply.text };
+  }
+
+  /**
+   * R-AI-7 — SSE streaming chat. Same shape as `/chat` but the response is
+   * `text/event-stream` with `{delta, done}` chunks. The full text is also
+   * persisted to the conversation store before the final event fires so
+   * subsequent `/conversations/:id/messages` reads see it.
+   */
+  @Post('chat/stream')
+  async chatStream(
+    @Body(new ZodValidationPipe(cuppyChatSchema)) body: CuppyChatBody,
+    @Req() req: Request,
+    @Res() res: Response
+  ): Promise<void> {
+    const userId = this.requireUserId();
+    if (body.baseId) {
+      await this.permissionService.validPermissions(
+        body.baseId,
+        ['base|read'],
+        this.cls.get('accessTokenId')
+      );
+    }
+    const conversationId = body.conversationId ?? randomUUID();
+    this.aiStreaming.prepareStreamResponse(res);
+    const abort = new AbortController();
+    req.on('close', () => abort.abort());
+
+    try {
+      const { text } = await this.orchestrator.handleStream(
+        conversationId,
+        userId,
+        {
+          user_id: userId,
+          text: body.message,
+          provider_meta: { transport: 'http-sse', ...(body.baseId ? { baseId: body.baseId } : {}) },
+        },
+        { signal: abort.signal }
+      );
+      // Replay the buffered text as one final SSE chunk so clients that
+      // joined mid-flight still receive the full reply.
+      this.aiStreaming.writeStreamEvent(res, { delta: text, done: true });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Cuppy streaming failed';
+      this.aiStreaming.writeStreamEvent(res, { error: true, message });
+    } finally {
+      res.end();
+    }
+  }
+
+  // ──────────────────────────── 对话列表(G2)───────────────────────────
+  /**
+   * R-AI-7 — list the current user's conversations, newest-first. Best-effort:
+   * backed by the in-memory ConversationStore; persistence across processes
+   * is a follow-up.
+   */
+  @Get('conversations')
+  listConversations(): {
+    userId: string;
+    conversations: Array<{
+      conversationId: string;
+      baseId?: string;
+      messageCount: number;
+      updatedAt: number;
+    }>;
+    count: number;
+  } {
+    const userId = this.requireUserId();
+    const conversations = this.orchestrator.listConversations(userId);
+    return { userId, conversations, count: conversations.length };
   }
 
   // ──────────────────────────── 模型列表 ────────────────────────────
@@ -206,70 +281,72 @@ export class CuppyController {
   }
 
   @Post('conversations/:id/model')
-  pickModel(
+  async pickModel(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(modelPickSchema)) body: { model: string }
-  ): { conversationId: string; model: string } {
+  ): Promise<{ conversationId: string; model: string }> {
     const userId = this.requireUserId();
     // 复用 memory scratchpad 存 'picked_model' 字段,smart-level 走独立字段
-    this.orchestrator.setMemory(id, userId, '_picked_model', body.model);
+    await this.orchestrator.setMemory(id, userId, '_picked_model', body.model);
     return { conversationId: id, model: body.model };
   }
 
   // ──────────────────────────── 记忆(memory) ────────────────────────────
   @Get('conversations/:id/memory')
-  getMemory(@Param('id') id: string): {
+  async getMemory(@Param('id') id: string): Promise<{
     conversationId: string;
     memory: Record<string, { value: string; createdAt: string }>;
     count: number;
-  } {
-    const memory = this.orchestrator.getMemory(id);
+  }> {
+    const memory = await this.orchestrator.getMemory(id);
     return { conversationId: id, memory, count: Object.keys(memory).length };
   }
 
   @Put('conversations/:id/memory')
-  setMemory(
+  async setMemory(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(memorySetSchema)) body: { key: string; value: string }
-  ): { key: string; createdAt: string } {
+  ): Promise<{ key: string; createdAt: string }> {
     const userId = this.requireUserId();
-    return this.orchestrator.setMemory(id, userId, body.key, body.value);
+    return await this.orchestrator.setMemory(id, userId, body.key, body.value);
   }
 
   @Delete('conversations/:id/memory')
-  clearMemory(
+  async clearMemory(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(memoryDeleteSchema)) body: { key?: string }
-  ): { cleared: number } {
+  ): Promise<{ cleared: number }> {
     const userId = this.requireUserId();
-    return this.orchestrator.clearMemory(id, userId, body.key);
+    return await this.orchestrator.clearMemory(id, userId, body.key);
   }
 
   // ──────────────────────────── Artifact ────────────────────────────
   @Get('conversations/:id/artifacts')
-  listArtifacts(@Param('id') id: string): {
+  async listArtifacts(
+    @Param('id') id: string
+  ): Promise<{
     conversationId: string;
     artifacts: Array<{ id: string; name: string; kind: string; versions: number; createdAt: string; shared: boolean }>;
     count: number;
-  } {
-    const artifacts = this.orchestrator.listArtifacts(id);
+  }> {
+    const artifacts = await this.orchestrator.listArtifacts(id);
     return { conversationId: id, artifacts, count: artifacts.length };
   }
 
   @Post('conversations/:id/artifacts')
-  createArtifact(
+  async createArtifact(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(artifactCreateSchema)) body: { name: string; kind: string; content: string }
-  ): { id: string; name: string; kind: string; versions: number; createdAt: string } {
+  ): Promise<{ id: string; name: string; kind: string; versions: number; createdAt: string }> {
     const userId = this.requireUserId();
-    return this.orchestrator.addArtifact(id, userId, body);
+    return await this.orchestrator.addArtifact(id, userId, body);
   }
 
   @Get('conversations/:id/artifacts/:artId')
-  getArtifact(
+  async getArtifact(
     @Param('id') id: string,
     @Param('artId') artId: string
-  ): {
+  ): Promise<{
     id: string;
     name: string;
     kind: string;
@@ -277,8 +354,8 @@ export class CuppyController {
     versions: Array<{ version: number; content: string; createdAt: string }>;
     shared: boolean;
     createdAt: string;
-  } {
-    const a = this.orchestrator.getArtifact(id, artId);
+  }> {
+    const a = await this.orchestrator.getArtifact(id, artId);
     if (!a) throw new NotFoundException('artifact not found');
     return {
       id: String(a['id']),
@@ -292,66 +369,68 @@ export class CuppyController {
   }
 
   @Post('conversations/:id/artifacts/:artId/versions')
-  appendArtifactVersion(
+  async appendArtifactVersion(
     @Param('id') id: string,
     @Param('artId') artId: string,
     @Body(new ZodValidationPipe(artifactVersionSchema)) body: { content: string }
-  ): { id: string; versions: number } {
+  ): Promise<{ id: string; versions: number }> {
     const userId = this.requireUserId();
-    const result = this.orchestrator.appendArtifactVersion(id, userId, artId, body.content);
+    const result = await this.orchestrator.appendArtifactVersion(id, userId, artId, body.content);
     if (!result) throw new NotFoundException('artifact not found');
     return result;
   }
 
   @Delete('conversations/:id/artifacts/:artId')
-  deleteArtifact(
+  async deleteArtifact(
     @Param('id') id: string,
     @Param('artId') artId: string
-  ): { deleted: boolean } {
+  ): Promise<{ deleted: boolean }> {
     const userId = this.requireUserId();
-    const ok = this.orchestrator.deleteArtifact(id, userId, artId);
+    const ok = await this.orchestrator.deleteArtifact(id, userId, artId);
     return { deleted: ok };
   }
 
   @Post('conversations/:id/artifacts/:artId/share')
-  shareArtifact(
+  async shareArtifact(
     @Param('id') id: string,
     @Param('artId') artId: string,
     @Body(new ZodValidationPipe(artifactShareSchema)) body: { on: boolean }
-  ): { id: string; shared: boolean } {
+  ): Promise<{ id: string; shared: boolean }> {
     const userId = this.requireUserId();
-    const r = this.orchestrator.shareArtifact(id, userId, artId, body.on);
+    const r = await this.orchestrator.shareArtifact(id, userId, artId, body.on);
     if (!r) throw new NotFoundException('artifact not found');
     return r;
   }
 
   // ──────────────────────────── @-node 引用 ────────────────────────────
   @Get('conversations/:id/nodes')
-  listNodes(@Param('id') id: string): {
+  async listNodes(
+    @Param('id') id: string
+  ): Promise<{
     conversationId: string;
     nodes: Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }>;
     count: number;
-  } {
-    const nodes = this.orchestrator.listNodeRefs(id);
+  }> {
+    const nodes = await this.orchestrator.listNodeRefs(id);
     return { conversationId: id, nodes, count: nodes.length };
   }
 
   @Post('conversations/:id/nodes')
-  addNode(
+  async addNode(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(nodeRefSchema)) body: { kind: string; refId: string; label: string }
-  ): { nodeId: string; kind: string; refId: string; label: string; addedAt: string } {
+  ): Promise<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }> {
     const userId = this.requireUserId();
-    return this.orchestrator.addNodeRef(id, userId, body);
+    return await this.orchestrator.addNodeRef(id, userId, body);
   }
 
   @Delete('conversations/:id/nodes/:nodeId')
-  removeNode(
+  async removeNode(
     @Param('id') id: string,
     @Param('nodeId') nodeId: string
-  ): { deleted: boolean } {
+  ): Promise<{ deleted: boolean }> {
     const userId = this.requireUserId();
-    const ok = this.orchestrator.removeNodeRef(id, userId, nodeId);
+    const ok = await this.orchestrator.removeNodeRef(id, userId, nodeId);
     return { deleted: ok };
   }
 

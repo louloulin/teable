@@ -29,6 +29,9 @@ import {
   notify as apiNotify,
   redo,
   ResourceType,
+  TableTrashType,
+  TrashType,
+
   restoreTrash,
   SettingKey,
   SUPPORTEDTYPE,
@@ -1328,7 +1331,7 @@ describeByodbStorage('BYODB space storage placement (e2e)', () => {
       }));
 
       await deleteTable(freezeBase.id, restoreTable.id, 200);
-      const trashId = await waitForTrashId(restoreTable.id, ResourceType.Table);
+      const trashId = await waitForTrashId(restoreTable.id, TrashType.Table);
 
       await metaDb('space_data_db_migration_job').insert({
         id: migrationJobId,
@@ -1427,7 +1430,7 @@ describeByodbStorage('BYODB space storage placement (e2e)', () => {
       restoreBaseId = restoreBase.id;
       const restoreTable = await createTable(restoreBase.id, {
         name: 'BYODB V2 record trash restore table',
-        fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+        fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
         records: [{ fields: { Name: 'Restore row' } }],
       });
       restoreTableId = restoreTable.id;
@@ -1472,11 +1475,11 @@ describeByodbStorage('BYODB space storage placement (e2e)', () => {
 
       const trash = await getTrashItems({
         resourceId: restoreTable.id,
-        resourceType: ResourceType.Table,
+        resourceType: TrashType.Table,
       });
       const recordTrashItem = trash.data.trashItems.find(
         (item) =>
-          item.resourceType === ResourceType.Record &&
+          item.resourceType === TableTrashType.Record &&
           'resourceIds' in item &&
           item.resourceIds.includes(recordId)
       );
@@ -1873,7 +1876,7 @@ describeByodbStorage('BYODB space storage placement (e2e)', () => {
             internalSchema,
             'table_trash',
             `${quoteIdent('table_id')} = ? AND ${quoteIdent('resource_type')} = ?`,
-            [lifecycleTable.id, ResourceType.Table]
+            [lifecycleTable.id, TrashType.Table]
           ),
         1
       )
@@ -1884,7 +1887,7 @@ describeByodbStorage('BYODB space storage placement (e2e)', () => {
         'public',
         'table_trash',
         `${quoteIdent('table_id')} = ? AND ${quoteIdent('resource_type')} = ?`,
-        [lifecycleTable.id, ResourceType.Table]
+        [lifecycleTable.id, TrashType.Table]
       )
     ).resolves.toBe(0);
 

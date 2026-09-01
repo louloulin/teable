@@ -138,6 +138,21 @@ export class ConversationStore {
   size(): number {
     return this.map.size;
   }
+
+  /**
+   * R-AI-7 — return all in-memory conversations that belong to `user_id`.
+   * Sorted newest-first by `updated_at`. Note: this is a best-effort view
+   * (process-local); persistent cross-device history will need a DB-backed
+   * index, but that is a separate follow-up — list semantics live here.
+   */
+  listByUser(user_id: UserId): ConversationContext[] {
+    const out: ConversationContext[] = [];
+    for (const ctx of this.map.values()) {
+      if (ctx.user_id === user_id) out.push(ctx);
+    }
+    out.sort((a, b) => b.updated_at - a.updated_at);
+    return out;
+  }
 }
 
 /**

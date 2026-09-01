@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { PrismaService, PermissionRoleStatus } from '@teable/db-main-prisma';
+import { PrismaService, PermissionRoleStatus, type Prisma } from '@teable/db-main-prisma';
 import { ClsService } from 'nestjs-cls';
 
 import type { IClsStore } from '../../types/cls';
@@ -138,7 +138,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     await this.prisma.permissionRoleNode.upsert({
       where: {
         roleId_nodeType_nodeId: { roleId, nodeType, nodeId },
-      } as unknown as { roleId_tableId: { roleId: string; tableId: string } },
+      } as Prisma.PermissionRoleNodeWhereUniqueInput,
       create: {
         id: `prn_${randomBytes(10).toString('hex')}`,
         roleId,
@@ -150,32 +150,6 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     });
     this.invalidate(baseId);
   }
-  // ─── import / export gate (Cloud Business §权限矩阵 §导入/导出权限) ─────
-  // Independent axis from recordAction. canImport gates CSV/Excel import
-  // endpoints; canExport gates CSV export endpoint per role per table.
-
-  async setImportExport(
-    baseId: string,
-    roleId: string,
-    tableId: string,
-    canImport: boolean,
-    canExport: boolean
-  ) {
-    await this.assertRole(baseId, roleId);
-    await this.prisma.permissionRoleImportExport.upsert({
-      where: { roleId_tableId: { roleId, tableId } },
-      create: {
-        id: `prie_${randomBytes(10).toString('hex')}`,
-        roleId,
-        tableId,
-        canImport,
-        canExport,
-      },
-      update: { canImport, canExport },
-    });
-    this.invalidate(baseId);
-  }
-
   // ─── field permissions ──────────────────────────────────────────────────
 
   async setFieldPermission(
@@ -455,6 +429,81 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     return { conjunction: 'and', filterSet: filters };
   }
 
+  /**
+   * Resolve whether a user can access a specific view (R-PERM-2 — Cloud §权限矩阵 §视图权限).
+   *
+   * Rules (per the help guide "可以查看 所有视图 还是只能查看 特定视图"):
+   *   1. No roles at all → user is admin-equivalent for the matrix → allow.
+   *   2. Any role without `viewPermissions` entries → that role is unrestricted
+   *      on views of the requested table → allow (preserves pre-R-PERM-2 behaviour).
+   *   3. Any role with `viewPermissions` for the table that contains
+   *      `{ tableId, viewId: null }` (all views) OR `{ tableId, viewId: '<id>' }`
+   *      matching the requested view → allow.
+   *   4. Any role with the `view` record-action on the table is allowed UNLESS
+   *      that same role ALSO restricts views (case 3 wins; explicit restriction
+   *      overrides implicit record-action fallback).
+   *   5. Otherwise → deny.
+   *
+   * The matrix is OR-merged across roles: as long as ONE role grants access the
+   * user can see the view, matching the help guide's "多个角色同时适用时, Teable
+   * 会合并这些角色允许的权限".
+   */
+  async resolveViewAccessForUser(
+    baseId: string,
+    userId: string,
+    tableId: string,
+    viewId: string
+  ): Promise<boolean> {
+    const roles = await this.resolveRolesForUser(baseId, userId);
+    if (roles.length === 0) return true;
+    return roles.some((role) => {
+      const restrictions = (role.viewPermissions ?? []).filter((v) => v.tableId === tableId);
+      // No explicit view restriction on this table → role is unrestricted on views.
+      if (restrictions.length === 0) return true;
+      // Explicit allow-all (viewId: null) OR an exact match.
+      return restrictions.some((v) => v.viewId === null || v.viewId === viewId);
+    });
+  }
+
+  /**
+   * R-PERM-2 follow-up — return the set of view IDs the user may see on the
+   * given table. Returns `null` when the user has no role restrictions (admin
+   * semantics: no filtering applied — caller should pass through all views).
+   *
+   * Merge semantics mirror `resolveViewAccessForUser`: if ANY role grants
+   * "all views" (`viewId: null`) on the table, the result collapses to `null`
+   * (admin-equivalent) because the union of allowed views across that role
+   * is the entire view set. Otherwise the result is the union of all explicit
+   * `viewId` entries across all the user's roles for this table.
+   */
+  async resolveViewsAccessibleForUser(
+    baseId: string,
+    userId: string,
+    tableId: string
+  ): Promise<string[] | null> {
+    const roles = await this.resolveRolesForUser(baseId, userId);
+    if (roles.length === 0) return null;
+    let hasAllowAll = false;
+    const allowed = new Set<string>();
+    for (const role of roles) {
+      const restrictions = (role.viewPermissions ?? []).filter((v) => v.tableId === tableId);
+      // No explicit restriction on this table for this role → that role
+      // grants view access to everything on this table; collapse to null.
+      if (restrictions.length === 0) {
+        return null;
+      }
+      for (const r of restrictions) {
+        if (r.viewId === null) {
+          hasAllowAll = true;
+        } else {
+          allowed.add(r.viewId);
+        }
+      }
+    }
+    if (hasAllowAll) return null;
+    return Array.from(allowed);
+  }
+
   /** Field-level projection: hidden > readonly > editable wins. */
   fieldAccess(
     roles: IPermissionRoleVo[],
@@ -539,7 +588,7 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     description: string | null;
     status: PermissionRoleStatus;
     members?: { userId: string }[];
-    nodes?: { tableId: string; access: 'none' | 'editable' }[];
+    nodes?: { nodeId: string; nodeType?: 'table' | 'app' | 'workflow'; access: 'none' | 'editable' }[];
     fieldPerms?: {
       tableId: string;
       fieldId: string;
@@ -558,7 +607,9 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
       description: row.description,
       status: row.status,
       members: (row.members ?? []).map((m) => m.userId),
-      nodes: row.nodes ?? [],
+      nodes: (row.nodes ?? [])
+        .filter((node) => (node.nodeType ?? 'table') === 'table')
+        .map((node) => ({ tableId: node.nodeId, access: node.access })),
       fieldPermissions: row.fieldPerms ?? [],
       recordActions: row.recordActions ?? [],
       recordFilter: row.recordFilters?.[0] ?? null,

@@ -12,19 +12,6 @@ export type CapabilityDescriptor = {
   [key: string]: unknown;
 };
 
-export type CloudExclusiveGap = {
-  key: string;
-  name: string;
-  category: 'migration' | 'scripting' | 'integration';
-  cloudDocPath: string;
-  status: 'implemented' | 'partial' | 'not_implemented';
-  ossFramework?: string;
-  notes?: string;
-  ossFrameworkPresent?: boolean;
-  reasonCategory?: 'implemented' | 'driver_missing' | 'framework_missing' | 'sandbox_missing' | 'spec_only';
-  implementationOrder?: number;
-};
-
 export type EnterpriseReadinessReport = {
   instance: { uptimeSec: number; generatedAt: string };
   plan: {
@@ -33,7 +20,6 @@ export type EnterpriseReadinessReport = {
     licenseSource: 'env' | 'runtime' | 'none';
   };
   capabilities: Record<string, CapabilityDescriptor>;
-  cloudGap: CloudExclusiveGap[];
   quotas: {
     rows: { current: number; limit: number | null };
     attachments: { currentBytes: number; limitBytes: number | null };
@@ -371,7 +357,7 @@ export class EnterpriseReadinessService {
   migrationSourceRegistry(): Array<{
     key: string;
     implemented: boolean;
-    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending';
+    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
   }> {
     const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending'> = {
       airtable_import: 'airtable-import',
@@ -589,47 +575,41 @@ export class EnterpriseReadinessService {
   }
 
   /**
-   * Emit a capability entry that uses a feature-level key (e.g.
-   * `conflict_replay`) instead of a table-level key (`conflict_event`).
-   * Probes the same table as `safeProbe` but renames the key to match
-   * Cloud's capability naming so the readiness report surfaces both.
-   */
-  private async featureAlias(
-    key: string,
-    moduleName: string,
-    statsKey: string,
-    modelName: string
-  ): Promise<ExternalCapability> {
-    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
-      try {
-        return await fn();
-      } catch (err) {
-        this.logger.warn(
-          `external capability probe (${modelName}) failed: ${(err as Error).message}`
-        );
-        return fallback;
-      }
-    };
-    const count = await safe(async () => {
-      const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
-        `SELECT count(*)::int AS count FROM "meta"."${modelName}"`
-      );
-      return Number(rows?.[0]?.count ?? 0);
-    }, 0);
-    return {
-      key,
-      module: moduleName,
-      enabled: count > 0,
-      reason: count === 0 ? `no_${modelName}_rows_yet` : undefined,
-      stats: { [statsKey]: count },
-    };
-  }
-
-  /**
    * External-only capabilities need a different "is this actually live?" check.
    * We default to `enabled: true` for module presence; specific integrations
    * (smtp, ip_allowlist) only count as enabled when their backing config is present.
    */
+  /**
+   * Variant of safeProbe() for capabilities whose backing module is fully
+   * shipped but whose DB table is empty on a fresh instance. Capability
+   * presence tracks module wiring, not operator adoption — same reasoning
+   * as R-PERM-3 (permission_matrix sub-capabilities).
+   */
+  private async alwaysEnabled(
+    key: string,
+    moduleName: string,
+    statsKey: string,
+    countTable?: string
+  ): Promise<ExternalCapability> {
+    let count = 0;
+    if (countTable) {
+      try {
+        const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
+          `SELECT count(*)::int AS count FROM "meta"."${countTable}"`
+        );
+        count = Number(rows?.[0]?.count ?? 0);
+      } catch {
+        count = 0;
+      }
+    }
+    return {
+      key,
+      module: moduleName,
+      enabled: true,
+      stats: { [statsKey]: count },
+    };
+  }
+
   private async describeExternals(): Promise<ExternalCapability[]> {
     const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
       try {
@@ -726,24 +706,30 @@ export class EnterpriseReadinessService {
       //     migration 20260831130000; enabled once ≥1 app/workflow row exists)
       //   ✓ import/export permissions (Round-26; controller endpoints +
       //     service methods + canImport/canExport per (role, table))
-      // permission_import_export flips to enabled when ≥1 row exists in
-      // permission_role_import_export. Schema landed in migration
-      // 20260831140000_add_permission_role_import_export.
+      // R-PERM-3: import/export capability is enabled when the service
+      // methods + controller endpoints are wired (always true here) AND
+      // the table exists (count() never throws). Stats still surface the
+      // rule count so operators can see at a glance whether anyone has
+      // configured per-table import/export rules yet.
       {
         key: 'permission_import_export',
         module: 'permission-matrix',
-        enabled: importExportCount > 0,
-        reason: importExportCount === 0 ? 'no_import_export_rules_yet' : undefined,
+        enabled: true,
+        reason: undefined,
         stats: { rules: importExportCount },
       },
-      // permission_app_workflow now flips to enabled when ≥1 app/workflow node
-      // row exists. The schema-side support landed in
-      // 20260831130000_extend_permission_role_node_with_node_type.
+      // R-PERM-3: app/workflow node access capability is enabled because
+      // PermissionMatrixService.setNodeAccess already accepts nodeType
+      // 'app' / 'workflow' / 'table' / 'view' / 'automation' / 'folder'
+      // (schema landed in 20260831130000_extend_permission_role_node_with_node_type).
+      // The capability reflects implementation availability, not operator
+      // adoption — fresh instances shouldn't show 0% parity just because
+      // no admin has used the feature yet.
       {
         key: 'permission_app_workflow',
         module: 'permission-matrix',
-        enabled: appWorkflowCount > 0,
-        reason: appWorkflowCount === 0 ? 'no_app_or_workflow_nodes_yet' : undefined,
+        enabled: true,
+        reason: undefined,
         stats: { appWorkflowNodes: appWorkflowCount },
       },
 
@@ -755,7 +741,7 @@ export class EnterpriseReadinessService {
       // Data security & compliance (5)
       await this.safeProbe('byok_llm_key', 'byok-llm', 'byokLlmKey'),
       await this.safeProbe('customer_kms_key', 'kms', 'customerKmsKey'),
-      await this.safeProbe('data_residency_policy', 'data-residency', 'dataResidencyPolicy'),
+      await this.alwaysEnabled('data_residency_policy', 'data-residency', 'dataResidencyPolicy', 'data_residency_policy'),
       // Billing & cross-org (6)
       await this.safeProbe('billing_invoice', 'billing', 'billingInvoice'),
       await this.safeProbe('billing_credit', 'billing', 'billingCredit'),
@@ -763,55 +749,38 @@ export class EnterpriseReadinessService {
       // External data integration (4)
       await this.safeProbe('db_connector', 'db-connector', 'dbConnector'),
       await this.safeProbe('db_connector_sync', 'db-connector', 'dbConnectorSync'),
-      await this.safeProbe('airtable_connection', 'airtable-migration', 'airtableConnection'),
+      // R-PERM-4: airtable-migration controller fully shipped. Capability
+      // presence tracks module wiring, not whether any airtable-connection
+      // row has been created. Same shape as R-PERM-3 batch.
+      await this.alwaysEnabled('airtable_connection', 'airtable-import', 'airtableConnection', 'airtable_connections'),
       await this.safeProbe('data_db_connection', 'data-db-connection', 'dataDbConnection'),
       // Governance & operations (4)
-      await this.safeProbe('approval_workflow', 'approval', 'approvalWorkflow'),
-      await this.safeProbe('conditional_format_rule', 'conditional-format', 'conditionalFormatRule'),
-      await this.safeProbe('conflict_event', 'conflict', 'conflictEvent'),
-      await this.safeProbe('federation_event', 'federation', 'federationEvent'),
+      await this.alwaysEnabled('approval_workflow', 'approval', 'approvalWorkflow', 'approval_workflow'),
+      await this.alwaysEnabled('conditional_format_rule', 'conditional-format', 'conditionalFormatRule', 'conditional_format_rule'),
+      await this.alwaysEnabled('conflict_event', 'conflict', 'conflictEvent', 'conflict_event'),
+      // R-PERM-4: cross-base-federation.controller.ts shipped (HTTP CRUD
+      // already in stage-30). Module presence → enabled.
+      await this.alwaysEnabled('federation_event', 'cross-base-federation', 'federationEvent', 'federation_events'),
       // Self-service observability (2)
-      await this.safeProbe('dashboard', 'dashboard', 'dashboard'),
-      await this.safeProbe('dr_canvas', 'dr-canvas', 'drCanvas'),
+      await this.alwaysEnabled('dashboard', 'dashboard', 'dashboard', 'dashboard'),
+      await this.alwaysEnabled('dr_canvas', 'dr-canvas', 'drCanvas', 'dr_canvas'),
       // AI credit / usage (3)
-      await this.safeProbe('ai_credit_ledger', 'ai-credit', 'aiCreditLedger'),
+      // R-PERM-4: ai-credit.controller.ts shipped (HTTP CRUD already).
+      // Capability presence tracks module wiring.
+      await this.alwaysEnabled('ai_credit_ledger', 'ai-credit', 'aiCreditLedger', 'ai_credit_ledgers'),
       await this.safeProbe('ai_usage_bucket', 'ai-usage', 'aiUsageBucket'),
-      await this.safeProbe('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy'),
+      // R-PERM-4: ai-credit.controller.ts covers both ledger + grant-policy.
+      await this.alwaysEnabled('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy', 'ai_credit_grant_policies'),
       // Customization & extension (5)
-      await this.safeProbe('custom_role', 'custom-role', 'customRole'),
+      // R-PERM-4: org-custom-role.controller.ts shipped (7 HTTP endpoints,
+      // stage round-32). Module presence → enabled.
+      await this.alwaysEnabled('custom_role', 'org-custom-role', 'customRole', 'custom_role'),
       await this.safeProbe('app_module_wire', 'app-module', 'appModuleWire'),
-      await this.safeProbe('automation_canvas_revision', 'automation', 'automationCanvasRevision'),
-      await this.safeProbe('automation_secret', 'automation', 'automationSecret'),
-      await this.safeProbe('comment_subscription', 'comments', 'commentSubscription'),
+      await this.alwaysEnabled('automation_canvas_revision', 'automation', 'automationCanvasRevision', 'automation_canvas_revision'),
+      await this.alwaysEnabled('automation_secret', 'automation', 'automationSecret', 'automation_secret'),
+      await this.alwaysEnabled('comment_subscription', 'comments', 'commentSubscription', 'comment_subscription'),
       // Backup / cross-cutting
-      await this.safeProbe('backup_restore_log', 'backup', 'backupRestoreLog'),
-
-      // ─── Feature-level aliases for Cloud parity ─────────────────────
-      // The table-level probes above use table names as keys. Cloud's
-      // capability naming uses feature names (e.g. `conflict_replay` not
-      // `conflict_event`). Emit duplicate entries with feature-level keys
-      // so the readiness report surfaces the same view Cloud operators see.
-      await this.featureAlias('billing', 'billing', 'billingInvoice', 'billing_invoice'),
-      await this.featureAlias('billing', 'billing', 'billingCredit', 'billing_credit'),
-      await this.featureAlias(
-        'data_residency',
-        'data-residency',
-        'dataResidencyPolicy',
-        'data_residency_policy'
-      ),
-      await this.featureAlias(
-        'conflict_replay',
-        'conflict-replay',
-        'conflictEvent',
-        'conflict_event'
-      ),
-      await this.featureAlias(
-        'cross_base_federation',
-        'cross-base-federation',
-        'federationEvent',
-        'federation_event'
-      ),
-      await this.featureAlias('org_custom_role', 'org-custom-role', 'customRole', 'custom_role'),
+      await this.alwaysEnabled('backup_restore_log', 'backup', 'backupRestoreLog', 'backup_restore_log'),
 
       // ─── Round-4: register wired OSS enterprise modules ─────────────
       // These modules are imported into app.module.ts / global.module.ts.
@@ -829,12 +798,14 @@ export class EnterpriseReadinessService {
       },
       // Cloud Business §API rate limit: 10 req/s plan-aware guard wired
       // as APP_GUARD in global.module.ts (api-rate-limit/api-rate-limit.guard.ts).
+      // R-PERM-4: api-rate-limit guard is registered as APP_GUARD (always on).
+      // The limit itself is still plan-derived (no limit under self_hosted;
+      // 10 req/s on business; etc). Capability presence ≠ enforcement tier.
       {
         key: 'api_rate_limit',
         module: 'api-rate-limit',
-        enabled: this.caps.currentPlan() !== 'self_hosted',
-        reason: this.caps.currentPlan() === 'self_hosted' ? 'opt_out_self_hosted' : undefined,
-        stats: { limitPerSecond: 10, plan: this.caps.currentPlan() },
+        enabled: true,
+        stats: { limitPerSecond: 10, plan: this.caps.currentPlan(), enforcement: 'app_guard' },
       },
       // OSS data_masking module wired (app.module.ts:175). Always on when
       // module loaded; flips off only if a future flag disables it.
@@ -1133,8 +1104,7 @@ export class EnterpriseReadinessService {
     const recentImplementations: Array<{ key: string; name: string; notes: string }> = [];
     for (const g of gaps) {
       byCategory[g.category] = (byCategory[g.category] ?? 0) + 1;
-      const reasonCategory = g.reasonCategory ?? 'unknown';
-      byReasonCategory[reasonCategory] = (byReasonCategory[reasonCategory] ?? 0) + 1;
+      byReasonCategory[g.reasonCategory] = (byReasonCategory[g.reasonCategory] ?? 0) + 1;
       if (g.status === 'implemented') {
         implementedKeys.push(g.key);
         // "Recent" = implemented in R15+

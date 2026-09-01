@@ -7,7 +7,7 @@ import {
   type IButtonFieldOptions,
   type ILinkFieldOptions,
   FieldKeyType,
-} from '@teable/core';
+  Colors } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import type { ITableFullVo } from '@teable/openapi';
 import { planField, planFieldCreate, planFieldConvert, updateRecord } from '@teable/openapi';
@@ -334,7 +334,7 @@ describe('OpenAPI Graph (e2e)', () => {
       type: FieldType.Button,
       options: {
         label: 'Run',
-        color: 'teal',
+        color: Colors.Teal,
         maxCount: 1,
         resetCount: true,
         confirm: {
@@ -350,7 +350,7 @@ describe('OpenAPI Graph (e2e)', () => {
       options: {
         ...(buttonField.options as IButtonFieldOptions),
         label: 'Deploy',
-        color: 'red',
+        color: Colors.Red,
         maxCount: 2,
         resetCount: false,
         confirm: {

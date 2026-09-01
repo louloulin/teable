@@ -1017,7 +1017,7 @@ IF(
       // Event payload verification only in v1 mode
       if (!isV2Mode) {
         const changes = findLatestRecordChangeMap(events, t2.id, t2.records[0].id);
-        const lkpChange = assertChange(changes[lkp.id]);
+        const lkpChange = assertChange((changes ?? {})[lkp.id]);
         expectNoOldValue(lkpChange);
         expect(lkpChange.newValue).toEqual(456);
       }
@@ -1146,7 +1146,7 @@ IF(
       // Event payload verification only in v1 mode
       if (!isV2Mode) {
         const changes = findLatestRecordChangeMap(events, t1.id, t1.records[0].id);
-        const lkpChange = assertChange(changes[lkp.id]);
+        const lkpChange = assertChange((changes ?? {})[lkp.id]);
         expectNoOldValue(lkpChange);
         expect(lkpChange.newValue).toEqual([123]);
       }
@@ -1201,7 +1201,7 @@ IF(
       // Event payload verification only in v1 mode
       if (!isV2Mode) {
         const changes = findLatestRecordChangeMap(events, t1.id, t1.records[0].id);
-        const lkpChange = assertChange(changes[lkp.id]);
+        const lkpChange = assertChange((changes ?? {})[lkp.id]);
         expectNoOldValue(lkpChange);
         expect(lkpChange.newValue).toBeNull();
       }
@@ -3153,7 +3153,7 @@ IF(
         const changes = (
           Array.isArray(t2Event.payload.record) ? t2Event.payload.record[0] : t2Event.payload.record
         ).fields as FieldChangeMap;
-        const lkpChange = assertChange(changes[lkp.id]);
+        const lkpChange = assertChange((changes ?? {})[lkp.id]);
         expectNoOldValue(lkpChange);
         expect(lkpChange.newValue).toBeNull();
       }

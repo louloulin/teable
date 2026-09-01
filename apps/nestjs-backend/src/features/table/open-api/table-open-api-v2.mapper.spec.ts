@@ -1,4 +1,4 @@
-import { FieldType } from '@teable/core';
+import { FieldType, ViewType } from '@teable/core';
 import { describe, expect, it } from 'vitest';
 
 import { mapLegacyCreateTableToV2Input } from './table-open-api-v2.mapper';
@@ -16,8 +16,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           id: 'fldRollup',
           name: 'Revenue Total',
           type: FieldType.Rollup,
-          cellValueType: 'number',
-          isMultipleCellValue: false,
+          ...({ cellValueType: 'number', isMultipleCellValue: false } as Record<string, unknown>),
           options: {
             expression: sumValuesExpression,
             timeZone: 'UTC',
@@ -29,7 +28,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           },
         },
       ],
-      views: [{ type: 'grid', name: 'Grid' }],
+      views: [{ type: ViewType.Grid, name: 'Grid' }],
       records: [],
     });
 
@@ -60,8 +59,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           id: 'fldConditionalRollup',
           name: 'High Revenue Total',
           type: FieldType.ConditionalRollup,
-          cellValueType: 'number',
-          isMultipleCellValue: false,
+          ...({ cellValueType: 'number', isMultipleCellValue: false } as Record<string, unknown>),
           options: {
             foreignTableId,
             lookupFieldId: revenueFieldId,
@@ -79,7 +77,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           type: FieldType.SingleLineText,
           isLookup: true,
           isConditionalLookup: true,
-          isMultipleCellValue: true,
+          ...({ isMultipleCellValue: true } as Record<string, unknown>),
           options: {
             formatting: { type: 'singleLineText' },
           },
@@ -93,7 +91,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           },
         },
       ],
-      views: [{ type: 'grid', name: 'Grid' }],
+      views: [{ type: ViewType.Grid, name: 'Grid' }],
       records: [],
     });
 
@@ -152,7 +150,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           type: FieldType.SingleLineText,
         },
       ],
-      views: [{ type: 'grid', name: 'Grid' }],
+      views: [{ type: ViewType.Grid, name: 'Grid' }],
       records: [],
     });
 
@@ -184,7 +182,7 @@ describe('mapLegacyCreateTableToV2Input', () => {
           },
         },
       ],
-      views: [{ type: 'grid', name: 'Grid' }],
+      views: [{ type: ViewType.Grid, name: 'Grid' }],
       records: [],
     });
 

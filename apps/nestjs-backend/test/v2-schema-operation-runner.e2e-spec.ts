@@ -164,7 +164,7 @@ describeV2('V2 schema operation runner recovery (e2e)', () => {
   it('repairs a failed schema-only table create operation from the Nest background runner', async () => {
     const createRes = await apiCreateTable(baseId, {
       name: 'Schema operation recovery',
-      fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+      fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
       records: [],
     });
     expect(createRes.status).toBe(201);
@@ -220,7 +220,7 @@ describeV2('V2 schema operation runner recovery (e2e)', () => {
     const createRes = await apiCreateTable(baseId, {
       name: 'Record update data failure availability',
       fields: [
-        { name: 'Name', type: FieldType.SingleLineText, isPrimary: true },
+        { name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) },
         {
           name: 'Status',
           type: FieldType.SingleSelect,
@@ -286,7 +286,7 @@ describeV2('V2 schema operation runner recovery (e2e)', () => {
     const createRes = await apiCreateTable(baseId, {
       name: 'Computed backfill data failure availability',
       fields: [
-        { name: 'Name', type: FieldType.SingleLineText, isPrimary: true },
+        { name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) },
         { name: 'Amount', type: FieldType.Number },
       ],
       records: [],

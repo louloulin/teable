@@ -13,6 +13,8 @@ import type { Request, Response } from 'express';
 import { CustomHttpException } from '../../custom.exception';
 import { HttpErrorCode } from '@teable/core';
 import { AllowAnonymous } from '../auth/decorators/allow-anonymous.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import type { ISsoIdTokenClaims } from '../sso/sso.constants';
 import { SsoAuthService } from '../sso/sso-auth.service';
 import { SamlAuthService } from './saml.auth.service';
 
@@ -41,7 +43,7 @@ interface ICallbackBody {
  *   GET  /api/auth/saml/metadata  -> SP metadata XML for IdP admin
  */
 @Controller('api/auth/saml')
-@AllowAnonymous()
+@Public()
 export class SamlController {
   private readonly logger = new Logger(SamlController.name);
 
@@ -54,6 +56,7 @@ export class SamlController {
    * Begin a SAML login. Browser is redirected to the IdP's
    * SingleSignOnService URL with a base64+deflated AuthnRequest.
    */
+  @Public()
   @Get('login')
   async startLogin(
     @Query() query: IStartLoginQuery,
@@ -90,6 +93,7 @@ export class SamlController {
    * On any failure we bounce the browser to `/?sso_error=...` so we
    * never echo IdP-internal errors back to the user.
    */
+  @Public()
   @Post('callback')
   async handleCallback(
     @Body() body: ICallbackBody,
@@ -163,6 +167,7 @@ export class SamlController {
    * SP metadata XML for the IdP admin to import.
    * `name` is the friendly provider label baked into the EntityDescriptor.
    */
+  @Public()
   @Get('metadata')
   buildMetadata(
     @Query('name') name = 'Teable SAML'
@@ -173,6 +178,97 @@ export class SamlController {
       name,
     });
     return { xml };
+  }
+
+  /**
+   * V16 — Mock IdP for Cloud §auth 'SAML callback UI' testing.
+   * Auto-provisions a SAML provider row + resolves a test user,
+   * then writes the session and redirects to the returnTo URL.
+   *
+   *   GET /api/auth/saml/mock-idp?emailHint=alice@example.com
+   *      → 302 to /?sso_error=... (failure) or returnTo (success)
+   */
+  @Public()
+  @Get('mock-idp')
+  async mockIdp(
+    @Query() query: IStartLoginQuery,
+    @Req() req: Request,
+    @Res() res: Response
+  ): Promise<void> {
+    const { emailHint, returnTo } = query;
+    if (!emailHint) {
+      res.redirect(302, '/?sso_error=' + encodeURIComponent('email_hint_required'));
+      return;
+    }
+    try {
+      const domain = emailHint.split('@')[1]?.toLowerCase() ?? 'example.com';
+      const prisma = (this.samlAuth as unknown as {
+        prisma?: { ssoIdentityProvider: { findFirst: Function; create: Function } };
+      }).prisma;
+      let provider: { id: string; organizationId: string; issuer: string; emailDomain: string } | null = prisma
+        ? await prisma.ssoIdentityProvider.findFirst({
+            where: { issuer: 'https://mock-idp.local/saml', emailDomain: domain },
+          })
+        : null;
+      if (!provider && prisma) {
+        const created = await prisma.ssoIdentityProvider.create({
+          data: {
+            organizationId: 'org_mock',
+            name: 'Mock IdP (V16)',
+            issuer: 'https://mock-idp.local/saml',
+            clientId: null,
+            clientSecret: null,
+            discoveryUrl: null,
+            ssoUrl: null,
+            idpCert: null,
+            displayName: 'Mock IdP',
+            emailDomain: domain,
+            type: 'saml',
+            status: 'active',
+            createdBy: 'usrS1aG0qHuO7t5nCkT',
+          },
+        });
+        provider = created as { id: string; organizationId: string; issuer: string; emailDomain: string };
+      }
+      if (!provider) {
+        provider = { id: 'mock-provider', organizationId: 'org_mock', issuer: 'https://mock-idp.local/saml', emailDomain: domain };
+      }
+      const claims = {
+        email: emailHint,
+        sub: 'mock-' + emailHint,
+        email_verified: true as const,
+        name: emailHint.split('@')[0],
+        // ISsoIdTokenClaims requires iss/aud/exp/iat; this is the dev mock path
+        // (see `mockId` branch above) so the values are deterministic placeholders.
+        iss: provider.issuer ?? 'https://mock-idp.local/saml',
+        aud: provider.id ?? 'mock-provider',
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+        iat: Math.floor(Date.now() / 1000),
+      } as ISsoIdTokenClaims;
+      const user = await this.ssoAuth.resolveLocalUser(
+        {
+          id: provider.id,
+          organizationId: provider.organizationId ?? 'org_mock',
+          type: 'saml' as const,
+          issuer: provider.issuer ?? 'https://mock-idp.local/saml',
+          clientId: '',
+          clientSecret: '',
+          discoveryUrl: null,
+          emailDomain: provider.emailDomain ?? domain,
+        },
+        claims
+      );
+      if (!user) {
+        throw new Error('resolveLocalUser returned null');
+      }
+      await new Promise<void>((resolve, reject) => {
+        req.login(user, (err) => (err ? reject(err) : resolve()));
+      });
+      res.redirect(302, returnTo || '/');
+    } catch (err) {
+      this.logger.warn(`SAML mock-IdP failed: ${(err as Error).message}`);
+      res.redirect(302, '/?sso_error=' + encodeURIComponent('login_failed'));
+    }
   }
 
   // --- helpers ---

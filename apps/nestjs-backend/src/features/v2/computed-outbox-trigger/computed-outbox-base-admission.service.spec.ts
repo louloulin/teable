@@ -38,6 +38,19 @@ const runAdmissionScript = (script: string, state: RedisScriptState, args: unkno
   return 1;
 };
 
+// R-CLEAN-1 — createDeferred (es2024) is not in the current tsconfig lib.
+// We declare a tiny local polyfill so the spec compiles without bumping the
+// production target. Behaviour matches the standard proposal exactly.
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+};
+
 describe('ComputedOutboxBaseAdmissionService', () => {
   const evalRedis = vi.fn();
   const createService = () =>
@@ -115,7 +128,7 @@ describe('ComputedOutboxBaseAdmissionService', () => {
     evalRedis.mockImplementation((script, _keyCount, _key, ...args) =>
       runAdmissionScript(script, state, args)
     );
-    const operationGate = Promise.withResolvers<void>();
+    const operationGate = createDeferred<void>();
     const result = createService().runWithPermit('bse123', async (permit) => {
       await operationGate.promise;
       permit.assertActive();
@@ -205,12 +218,12 @@ describe('ComputedOutboxBaseAdmissionService', () => {
 
   it('fails the operation when renewal does not settle', async () => {
     vi.useFakeTimers();
-    const stalledRenewal = Promise.withResolvers<never>();
+    const stalledRenewal = createDeferred<never>();
     evalRedis
       .mockResolvedValueOnce(1)
       .mockReturnValueOnce(stalledRenewal.promise)
       .mockResolvedValueOnce(1);
-    const operationGate = Promise.withResolvers<void>();
+    const operationGate = createDeferred<void>();
     const result = createService().runWithPermit('bse123', async (permit) => {
       await operationGate.promise;
       permit.assertActive();
@@ -246,13 +259,13 @@ describe('ComputedOutboxBaseAdmissionService', () => {
 
   it('stops local work after the last Redis-confirmed lease even when renewal stalls', async () => {
     vi.useFakeTimers();
-    const stalledRenewal = Promise.withResolvers<never>();
+    const stalledRenewal = createDeferred<never>();
     evalRedis
       .mockResolvedValueOnce(1)
       .mockReturnValueOnce(stalledRenewal.promise)
       .mockResolvedValueOnce(1);
     let permit: Parameters<Parameters<ComputedOutboxBaseAdmissionService['runWithPermit']>[1]>[0];
-    const operationGate = Promise.withResolvers<void>();
+    const operationGate = createDeferred<void>();
     const result = createService().runWithPermit('bse123', async (activePermit) => {
       permit = activePermit;
       await operationGate.promise;

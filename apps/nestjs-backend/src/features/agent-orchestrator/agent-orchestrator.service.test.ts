@@ -114,4 +114,63 @@ describe('AgentOrchestratorService', () => {
       })
     );
   });
+  it('streams replies via the optional LLM stream() and persists the accumulated text', async () => {
+    async function* stream() {
+      yield 'hello ';
+      yield 'world';
+    }
+    const service = new AgentOrchestratorService(
+      { chat: vi.fn(), stream },
+      { route: vi.fn().mockResolvedValue({ system: 'system', tools: [] }) }
+    );
+
+    const result = await service.handleStream('conversation-1', 'user-1', {
+      user_id: 'user-1',
+      text: 'hi',
+    });
+
+    expect(result.text).toBe('hello world');
+    expect(result.deltas).toBe(2);
+    const ctx = service.inspect('conversation-1');
+    expect(ctx?.messages.map((m) => m.role)).toStrictEqual(['user', 'assistant']);
+    expect(ctx?.messages[1].content).toBe('hello world');
+  });
+
+  it('falls back to chat() when the LLM has no stream() method', async () => {
+    const chat = vi.fn().mockResolvedValue({ text: 'plain reply' });
+    const service = new AgentOrchestratorService(
+      { chat /* no stream */ },
+      { route: vi.fn().mockResolvedValue({ system: 'system', tools: [] }) }
+    );
+
+    const result = await service.handleStream('conversation-1', 'user-1', {
+      user_id: 'user-1',
+      text: 'hi',
+    });
+
+    expect(result.text).toBe('plain reply');
+    expect(result.deltas).toBe(1);
+    expect(chat).toHaveBeenCalled();
+  });
+
+  it('lists conversations scoped to a user, newest-first', () => {
+    const service = new AgentOrchestratorService(
+      { chat: vi.fn() },
+      { route: vi.fn().mockResolvedValue({ system: 'system', tools: [] }) }
+    );
+
+    service.handle('conv-a', 'user-1', { user_id: 'user-1', text: 'a' }).catch(() => undefined);
+    service.handle('conv-b', 'user-1', { user_id: 'user-1', text: 'b' }).catch(() => undefined);
+    service.handle('conv-c', 'user-2', { user_id: 'user-2', text: 'c' }).catch(() => undefined);
+
+    const list = service.listConversations('user-1');
+    expect(list.map((c) => c.conversationId).sort()).toStrictEqual(['conv-a', 'conv-b']);
+    expect(list.every((c) => typeof c.updatedAt === 'number')).toBe(true);
+
+    const other = service.listConversations('user-2');
+    expect(other.map((c) => c.conversationId)).toStrictEqual(['conv-c']);
+
+    const none = service.listConversations('user-3');
+    expect(none).toStrictEqual([]);
+  });
 });

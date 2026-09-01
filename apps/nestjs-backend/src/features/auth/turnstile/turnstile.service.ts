@@ -21,6 +21,12 @@ interface ITurnstileValidationRequest {
   idempotency_key?: string;
 }
 
+function isTurnstileValidationResponse(value: unknown): value is ITurnstileValidationResponse {
+  if (typeof value !== 'object' || value === null) return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.success === 'boolean';
+}
+
 @Injectable()
 export class TurnstileService {
   private readonly logger = new Logger(TurnstileService.name);
@@ -103,7 +109,12 @@ export class TurnstileService {
         return { valid: false, reason: 'api_error' };
       }
 
-      const result: ITurnstileValidationResponse = await response.json();
+      const parsed: unknown = await response.json();
+      if (!isTurnstileValidationResponse(parsed)) {
+        this.logger.error('Turnstile API returned an invalid response payload');
+        return { valid: false, reason: 'invalid_response' };
+      }
+      const result = parsed;
 
       if (!result.success) {
         this.logger.warn('Turnstile validation failed', {

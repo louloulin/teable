@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
-import { ClsService } from 'nestjs-cls';
+import { ClsService, type ClsService as ClsServiceType } from 'nestjs-cls';
 import type { IClsStore } from '../../../types/cls';
 import type { IFieldLoaderData, IFieldLoaderItem } from '../../../types/data-loader';
 import { TableCommonLoader } from './table-common-loader';
@@ -17,8 +17,8 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
   ) {
     super({
       filterDataByParentId: (tableId: string) => this.getFieldsInCache(tableId),
-      getLoaderData: () => this.cls.get('dataLoaderCache.fieldData'),
-      setLoaderData: (data: IFieldLoaderData) => this.cls.set('dataLoaderCache.fieldData', data),
+      getLoaderData: () => (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).get('dataLoaderCache.fieldData'),
+      setLoaderData: (data: IFieldLoaderData) => (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).set('dataLoaderCache.fieldData', data),
       findManyByParentId: (
         tableId: string,
         keys?: Partial<Record<keyof IFieldLoaderItem, unknown[]>>
@@ -56,13 +56,13 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
             this.cacheSet++;
             return fields;
           }),
-      clear: () => this.cls.set('dataLoaderCache.fieldData', undefined),
-      isEnable: () => cls.get('dataLoaderCache.cacheKeys')?.includes('field'),
+      clear: () => (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).set('dataLoaderCache.fieldData', undefined),
+      isEnable: () => (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).get('dataLoaderCache.cacheKeys')?.includes('field'),
     });
   }
 
   private getFieldsInCache(tableId: string): IFieldLoaderItem[] {
-    const fieldMap = this.cls.get('dataLoaderCache.fieldData.dataMap');
+    const fieldMap = (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).get('dataLoaderCache.fieldData.dataMap');
     if (!fieldMap?.size) {
       return [];
     }
@@ -92,7 +92,7 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
       return;
     }
 
-    const loaderData = this.cls.get('dataLoaderCache.fieldData');
+    const loaderData = (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).get('dataLoaderCache.fieldData');
     if (!loaderData) {
       return;
     }
@@ -112,7 +112,7 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
       }
     }
 
-    this.cls.set('dataLoaderCache.fieldData', loaderData);
+    (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).set('dataLoaderCache.fieldData', loaderData);
   }
 
   resetStat() {

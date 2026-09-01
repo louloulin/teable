@@ -4,6 +4,7 @@ import {
   DEFAULT_TEABLE_ROUTES,
   InMemoryRouteCatalog,
 } from './api-explorer.auth.service';
+import type { IRouteCatalog } from './api-explorer.auth.service';
 
 describe('ApiExplorerAuthService', () => {
   it('returns OpenAPI JSON', async () => {
@@ -28,12 +29,12 @@ describe('ApiExplorerAuthService', () => {
     expect(out.body).toContain('automation.list');
   });
   it('honours a custom catalog', async () => {
-    const catalog = {
+    const catalog: IRouteCatalog = {
       async listRoutes() {
         return [
           {
             operationId: 'custom.thing',
-            method: 'GET',
+            method: 'GET' as const,
             path: '/api/custom',
             summary: 'Custom',
           },

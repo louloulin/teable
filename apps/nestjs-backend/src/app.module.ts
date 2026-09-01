@@ -14,8 +14,8 @@ import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orc
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
-import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
 import { AiAppBuilderModule } from './features/ai-app-builder/ai-app-builder.module';
+import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
 import { AiSettingModule } from './features/ai-setting/ai-setting.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
@@ -31,9 +31,6 @@ import { ApiExplorerModule } from './features/api-explorer/api-explorer.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuditSourceModule } from './features/audit/audit.module';
 import { AuditExportModule } from './features/audit-export/audit-export.module';
-import { BillingModule } from './features/billing/billing.module';
-import { ByokKmsModule } from './features/byok-kms/byok-kms.module';
-import { ByokLlmModule } from './features/byok-llm/byok-llm.module';
 import { AuthModule } from './features/auth/auth.module';
 import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
@@ -70,6 +67,7 @@ import { HealthModule } from './features/health/health.module';
 import { ImBridgeModule } from './features/im-bridge/im-bridge.module';
 import { ImportOpenApiModule } from './features/import/open-api/import-open-api.module';
 import { InstanceSkillModule } from './features/instance-skills/instance-skill.module';
+import { SkillScopeModule } from './features/skill-scope/skill-scope.module';
 import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
 import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
@@ -176,6 +174,7 @@ export const appModules = {
     AdminOpenApiModule,
     EnterpriseReadinessModule,
     InstanceSkillModule,
+    SkillScopeModule,
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
@@ -203,9 +202,6 @@ export const appModules = {
     TotpModule,
     DataMaskingModule,
     AuditExportModule,
-    BillingModule,
-    ByokKmsModule,
-    ByokLlmModule,
     ApiExplorerModule,
     ScimModule,
     PermissionMatrixModule,

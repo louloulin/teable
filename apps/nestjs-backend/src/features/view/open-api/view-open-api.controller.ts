@@ -122,7 +122,25 @@ export class ViewOpenApiController {
   @Permissions('view|read')
   @Get()
   async getViews(@Param('tableId') tableId: string): Promise<IViewVo[]> {
-    return await this.viewService.getViews(tableId);
+    const views = await this.viewService.getViews(tableId);
+    // R-PERM-2 last-mile: when the permission matrix is wired AND a user is
+    // in CLS, honour the per-view allow list so view-restricted roles don't
+    // see views they aren't granted. Returning the full set is allowed when:
+    //   - permissionMatrix is not wired (unit tests)
+    //   - no user in CLS (anonymous + AllowAnonymous route)
+    //   - resolveViewsAccessibleForUser returns null (admin-equivalent / no restrictions)
+    if (!this.permissionMatrix) return views;
+    const userId = this.cls.get('user')?.id;
+    if (!userId) return views;
+    const baseId = await this.tableDomainQueryService.getTableDomainById(tableId);
+    const allowed = await this.permissionMatrix.resolveViewsAccessibleForUser(
+      baseId.id,
+      userId,
+      tableId
+    );
+    if (allowed === null) return views;
+    const allowedSet = new Set(allowed);
+    return views.filter((v) => allowedSet.has(v.id));
   }
 
   @Permissions('view|create')

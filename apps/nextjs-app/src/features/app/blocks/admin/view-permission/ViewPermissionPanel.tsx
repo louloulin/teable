@@ -16,9 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '@teable/ui-lib';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 import { useState } from 'react';
+import { AuthorityMatrixPanel } from './AuthorityMatrixPanel';
 
 type ViewPermissionLevel = 'read' | 'write' | 'owner' | 'denied';
 type ViewSubjectKind = 'user' | 'role';
@@ -89,7 +94,20 @@ export const ViewPermissionPanel = () => {
   });
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-6">
+    <div className="flex flex-1 flex-col gap-4 p-6" data-testid="view-permission-root">
+      <Tabs defaultValue="authority" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="authority" className="text-xs" data-testid="view-permission-tab-authority">
+            Authority Matrix
+          </TabsTrigger>
+          <TabsTrigger value="acl" className="text-xs" data-testid="view-permission-tab-acl">
+            View ACL
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="authority">
+          <AuthorityMatrixPanel />
+        </TabsContent>
+        <TabsContent value="acl">
       <Card>
         <CardHeader>
           <CardTitle>View Permission</CardTitle>
@@ -196,6 +214,8 @@ export const ViewPermissionPanel = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

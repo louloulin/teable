@@ -24,6 +24,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 import { useChatPanelStore } from '../sidebar/useChatPanelStore';
+import { ArtifactPanel } from './ArtifactPanel';
+import { AtNodePicker } from './AtNodePicker';
 
 // ──────────────────────────── Types ────────────────────────────
 
@@ -45,6 +47,14 @@ interface IArtifactRow {
   versions: number;
   createdAt: string;
   shared: boolean;
+}
+
+interface IAtNodeRefRow {
+  nodeId: string;
+  kind: string;
+  refId: string;
+  label: string;
+  addedAt: string;
 }
 
 // ──────────────────────────── Helpers ────────────────────────────
@@ -255,26 +265,16 @@ function ArtifactsPanel({
       {artifacts.length === 0 ? (
         <div className="text-xs text-muted-foreground">No artifacts yet.</div>
       ) : (
-        <ul className="space-y-1">
+        <div className="space-y-2" data-testid="artifact-list">
           {artifacts.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-2 text-xs">
-              <div>
-                <div className="font-medium">{a.name}</div>
-                <div className="text-muted-foreground">
-                  {a.kind} · v{a.versions}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => remove.mutate(a.id)}
-                disabled={remove.isPending}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </li>
+            <ArtifactPanel
+              key={a.id}
+              row={a}
+              conversationId={conversationId}
+              onChanged={onChanged}
+            />
           ))}
-        </ul>
+        </div>
       )}
       <div className="mt-2 flex flex-col gap-1">
         <Input placeholder="name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -368,6 +368,17 @@ export function ChatPanel() {
         .then((r) => r.data.artifacts ?? []),
   });
 
+  const nodesQuery = useQuery({
+    queryKey: ['cuppy', 'nodes', conversationId],
+    enabled: Boolean(conversationId),
+    queryFn: () =>
+      axios
+        .get<{ nodes: IAtNodeRefRow[] }>(
+          `/api/cuppy/conversations/${conversationId}/nodes`
+        )
+        .then((r) => r.data.nodes ?? []),
+  });
+
   const smartLevelQuery = useQuery({
     queryKey: ['cuppy', 'smart-level', conversationId],
     enabled: Boolean(conversationId),
@@ -398,6 +409,7 @@ export function ChatPanel() {
   const invalidateAll = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['cuppy', 'memory', conversationId] });
     void queryClient.invalidateQueries({ queryKey: ['cuppy', 'artifacts', conversationId] });
+    void queryClient.invalidateQueries({ queryKey: ['cuppy', 'nodes', conversationId] });
   }, [queryClient, conversationId]);
 
   const send = useMutation({
@@ -525,6 +537,12 @@ export function ChatPanel() {
             </Button>
           </div>
         </div>
+
+        <AtNodePicker
+          conversationId={conversationId}
+          nodes={(nodesQuery.data ?? []) as unknown as Parameters<typeof AtNodePicker>[0]['nodes']}
+          onChanged={invalidateAll}
+        />
 
         <div className="border-b">
           {tab === 'memory' ? (

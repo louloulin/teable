@@ -311,10 +311,11 @@ describe('OpenAPI Record-Search-Query (e2e)', async () => {
         query
       );
 
-      expect(res.data.extra?.searchHitIndex).toBeDefined();
-      expect(res.data.extra?.searchHitIndex?.length).toBeGreaterThan(0);
+      const searchHitIndex = (res.data.extra?.searchHitIndex ?? []) as Array<{ fieldId: string }>;
+      expect(searchHitIndex).toBeDefined();
+      expect(searchHitIndex.length).toBeGreaterThan(0);
       // searchHitIndex should only contain fields within the projection
-      res.data.extra?.searchHitIndex?.forEach((hit) => {
+      searchHitIndex.forEach((hit) => {
         expect(projectionFieldIds).toContain(hit.fieldId);
       });
     });

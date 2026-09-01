@@ -160,6 +160,9 @@ export class AiAppBuilderService {
       });
       // Refetch app so caller sees the new currentVersionId.
       const updatedApp = await tx.appInstance.findUnique({ where: { id: appId } });
+      if (!updatedApp) {
+        throw new Error(`App ${appId} disappeared while deploying`);
+      }
       return { app: updatedApp, version };
     });
   }
@@ -172,7 +175,7 @@ export class AiAppBuilderService {
   async rollback(appId: string, deployedBy: string) {
     const app = await this.getApp(appId);
     if (!app.currentVersionId) {
-      throw new CustomHttpException('no current version to roll back from', HttpErrorCode.BAD_REQUEST);
+      throw new CustomHttpException('no current version to roll back from', HttpErrorCode.VALIDATION_ERROR);
     }
     const current = await this.prisma.appVersion.findUnique({ where: { id: app.currentVersionId } });
     if (!current) {
@@ -183,7 +186,7 @@ export class AiAppBuilderService {
       orderBy: { versionNumber: 'desc' },
     });
     if (!previous) {
-      throw new CustomHttpException('no previous version to roll back to', HttpErrorCode.BAD_REQUEST);
+      throw new CustomHttpException('no previous version to roll back to', HttpErrorCode.VALIDATION_ERROR);
     }
     return this.prisma.$transaction(async (tx) => {
       await tx.appVersion.update({
@@ -200,6 +203,9 @@ export class AiAppBuilderService {
       });
       // Refetch app so caller sees the new currentVersionId.
       const updatedApp = await tx.appInstance.findUnique({ where: { id: appId } });
+      if (!updatedApp) {
+        throw new Error(`App ${appId} disappeared while rolling back`);
+      }
       return { app: updatedApp, current, previous };
     });
   }
@@ -217,7 +223,7 @@ export class AiAppBuilderService {
     if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
       throw new CustomHttpException(
         'secret key must start with uppercase and contain only uppercase, digits, underscores',
-        HttpErrorCode.BAD_REQUEST
+        HttpErrorCode.VALIDATION_ERROR
       );
     }
     const id = this.newId('sec');

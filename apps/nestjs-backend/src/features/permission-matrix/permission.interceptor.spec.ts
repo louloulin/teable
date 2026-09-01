@@ -16,6 +16,20 @@ const matrix = (): PermissionMatrixService => {
   return fake as unknown as PermissionMatrixService;
 };
 
+const role = (overrides: Partial<IPermissionRoleVo> = {}): IPermissionRoleVo => ({
+  id: 'r1',
+  baseId: 'b1',
+  name: 'role',
+  description: null,
+  status: 'enabled',
+  members: [],
+  nodes: [],
+  fieldPermissions: [],
+  recordActions: [],
+  recordFilter: null,
+  ...overrides,
+});
+
 const cls = (user?: { id: string }) =>
   ({
     get: (key: string) => (key === 'user' ? user : undefined),
@@ -37,13 +51,12 @@ describe('PermissionInterceptor.response projection', () => {
   it('stashes the resolved row filter before invoking the handler', async () => {
     const m = matrix();
     (m.resolveRolesForUser as Mock).mockResolvedValueOnce([
-      {
+      role({
         nodes: [{ tableId: 't1', access: 'editable' }],
         recordActions: [{ tableId: 't1', action: 'view' }],
-        fieldPermissions: [],
         recordFilter: { tableId: 't1', filter: { ownerId: '$current_user' } },
-      },
-    ] as IPermissionRoleVo[]);
+      }),
+    ]);
     (m.mergeRecordFilters as Mock).mockReturnValueOnce({ ownerId: '$current_user' });
     (m.applyCurrentUser as Mock).mockReturnValueOnce({ ownerId: 'u1' });
     const req = { params: { tableId: 't1', baseId: 'b1' } } as Record<string, unknown>;
@@ -57,8 +70,8 @@ describe('PermissionInterceptor.response projection', () => {
   it('projects hidden fields to null in record envelopes', async () => {
     const m = matrix();
     (m.resolveRolesForUser as Mock).mockResolvedValueOnce([
-      { nodes: [], recordActions: [], fieldPermissions: [] },
-    ] as IPermissionRoleVo[]);
+      role(),
+    ]);
     (m.fieldAccess as Mock).mockImplementation((_r, _t, fid: string) =>
       fid === 'secret' ? ('hidden' as const) : ('editable' as const)
     );
@@ -77,7 +90,7 @@ describe('PermissionInterceptor.response projection', () => {
           { id: 'r2', fields: { name: 'bob', secret: 'leak2' } },
         ],
       },
-      [{ nodes: [], recordActions: [], fieldPermissions: [] } as IPermissionRoleVo],
+      [role()],
       't1'
     ) as { records: Array<{ fields: Record<string, unknown> }> };
 

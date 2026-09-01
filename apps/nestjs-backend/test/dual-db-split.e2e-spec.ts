@@ -12,6 +12,9 @@ import {
   getTrashItems,
   redo,
   ResourceType,
+  TableTrashType,
+  TrashType,
+
   restoreTrash,
   undo,
 } from '@teable/openapi';
@@ -219,7 +222,7 @@ describeSplitDb('Dual DB split smoke (e2e)', () => {
 
   afterAll(async () => {
     if (baseConfigService) {
-      baseConfigService.recordHistoryDisabled = recordHistoryDisabled;
+      baseConfigService.recordHistoryDisabled = recordHistoryDisabled ?? false;
     }
     eventEmitterService?.eventEmitter.removeAllListeners(Events.RECORD_HISTORY_CREATE);
     await app?.close();
@@ -228,14 +231,14 @@ describeSplitDb('Dual DB split smoke (e2e)', () => {
   it('keeps metadata in meta DB and data artifacts in data DB', async () => {
     const mainTable = await createTable(baseId, {
       name: 'Split smoke main',
-      fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+      fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
       records: [{ fields: { Name: 'Source row' } }],
     });
     createdTables.push(mainTable);
 
     const foreignTable = await createTable(baseId, {
       name: 'Split smoke foreign',
-      fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+      fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
       records: [{ fields: { Name: 'Foreign row' } }],
     });
     createdTables.push(foreignTable);
@@ -297,7 +300,7 @@ describeSplitDb('Dual DB split smoke (e2e)', () => {
   itV1SplitDb('keeps record trash snapshots in data DB through restore and undo/redo', async () => {
     const table = await createTable(baseId, {
       name: 'Split trash smoke',
-      fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+      fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
       records: [{ fields: { Name: 'Trash row' } }],
     });
     createdTables.push(table);
@@ -314,10 +317,10 @@ describeSplitDb('Dual DB split smoke (e2e)', () => {
     await expect(countTableTrash(metaPrisma, table.id, ResourceType.Record)).resolves.toBe(0);
     await expect(countRecordTrash(metaPrisma, table.id, recordId)).resolves.toBe(0);
 
-    const trash = await getTrashItems({ resourceId: table.id, resourceType: ResourceType.Table });
+    const trash = await getTrashItems({ resourceId: table.id, resourceType: TrashType.Table });
     const recordTrashItem = trash.data.trashItems.find(
       (item) =>
-        item.resourceType === ResourceType.Record &&
+        item.resourceType === TableTrashType.Record &&
         'resourceIds' in item &&
         item.resourceIds.includes(recordId)
     );
@@ -371,7 +374,7 @@ describeSplitDb('Dual DB split smoke (e2e)', () => {
   itV2SplitDb('keeps forced v2 table and record delete artifacts in the data DB', async () => {
     const createRes = await apiCreateTable(baseId, {
       name: 'Split v2 smoke',
-      fields: [{ name: 'Name', type: FieldType.SingleLineText, isPrimary: true }],
+      fields: [{ name: 'Name', type: FieldType.SingleLineText, ...({ isPrimary: true } as Record<string, unknown>) }],
       records: [{ fields: { Name: 'V2 row' } }],
     });
     expect(createRes.status).toBe(201);

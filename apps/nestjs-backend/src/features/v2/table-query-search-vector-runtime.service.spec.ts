@@ -38,7 +38,13 @@ describe('TableQuerySearchVectorRuntimeService', () => {
       languageConfig: 'simple',
       searchScope: 'all_fields',
     });
-    expect(accessPath?.coveredFieldIds.map((id) => id.toString())).toEqual([fieldId]);
+    expect(
+      (
+        accessPath as unknown as {
+          coveredFieldIds: ReadonlyArray<{ toString(): string }>;
+        } | null
+    )?.coveredFieldIds?.map((id: { toString(): string }) => id.toString())
+    ).toEqual([fieldId]);
   });
 
   it('converts a ready substring config into a generated text access path', () => {
@@ -59,7 +65,13 @@ describe('TableQuerySearchVectorRuntimeService', () => {
       provider: 'pg_bigm',
       searchScope: 'all_fields',
     });
-    expect(accessPath?.coveredFieldIds.map((id) => id.toString())).toEqual([fieldId]);
+    expect(
+      (
+        accessPath as unknown as {
+          coveredFieldIds: ReadonlyArray<{ toString(): string }>;
+        } | null
+    )?.coveredFieldIds?.map((id: { toString(): string }) => id.toString())
+    ).toEqual([fieldId]);
   });
 
   it('does not create an access path when covered fields are missing or invalid', () => {

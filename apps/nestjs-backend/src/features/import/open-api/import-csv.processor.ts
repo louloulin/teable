@@ -21,7 +21,7 @@ import type {
 } from '@teable/openapi';
 import { Job, Queue } from 'bullmq';
 import { chunk as chunkArray, toString } from 'lodash';
-import { ClsService } from 'nestjs-cls';
+import { ClsService, type ClsService as ClsServiceType } from 'nestjs-cls';
 import { I18nService } from 'nestjs-i18n';
 import Papa from 'papaparse';
 import type { CreateOp } from 'sharedb';
@@ -191,8 +191,9 @@ export class ImportTableCsvQueueProcessor extends WorkerHost {
     const errorCollector = new ImportErrorCollector();
 
     await this.cls.run(async () => {
-      this.cls.set('user.id', job.data.userId);
-      this.cls.set('origin', job.data.origin!);
+      const cls = this.cls as ClsServiceType<Pick<IClsStore, 'user' | 'origin' | 'audit'>>;
+      cls.set('user.id', job.data.userId);
+      cls.set('origin', job.data.origin!);
       await this.audit.withOperation(
         {
           rootAction: auditMeta.rootAction,

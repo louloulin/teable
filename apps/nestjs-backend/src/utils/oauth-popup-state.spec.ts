@@ -35,17 +35,17 @@ describe('oauth popup state', () => {
   it('does not use a deterministic signing key in production', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousSecret = process.env.SECRET_KEY;
-    process.env.NODE_ENV = 'production';
-    delete process.env.SECRET_KEY;
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    delete (process.env as Record<string, string | undefined>).SECRET_KEY;
     try {
       expect(() => createOAuthPopupState('notion', 'spc-production')).toThrow(
         'SECRET_KEY is required for OAuth popup state signing in production'
       );
     } finally {
-      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = previousNodeEnv;
-      if (previousSecret === undefined) delete process.env.SECRET_KEY;
-      else process.env.SECRET_KEY = previousSecret;
+      if (previousNodeEnv === undefined) delete (process.env as Record<string, string | undefined>).NODE_ENV;
+      else (process.env as Record<string, string | undefined>).NODE_ENV = previousNodeEnv;
+      if (previousSecret === undefined) delete (process.env as Record<string, string | undefined>).SECRET_KEY;
+      else (process.env as Record<string, string | undefined>).SECRET_KEY = previousSecret;
     }
   });
 });

@@ -14,6 +14,20 @@ const matrix = (): PermissionMatrixService => {
   return fake as unknown as PermissionMatrixService;
 };
 
+const role = (overrides: Partial<IPermissionRoleVo> = {}): IPermissionRoleVo => ({
+  id: 'r1',
+  baseId: 'b1',
+  name: 'role',
+  description: null,
+  status: 'enabled',
+  members: [],
+  nodes: [],
+  fieldPermissions: [],
+  recordActions: [],
+  recordFilter: null,
+  ...overrides,
+});
+
 const cls = (user?: { id: string }) =>
   ({
     get: (key: string) => (key === 'user' ? user : undefined),
@@ -47,8 +61,8 @@ describe('PermissionGuard', () => {
   it('throws when role set disallows the action', async () => {
     const m = matrix();
     (m.resolveRolesForUser as import('vitest').Mock).mockResolvedValueOnce([
-      { nodes: [], recordActions: [], fieldPermissions: [] },
-    ] as IPermissionRoleVo[]);
+      role(),
+    ]);
     (m.allowsAction as import('vitest').Mock).mockReturnValueOnce(false);
     const guard = new PermissionGuard(m, cls({ id: 'u1' }), reflector('delete'));
     await expect(
@@ -59,8 +73,8 @@ describe('PermissionGuard', () => {
   it('allows when role set permits the action', async () => {
     const m = matrix();
     (m.resolveRolesForUser as import('vitest').Mock).mockResolvedValueOnce([
-      { nodes: [], recordActions: [], fieldPermissions: [] },
-    ] as IPermissionRoleVo[]);
+      role(),
+    ]);
     const guard = new PermissionGuard(m, cls({ id: 'u1' }), reflector('view'));
     expect(await guard.canActivate(execCtx({ params: { tableId: 't1', baseId: 'b1' } }))).toBe(
       true
@@ -70,8 +84,8 @@ describe('PermissionGuard', () => {
   it('throws when body tries to set a hidden field', async () => {
     const m = matrix();
     (m.resolveRolesForUser as import('vitest').Mock).mockResolvedValueOnce([
-      { nodes: [], recordActions: [], fieldPermissions: [] },
-    ] as IPermissionRoleVo[]);
+      role(),
+    ]);
     (m.fieldAccess as import('vitest').Mock).mockImplementation((_r, _t, fid: string) =>
       fid === 'secret' ? ('hidden' as const) : ('editable' as const)
     );

@@ -1,5 +1,9 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PermissionMatrixService } from './permission-matrix.service';
-import { CURRENT_USER_SENTINEL } from './permission-matrix.constants';
+import {
+  CURRENT_USER_SENTINEL,
+  type IPermissionRoleVo,
+} from './permission-matrix.constants';
 
 describe('PermissionMatrixService.applyCurrentUser', () => {
   const svc = new PermissionMatrixService({} as never, {} as never);
@@ -111,4 +115,161 @@ describe('PermissionMatrixService fieldAccess union', () => {
   it('returns readonly when only readonly granted', () => {
     expect(svc.fieldAccess([readonlyRole], 't1', 'f1')).toBe('readonly');
   });
+});
+
+describe('PermissionMatrixService.resolveViewAccessForUser', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const baseRole: IPermissionRoleVo = {
+    id: 'r1',
+    baseId: 'b1',
+    name: 'role',
+    description: null,
+    status: 'enabled',
+    members: [],
+    nodes: [],
+    fieldPermissions: [],
+    recordActions: [],
+    recordFilter: null,
+  };
+
+  it('returns true when user has no roles (admins fall through)', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v1')).resolves.toBe(true);
+  });
+
+  it('returns true when a role grants the view action on the table', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      { ...baseRole, recordActions: [{ tableId: 't1', action: 'view' }] },
+    ]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v1')).resolves.toBe(true);
+  });
+
+  it('returns true when no view restrictions are configured (default = all views)', async () => {
+    // R-PERM-2 follow-up — the help guide says "可以查看 所有视图 还是只能查看
+    // 特定视图". When a role has the table at 可编辑 but no explicit
+    // viewPermissions entry, the user should see every view by default.
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([{ ...baseRole, recordActions: [] }]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v1')).resolves.toBe(true);
+  });
+
+  it('returns true when role grants view-all (viewId: null) on the table', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      {
+        ...baseRole,
+        recordActions: [],
+        viewPermissions: [{ tableId: 't1', viewId: null }],
+      },
+    ]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v2')).resolves.toBe(true);
+  });
+
+  it('returns true when role allows exactly the requested view', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      {
+        ...baseRole,
+        recordActions: [],
+        viewPermissions: [{ tableId: 't1', viewId: 'v1' }],
+      },
+    ]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v1')).resolves.toBe(true);
+  });
+
+  it('returns false when role allows only a different view', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      {
+        ...baseRole,
+        recordActions: [{ tableId: 't1', action: 'view' }],
+        viewPermissions: [{ tableId: 't1', viewId: 'v1' }],
+      },
+    ]);
+    // record-action grants view but the explicit allow-list does not include v2.
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v2')).resolves.toBe(false);
+  });
+
+  it('treats viewPermissions on a different table as no restriction', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      {
+        ...baseRole,
+        recordActions: [{ tableId: 't1', action: 'view' }],
+        viewPermissions: [{ tableId: 'other-table', viewId: 'v1' }],
+      },
+    ]);
+    await expect(svc.resolveViewAccessForUser('b1', 'u1', 't1', 'v9')).resolves.toBe(true);
+  });
+});
+
+describe('PermissionMatrixService.resolveViewsAccessibleForUser', () => {
+  const baseRole: IPermissionRoleVo = {
+    id: 'r1',
+    baseId: 'b1',
+    name: 'role',
+    description: null,
+    status: 'enabled',
+    members: [],
+    nodes: [],
+    fieldPermissions: [],
+    recordActions: [],
+    recordFilter: null,
+  };
+
+  it('returns null (admin sees all) when user has no roles', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([]);
+    await expect(svc.resolveViewsAccessibleForUser('b1', 'u1', 't1')).resolves.toBeNull();
+  });
+
+  it('returns null when any role has no viewPermissions entries on the table', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      { ...baseRole, viewPermissions: [{ tableId: 'other-table', viewId: 'v1' }] },
+    ]);
+    await expect(svc.resolveViewsAccessibleForUser('b1', 'u1', 't1')).resolves.toBeNull();
+  });
+
+  it('returns null when any role grants view-all (viewId: null)', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      { ...baseRole, viewPermissions: [{ tableId: 't1', viewId: null }] },
+      { ...baseRole, viewPermissions: [{ tableId: 't1', viewId: 'v1' }] },
+    ]);
+    await expect(svc.resolveViewsAccessibleForUser('b1', 'u1', 't1')).resolves.toBeNull();
+  });
+
+  it('returns the union of explicit view IDs across all roles', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      { ...baseRole, viewPermissions: [{ tableId: 't1', viewId: 'v1' }] },
+      { ...baseRole, viewPermissions: [{ tableId: 't1', viewId: 'v2' }] },
+      { ...baseRole, viewPermissions: [{ tableId: 't1', viewId: 'v1' }] },
+    ]);
+    await expect(svc.resolveViewsAccessibleForUser('b1', 'u1', 't1')).resolves.toStrictEqual([
+      'v1',
+      'v2',
+    ]);
+  });
+
+  it('returns an empty array when restrictions exist but no view is allowed', async () => {
+    const svc = new PermissionMatrixService({} as never, {} as never);
+    vi.spyOn(svc, 'resolveRolesForUser').mockResolvedValue([
+      {
+        ...baseRole,
+        viewPermissions: [{ tableId: 't1', viewId: 'v-foo' }],
+      },
+    ]);
+    // The view-restricted user sees nothing on t1 (no overlap).
+    await expect(svc.resolveViewsAccessibleForUser('b1', 'u1', 't1')).resolves.toStrictEqual([
+      'v-foo',
+    ]);
+  });
+
 });
