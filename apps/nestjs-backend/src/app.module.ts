@@ -14,6 +14,7 @@ import { AgentOrchestratorModule } from './features/agent-orchestrator/agent-orc
 import { AggregationOpenApiModule } from './features/aggregation/open-api/aggregation-open-api.module';
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
+import { AiAppBuilderModule } from './features/ai-app-builder/ai-app-builder.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
 import { AiSettingModule } from './features/ai-setting/ai-setting.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
@@ -219,6 +220,7 @@ export const appModules = {
     OrganizationModule,
     AiModule,
     AiBuilderModule,
+    AiAppBuilderModule,
     AiSettingModule,
     AiFieldRecordListenerModule,
     PluginModule,

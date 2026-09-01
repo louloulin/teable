@@ -1,0 +1,143 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
+import { AiAppBuilderAuthService } from './ai-app-builder.auth.service';
+import { AiAppBuilderService } from './ai-app-builder.service';
+import { ClsService } from 'nestjs-cls';
+import type { IClsStore } from '../../types/cls';
+
+const AiAppBuilderGuard = LicenseCapabilityGuard.for('ai_app_builder');
+
+@Controller('api/:baseId/apps')
+@UseGuards(AiAppBuilderGuard)
+export class AiAppBuilderController {
+  constructor(
+    private readonly svc: AiAppBuilderService,
+    private readonly auth: AiAppBuilderAuthService,
+    private readonly cls: ClsService<IClsStore>
+  ) {}
+
+  private currentUserId(): string {
+    return this.cls.get('user.id') ?? 'usr_admin';
+  }
+
+  // ─── app instance CRUD (5 endpoints) ────────────────────────────────────
+
+  @Post()
+  @Permissions('base|update')
+  async createApp(
+    @Param('baseId') baseId: string,
+    @Body() body: { name: string; description?: string }
+  ) {
+    const app = await this.svc.createApp(baseId, body.name, body.description, this.currentUserId());
+    return app;
+  }
+
+  @Get()
+  @Permissions('base|read')
+  async listApps(@Param('baseId') baseId: string) {
+    return this.svc.listApps(baseId);
+  }
+
+  @Get(':appId')
+  @Permissions('base|read')
+  async getApp(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    return this.auth.assertAppInBase(appId, baseId);
+  }
+
+  @Patch(':appId')
+  @Permissions('base|update')
+  async patchApp(
+    @Param('baseId') baseId: string,
+    @Param('appId') appId: string,
+    @Body() body: { name?: string; description?: string }
+  ) {
+    await this.auth.assertAppInBase(appId, baseId);
+    return this.svc.patchApp(appId, body.name, body.description);
+  }
+
+  @Delete(':appId')
+  @Permissions('base|delete')
+  async deleteApp(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.deleteApp(appId);
+    return { ok: true, deleted: out.id };
+  }
+
+  // ─── versions / deploy / rollback (3 endpoints) ──────────────────────────
+
+  @Post(':appId/deploy')
+  @Permissions('base|update')
+  async deploy(
+    @Param('baseId') baseId: string,
+    @Param('appId') appId: string,
+    @Body() body: { sourcePrompt?: string; snapshot?: unknown }
+  ) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const { app, version } = await this.svc.deploy(
+      appId,
+      this.currentUserId(),
+      body?.sourcePrompt,
+      body?.snapshot
+    );
+    return { appId: app.id, currentVersionId: app.currentVersionId, version };
+  }
+
+  @Post(':appId/rollback')
+  @Permissions('base|update')
+  async rollback(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.rollback(appId, this.currentUserId());
+    return { appId: appId, currentVersionId: out.app.currentVersionId, version: out.previous };
+  }
+
+  @Get(':appId/versions')
+  @Permissions('base|read')
+  async listVersions(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    return this.svc.listVersions(appId);
+  }
+
+  // ─── secrets (2 endpoints) ───────────────────────────────────────────────
+
+  @Put(':appId/secrets')
+  @Permissions('base|update')
+  async putSecret(
+    @Param('baseId') baseId: string,
+    @Param('appId') appId: string,
+    @Body() body: { key: string; value: string; description?: string }
+  ) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.putSecret(appId, body.key, body.value, body.description);
+    // Return only key + meta — never the value (Cloud: write-only after save).
+    return { id: out.id, appId: out.appId, key: out.key, description: out.description, updatedAt: out.updatedAt };
+  }
+
+  @Get(':appId/secrets')
+  @Permissions('base|read')
+  async listSecrets(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    return this.svc.listSecrets(appId);
+  }
+
+  // ─── files (2 endpoints; list + write) ───────────────────────────────────
+
+  @Put(':appId/files')
+  @Permissions('base|update')
+  async putFile(
+    @Param('baseId') baseId: string,
+    @Param('appId') appId: string,
+    @Body() body: { path: string; content: string }
+  ) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.putFile(appId, body.path, body.content);
+    return { id: out.id, appId: out.appId, path: out.path, sizeBytes: out.sizeBytes, updatedAt: out.updatedAt };
+  }
+
+  @Get(':appId/files')
+  @Permissions('base|read')
+  async listFiles(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    return this.svc.listFiles(appId);
+  }
+}

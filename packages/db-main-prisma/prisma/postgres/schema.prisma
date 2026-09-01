@@ -220,6 +220,7 @@ model Base {
   space            Space               @relation(fields: [spaceId], references: [id])
   tables           TableMeta[]
   dataDbMoveJobs   BaseDataDbMoveJob[]
+  apps             AppInstance[]
 
   @@index([order])
   @@index([spaceId])
@@ -4164,4 +4165,102 @@ model MapViewConfig {
   config  String
 
   @@map("map_view_config")
+}
+
+
+// Cloud §AI §App Builder (help.teable.ai/en/basic/ai/app-builder).
+// "Transform your data into custom web applications using AI."
+// Minimal R-AI-4 surface: 11 HTTP endpoints covering CRUD + deploy +
+// rollback + versions + secrets (write-only) + files. Real LLM-driven
+// generation lives in the existing ai-builder module (proposals).
+model AppInstance {
+  id           String   @id @default(cuid())
+  baseId       String   @map("base_id")
+  name         String
+  description  String?
+  currentVersionId String? @unique @map("current_version_id")
+  status       AppStatus @default(draft)
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  base       Base             @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  versions   AppVersion[]     @relation("AppVersionToAppInstance")
+  currentVersion AppVersion? @relation("AppInstanceCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  secrets    AppSecret[]      @relation("AppSecretToAppInstance")
+  files      AppFile[]        @relation("AppFileToAppInstance")
+
+  @@unique([baseId, name])
+  @@index([baseId])
+  @@map("app_instance")
+}
+
+model AppVersion {
+  id            String   @id @default(cuid())
+  appId         String   @map("app_id")
+  versionNumber Int      @map("version_number")
+  snapshot      Json
+  sourcePrompt  String?  @map("source_prompt")
+  status        AppVersionStatus @default(draft)
+  deployedAt    DateTime? @map("deployed_at")
+  deployedBy    String?  @map("deployed_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  app      AppInstance @relation("AppVersionToAppInstance", fields: [appId], references: [id], onDelete: Cascade)
+  currentOf AppInstance? @relation("AppInstanceCurrentVersion")
+
+  @@unique([appId, versionNumber])
+  @@index([appId])
+  @@map("app_version")
+}
+
+// Secret values are stored encrypted in meta.app_secret.value_ciphertext;
+// the value is write-only (the GET endpoint returns key + meta only, never
+// the plaintext, matching Cloud's "Secret values are write-only after saving").
+model AppSecret {
+  id              String   @id @default(cuid())
+  appId           String   @map("app_id")
+  key             String
+  valueCiphertext String   @map("value_ciphertext")
+  description     String?
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  app AppInstance @relation("AppSecretToAppInstance", fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, key])
+  @@index([appId])
+  @@map("app_secret")
+}
+
+model AppFile {
+  id        String   @id @default(cuid())
+  appId     String   @map("app_id")
+  path      String
+  content   String   @default("")
+  sizeBytes Int      @default(0) @map("size_bytes")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  app AppInstance @relation("AppFileToAppInstance", fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, path])
+  @@index([appId])
+  @@map("app_file")
+}
+
+enum AppStatus {
+  draft
+  deployed
+  archived
+
+  @@map("app_status")
+}
+
+enum AppVersionStatus {
+  draft
+  deployed
+  rolled_back
+
+  @@map("app_version_status")
 }
