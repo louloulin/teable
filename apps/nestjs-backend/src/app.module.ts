@@ -67,6 +67,7 @@ import { HealthModule } from './features/health/health.module';
 import { ImBridgeModule } from './features/im-bridge/im-bridge.module';
 import { ImportOpenApiModule } from './features/import/open-api/import-open-api.module';
 import { InstanceSkillModule } from './features/instance-skills/instance-skill.module';
+import { SkillScopeModule } from './features/skill-scope/skill-scope.module';
 import { IntegrityModule } from './features/integrity/integrity.module';
 import { InvitationModule } from './features/invitation/invitation.module';
 import { IpAllowlistModule } from './features/ip-allowlist/ip-allowlist.module';
@@ -173,6 +174,7 @@ export const appModules = {
     AdminOpenApiModule,
     EnterpriseReadinessModule,
     InstanceSkillModule,
+    SkillScopeModule,
     SettingAdminOpenApiModule,
     ImportOpenApiModule,
     AirtableImportModule,
