@@ -16,18 +16,45 @@
  * License: AGPL-3.0
  */
 import {
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
   Query,
+  Post,
   UseGuards,
 } from '@nestjs/common';
+import { z } from 'zod';
+import { ZodValidationPipe } from '../../zod.validation.pipe';
 
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { MultiRegionArbitrationAuthService } from './multi-region-arbitration.auth.service';
+import type { IMultiRegionArbitrationOptions, IWriteRequest } from './multi-region-arbitration.types';
 
 const AdminGuard = LicenseCapabilityGuard.for('admin_panel');
+
+const arbitrateSchema = z.object({
+  request: z.object({
+    resourceKey: z.string().trim().min(1).max(256),
+    regionId: z.string().regex(/^[a-z]{2}-[a-z]+-\d+$/),
+    holderId: z.string().trim().min(1).max(256),
+    baseVersion: z.number().int().min(0),
+    ttlMs: z.number().int().positive().max(60_000),
+    now: z.string().datetime().optional(),
+  }),
+  options: z
+    .object({
+      defaultTtlMs: z.number().int().positive().max(60_000).optional(),
+      maxTtlMs: z.number().int().positive().max(60_000).optional(),
+      maxSkewMs: z.number().int().nonnegative().max(60_000).optional(),
+      resolution: z.enum(['last-writer-wins', 'first-writer-wins', 'manual']).optional(),
+      now: z.string().datetime().optional(),
+    })
+    .optional(),
+});
+
+type ArbitrateBody = z.infer<typeof arbitrateSchema>;
 
 @Controller('api/admin/multi-region-arbitration')
 @UseGuards(AdminGuard)
@@ -58,6 +85,14 @@ export class MultiRegionArbitrationController {
   @Get('arbitration/status')
   async arbitrationStatus() {
     return this.svc.arbitrationStatus();
+  }
+
+  @Post('arbitrate')
+  async arbitrate(@Body(new ZodValidationPipe(arbitrateSchema)) body: ArbitrateBody) {
+    return this.svc.arbitrateAndPersist({
+      request: body.request as IWriteRequest,
+      ...(body.options ? { options: body.options as IMultiRegionArbitrationOptions } : {}),
+    });
   }
 
   @Get('replay/queue')
