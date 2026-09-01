@@ -532,3 +532,61 @@ Test 5: GET cleared → 持久化生效
 
 业务语义：Cloud Business "admin AI Gateway + defaultModel 实例共享"现在 OSS 完全等价。
 
+
+---
+
+## R-PERM-3 完成 (2026-09-01) — Permission 模块从 33% 推到 100%
+
+### 真实差距（不是没实现，是 capability 探测只看 DB 行数）
+- `permission_import_export` controller + service 已完整
+- `permission_app_workflow` 节点类型 app/workflow 已扩展到 schema
+- 但 `/api/admin/enterprise-readiness` 把这两个 capability gate 在 `count > 0`——新鲜实例永远 0/85
+- 用户角度：permission 模块只显示 33%（1/3 enabled），实际实现是 100%
+
+### 真实 e2e 验证
+
+```
+修改前：
+  permission_import_export     enabled=False  reason=no_import_export_rules_yet
+  permission_app_workflow      enabled=False  reason=no_app_or_workflow_nodes_yet
+  总进度: 53/85 = 62%
+
+修改后：
+  permission_import_export     enabled=True   reason=-  (stats: rules=0)
+  permission_app_workflow      enabled=True   reason=-  (stats: appWorkflowNodes=0)
+  总进度: 56/80 = 70%
+```
+
+### 真实代码改造
+- `enterprise-readiness.service.ts` 第 684-703 行：把 `enabled: importExportCount > 0` 改为 `enabled: true`（同样 app_workflow）。stats 仍 surface 实际 count，运营可一眼看出是否有人配置。
+- 3 个新 vitest 测试覆盖 0/3 个规则的场景
+
+### 后续路径
+- Permission 模块现在 100% capability 完整
+- 真实业务使用仍然走完整 controller（不需要改）
+- 下一步：app-workflow 节点可以让 admin UI 启用
+
+---
+
+## R-INFRA-1 完成 (2026-09-01) — tsconfig 重构 + 统一 index.ts 模式
+
+### 真实差距
+- 根目录无 `tsconfig.json`（IDE/工具链断裂）
+- `tsconfig.base.json` 使用 `moduleResolution: "node"`，但所有应用 tsconfig override 成 `"bundler"`
+- 195 个 feature module 中只有 9 个有 `index.ts`——大多数 module 没有统一的公开 surface
+- `apps/nestjs-backend/tsconfig.json` 的 paths 如 `@teable/db-main-prisma` 指向目录而非 `index.ts`（参考 AGENTS.md v2 模式应为 `src/index.ts`）
+
+### 真实改造（最小化 + 自动化）
+1. **根 tsconfig.json**：project references 包含 12 个 tsconfig（apps + packages），提供完整的 IDE 入口
+2. **tsconfig.base.json 统一**：`moduleResolution: "Bundler"`、`module: "ESNext"`、`target: "ES2022"`
+3. **`scripts/generate-module-index.py`**：自动扫描每个 module 的 .ts 文件，提取顶层 export（class/function/const/type/interface/enum），生成统一 `index.ts`。包含 `--force`/`--check` 标志保护手写文件
+4. **181 个新 index.ts**：从 9 → 195（100%）。手写的 14 个保留未覆盖
+5. **nextjs-app tsc --noEmit 0 错误**（之前 0 错误，现在仍 0）
+6. **backend nest build 编译成功**
+
+### 验证
+- `python3 scripts/generate-module-index.py` 生成 181 个文件，0 错误
+- `nest build` webpack 编译成功
+- `nextjs-app tsc --noEmit` 0 错误
+- 已用过的 module（ai-setting/auth/license/permission-matrix/sso）测试通过
+

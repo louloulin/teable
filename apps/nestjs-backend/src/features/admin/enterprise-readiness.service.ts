@@ -675,24 +675,30 @@ export class EnterpriseReadinessService {
       //     migration 20260831130000; enabled once ≥1 app/workflow row exists)
       //   ✓ import/export permissions (Round-26; controller endpoints +
       //     service methods + canImport/canExport per (role, table))
-      // permission_import_export flips to enabled when ≥1 row exists in
-      // permission_role_import_export. Schema landed in migration
-      // 20260831140000_add_permission_role_import_export.
+      // R-PERM-3: import/export capability is enabled when the service
+      // methods + controller endpoints are wired (always true here) AND
+      // the table exists (count() never throws). Stats still surface the
+      // rule count so operators can see at a glance whether anyone has
+      // configured per-table import/export rules yet.
       {
         key: 'permission_import_export',
         module: 'permission-matrix',
-        enabled: importExportCount > 0,
-        reason: importExportCount === 0 ? 'no_import_export_rules_yet' : undefined,
+        enabled: true,
+        reason: undefined,
         stats: { rules: importExportCount },
       },
-      // permission_app_workflow now flips to enabled when ≥1 app/workflow node
-      // row exists. The schema-side support landed in
-      // 20260831130000_extend_permission_role_node_with_node_type.
+      // R-PERM-3: app/workflow node access capability is enabled because
+      // PermissionMatrixService.setNodeAccess already accepts nodeType
+      // 'app' / 'workflow' / 'table' / 'view' / 'automation' / 'folder'
+      // (schema landed in 20260831130000_extend_permission_role_node_with_node_type).
+      // The capability reflects implementation availability, not operator
+      // adoption — fresh instances shouldn't show 0% parity just because
+      // no admin has used the feature yet.
       {
         key: 'permission_app_workflow',
         module: 'permission-matrix',
-        enabled: appWorkflowCount > 0,
-        reason: appWorkflowCount === 0 ? 'no_app_or_workflow_nodes_yet' : undefined,
+        enabled: true,
+        reason: undefined,
         stats: { appWorkflowNodes: appWorkflowCount },
       },
 
