@@ -161,8 +161,17 @@ describe('OrgBillingRollupAuthService', () => {
       lineCount: 1,
       baseCount: 1,
       dunningLevel: 'current',
-      byKind: {},
-      generatedAt: new Date('2026-01-31T00:00:00Z'),
+      byKind: {
+        subscription: 0,
+        'ai-credit': 0,
+        'automation-run': 0,
+        'webhook-delivery': 0,
+        'byok-throughput': 0,
+        'storage-overage': 0,
+        'seat-addon': 0,
+        'one-time-fee': 0,
+      },
+      generatedAt: '2026-01-31T00:00:00Z',
     };
     mocks.rollupFindUnique.mockResolvedValue(rollup);
     const svc = new OrgBillingRollupAuthService(prisma);

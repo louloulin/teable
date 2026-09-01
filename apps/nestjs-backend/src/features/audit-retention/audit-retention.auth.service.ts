@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* eslint-disable @typescript-eslint/naming-convention */
 /**
  * Audit retention — NestJS auth service (Stage 71).
@@ -88,6 +89,34 @@ export class AuditRetentionAuthService {
   /** Decide retention for a single event. */
   decide(policy: IAuditRetentionPolicy, event: IAuditEvent, now?: string) {
     return decideTier({ policy, event, ...(now ? { now } : {}) });
+  }
+
+
+  /** List all persisted policies (admin read-only). */
+  async listAllPolicies(): Promise<IAuditRetentionPolicy[]> {
+    const rows = await this.prisma.auditRetentionPolicy.findMany({
+      orderBy: { updatedAt: 'desc' },
+    });
+    return rows.map((r) => toPolicy(r));
+  }
+
+  /** Count persisted policies (admin read-only). */
+  async countPolicies(): Promise<number> {
+    return this.prisma.auditRetentionPolicy.count();
+  }
+
+  /** Summarize persisted retention coverage (admin read-only). */
+  async retentionStats(): Promise<{
+    policies: number;
+    coldStoragePolicies: number;
+    piiRedactionPolicies: number;
+  }> {
+    const policies = await this.prisma.auditRetentionPolicy.findMany();
+    return {
+      policies: policies.length,
+      coldStoragePolicies: policies.filter((p) => Boolean(p['coldTarget'])).length,
+      piiRedactionPolicies: policies.filter((p) => Boolean(p['redactPii'])).length,
+    };
   }
 
   /** Run a sweep — produce a job summary. */

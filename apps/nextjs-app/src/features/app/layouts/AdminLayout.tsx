@@ -54,6 +54,12 @@ export const AdminLayout: React.FC<{
     },
     {
       Icon: MagicAi,
+      label: 'AI App Builder',
+      route: '/admin/ai-app-builder',
+      pathTo: '/admin/ai-app-builder',
+    },
+    {
+      Icon: MagicAi,
       label: 'AI settings',
       route: '/admin/ai-setting',
       pathTo: '/admin/ai-setting',

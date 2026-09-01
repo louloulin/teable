@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* eslint-disable @typescript-eslint/naming-convention */
 /**
  * Risk event query DSL — NestJS auth service (Stage 79).
@@ -23,6 +24,103 @@ import type {
   RiskDecisionKind,
   RiskEventKind,
 } from './risk-event-query.types';
+
+type RiskWhere = Record<string, unknown>;
+
+function inClause(values: ReadonlyArray<string> | undefined): { in: ReadonlyArray<string> } | undefined {
+  return values && values.length > 0 ? { in: values } : undefined;
+}
+
+function timeClause(from: string | undefined, to: string | undefined): RiskWhere | undefined {
+  if (!from && !to) return undefined;
+  return {
+    ...(from ? { gte: from } : {}),
+    ...(to ? { lt: to } : {}),
+  };
+}
+
+/** RiskDecision uses `action` and `createdAt`; the public DSL uses neutral names. */
+function decisionWhere(filter: IRiskEventFilter): RiskWhere {
+  return {
+    ...(inClause(filter.orgIds) ? { orgId: inClause(filter.orgIds) } : {}),
+    ...(inClause(filter.actorIds) ? { actorId: inClause(filter.actorIds) } : {}),
+    ...(inClause(filter.decisions) ? { action: inClause(filter.decisions) } : {}),
+    ...(inClause(filter.bands) ? { band: inClause(filter.bands) } : {}),
+    ...(timeClause(filter.from, filter.to) ? { createdAt: timeClause(filter.from, filter.to) } : {}),
+    ...(filter.text ? { detail: { contains: filter.text, mode: 'insensitive' } } : {}),
+  };
+}
+
+/** LoginAttempt uses `outcome` and `occurredAt`; map the same public DSL accordingly. */
+function loginAttemptWhere(filter: IRiskEventFilter): RiskWhere {
+  const outcomes = filter.decisions?.map((decision) => loginOutcomeForDecision(decision));
+  return {
+    ...(inClause(filter.orgIds) ? { orgId: inClause(filter.orgIds) } : {}),
+    ...(inClause(filter.actorIds) ? { actorId: inClause(filter.actorIds) } : {}),
+    ...(inClause(outcomes) ? { outcome: inClause(outcomes) } : {}),
+    ...(inClause(filter.bands) ? { band: inClause(filter.bands) } : {}),
+    ...(timeClause(filter.from, filter.to) ? { occurredAt: timeClause(filter.from, filter.to) } : {}),
+    ...(filter.text
+      ? {
+          OR: [
+            { failureReason: { contains: filter.text, mode: 'insensitive' } },
+            { userAgent: { contains: filter.text, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function loginOutcomeForDecision(
+  decision: RiskDecisionKind
+): 'success' | 'mfa-challenge' | 'soft-blocked' | 'hard-blocked' {
+  switch (decision) {
+    case 'allow':
+      return 'success';
+    case 'challenge':
+      return 'mfa-challenge';
+    case 'soft-block':
+      return 'soft-blocked';
+    case 'hard-block':
+      return 'hard-blocked';
+  }
+}
+
+function decisionOrderBy(filter: IRiskEventFilter): Array<Record<string, 'asc' | 'desc'>> {
+  const direction = filter.order ?? 'desc';
+  return [{ createdAt: direction }, { id: direction }];
+}
+
+function loginAttemptOrderBy(filter: IRiskEventFilter): Array<Record<string, 'asc' | 'desc'>> {
+  const direction = filter.order ?? 'desc';
+  return [{ occurredAt: direction }, { id: direction }];
+}
+
+function decisionCursorWhere(input: {
+  filter: IRiskEventFilter;
+  cursor: IRiskEventCursor;
+}): RiskWhere {
+  const operator = (input.filter.order ?? 'desc') === 'desc' ? 'lt' : 'gt';
+  return {
+    OR: [
+      { createdAt: { [operator]: input.cursor.key } },
+      { createdAt: input.cursor.key, id: { [operator]: input.cursor.id } },
+    ],
+  };
+}
+
+function loginAttemptCursorWhere(input: {
+  filter: IRiskEventFilter;
+  cursor: IRiskEventCursor;
+}): RiskWhere {
+  const operator = (input.filter.order ?? 'desc') === 'desc' ? 'lt' : 'gt';
+  return {
+    OR: [
+      { occurredAt: { [operator]: input.cursor.key } },
+      { occurredAt: input.cursor.key, id: { [operator]: input.cursor.id } },
+    ],
+  };
+}
 
 @Injectable()
 export class RiskEventQueryAuthService {
@@ -62,10 +160,13 @@ export class RiskEventQueryAuthService {
     nextCursor: IRiskEventCursor | null;
   }> {
     const q = buildQuery(input);
-    const where = toWhere(q.filter);
-    const ord = orderBy(q.filter);
+    if (q.filter.kinds && !q.filter.kinds.includes('risk-decision')) {
+      return { rows: [], nextCursor: null };
+    }
+    const where = decisionWhere(q.filter);
+    const ord = decisionOrderBy(q.filter);
     const cursorPred = q.filter.cursor
-      ? cursorWhere({ filter: q.filter, cursor: q.filter.cursor })
+      ? decisionCursorWhere({ filter: q.filter, cursor: q.filter.cursor })
       : null;
     const fullWhere = cursorPred ? { AND: [where, cursorPred] } : where;
     const rows = await this.prisma.riskDecision.findMany({
@@ -83,10 +184,13 @@ export class RiskEventQueryAuthService {
     nextCursor: IRiskEventCursor | null;
   }> {
     const q = buildQuery(input);
-    const where = toWhere(q.filter);
-    const ord = orderBy(q.filter);
+    if (q.filter.kinds && !q.filter.kinds.includes('login-attempt')) {
+      return { rows: [], nextCursor: null };
+    }
+    const where = loginAttemptWhere(q.filter);
+    const ord = loginAttemptOrderBy(q.filter);
     const cursorPred = q.filter.cursor
-      ? cursorWhere({ filter: q.filter, cursor: q.filter.cursor })
+      ? loginAttemptCursorWhere({ filter: q.filter, cursor: q.filter.cursor })
       : null;
     const fullWhere = cursorPred ? { AND: [where, cursorPred] } : where;
     const rows = await this.prisma.loginAttempt.findMany({
@@ -96,6 +200,20 @@ export class RiskEventQueryAuthService {
     });
     const mapped = rows.map((r) => this.rowFromLogin(r));
     return { rows: mapped, nextCursor: nextCursor({ last: mapped[mapped.length - 1] ?? null }) };
+  }
+
+  /** Count persisted risk decisions matching a filter. */
+  async countDecisions(input: { filter: IRiskEventFilter }): Promise<number> {
+    const q = buildQuery(input);
+    if (q.filter.kinds && !q.filter.kinds.includes('risk-decision')) return 0;
+    return this.prisma.riskDecision.count({ where: decisionWhere(q.filter) as never });
+  }
+
+  /** Count persisted login attempts matching a filter. */
+  async countLoginAttempts(input: { filter: IRiskEventFilter }): Promise<number> {
+    const q = buildQuery(input);
+    if (q.filter.kinds && !q.filter.kinds.includes('login-attempt')) return 0;
+    return this.prisma.loginAttempt.count({ where: loginAttemptWhere(q.filter) as never });
   }
 
   /** Run an in-memory paginate over already-loaded rows. */
@@ -127,11 +245,15 @@ export class RiskEventQueryAuthService {
       orgId: String(r['orgId']),
       actorId: String(r['actorId']),
       kind: 'login-attempt',
-      decision: (r['outcome'] as RiskDecisionKind) ?? null,
+      decision: loginDecisionForOutcome(String(r['outcome'] ?? '')),
       band: (r['band'] as RiskBandKind) ?? null,
       detail: String(r['failureReason'] ?? r['userAgent'] ?? ''),
       occurredAt: new Date(String(r['occurredAt'])).toISOString(),
     };
+  }
+
+  private loginDecisionForOutcome(outcome: string): RiskDecisionKind | null {
+    return loginDecisionForOutcome(outcome);
   }
 
   /** Map a ban-audit row. */
@@ -152,4 +274,19 @@ export class RiskEventQueryAuthService {
   isRiskEventKind = (s: string): s is RiskEventKind => {
     return ['risk-decision', 'login-attempt', 'ban-action'].includes(s);
   };
+}
+
+function loginDecisionForOutcome(outcome: string): RiskDecisionKind | null {
+  switch (outcome) {
+    case 'success':
+      return 'allow';
+    case 'mfa-challenge':
+      return 'challenge';
+    case 'soft-blocked':
+      return 'soft-block';
+    case 'hard-blocked':
+      return 'hard-block';
+    default:
+      return null;
+  }
 }

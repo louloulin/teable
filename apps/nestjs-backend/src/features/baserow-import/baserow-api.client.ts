@@ -48,10 +48,6 @@ export class BaserowApiClient {
     );
   }
 
-  async listDatabases(): Promise<Array<{ id: number; name: string }>> {
-    return this.fetchJson<Array<{ id: number; name: string }>>('/api/applications/');
-  }
-
   async probe(): Promise<{
     ok: boolean;
     workspaceName?: string;

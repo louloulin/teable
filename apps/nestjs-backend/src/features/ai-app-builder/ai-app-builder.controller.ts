@@ -89,9 +89,6 @@ export class AiAppBuilderController {
   async rollback(@Param('baseId') baseId: string, @Param('appId') appId: string) {
     await this.auth.assertAppInBase(appId, baseId);
     const out = await this.svc.rollback(appId, this.currentUserId());
-    if (!out.app) {
-      throw new Error(`App ${appId} disappeared while rolling back`);
-    }
     return { appId: appId, currentVersionId: out.app.currentVersionId, version: out.previous };
   }
 

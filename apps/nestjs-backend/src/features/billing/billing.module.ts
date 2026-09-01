@@ -1,39 +1,22 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '../../configs/config.module';
-import { PrismaModule } from '@teable/db-main-prisma';
-
-import { BillingAuthService } from './billing.auth.service';
-import { BillingController } from './billing.controller';
-import { BillingCheckoutController } from './billing-checkout.controller';
-
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /**
- * Billing HTTP module.
+ * Billing — NestJS module wiring (Round-INFRA-4).
  *
- * Wires the existing BillingAuthService (subscription + invoice CRUD +
- * webhook ingestion) to HTTP. Adds a thin Stripe Checkout endpoint that
- * uses Stripe's REST API via fetch() — no extra npm dependency required.
+ * Wraps BillingAuthService into the NestJS container so other
+ * feature modules can import this one (and so the capability gate
+ * in `/api/admin/enterprise-readiness` can probe it via app.module).
  *
- * Environment variables (set them on the host to enable real Stripe):
- *   STRIPE_SECRET_KEY              sk_live_… / sk_test_…
- *   STRIPE_PRICE_ID_PRO            price_… (Pro monthly)
- *   STRIPE_PRICE_ID_BUSINESS       price_… (Business monthly)
- *   STRIPE_SUCCESS_URL             https://app.example.com/billing/success
- *   STRIPE_CANCEL_URL              https://app.example.com/billing
- *
- * Without these env vars the checkout endpoint returns 503 — billing is
- * fully functional otherwise (subscription queries, invoices, webhooks).
- *
- * Routes:
- *   GET    /api/billing/subscription/:orgId            current subscription
- *   POST   /api/billing/subscription                   create subscription
- *   POST   /api/billing/subscription/:orgId/cancel     cancel subscription
- *   GET    /api/billing/invoices                       list invoices
- *   GET    /api/billing/plans                          static plan catalog
- *   POST   /api/billing/checkout                       create Stripe Checkout session
+ * License: AGPL-3.0
  */
+import { Module } from '@nestjs/common';
+
+import { LicenseModule } from '../license/license.module';
+import { BillingController } from './billing.controller';
+import { BillingAuthService } from './billing.auth.service';
+
 @Module({
-  imports: [PrismaModule, ConfigModule],
-  controllers: [BillingController, BillingCheckoutController],
+  imports: [LicenseModule],
+  controllers: [BillingController],
   providers: [BillingAuthService],
   exports: [BillingAuthService],
 })

@@ -49,6 +49,7 @@ export interface IEchoLlmResult {
 
 export interface ICuppyEchoLlm {
   chat(args: IEchoLlmArgs): Promise<IEchoLlmResult>;
+  chatStream?(args: IEchoLlmArgs, abortSignal?: AbortSignal): AsyncGenerator<{ delta: string; value?: string; done: boolean }>;
 }
 
 const MAX_ECHO_TEXT = 1_400;
@@ -69,7 +70,7 @@ function truncate(value: string, max: number): string {
 export class BuiltInEchoLlm implements ICuppyEchoLlm {
   private readonly hintShownFor = new Set<string>();
 
-  async chat(args: IEchoLlmArgs): Promise<IEchoLlmResult> {
+  chat(args: IEchoLlmArgs): IEchoLlmResult {
     const lastUser = [...args.messages].reverse().find((m) => m.role === 'user');
     const userText = lastUser ? truncate(lastUser.content, 240) : '(no user message)';
 
@@ -96,12 +97,19 @@ export class BuiltInEchoLlm implements ICuppyEchoLlm {
   }
 
   /**
-   * Streaming variant. Echo LLM has no real tokens — yield the full reply
-   * as a single chunk so SSE consumers and the orchestrator's accumulator
-   * path stay uniform across providers.
+   * Stream the deterministic echo in 4-5 word chunks so the frontend still
+   * gets progressive rendering when no real LLM is configured. Final chunk
+   * carries the full text as `value`.
    */
-  async *stream(args: IEchoLlmArgs): AsyncIterable<string> {
-    const result = await this.chat(args);
-    yield result.text;
+  async *chatStream(args: IEchoLlmArgs, abortSignal?: AbortSignal): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+    const result = this.chat(args);
+    const tokens = result.text.split(/(\s+)/);
+    let acc = '';
+    for (const token of tokens) {
+      if (abortSignal?.aborted) return;
+      acc += token;
+      yield { delta: token, done: false };
+    }
+    yield { delta: '', value: result.text, done: true };
   }
 }

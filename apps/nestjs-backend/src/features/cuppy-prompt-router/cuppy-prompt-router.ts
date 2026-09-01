@@ -15,6 +15,7 @@
  *   - "record_lookup"        — user wants a record by id / natural key
  *   - "record_create"        — user wants to insert a new row
  *   - "automation_trigger"   — user wants to fire a saved automation
+ *   - "data_analysis"       — user wants aggregates, trends, or chart data
  *   - "casual_chat"          — anything else; falls through to a base prompt
  *
  * The router is deliberately stateless — the orchestrator owns the
@@ -28,6 +29,7 @@ export type Intent =
   | 'record_lookup'
   | 'record_create'
   | 'automation_trigger'
+  | 'data_analysis'
   | 'casual_chat';
 
 export interface RouteDecision {
@@ -56,6 +58,7 @@ const INTENT_SYSTEM: Record<Intent, string> = {
   record_lookup: `${BASE_SYSTEM}\nThe user wants to look up one or more records. Prefer the record_query tool and report what you find; ask only if the natural key is ambiguous.`,
   record_create: `${BASE_SYSTEM}\nThe user wants to create a record. Use the record_create tool; confirm field values with the user only when the schema leaves ambiguity that affects outcome.`,
   automation_trigger: `${BASE_SYSTEM}\nThe user wants to trigger an automation. Use the automation_trigger tool; report the resulting run id.`,
+  data_analysis: `${BASE_SYSTEM}\nThe user wants a data analysis. Use schema_query when the table or field is unclear, then use data_analysis to compute a bounded aggregate from permission-checked records. Explain only values returned by the tool and include its chart specification when useful.`,
   casual_chat: BASE_SYSTEM,
 };
 
@@ -64,6 +67,7 @@ const INTENT_TOOLS: Record<Intent, string[]> = {
   record_lookup: ['record_query', 'schema_query'],
   record_create: ['record_create', 'schema_query'],
   automation_trigger: ['automation_trigger', 'automation_list'],
+  data_analysis: ['schema_query', 'record_query', 'data_analysis'],
   casual_chat: [],
 };
 
@@ -85,6 +89,9 @@ export function classifyKeyword(text: string): { intent: Intent; confidence: num
   }
   if (/\b(trigger|run|fire)\b.*\b(automation|workflow)\b/.test(lower)) {
     return { intent: 'automation_trigger', confidence: 0.6 };
+  }
+  if (/(分析|统计|汇总|趋势|图表|可视化|平均|总和|平均值|sum|average|chart|trend|analy[sz]e|analytics)/i.test(text)) {
+    return { intent: 'data_analysis', confidence: 0.7 };
   }
   return { intent: 'casual_chat', confidence: 0.4 };
 }

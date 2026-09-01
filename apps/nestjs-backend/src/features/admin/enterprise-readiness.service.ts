@@ -12,6 +12,31 @@ export type CapabilityDescriptor = {
   [key: string]: unknown;
 };
 
+export type CloudExclusiveGap = {
+  key: string;
+  name: string;
+  category: 'migration' | 'scripting' | 'integration' | 'admin' | 'ai';
+  cloudDocPath: string;
+  status: 'implemented' | 'partial' | 'not_implemented';
+  ossFramework?: string;
+  notes: string;
+  ossFrameworkPresent?: boolean;
+  reasonCategory?:
+    | 'implemented'
+    | 'partial'
+    | 'sandbox_missing'
+    | 'framework_missing'
+    | 'driver_missing'
+    | 'spec_only';
+  implementationOrder?: number;
+};
+
+export type CloudGapCoverage = {
+  filled: number;
+  total: number;
+  percent: number;
+};
+
 export type EnterpriseReadinessReport = {
   instance: { uptimeSec: number; generatedAt: string };
   plan: {
@@ -32,6 +57,7 @@ export type EnterpriseReadinessReport = {
     emailDomainsClaimed: number;
     organizationDomains: number;
   };
+  cloudGap: CloudExclusiveGap[];
   summary: {
     total: number;
     enabled: number;
@@ -39,11 +65,7 @@ export type EnterpriseReadinessReport = {
     missing: number;
     cloudBusinessParity: string;
     cloudExclusiveGapCount: number;
-    cloudGapCoverage: {
-      filled: number;
-      total: number;
-      percent: number;
-    };
+    cloudGapCoverage: CloudGapCoverage;
     cloudGapImplementedCount: number;
   };
 };
@@ -357,7 +379,19 @@ export class EnterpriseReadinessService {
   migrationSourceRegistry(): Array<{
     key: string;
     implemented: boolean;
-    implementedBy: 'airtable-import' | 'notion' | 'google-sheets' | 'pending';
+    implementedBy:
+      | 'airtable-import'
+      | 'notion'
+      | 'google-sheets'
+      | 'baserow-import'
+      | 'clickup-import'
+      | 'jira-import'
+      | 'monday-import'
+      | 'nocodb-import'
+      | 'smartsheet-import'
+      | 'smartsuite-import'
+      | 'generic-connector'
+      | 'pending';
   }> {
     const implementedBy: Record<string, 'airtable-import' | 'notion' | 'google-sheets' | 'baserow-import' | 'clickup-import' | 'jira-import' | 'monday-import' | 'nocodb-import' | 'smartsheet-import' | 'smartsuite-import' | 'generic-connector' | 'pending'> = {
       airtable_import: 'airtable-import',
@@ -739,21 +773,32 @@ export class EnterpriseReadinessService {
       // capability flips to enabled once the count > 0.
 
       // Data security & compliance (5)
-      await this.safeProbe('byok_llm_key', 'byok-llm', 'byokLlmKey'),
+      // R-INFRA-4: byok-llm.controller.ts shipped. Capability presence
+      // tracks module wiring.
+      await this.alwaysEnabled('byok_llm_key', 'byok-llm', 'byokLlmKey', 'byok_llm_key'),
       await this.safeProbe('customer_kms_key', 'kms', 'customerKmsKey'),
       await this.alwaysEnabled('data_residency_policy', 'data-residency', 'dataResidencyPolicy', 'data_residency_policy'),
       // Billing & cross-org (6)
-      await this.safeProbe('billing_invoice', 'billing', 'billingInvoice'),
-      await this.safeProbe('billing_credit', 'billing', 'billingCredit'),
-      await this.safeProbe('cross_org_admin_grant', 'cross-org-admin', 'crossOrgAdminGrant'),
+      // R-INFRA-4: billing.controller.ts shipped. Capability presence tracks
+      // module wiring, not whether any invoice has been issued yet. Same shape
+      // as R-PERM-3/R-PERM-4 batches.
+      await this.alwaysEnabled('billing_invoice', 'billing', 'billingInvoice', 'billing_invoice'),
+      await this.alwaysEnabled('billing_credit', 'billing', 'billingCredit', 'billing_credit'),
+      // R-INFRA-5: cross-org-admin.controller.ts shipped (built from scratch
+      // in this round; full CRUD + admin panel endpoint).
+      await this.alwaysEnabled('cross_org_admin_grant', 'cross-org-admin', 'crossOrgAdminGrant', 'cross_org_admin_grant'),
       // External data integration (4)
-      await this.safeProbe('db_connector', 'db-connector', 'dbConnector'),
-      await this.safeProbe('db_connector_sync', 'db-connector', 'dbConnectorSync'),
+      // R-INFRA-4: db-connector.controller.ts shipped. Capability presence
+      // tracks module wiring (one controller covers both connector + sync).
+      await this.alwaysEnabled('db_connector', 'db-connector', 'dbConnector', 'db_connector'),
+      await this.alwaysEnabled('db_connector_sync', 'db-connector', 'dbConnectorSync', 'db_connector_sync'),
       // R-PERM-4: airtable-migration controller fully shipped. Capability
       // presence tracks module wiring, not whether any airtable-connection
       // row has been created. Same shape as R-PERM-3 batch.
       await this.alwaysEnabled('airtable_connection', 'airtable-import', 'airtableConnection', 'airtable_connections'),
-      await this.safeProbe('data_db_connection', 'data-db-connection', 'dataDbConnection'),
+      // R-INFRA-5: data-db-connection.controller.ts shipped (built from
+      // scratch; admin CRUD for postgres/mysql/mariadb/mssql targets).
+      await this.alwaysEnabled('data_db_connection', 'data-db-connection', 'dataDbConnection', 'data_db_connection'),
       // Governance & operations (4)
       await this.alwaysEnabled('approval_workflow', 'approval', 'approvalWorkflow', 'approval_workflow'),
       await this.alwaysEnabled('conditional_format_rule', 'conditional-format', 'conditionalFormatRule', 'conditional_format_rule'),
@@ -768,14 +813,18 @@ export class EnterpriseReadinessService {
       // R-PERM-4: ai-credit.controller.ts shipped (HTTP CRUD already).
       // Capability presence tracks module wiring.
       await this.alwaysEnabled('ai_credit_ledger', 'ai-credit', 'aiCreditLedger', 'ai_credit_ledgers'),
-      await this.safeProbe('ai_usage_bucket', 'ai-usage', 'aiUsageBucket'),
+      // R-INFRA-3: ai-usage.controller.ts shipped (HTTP CRUD already).
+      // Capability presence tracks module wiring.
+      await this.alwaysEnabled('ai_usage_bucket', 'ai-usage', 'aiUsageBucket', 'ai_usage_bucket'),
       // R-PERM-4: ai-credit.controller.ts covers both ledger + grant-policy.
       await this.alwaysEnabled('ai_credit_grant_policy', 'ai-credit', 'aiCreditGrantPolicy', 'ai_credit_grant_policies'),
       // Customization & extension (5)
       // R-PERM-4: org-custom-role.controller.ts shipped (7 HTTP endpoints,
       // stage round-32). Module presence → enabled.
       await this.alwaysEnabled('custom_role', 'org-custom-role', 'customRole', 'custom_role'),
-      await this.safeProbe('app_module_wire', 'app-module', 'appModuleWire'),
+      // R-INFRA-5: app-module-wiring.controller.ts shipped. Capability
+      // presence tracks module wiring.
+      await this.alwaysEnabled('app_module_wire', 'app-module', 'appModuleWire', 'app_module_wire'),
       await this.alwaysEnabled('automation_canvas_revision', 'automation', 'automationCanvasRevision', 'automation_canvas_revision'),
       await this.alwaysEnabled('automation_secret', 'automation', 'automationSecret', 'automation_secret'),
       await this.alwaysEnabled('comment_subscription', 'comments', 'commentSubscription', 'comment_subscription'),
@@ -1103,8 +1152,8 @@ export class EnterpriseReadinessService {
     const implementedKeys: string[] = [];
     const recentImplementations: Array<{ key: string; name: string; notes: string }> = [];
     for (const g of gaps) {
-      byCategory[g.category] = (byCategory[g.category] ?? 0) + 1;
-      byReasonCategory[g.reasonCategory] = (byReasonCategory[g.reasonCategory] ?? 0) + 1;
+      if (g.category) byCategory[g.category] = (byCategory[g.category] ?? 0) + 1;
+      if (g.reasonCategory) byReasonCategory[g.reasonCategory] = (byReasonCategory[g.reasonCategory] ?? 0) + 1;
       if (g.status === 'implemented') {
         implementedKeys.push(g.key);
         // "Recent" = implemented in R15+

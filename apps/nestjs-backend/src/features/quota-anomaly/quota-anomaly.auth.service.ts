@@ -25,6 +25,17 @@ import type {
   QuotaMetric,
 } from './quota-anomaly.types';
 
+import {
+  ANOMALY_CAP_RATIO_CRITICAL,
+  ANOMALY_CAP_RATIO_WARNING,
+  ANOMALY_CHANNELS,
+  ANOMALY_METRICS,
+  ANOMALY_RATIO_CRITICAL,
+  ANOMALY_RATIO_WARNING,
+  ANOMALY_SEVERITIES,
+  MAX_CHANNELS_PER_REPORT,
+  MAX_WINDOW_SAMPLES,
+} from './quota-anomaly.types';
 @Injectable()
 export class QuotaAnomalyAuthService {
   constructor(private readonly prisma: PrismaService) {}
@@ -136,5 +147,75 @@ export class QuotaAnomalyAuthService {
     let win = buildWindow({ metric: input.metric, durationMs: input.durationMs });
     for (const s of input.rows) win = appendSample({ window: win, sample: s });
     return win;
+  }
+
+  /** List recent persisted reports (admin read-only). */
+  async listReports(input: {
+    limit?: number;
+    severity?: AnomalySeverity;
+    metric?: QuotaMetric;
+    orgId?: string;
+  }): Promise<IAnomalyReport[]> {
+    const where: Record<string, unknown> = {};
+    if (input.severity) where['severity'] = input.severity;
+    if (input.metric) where['metric'] = input.metric;
+    if (input.orgId) where['orgId'] = input.orgId;
+    const rows = await this.prisma.quotaAnomalyReport.findMany({
+      where,
+      orderBy: { detectedAt: 'desc' },
+      take: input.limit ?? 100,
+    });
+    return rows.map((r) => ({
+      id: String(r['id']),
+      orgId: String(r['orgId']),
+      metric: r['metric'] as QuotaMetric,
+      severity: r['severity'] as AnomalySeverity,
+      ratio: Number(r['ratio']),
+      capRatio: Number(r['capRatio']),
+      channels: safeJsonArray(r['channelsJson']),
+      detail: String(r['detail'] ?? ''),
+      detectedAt: new Date(String(r['detectedAt'])).toISOString(),
+    }));
+  }
+
+  /** Count persisted reports (admin read-only). */
+  async countReports(input: {
+    severity?: AnomalySeverity;
+    metric?: QuotaMetric;
+    orgId?: string;
+  }): Promise<number> {
+    const where: Record<string, unknown> = {};
+    if (input.severity) where['severity'] = input.severity;
+    if (input.metric) where['metric'] = input.metric;
+    if (input.orgId) where['orgId'] = input.orgId;
+    return this.prisma.quotaAnomalyReport.count({ where });
+  }
+
+  /** Return the current detection thresholds (admin read-only). */
+  getThresholds(): Record<string, unknown> {
+    return {
+      ratioWarning: ANOMALY_RATIO_WARNING,
+      ratioCritical: ANOMALY_RATIO_CRITICAL,
+      capRatioWarning: ANOMALY_CAP_RATIO_WARNING,
+      capRatioCritical: ANOMALY_CAP_RATIO_CRITICAL,
+      metrics: ANOMALY_METRICS,
+      severities: ANOMALY_SEVERITIES,
+      channels: ANOMALY_CHANNELS,
+      maxWindowSamples: MAX_WINDOW_SAMPLES,
+      maxChannelsPerReport: MAX_CHANNELS_PER_REPORT,
+    };
+  }
+}
+
+function safeJsonArray(raw: unknown): NotificationChannel[] {
+  if (typeof raw !== 'string') return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((c): c is NotificationChannel =>
+      (ANOMALY_CHANNELS as ReadonlyArray<string>).includes(String(c))
+    );
+  } catch {
+    return [];
   }
 }

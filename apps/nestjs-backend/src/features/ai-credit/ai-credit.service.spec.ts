@@ -93,6 +93,7 @@ describe('AI credit helpers (Stage 26)', () => {
         organizationId: 'org_1',
         estimatedCredits: 200,
         limit: 1000,
+        monthBucket: '2026-08',
         entries: [entry({ action: 'charge', credits: 300 })],
       });
       expect(r.allowed).toBe(true);
@@ -105,6 +106,7 @@ describe('AI credit helpers (Stage 26)', () => {
         organizationId: 'org_1',
         estimatedCredits: 800,
         limit: 1000,
+        monthBucket: '2026-08',
         entries: [entry({ action: 'charge', credits: 500 })],
       });
       expect(r.allowed).toBe(false);

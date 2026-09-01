@@ -8,10 +8,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
 
 import { Public } from '../auth/decorators/public.decorator';
-import type { IClsStore } from '../../types/cls';
 
 import { CrossBaseFederationAuthService } from './cross-base-federation.auth.service';
 import { normalizeSource, normalizeView } from './cross-base-federation.service';
@@ -47,10 +45,7 @@ import type {
 @Public()
 @Controller('api/cross-base-federation')
 export class CrossBaseFederationController {
-  constructor(
-    private readonly auth: CrossBaseFederationAuthService,
-    private readonly cls: ClsService<IClsStore>
-  ) {}
+  constructor(private readonly auth: CrossBaseFederationAuthService) {}
 
   // ---- View CRUD ----
 
@@ -159,8 +154,7 @@ export class CrossBaseFederationController {
   ): Promise<IFederationRefresh> {
     return this.auth.runRefresh({
       viewId,
-      actorId: this.cls.get('user')?.id ?? 'system',
-      refreshName: body?.triggeredBy ?? undefined,
+      triggeredBy: body?.triggeredBy ?? null,
     });
   }
 

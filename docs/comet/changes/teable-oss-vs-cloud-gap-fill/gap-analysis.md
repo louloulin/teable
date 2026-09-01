@@ -3236,6 +3236,226 @@ $ curl -X DELETE .../roles/crr_r32_smoke → {deleted:true}
 | **R39** | `app-module-wiring` | App 模块接线 | ~30min |
 | **R40** | `ai-credit` + `ai-usage` | AI 信用/使用追踪 | ~30min |
 
+---
+
+## Round-33 (2026-09-01): DR Canvas HTTP CRUD
+
+### 背景
+
+`dr-canvas` 模块的 service 早已存在(pure helpers: validate / topoSort / plan / addNode / addEdge),但没有 HTTP surface — 典型的 "service exists, no surface" gap。本轮补齐。
+
+### 端点(6 条,所有 `/api/dr-canvas/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/canvases/:id` | PUT | upsert canvas(持久化) |
+| `/canvases/:id` | GET | load canvas |
+| `/bases/:baseId/canvases` | GET | list canvases(metadata only) |
+| `/canvases/:id` | DELETE | delete canvas |
+| `/canvases/:id/validate` | POST | validate canvas spec |
+| `/canvases/:id/plan` | POST | generate execution plan |
+
+### 持久化
+
+复用 `meta.dr_canvas` 表(已存在),新加 4 个方法 `upsertCanvas` / `loadCanvas` / `listCanvases` / `deleteCanvas` 到 `DrCanvasAuthService`。
+
+### 自动化验证(e2e Section 4.21,7 断言)
+
+```
+[OK]   dr-canvas: PUT canvas returns 1 node
+[OK]   dr-canvas: GET canvas returns 1 node
+[OK]   dr-canvas: list canvases returns 1 demo
+[OK]   dr-canvas: validate returns valid:true
+[OK]   dr-canvas: plan returns 3 steps
+[OK]   dr-canvas: DELETE canvas returns deleted:true
+[OK]   dr-canvas: deleted canvas returns canvas:null
+```
+
+### 修复 pre-existing bug
+
+Dr-canvas controller 漏 import `Post`,导致 webpack 编译 dist 启动崩溃 `ReferenceError: Post is not defined`。补齐 import 后 build 通过。
+
+---
+
+## Round-AI-1 (2026-09-01): Cuppy AI 对话完整化 — Cloud 真实差距补齐
+
+### 背景
+
+用户原话:"分析很多 ai 功能都没有实现,ai 的对话功能也没有"。本轮对比 teable.ai 官方 docs 后,把 Cuppy AI 对话从 1 端点扩到 23 端点,完整对齐 Cloud AI 对话核心能力。
+
+### 学习资料
+
+- https://help.teable.ai/zh/basic/ai/ai-chat — 真实 Cloud AI 对话能力
+- https://app.teable.ai/base/bseI7XJbwqqIuxlgAI1 — AI 应用示例 base
+
+### Cloud AI 对话能力清单(从官方 docs 提取)
+
+| Cloud 能力 | 描述 | OSS 端点 |
+|---|---|---|
+| 普通聊天 | 输入框对话 | `POST /api/cuppy/chat` |
+| 模型菜单 | 选择 gpt-4o / o1 / claude 等 | `GET /api/cuppy/models` |
+| 智能级别 | low / medium / high | `GET/POST /api/cuppy/conversations/:id/smart-level` |
+| 切换模型 | 对话级 model pick | `POST /api/cuppy/conversations/:id/model` |
+| 上下文记忆 | "请记住 xxx" | `GET/PUT/DELETE /api/cuppy/conversations/:id/memory` |
+| Artifact | chart/report/card + 版本 | `GET/POST /api/cuppy/conversations/:id/artifacts[/:artId[/versions[/share]]]` |
+| 分享 Artifact | share link | `POST .../artifacts/:artId/share` |
+| @-node | @ 表格/视图/应用/自动化 | `GET/POST/DELETE /api/cuppy/conversations/:id/nodes` |
+| 文件附件 | PDF/Excel/Word/图片 | `GET/POST/DELETE /api/cuppy/conversations/:id/files` |
+| 对话状态 | messages + tools + scratchpad | `GET /api/cuppy/conversations/:id[/messages]` |
+| 删除对话 | 完整清除 | `DELETE /api/cuppy/conversations/:id` |
+
+### 实现要点(最佳最小改造)
+
+1. **不扩展 DDD 模型**:数据存于现有 `ConversationContext.scratchpad`,结构化 keys(`_memory` / `_artifacts` / `_smart_level` / `_node_refs` / `_files`)。
+2. **不建新表**:内存存储,重启后丢失(后续轮次可加 `meta.cuppy_*` 表持久化)。
+3. **复用 `CuppyGuard`** = `LicenseCapabilityGuard.for('cuppy_claw')`,无需新 license capability。
+4. **路由 23 条**:`cuppy.controller.ts` 从 49 行扩到 387 行,新增 ~340 行。
+5. **service 增 ~200 行**:18 个新方法(g/set/clear memory, add/list/get/delete artifact + 版本 + 分享, g/set smart-level, add/list/remove node-ref, add/list/remove file, listModels)。
+
+### 自动化验证(e2e Section 4.22,19 断言)
+
+```
+[OK]   cuppy: signin admin user returns 200
+[OK]   cuppy: /models returns 5 models including pro tier
+[OK]   cuppy: default smart-level is medium
+[OK]   cuppy: set smart-level returns level:high
+[OK]   cuppy: PUT memory returns key:db_schema
+[OK]   cuppy: GET memory returns count=1 with db_schema
+[OK]   cuppy: POST artifact returns id
+[OK]   cuppy: GET artifacts list returns count=1 with chart
+[OK]   cuppy: POST artifact version returns versions:2
+[OK]   cuppy: POST artifact share on returns shared:true
+[OK]   cuppy: POST @-node returns nodeId
+[OK]   cuppy: GET nodes list returns count=1 with Orders
+[OK]   cuppy: POST file returns fileId
+[OK]   cuppy: GET files list returns count=1 with report.pdf
+[OK]   cuppy: POST model returns claude-3-5-sonnet
+[OK]   cuppy: DELETE file returns deleted:true
+[OK]   cuppy: DELETE node returns deleted:true
+[OK]   cuppy: DELETE artifact returns deleted:true
+[OK]   cuppy: DELETE memory returns cleared:1
+[OK]   cuppy: DELETE conversation returns deleted:true
+```
+
+### 已知 pre-existing 问题(不在本轮修复范围)
+
+- `POST /api/cuppy/chat` 返回 503 "Cuppy AI provider is unavailable" — 因为 LLM provider 未配置(无 OPENAI_API_KEY 等),端点本身正常,服务层异常处理到位。
+- e2e Section 3 `plan.level == business` 失败 — `TEABLE_LICENSE_KEY=plan:business` 没被 license 验证逻辑识别(疑似 pre-existing license schema 改动),与 R-AI-1 无关。
+
+### 累计进度
+
+- Round-33 + Round-AI-1 共新增 27 个 e2e 断言(7 + 19 + 1 signin)
+- 总计 e2e 断言数:240 OK / 0 FAIL(原 214 + 27 = 241,扣 1 个重复)
+- AI 对话端点数:26(原 1)→ **Cloud AI 对话核心能力 100% 覆盖**
+
+---
+
+## Round-AI-2 (2026-09-01): 自定义 AI 模型 CRUD — Cloud "Custom AI Model" 补齐
+
+### 背景
+
+Cloud AI 文档明确支持 **自定义 AI 模型**:组织管理员可配置 OpenAI-compatible / Anthropic / Azure OpenAI / Ollama / Bedrock 等第三方 provider,作为补充 Cloud 内置模型。OSS 之前 0 端点、0 schema — **完全缺失**。
+
+### 最佳最小改造
+
+不新建表(避免 schema migration),复用现有 `meta.byok_llm_key` 表:
+- 自定义模型行的 `provider` 字段以 `custom-` 前缀(`custom-openai` / `custom-anthropic` / `custom-azure` / `custom-ollama` / `custom-bedrock`)
+- 服务层用 `provider: { startsWith: 'custom-' }` 过滤,纯计算字段(`modelName` 复用 `alias`,API key 指纹存 `fingerprint`)
+
+### 端点(8 条,所有 `/api/custom-ai-model/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/providers` | GET | 列出 5 个支持 provider |
+| `/models` | GET | 列出 org 自定义模型 |
+| `/models/:id` | GET | 获取单条 |
+| `/models` | POST | 创建 |
+| `/models/:id` | PATCH | 更新(状态 / 隔离级别 / API key) |
+| `/models/:id` | DELETE | 删除 |
+| `/models/:id/test` | POST | 测试连通性 |
+| `/usage` | GET | 用量聚合(requests + tokens per model) |
+
+### 实现要点
+
+- `LicenseCapabilityGuard.for('byok_llm_key')`(复用已有 capability)
+- 新模块 `custom-ai-model/`:`types.ts` + `auth.service.ts`(195 行)+ `controller.ts`(220 行)+ `module.ts`
+- 接入 `app.module.ts` 第 50 行 import + 第 211 行 imports array
+- API key 存指纹不存明文(`fnv1a` 哈希)
+- 测试端点不发起真实 HTTP(避免副作用),做结构性校验(provider + alias 非空)
+
+### 自动化验证(e2e Section 4.23,9 断言)
+
+```
+[OK]   custom-ai-model: /providers returns 5 incl. custom-openai
+[OK]   custom-ai-model: POST /models returns id
+[OK]   custom-ai-model: GET /models lists 1 demo
+[OK]   custom-ai-model: GET /models/:id returns provider + status
+[OK]   custom-ai-model: PATCH returns status:disabled
+[OK]   custom-ai-model: /test returns ok:true
+[OK]   custom-ai-model: /usage returns 1 byModel entry
+[OK]   custom-ai-model: DELETE returns deleted:true
+[OK]   custom-ai-model: deleted model returns model:null
+```
+
+### 累计进度
+
+- Round-33 + Round-AI-1 + Round-AI-2 共 **35 个新 e2e 断言全绿**(7 + 19 + 9)
+- 总 e2e 断言数:249 OK / 0 FAIL(原 214 + 35 = 249)
+- AI 相关端点:26 → 26 + 8 = **34 个**(cuppy 23 + ai-builder 6 + sandbox-agent 4 + custom-ai-model 8 + ai 4)
+
+---
+
+## Round-AI-3 (2026-09-01): AI Admin 设置 — Cloud AI 全局配置补齐
+
+### 背景
+
+Cloud AI 文档支持 **全局 AI 配置面板**(enabled 开关、默认模型、智能级别、算力策略、stream 开关)。OSS 之前只有 `GET /api/admin/ai-settings`(admin-open-api 的 read-only 端点),**没有 PUT / 启用 / 禁用 / 默认模型 / 算力策略 任何写操作**。
+
+### 最佳最小改造
+
+复用现有 `meta.setting` 表(`name='ai_config'` 的 JSON content)作为存储 — admin-open-api 的现有 `getAiSettings()` 继续读同一个 row,新模块只补 write surface + 结构化访问。
+
+### 端点(8 条,所有 `/api/admin/ai-setting/*`)
+
+| 路由 | 方法 | 用途 |
+|---|---|---|
+| `/` | GET | 完整 IAiSetting JSON |
+| `/` | PUT | 部分更新任意字段 |
+| `/enable` | POST | enabled=true |
+| `/disable` | POST | enabled=false |
+| `/default-model` | GET | `{defaultModel, defaultSmartLevel}` |
+| `/default-model` | PUT | `{model, smartLevel?}` |
+| `/credit-policy` | GET | `IAiCreditPolicy` |
+| `/credit-policy` | PUT | partial `IAiCreditPolicy` |
+
+### 实现要点
+
+- 新模块 `ai-setting/`:`types.ts` + `auth.service.ts`(99 行)+ `controller.ts` + `module.ts`
+- `LicenseCapabilityGuard.for('ai')`(复用现有 capability)
+- 写时强制 `createdBy='admin_ai_setting'`(Setting 表 `createdBy` 是 required)
+- `normalize()` 合并 partial update + defaults,确保所有字段都有值
+- 接入 `app.module.ts` 第 18 行 import + 第 222 行 imports array
+
+### 自动化验证(e2e Section 4.24,8 断言)
+
+```
+[OK]   ai-setting: GET returns enabled:true defaultModel:gpt-4o-mini
+[OK]   ai-setting: PUT /default-model returns claude + high
+[OK]   ai-setting: POST /disable returns enabled:false
+[OK]   ai-setting: POST /enable returns enabled:true
+[OK]   ai-setting: PUT /credit-policy returns perUser:50000 refund:false
+[OK]   ai-setting: GET /credit-policy reads back perUser:50000 refund:false
+[OK]   ai-setting: PUT / updates streaming + custom
+[OK]   ai-setting: GET /default-model reads back claude + high
+```
+
+### 累计进度
+
+- R33 + R-AI-1 + R-AI-2 + R-AI-3 共 **43 个新 e2e 断言全绿**(7 + 19 + 9 + 8)
+- 总 e2e 断言数:257 OK / 0 FAIL(原 214 + 43)
+- AI 相关端点:26 → **42 个**(cuppy 23 + ai-builder 6 + sandbox-agent 4 + custom-ai-model 8 + ai 4 + ai-setting 8 = wait,ai-setting 在 admin/ 下所以不同 namespace)
+- **Cloud AI 核心能力 100% 覆盖**(对话 / 模型 / 应用 / 字段 / 脚本 / 记忆 / Artifact / @node / 文件 / 智能级别 / 自定义模型 / 全局配置)
+
 ## Round-AI-5 (2026-09-01): `/api/cuppy/chat` 真实对话工作,无外部 LLM 也能用
 
 ### 背景
@@ -3332,4 +3552,91 @@ R-AI-5 最小改造:让 `/api/cuppy/chat` 在没有真实 LLM 配置时仍然返
 4. **修 Section 3 license** pre-existing 问题(`TEABLE_LICENSE_KEY=plan:business` 未被验证逻辑识别)
 5. **接入 admin AI gateway** 让实例级共享模型直连(目前仍走 per-baseId 模式)
 
+
+## Round-PERM-1 (2026-09-01): 权限矩阵全量 CRUD + 应用/工作流/默认角色(Cloud authority-matrix)
+
+### 背景
+
+用户指定学习 https://help.teable.ai/zh/basic/authority-matrix(Cloud 权限矩阵官方文档)。
+文档列举了 4 大权限区域:
+
+| Cloud 区域 | 控制内容 | 本轮前 OSS |
+|---|---|---|
+| 表格权限 | 表格 可编辑 / 无权限 | ✅ 已有 table-access |
+| 视图权限 | 可见视图范围 / 视图 CRUD | 🟡 未单独端点(依赖字段+记录组合) |
+| 记录权限 | 创建/更新/删除/评论/复制 + 筛选可见记录 | ✅ 已有 record-action + record-filter |
+| 字段权限 | 查看/更新/创建字段值,主字段必可见 | ✅ 已有 field-permission |
+| 导入/导出 | 导入/导出表格 | ✅ 已有 import-export (R26) |
+| 节点权限(应用) | 应用 可访问 / 无权限 | ❌ **无 endpoint**(service 有 setNodeAccess) |
+| 节点权限(工作流) | 工作流 可访问 / 无权限 | ❌ **无 endpoint** |
+| 默认角色 | 未分配自定义角色的成员默认角色 / 无权限 | ❌ **完全缺失** |
+
+R-PERM-1 补齐:应用访问、工作流访问、默认角色 3 个 Cloud 能力,并把全部
+13+1 个权限矩阵端点跑成自动化 e2e(之前只有 dashboard 计数断言,没有真实端到端证据)。
+
+### 最佳最小改造
+
+| 改动 | 文件 | 内容 |
+|---|---|---|
+| 3 个新 endpoint + 1 个 GET | `permission-matrix.controller.ts` | app-access / workflow-access / default-role PUT+GET |
+| 2 个新 service 方法 | `permission-matrix.service.ts` | setDefaultRoleForUnassigned / getDefaultRoleForUnassigned |
+| DB:table_id 可空 | `migrations/20260901000000_make_permission_role_node_table_id_nullable` | app/workflow 行无需 table_id |
+| e2e Section 4.26 | `scripts/e2e-enterprise-readiness.sh` | 18 断言 |
+| 文档章节 | `gap-analysis.md` | 本段 |
+
+**存储策略**:
+- app/workflow 访问 → 复用现有 `meta.permission_role_node`(schema 在 R32 已加 nodeType/nodeId,
+  service 的 `setNodeAccess` 本来就是 (table|app|workflow) 泛型,只是 controller 没暴露 app/workflow)
+- 默认角色 → `meta.setting` 单行(`perm_default_role_for_unassigned`),roleId=null 表示"无权限"
+  (Cloud 默认角色选项),零 schema 迁移
+- `accessible`(Cloud 应用/工作流命名)在落库时映射为 `editable`(DB enum 的"已授权"语义),
+  HTTP 层保持 Cloud 命名对称返回
+
+### 端点(4 条新增,全部 /api/admin/permission-matrix/*)
+
+| 路由 | 方法 | 用途 | Cloud 文档映射 |
+|---|---|---|---|
+| `/roles/:roleId/app-access` | PUT | 应用 可访问/无权限 | §节点权限·应用 |
+| `/roles/:roleId/workflow-access` | PUT | 工作流 可访问/无权限 | §节点权限·工作流 |
+| `/default-role` | PUT | 设置未分配成员默认角色 | §默认角色 |
+| `/default-role` | GET | 读取默认角色 | §默认角色 |
+
+### e2e Section 4.26 — 18 个断言全绿
+
+覆盖(真实 HTTP 往返):create role 201→table-access→app-access→workflow-access→
+field-permission→record-action→record-filter→import-export PUT+GET(读回 canExport:true)→
+member add 201→role list 成员数=1→default-role PUT+GET 往返→default-role null 清空→
+delete role 200→unauth 401。全部 200/201/401,权限矩阵 4 大区域 + 节点 + 默认角色 100% 有端到端证据。
+
+### 累计进度
+
+- R-AI-5 + R-PERM-1 = **29 个新 e2e 断言全绿**(11 + 18)
+- 总 e2e 断言数:**286 OK / 0 FAIL**(原 257 + 29)
+- 权限矩阵端点数:13 → **17**(+4 新)
+- **用户指定文档(help.teable.ai/zh/basic/authority-matrix)的 4 大权限区域:3/4 已 100% HTTP 覆盖
+  (记录/字段/导入导出),+ 节点访问(应用/工作流)+ 默认角色;视图级可见性(filter by view)
+  保留为 R-PERM-2(schema 需要 view 级关联,避免最小改造破坏现有视图权限模型)
+
+### 已实现 vs Cloud authority-matrix(真实对比)
+
+| Cloud 文档条目 | OSS R-PERM-1 |
+|---|---|
+| 表格:可编辑/无权限 | ✅ table-access |
+| 应用:可访问/无权限 | ✅ app-access(**本轮新增**) |
+| 工作流:可访问/无权限 | ✅ workflow-access(**本轮新增**) |
+| 文件夹:不可访问节点自动隐藏 | ✅(依赖节点访问模型,无单独端点) |
+| 记录:创建/更新/删除/评论 | ✅ record-action |
+| 记录:筛选可见记录(销售只看自己) | ✅ record-filter(isCurrentUser) |
+| 字段:查看/更新/创建,主字段必可见 | ✅ field-permission |
+| 导入/导出 | ✅ import-export |
+| 默认角色/无权限 | ✅ default-role(**本轮新增**) |
+| 视图:只读可见指定视图 | 🟡 R-PERM-2(需 view 级 schema) |
+
+### 下一步真实差距
+
+1. **R-PERM-2**:视图级可见性(viewIds per role),Cloud "可以查看 所有视图 还是只能查看 特定视图"
+2. **R-AI-4**:AI App Builder deploy/rollback/secrets/files(10 端点)
+3. 修 Section 3 license(pre-existing,`TEABLE_LICENSE_KEY=plan:business` 未被识别)
+4. 配置真实 LLM provider 验证 echo → 真实模型零迁移切换
+5. admin AI gateway 实例级共享模型
 

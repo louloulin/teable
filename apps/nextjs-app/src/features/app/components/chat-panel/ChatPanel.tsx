@@ -1,8 +1,18 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/**
+ * R-AI-8 — Cuppy AI 对话面板
+ *
+ * 默认 general chat (panelType='general')：调用 `/api/cuppy/chat` 显示 AI 回复。
+ * 当用户选中 base 时附带 baseId 触发真实 LLM 路径（前提：admin 已配置
+ * gateway apiKey 或空间 BYOK）。
+ *
+ * 设计目标：
+ *   1. 最低代码量即可工作（~250 行）
+ *   2. 不假设有真实 LLM — echo fallback 也能正常显示
+ *   3. 与 useChatPanelStore 集成（open/close/expanded）
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { axios } from '@teable/openapi';
-import { useBase } from '@teable/sdk/hooks';
 import {
-  Badge,
   Button,
   Input,
   ScrollArea,
@@ -11,574 +21,291 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Skeleton,
-  Textarea,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from '@teable/ui-lib';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
-import { Maximize2, Minimize2, X } from 'lucide-react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import { useCallback, useEffect, useState } from 'react';
-import { useChatPanelStore } from '../sidebar/useChatPanelStore';
-import { ArtifactPanel } from './ArtifactPanel';
-import { AtNodePicker } from './AtNodePicker';
+import { Send, Trash2, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-// ──────────────────────────── Types ────────────────────────────
+import { cuppyApi, type ICuppyMessage, type ICuppyModel } from './api';
 
-interface ICuppyMessage {
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  atIso?: string;
-}
-
-interface ICuppyConversation {
-  conversationId: string;
-  text: string;
-}
-
-interface IArtifactRow {
+interface IDisplayMessage {
   id: string;
-  name: string;
-  kind: string;
-  versions: number;
-  createdAt: string;
-  shared: boolean;
+  role: 'user' | 'assistant';
+  content: string;
+  fallback?: 'no-base' | 'no-provider' | 'timeout' | 'error';
 }
 
-interface IAtNodeRefRow {
-  nodeId: string;
-  kind: string;
-  refId: string;
-  label: string;
-  addedAt: string;
+function genId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-// ──────────────────────────── Helpers ────────────────────────────
+function detectFallback(text: string): IDisplayMessage['fallback'] {
+  if (text.includes('[real-LLM provider fallback:') && text.includes('timeout')) {
+    return 'timeout';
+  }
+  if (text.includes('[real-LLM provider fallback:')) {
+    return 'no-provider';
+  }
+  if (text.includes('built-in fallback')) {
+    return 'no-base';
+  }
+  return undefined;
+}
 
-const newConversationId = (): string =>
-  `conv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+export interface ChatPanelProps {
+  /** Override the current base id (optional; default reads from context). */
+  baseId?: string;
+  /** Optional CSS class for outer container. */
+  className?: string;
+}
 
-const STORAGE_CONV_KEY = 'teable-cuppy-conversation';
-const STORAGE_MESSAGES_KEY = 'teable-cuppy-messages';
+export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => {
+  const ctxBaseId: string | undefined = undefined;
+  const baseId = propBaseId ?? ctxBaseId ?? undefined;
+  const queryClient = useQueryClient();
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [input, setInput] = useState('');
+  const [model, setModel] = useState<string>('');
+  const [messages, setMessages] = useState<IDisplayMessage[]>([]);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
-// ──────────────────────────── Sub-views ────────────────────────────
+  // Load available models on mount
+  const modelsQuery = useQuery({
+    queryKey: ['cuppy', 'models'],
+    queryFn: () => cuppyApi.listModels(),
+    staleTime: 5 * 60_000,
+  });
 
-function MessageBubble({ message }: { message: ICuppyMessage }) {
+  // Default model selection
+  useEffect(() => {
+    if (!model && modelsQuery.data && modelsQuery.data.length > 0) {
+      const lite = modelsQuery.data.find((m) => m.tier === 'lite');
+      setModel(lite?.id ?? modelsQuery.data[0].id);
+    }
+  }, [modelsQuery.data, model]);
+
+  // Load messages when conversation changes
+  const messagesQuery = useQuery({
+    queryKey: ['cuppy', 'messages', conversationId],
+    queryFn: () => cuppyApi.listMessages(conversationId as string),
+    enabled: Boolean(conversationId),
+  });
+
+  useEffect(() => {
+    if (messagesQuery.data) {
+      setMessages(
+        messagesQuery.data.map((m: ICuppyMessage) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          fallback: m.role === 'assistant' ? detectFallback(m.content) : undefined,
+        }))
+      );
+    }
+  }, [messagesQuery.data]);
+
+  // Auto-scroll on new message
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const chatMutation = useMutation({
+    mutationFn: (text: string) =>
+      cuppyApi.chat({
+        baseId,
+        conversationId,
+        message: text,
+      }),
+    onMutate: (text) => {
+      const optimistic: IDisplayMessage = {
+        id: genId(),
+        role: 'user',
+        content: text,
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      setInput('');
+    },
+    onSuccess: (reply) => {
+      setConversationId(reply.conversationId);
+      const fallback = reply.fallback ?? detectFallback(reply.text);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: genId(),
+          role: 'assistant',
+          content: reply.text,
+          fallback,
+        },
+      ]);
+      if (reply.model) {
+        queryClient.setQueryData(['cuppy', 'lastModel'], reply.model);
+      }
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      toast.error(`Cuppy chat failed: ${msg}`);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: genId(),
+          role: 'assistant',
+          content: `⚠️ ${msg}`,
+          fallback: 'error',
+        },
+      ]);
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      if (!conversationId) return { ok: true };
+      return cuppyApi.deleteConversation(conversationId);
+    },
+    onSuccess: () => {
+      setConversationId(undefined);
+      setMessages([]);
+      queryClient.removeQueries({ queryKey: ['cuppy', 'messages'] });
+    },
+  });
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || chatMutation.isPending) return;
+    chatMutation.mutate(text);
+  };
+
+  const models = (modelsQuery.data ?? []) as ICuppyModel[];
+
+  return (
+    <div className={`flex h-full flex-col bg-background ${className ?? ''}`}>
+      <header className="flex items-center justify-between border-b px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Cuppy</h2>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {baseId ? 'base' : 'no-base'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {models.length > 0 && (
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger className="h-7 w-[120px] text-xs">
+                <SelectValue placeholder="Model" />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={clearMutation.isPending || messages.length === 0}
+            onClick={() => clearMutation.mutate()}
+            aria-label="Clear chat"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
+        {messages.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
+            <Sparkles className="mb-3 h-8 w-8 opacity-40" />
+            <p className="text-sm">
+              {baseId
+                ? 'Ask Cuppy anything about this base.'
+                : 'Open a base to unlock table-aware answers.'}
+            </p>
+            {!baseId && (
+              <p className="mt-1 text-xs">
+                Without a base, replies come from the built-in echo fallback.
+              </p>
+            )}
+          </div>
+        )}
+        <div className="flex flex-col gap-3">
+          {messages.map((m) => (
+            <ChatBubble key={m.id} message={m} />
+          ))}
+          {chatMutation.isPending && (
+            <ChatBubble
+              message={{
+                id: 'pending',
+                role: 'assistant',
+                content: '…thinking',
+              }}
+              pending
+            />
+          )}
+        </div>
+      </div>
+
+      <form
+        onSubmit={onSubmit}
+        className="flex items-center gap-2 border-t px-3 py-2"
+      >
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={baseId ? 'Ask Cuppy…' : 'Type anything (echo fallback)…'}
+          disabled={chatMutation.isPending}
+          maxLength={10_000}
+          className="flex-1"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={chatMutation.isPending || !input.trim()}
+          aria-label="Send"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+interface IChatBubbleProps {
+  message: IDisplayMessage;
+  pending?: boolean;
+}
+
+const ChatBubble = ({ message, pending }: IChatBubbleProps) => {
   const isUser = message.role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
-        }`}
+        className={`max-w-[80%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+          isUser
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-foreground'
+        } ${pending ? 'animate-pulse' : ''}`}
       >
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-        {message.atIso && (
-          <div className="mt-1 text-[10px] opacity-60">
-            {new Date(message.atIso).toLocaleTimeString()}
+        {message.content}
+        {message.fallback && !pending && (
+          <div className="mt-2 border-t border-current/20 pt-1 text-[10px] opacity-70">
+            {message.fallback === 'no-base' &&
+              'Echo fallback · select a base for real LLM answers.'}
+            {message.fallback === 'no-provider' &&
+              'Echo fallback · configure admin AI gateway or BYOK.'}
+            {message.fallback === 'timeout' &&
+              'Echo fallback · upstream LLM timed out (8s).'}
+            {message.fallback === 'error' && 'Echo fallback · upstream error.'}
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function Composer({
-  onSend,
-  isPending,
-  disabled,
-}: {
-  onSend: (text: string) => void;
-  isPending: boolean;
-  disabled: boolean;
-}) {
-  const [text, setText] = useState('');
-  const submit = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
-    setText('');
-  };
-  return (
-    <div className="flex flex-col gap-2 p-3">
-      <Textarea
-        rows={3}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={disabled ? 'Select a base first' : 'Ask Cuppy anything…'}
-        maxLength={10_000}
-        disabled={disabled || isPending}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            submit();
-          }
-        }}
-      />
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{text.length}/10000 · ⌘+↵</span>
-        <Button
-          size="sm"
-          disabled={disabled || isPending || text.trim().length === 0}
-          onClick={submit}
-        >
-          {isPending ? 'Thinking…' : 'Send'}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function MemoryPanel({
-  conversationId,
-  memory,
-  onAdded,
-}: {
-  conversationId: string;
-  memory: Record<string, { value: string; createdAt: string }>;
-  onAdded: () => void;
-}) {
-  const [key, setKey] = useState('');
-  const [value, setValue] = useState('');
-
-  const setMem = useMutation({
-    mutationFn: () =>
-      axios.put(`/api/cuppy/conversations/${conversationId}/memory`, {
-        key: key.trim(),
-        value,
-      }),
-    onSuccess: () => {
-      setKey('');
-      setValue('');
-      onAdded();
-      toast.success('Memory saved');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const delMem = useMutation({
-    mutationFn: () => axios.delete(`/api/cuppy/conversations/${conversationId}/memory`),
-    onSuccess: onAdded,
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const entries = Object.entries(memory);
-
-  return (
-    <div className="flex flex-col gap-2 p-3 text-sm">
-      <div className="text-xs font-medium text-muted-foreground">Memory (cross-database)</div>
-      {entries.length === 0 ? (
-        <div className="text-xs text-muted-foreground">No memory yet.</div>
-      ) : (
-        <ul className="space-y-1">
-          {entries.map(([k, v]) => (
-            <li key={k} className="flex items-start justify-between gap-2 text-xs">
-              <div>
-                <div className="font-medium">{k}</div>
-                <div className="text-muted-foreground">{v.value}</div>
-              </div>
-              <Badge variant="outline" className="shrink-0 text-[10px]">
-                {new Date(v.createdAt).toLocaleDateString()}
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="mt-2 flex flex-col gap-1">
-        <Input
-          placeholder="key"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          maxLength={128}
-        />
-        <Input
-          placeholder="value"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          maxLength={8000}
-        />
-        <div className="flex justify-end gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={entries.length === 0 || delMem.isPending}
-            onClick={() => delMem.mutate()}
-          >
-            Clear all
-          </Button>
-          <Button
-            size="sm"
-            disabled={!key.trim() || !value || setMem.isPending}
-            onClick={() => setMem.mutate()}
-          >
-            Save
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ArtifactsPanel({
-  conversationId,
-  artifacts,
-  onChanged,
-}: {
-  conversationId: string;
-  artifacts: IArtifactRow[];
-  onChanged: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [kind, setKind] = useState<'chart' | 'report' | 'page' | 'card' | 'doc'>('chart');
-  const [content, setContent] = useState('');
-
-  const create = useMutation({
-    mutationFn: () =>
-      axios.post(`/api/cuppy/conversations/${conversationId}/artifacts`, {
-        name: name.trim(),
-        kind,
-        content,
-      }),
-    onSuccess: () => {
-      setName('');
-      setContent('');
-      onChanged();
-      toast.success('Artifact created');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: (id: string) =>
-      axios.delete(`/api/cuppy/conversations/${conversationId}/artifacts/${id}`),
-    onSuccess: onChanged,
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <div className="flex flex-col gap-2 p-3 text-sm">
-      <div className="text-xs font-medium text-muted-foreground">Artifacts</div>
-      {artifacts.length === 0 ? (
-        <div className="text-xs text-muted-foreground">No artifacts yet.</div>
-      ) : (
-        <div className="space-y-2" data-testid="artifact-list">
-          {artifacts.map((a) => (
-            <ArtifactPanel
-              key={a.id}
-              row={a}
-              conversationId={conversationId}
-              onChanged={onChanged}
-            />
-          ))}
-        </div>
-      )}
-      <div className="mt-2 flex flex-col gap-1">
-        <Input placeholder="name" value={name} onChange={(e) => setName(e.target.value)} />
-        <Select value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="chart">chart</SelectItem>
-            <SelectItem value="report">report</SelectItem>
-            <SelectItem value="page">page</SelectItem>
-            <SelectItem value="card">card</SelectItem>
-            <SelectItem value="doc">doc</SelectItem>
-          </SelectContent>
-        </Select>
-        <Textarea
-          rows={2}
-          placeholder="content (markdown / json)"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          maxLength={64000}
-        />
-        <Button
-          size="sm"
-          disabled={!name.trim() || !content || create.isPending}
-          onClick={() => create.mutate()}
-        >
-          Add artifact
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────── Main panel ────────────────────────────
-
-export function ChatPanel() {
-  const router = useRouter();
-  const base = useBase();
-  const baseId = String(router.query.baseId ?? base?.id ?? '');
-  const { status, close, toggleExpanded } = useChatPanelStore();
-  const queryClient = useQueryClient();
-
-  const [conversationId, setConversationId] = useState<string>('');
-  const [messages, setMessages] = useState<ICuppyMessage[]>([]);
-  const [smartLevel, setSmartLevel] = useState<'low' | 'medium' | 'high'>('medium');
-  const [model, setModel] = useState<string>('default');
-  const [tab, setTab] = useState<'memory' | 'artifacts'>('memory');
-
-  // Restore last conversation
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const conv = window.localStorage.getItem(STORAGE_CONV_KEY);
-    const msgs = window.localStorage.getItem(STORAGE_MESSAGES_KEY);
-    setConversationId(conv || newConversationId());
-    if (msgs) {
-      try {
-        setMessages(JSON.parse(msgs));
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (conversationId) window.localStorage.setItem(STORAGE_CONV_KEY, conversationId);
-    window.localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(messages));
-  }, [conversationId, messages]);
-
-  // Conversation state queries
-  const memoryQuery = useQuery({
-    queryKey: ['cuppy', 'memory', conversationId],
-    enabled: Boolean(conversationId),
-    queryFn: () =>
-      axios
-        .get<{ memory: Record<string, { value: string; createdAt: string }> }>(
-          `/api/cuppy/conversations/${conversationId}/memory`
-        )
-        .then((r) => r.data.memory ?? {}),
-  });
-
-  const artifactsQuery = useQuery({
-    queryKey: ['cuppy', 'artifacts', conversationId],
-    enabled: Boolean(conversationId),
-    queryFn: () =>
-      axios
-        .get<{ artifacts: IArtifactRow[] }>(
-          `/api/cuppy/conversations/${conversationId}/artifacts`
-        )
-        .then((r) => r.data.artifacts ?? []),
-  });
-
-  const nodesQuery = useQuery({
-    queryKey: ['cuppy', 'nodes', conversationId],
-    enabled: Boolean(conversationId),
-    queryFn: () =>
-      axios
-        .get<{ nodes: IAtNodeRefRow[] }>(
-          `/api/cuppy/conversations/${conversationId}/nodes`
-        )
-        .then((r) => r.data.nodes ?? []),
-  });
-
-  const smartLevelQuery = useQuery({
-    queryKey: ['cuppy', 'smart-level', conversationId],
-    enabled: Boolean(conversationId),
-    queryFn: () =>
-      axios
-        .get<{ level: 'low' | 'medium' | 'high' }>(
-          `/api/cuppy/conversations/${conversationId}/smart-level`
-        )
-        .then((r) => r.data.level),
-  });
-
-  const modelQuery = useQuery({
-    queryKey: ['cuppy', 'model', conversationId],
-    enabled: Boolean(conversationId),
-    queryFn: () =>
-      axios
-        .get<{ model: string }>(`/api/cuppy/conversations/${conversationId}/model`)
-        .then((r) => r.data.model ?? 'default'),
-  });
-
-  useEffect(() => {
-    if (smartLevelQuery.data) setSmartLevel(smartLevelQuery.data);
-  }, [smartLevelQuery.data]);
-  useEffect(() => {
-    if (modelQuery.data) setModel(modelQuery.data);
-  }, [modelQuery.data]);
-
-  const invalidateAll = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['cuppy', 'memory', conversationId] });
-    void queryClient.invalidateQueries({ queryKey: ['cuppy', 'artifacts', conversationId] });
-    void queryClient.invalidateQueries({ queryKey: ['cuppy', 'nodes', conversationId] });
-  }, [queryClient, conversationId]);
-
-  const send = useMutation({
-    mutationFn: (text: string) =>
-      axios.post<ICuppyConversation>('/api/cuppy/chat', {
-        baseId: baseId || undefined,
-        conversationId,
-        message: text,
-      }),
-    onMutate: (text) => {
-      setMessages((m) => [
-        ...m,
-        { role: 'user', content: text, atIso: new Date().toISOString() },
-      ]);
-    },
-    onSuccess: (res) => {
-      const text = res.data.text ?? '';
-      setMessages((m) => [
-        ...m,
-        { role: 'assistant', content: text, atIso: new Date().toISOString() },
-      ]);
-    },
-    onError: (e: Error) => {
-      toast.error(e.message);
-      setMessages((m) => m.slice(0, -1));
-    },
-  });
-
-  const updateSmartLevel = useMutation({
-    mutationFn: (level: 'low' | 'medium' | 'high') =>
-      axios.post(`/api/cuppy/conversations/${conversationId}/smart-level`, { level }),
-  });
-  const updateModel = useMutation({
-    mutationFn: (m: string) =>
-      axios.post(`/api/cuppy/conversations/${conversationId}/model`, { model: m }),
-  });
-
-  if (status === 'close') return null;
-
-  const isExpanded = status === 'expanded';
-  const widthClass = isExpanded ? 'w-[min(800px,80vw)]' : 'w-[360px]';
-
-  return (
-    <TooltipProvider delayDuration={150}>
-      <Head>
-        <title>Cuppy</title>
-      </Head>
-      <aside
-        data-testid="cuppy-chat-panel"
-        className={`flex h-full flex-col border-l bg-background ${widthClass}`}
-      >
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Cuppy</span>
-            <Badge variant="outline" className="text-[10px]">
-              {smartLevel}
-            </Badge>
-            <Badge variant="outline" className="text-[10px]">
-              {model}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" onClick={toggleExpanded}>
-                  {isExpanded ? (
-                    <Minimize2 className="h-4 w-4" />
-                  ) : (
-                    <Maximize2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isExpanded ? 'Collapse' : 'Expand'}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" onClick={close}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Close</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs">
-          <Select
-            value={smartLevel}
-            onValueChange={(v) => {
-              const next = v as 'low' | 'medium' | 'high';
-              setSmartLevel(next);
-              updateSmartLevel.mutate(next);
-            }}
-          >
-            <SelectTrigger className="h-7 w-28 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">low</SelectItem>
-              <SelectItem value="medium">medium</SelectItem>
-              <SelectItem value="high">high</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            className="h-7 w-32 text-xs"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            onBlur={() => model.trim() && updateModel.mutate(model.trim())}
-            placeholder="model"
-          />
-          <div className="ml-auto flex gap-1">
-            <Button
-              size="sm"
-              variant={tab === 'memory' ? 'secondary' : 'ghost'}
-              onClick={() => setTab('memory')}
-            >
-              Memory
-            </Button>
-            <Button
-              size="sm"
-              variant={tab === 'artifacts' ? 'secondary' : 'ghost'}
-              onClick={() => setTab('artifacts')}
-            >
-              Artifacts
-            </Button>
-          </div>
-        </div>
-
-        <AtNodePicker
-          conversationId={conversationId}
-          nodes={(nodesQuery.data ?? []) as unknown as Parameters<typeof AtNodePicker>[0]['nodes']}
-          onChanged={invalidateAll}
-        />
-
-        <div className="border-b">
-          {tab === 'memory' ? (
-            <MemoryPanel
-              conversationId={conversationId}
-              memory={memoryQuery.data ?? {}}
-              onAdded={invalidateAll}
-            />
-          ) : (
-            <ArtifactsPanel
-              conversationId={conversationId}
-              artifacts={artifactsQuery.data ?? []}
-              onChanged={invalidateAll}
-            />
-          )}
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-2 p-3">
-            {messages.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
-                Start the conversation — Cuppy has access to your base schema.
-              </div>
-            ) : (
-              messages.map((m, i) => <MessageBubble key={i} message={m} />)
-            )}
-            {send.isPending && <Skeleton className="h-8 w-32 self-start" />}
-          </div>
-        </ScrollArea>
-
-        <Composer
-          disabled={!conversationId || !baseId}
-          isPending={send.isPending}
-          onSend={(t) => send.mutate(t)}
-        />
-      </aside>
-    </TooltipProvider>
-  );
-}
+};

@@ -207,6 +207,79 @@ export class MultiRegionArbitrationAuthService {
     }
     return dropCount;
   }
+
+  /** List registered regions (admin ops view). */
+  async listRegions(): Promise<
+    Array<{
+      id: string;
+      code: string;
+      displayName: string;
+      status: string;
+      dataCenterLocation: string | null;
+    }>
+  > {
+    const rows = await this.prisma.region.findMany({ orderBy: { code: 'asc' } });
+    return rows.map((r) => ({
+      id: r.id,
+      code: r.code,
+      displayName: r.displayName,
+      status: r.status,
+      dataCenterLocation: r.dataCenterLocation ?? null,
+    }));
+  }
+
+  /** Snapshot health for a single region — lease counts + conflict totals. */
+  async regionHealth(regionId: string): Promise<{
+    regionId: string;
+    activeLeases: number;
+    totalLeases: number;
+    conflictsAsWinner: number;
+    conflictsAsLoser: number;
+    queueDepth: number;
+  }> {
+    const [active, total, win, lose, queueDepth] = await Promise.all([
+      this.prisma.regionWriteLease.count({
+        where: { regionId, state: 'active', expiresAt: { gt: new Date() } },
+      }),
+      this.prisma.regionWriteLease.count({ where: { regionId } }),
+      this.prisma.regionConflict.count({ where: { winnerRegion: regionId } }),
+      this.prisma.regionConflict.count({ where: { loserRegion: regionId } }),
+      this.prisma.regionReplayQueue.count({ where: { regionId } }),
+    ]);
+    return {
+      regionId,
+      activeLeases: active,
+      totalLeases: total,
+      conflictsAsWinner: win,
+      conflictsAsLoser: lose,
+      queueDepth,
+    };
+  }
+
+  /** Aggregate arbitration status across the fleet. */
+  async arbitrationStatus(): Promise<{
+    regionCount: number;
+    activeLeases: number;
+    pendingConflicts: number;
+    replayQueueDepth: number;
+    sampledAt: string;
+  }> {
+    const [regionCount, activeLeases, pendingConflicts, replayQueueDepth] = await Promise.all([
+      this.prisma.region.count(),
+      this.prisma.regionWriteLease.count({
+        where: { state: 'active', expiresAt: { gt: new Date() } },
+      }),
+      this.prisma.regionConflict.count({ where: { replayedAt: null } }),
+      this.prisma.regionReplayQueue.count(),
+    ]);
+    return {
+      regionCount,
+      activeLeases,
+      pendingConflicts,
+      replayQueueDepth,
+      sampledAt: new Date().toISOString(),
+    };
+  }
 }
 
 function toLease(row: Record<string, unknown>): IWriteLease {
