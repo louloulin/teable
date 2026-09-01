@@ -57,6 +57,11 @@ export class ApiThrottleGuard implements CanActivate {
       return true;
     }
 
+    // Test seam: e2e scripts set this to bypass the limit.
+    if (process.env.API_RATE_LIMIT_DISABLED === 'true') {
+      return true;
+    }
+
     const req = context.switchToHttp().getRequest<IExpressLikeRequest>();
     const ipKey = resolveIpKey(req);
     const limit = limitForPlan(plan);

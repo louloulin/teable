@@ -80,7 +80,8 @@ export class AiAppBuilderController {
       body?.sourcePrompt,
       body?.snapshot
     );
-    return { appId: app.id, currentVersionId: app.currentVersionId, version };
+    // Service returns the freshly-refetched app; use its currentVersionId.
+    return { appId: app.id, currentVersionId: app.currentVersionId ?? null, version };
   }
 
   @Post(':appId/rollback')
@@ -105,12 +106,17 @@ export class AiAppBuilderController {
   async putSecret(
     @Param('baseId') baseId: string,
     @Param('appId') appId: string,
-    @Body() body: { key: string; value: string; description?: string }
+    @Body() body: { secrets: Array<{ key: string; value: string; description?: string }> }
   ) {
     await this.auth.assertAppInBase(appId, baseId);
-    const out = await this.svc.putSecret(appId, body.key, body.value, body.description);
+    const items = body?.secrets ?? [];
+    const out = [];
+    for (const s of items) {
+      const row = await this.svc.putSecret(appId, s.key, s.value, s.description);
+      out.push({ id: row.id, appId: row.appId, key: row.key, description: row.description, updatedAt: row.updatedAt });
+    }
     // Return only key + meta — never the value (Cloud: write-only after save).
-    return { id: out.id, appId: out.appId, key: out.key, description: out.description, updatedAt: out.updatedAt };
+    return { count: out.length, items: out };
   }
 
   @Get(':appId/secrets')

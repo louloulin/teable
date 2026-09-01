@@ -1,19 +1,9 @@
--- AI App Builder (Cloud §AI §App Builder, help.teable.ai/en/basic/ai/app-builder).
+-- AI App Builder (Cloud §AI §App Builder, help.teable.ai/en/basic/ai/app_builder).
 -- Minimal R-AI-4 surface: app_instance (top-level), app_version (snapshot history),
--- app_secret (write-only keys), app_file (sandbox), plus two enums for status.
+-- app_secret (write-only keys), app_file (sandbox).
 -- Idempotent: safe on hot-fixed DBs.
-
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_status') THEN
-    CREATE TYPE "app_status" AS ENUM ('draft', 'deployed', 'archived');
-  END IF;
-END $$;
-
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_version_status') THEN
-    CREATE TYPE "app_version_status" AS ENUM ('draft', 'deployed', 'rolled_back');
-  END IF;
-END $$;
+-- NOTE: status is a TEXT column (not a PostgreSQL enum) because cross-schema
+-- enum type references between public + meta trigger Postgres error 42804.
 
 CREATE TABLE IF NOT EXISTS "app_instance" (
   "id"                 TEXT PRIMARY KEY,
@@ -21,7 +11,7 @@ CREATE TABLE IF NOT EXISTS "app_instance" (
   "name"               TEXT NOT NULL,
   "description"        TEXT,
   "current_version_id" TEXT,
-  "status"             "app_status" NOT NULL DEFAULT 'draft',
+  "status"             TEXT NOT NULL DEFAULT 'draft',
   "created_by"         TEXT NOT NULL,
   "created_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -37,7 +27,7 @@ CREATE TABLE IF NOT EXISTS "app_version" (
   "version_number" INTEGER NOT NULL,
   "snapshot"       JSONB NOT NULL,
   "source_prompt"  TEXT,
-  "status"         "app_version_status" NOT NULL DEFAULT 'draft',
+  "status"         TEXT NOT NULL DEFAULT 'draft',
   "deployed_at"    TIMESTAMP(3),
   "deployed_by"    TEXT,
   "created_at"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -70,9 +60,8 @@ CREATE TABLE IF NOT EXISTS "app_file" (
 CREATE INDEX IF NOT EXISTS "app_file_app_id_idx" ON "app_file" ("app_id");
 
 -- Mirror tables into the meta schema where the Prisma client (configured with
--- schema='meta') actually queries. The public mirror is mostly vestigial —
--- we keep it for symmetry with the other permission-* tables that exist in
--- both schemas. Both schemas get IF NOT EXISTS so re-runs are safe.
+-- schema='meta') actually queries. SET search_path so the cross-schema TEXT
+-- columns reference the same atomic TEXT type.
 
 SET search_path TO meta, public;
 
@@ -82,7 +71,7 @@ CREATE TABLE IF NOT EXISTS "app_instance" (
   "name"               TEXT NOT NULL,
   "description"        TEXT,
   "current_version_id" TEXT,
-  "status"             "app_status" NOT NULL DEFAULT 'draft',
+  "status"             TEXT NOT NULL DEFAULT 'draft',
   "created_by"         TEXT NOT NULL,
   "created_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,7 +88,7 @@ CREATE TABLE IF NOT EXISTS "app_version" (
   "version_number" INTEGER NOT NULL,
   "snapshot"       JSONB NOT NULL,
   "source_prompt"  TEXT,
-  "status"         "app_version_status" NOT NULL DEFAULT 'draft',
+  "status"         TEXT NOT NULL DEFAULT 'draft',
   "deployed_at"    TIMESTAMP(3),
   "deployed_by"    TEXT,
   "created_at"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

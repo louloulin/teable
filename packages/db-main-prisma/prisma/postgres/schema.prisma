@@ -4179,7 +4179,7 @@ model AppInstance {
   name         String
   description  String?
   currentVersionId String? @unique @map("current_version_id")
-  status       AppStatus @default(draft)
+  status       String   @default("draft")
   createdBy    String   @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -4201,7 +4201,7 @@ model AppVersion {
   versionNumber Int      @map("version_number")
   snapshot      Json
   sourcePrompt  String?  @map("source_prompt")
-  status        AppVersionStatus @default(draft)
+  status        String   @default("draft")
   deployedAt    DateTime? @map("deployed_at")
   deployedBy    String?  @map("deployed_by")
   createdAt     DateTime @default(now()) @map("created_at")

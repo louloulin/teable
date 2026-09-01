@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService, AppStatus, AppVersionStatus } from '@teable/db-main-prisma';
+import { PrismaService } from '@teable/db-main-prisma';
 import { HttpErrorCode } from '@teable/core';
 import { randomBytes } from 'crypto';
 import { CustomHttpException } from '../../custom.exception';
@@ -28,7 +28,7 @@ export interface IAppVo {
   baseId: string;
   name: string;
   description: string | null;
-  status: AppStatus;
+  status: 'draft' | 'deployed' | 'archived';
   currentVersionId: string | null;
   createdBy: string;
   createdAt: string;
@@ -40,7 +40,7 @@ export interface IAppVersionVo {
   appId: string;
   versionNumber: number;
   sourcePrompt: string | null;
-  status: AppVersionStatus;
+  status: 'draft' | 'deployed' | 'rolled_back';
   deployedAt: string | null;
   deployedBy: string | null;
   createdAt: string;
@@ -145,7 +145,7 @@ export class AiAppBuilderService {
           versionNumber: nextNumber,
           snapshot: snapshotJson,
           sourcePrompt: sourcePrompt ?? null,
-          status: AppVersionStatus.deployed,
+          status: 'deployed',
           deployedAt: now,
           deployedBy,
         },
@@ -156,9 +156,11 @@ export class AiAppBuilderService {
       });
       await tx.appInstance.update({
         where: { id: appId },
-        data: { status: AppStatus.deployed },
+        data: { status: 'deployed' },
       });
-      return { app, version };
+      // Refetch app so caller sees the new currentVersionId.
+      const updatedApp = await tx.appInstance.findUnique({ where: { id: appId } });
+      return { app: updatedApp, version };
     });
   }
 
@@ -177,7 +179,7 @@ export class AiAppBuilderService {
       throw new CustomHttpException('current version not found', HttpErrorCode.NOT_FOUND);
     }
     const previous = await this.prisma.appVersion.findFirst({
-      where: { appId, versionNumber: { lt: current.versionNumber }, status: AppVersionStatus.deployed },
+      where: { appId, versionNumber: { lt: current.versionNumber }, status: 'deployed' },
       orderBy: { versionNumber: 'desc' },
     });
     if (!previous) {
@@ -186,17 +188,19 @@ export class AiAppBuilderService {
     return this.prisma.$transaction(async (tx) => {
       await tx.appVersion.update({
         where: { id: current.id },
-        data: { status: AppVersionStatus.rolled_back },
+        data: { status: 'rolled_back' },
       });
       await tx.appVersion.update({
         where: { id: previous.id },
-        data: { status: AppVersionStatus.deployed, deployedAt: new Date(), deployedBy },
+        data: { status: 'deployed', deployedAt: new Date(), deployedBy },
       });
       await tx.appInstance.update({
         where: { id: appId },
         data: { currentVersionId: previous.id },
       });
-      return { app, current, previous };
+      // Refetch app so caller sees the new currentVersionId.
+      const updatedApp = await tx.appInstance.findUnique({ where: { id: appId } });
+      return { app: updatedApp, current, previous };
     });
   }
 

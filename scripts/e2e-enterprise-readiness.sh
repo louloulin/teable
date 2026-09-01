@@ -214,6 +214,7 @@ start_backend() {
     TEABLE_ADMIN_TOKEN="$ADMIN_TOKEN" \
     PORT="$PORT" \
     NODE_ENV=development \
+    API_RATE_LIMIT_DISABLED=true \
     nohup node "${ROOT}/apps/nestjs-backend/dist/index.js" \
     > "$LOG" 2>&1 &
   BACKEND_PID=$!
@@ -3220,6 +3221,183 @@ assert_ok "$(chk_starts "$UNAUTH_CODE" "4")" "permission-matrix: unauthenticated
 # Cleanup demo rows so subsequent runs start from baseline.
 PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.permission_role_view WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_member WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_node WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_import_export WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role WHERE id='$RID_PERM'; DELETE FROM meta.collaborator WHERE id='collab_round_perm1_demo'; DELETE FROM meta.base WHERE id='bse_round_perm1_demo'; DELETE FROM meta.setting WHERE name='perm_default_role_for_unassigned';" -q > /dev/null 2>&1
 rm -f /tmp/teable-cookies-426.txt
+# ----- Section 4.27: ai-app-builder HTTP CRUD (Round-AI-4, 12 endpoints) -----
+log "=== Section 4.27: ai-app-builder HTTP CRUD (Round-AI-4) ==="
+
+# Reset per-IP 10/s rate-limit window before this section's burst.
+sleep 2
+
+# Pre-create demo base + collaborator (same as 4.26).
+PG_SQL_427="$(mktemp)"
+cat > "$PG_SQL_427" <<'EOSQLE'
+INSERT INTO meta.base (id, space_id, name, "order", created_time, created_by)
+VALUES ('bse_round_ai4_demo', 'spcsp43Lpj0xS3oW5tH', 'Round AI-4 Demo', 0, now(), 'usrzdwQ3PgckZuDlQvo')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO meta.collaborator (id, role_name, resource_type, resource_id, principal_id, principal_type, created_by, created_time)
+VALUES ('collab_round_ai4_demo', 'owner', 'base', 'bse_round_ai4_demo', 'usrzdwQ3PgckZuDlQvo', 'user', 'usrzdwQ3PgckZuDlQvo', now())
+ON CONFLICT (id) DO NOTHING;
+EOSQLE
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -f "$PG_SQL_427" -q > /dev/null
+rm -f "$PG_SQL_427"
+
+# Sign in to get auth cookie (admin user is the base owner).
+SIGNIN_HDRS_427="$(mktemp)"
+sleep 0.12
+curl -sS -X POST "${BASE_URL}/api/auth/signin" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@teable.local","password":"admin123"}' \
+  -D "$SIGNIN_HDRS_427" -o /dev/null
+AUTH_COOKIE_427="$(grep -i '^set-cookie:' "$SIGNIN_HDRS_427" | sed -E 's/^[Ss]et-[Cc]ookie: ([^;]+).*/\1/' | head -1)"
+rm -f "$SIGNIN_HDRS_427"
+COOKIE_ARGS_427=(-H "Cookie: ${AUTH_COOKIE_427}")
+
+BASE_AI4="bse_round_ai4_demo"
+AAB="api/${BASE_AI4}/apps"
+
+# 1. POST /apps — create new app instance (Cloud §AI §App Builder).
+sleep 0.12
+CREATE_RAW=$(curl -sS -X POST "${BASE_URL}/${AAB}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"name":"Sales Dashboard","description":"Customer-facing pipeline view"}' \
+  -w '|%{http_code}' 2>/dev/null)
+CREATE_CODE="${CREATE_RAW##*|}"
+CREATE_BODY="${CREATE_RAW%|*}"
+APP_ID=$(printf '%s' "$CREATE_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("id",""))' 2>/dev/null)
+APP_STATUS=$(printf '%s' "$CREATE_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$CREATE_CODE" "201")" "ai-app-builder: create app returns 201 (got HTTP $CREATE_CODE)"
+assert_ok "$(chk_truthy "$APP_ID")" "ai-app-builder: create app returned id (got: $APP_ID)"
+assert_ok "$(chk_eq "$APP_STATUS" "draft")" "ai-app-builder: new app starts in draft status (got: $APP_STATUS)"
+
+# 2. GET /apps — list apps in base.
+sleep 0.12
+LIST_RAW=$(curl -sS "${BASE_URL}/${AAB}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -w '|%{http_code}' 2>/dev/null)
+LIST_CODE="${LIST_RAW##*|}"
+LIST_BODY="${LIST_RAW%|*}"
+LIST_LEN=$(printf '%s' "$LIST_BODY" | A="$APP_ID" python3 -c 'import sys,json,os; d=json.load(sys.stdin); aid=os.environ.get(chr(65),""); print(len([a for a in d if a.get("id")==aid]))' 2>/dev/null)
+assert_ok "$(chk_eq "$LIST_CODE" "200")" "ai-app-builder: list apps returns 200 (got HTTP $LIST_CODE)"
+assert_ok "$(chk_truthy "$LIST_LEN" )" "ai-app-builder: list apps returns the newly created app (got count: $LIST_LEN)"
+
+# 3. GET /apps/:appId — get single app (should match created).
+sleep 0.12
+GET_CODE=$(curl -sS "${BASE_URL}/${AAB}/${APP_ID}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$GET_CODE" "200")" "ai-app-builder: get app returns 200 (got HTTP $GET_CODE)"
+
+# 4. PATCH /apps/:appId — rename and update description.
+sleep 0.12
+PATCH_CODE=$(curl -sS -X PATCH "${BASE_URL}/${AAB}/${APP_ID}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"name":"Sales Pipeline 2026","description":"updated"}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$PATCH_CODE" "200")" "ai-app-builder: patch app returns 200 (got HTTP $PATCH_CODE)"
+sleep 0.12
+PATCHED_NAME=$(curl -sS "${BASE_URL}/${AAB}/${APP_ID}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" 2>/dev/null \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin).get("name",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$PATCHED_NAME" "Sales Pipeline 2026")" "ai-app-builder: patched name persists (got: $PATCHED_NAME)"
+
+# 5. POST /apps/:appId/deploy — deploy first version, sets currentVersionId.
+sleep 0.12
+DEPLOY_RAW=$(curl -sS -X POST "${BASE_URL}/${AAB}/${APP_ID}/deploy" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"sourcePrompt":"Build a kanban with stages: lead, qualified, won","snapshot":{"files":["index.html","app.js"]}}' \
+  -w '|%{http_code}' 2>/dev/null)
+DEPLOY_CODE="${DEPLOY_RAW##*|}"
+DEPLOY_BODY="${DEPLOY_RAW%|*}"
+CUR_VER=$(printf '%s' "$DEPLOY_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("currentVersionId",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$DEPLOY_CODE" "201")" "ai-app-builder: deploy returns 201 (got HTTP $DEPLOY_CODE)"
+assert_ok "$(chk_truthy "$CUR_VER")" "ai-app-builder: deploy sets currentVersionId (got: $CUR_VER)"
+
+# 6. POST /apps/:appId/deploy — deploy second version (for rollback target).
+sleep 0.12
+DEPLOY2_CODE=$(curl -sS -X POST "${BASE_URL}/${AAB}/${APP_ID}/deploy" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"sourcePrompt":"add csv export","snapshot":{"files":["index.html","app.js","export.csv"]}}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$DEPLOY2_CODE" "201")" "ai-app-builder: deploy v2 returns 201 (got HTTP $DEPLOY2_CODE)"
+
+# 7. GET /apps/:appId/versions — list version history (should have >= 2).
+sleep 0.12
+VERS_RAW=$(curl -sS "${BASE_URL}/${AAB}/${APP_ID}/versions" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -w '|%{http_code}' 2>/dev/null)
+VERS_CODE="${VERS_RAW##*|}"
+VERS_BODY="${VERS_RAW%|*}"
+VERS_LEN=$(printf '%s' "$VERS_BODY" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)' 2>/dev/null)
+assert_ok "$(chk_eq "$VERS_CODE" "200")" "ai-app-builder: list versions returns 200 (got HTTP $VERS_CODE)"
+assert_ok "$(chk_eq "$VERS_LEN" "2")" "ai-app-builder: list versions returns 2 entries (got: $VERS_LEN)"
+
+# 8. POST /apps/:appId/rollback — revert to previous version.
+sleep 0.12
+ROLL_RAW=$(curl -sS -X POST "${BASE_URL}/${AAB}/${APP_ID}/rollback" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -w '|%{http_code}' 2>/dev/null)
+ROLL_CODE="${ROLL_RAW##*|}"
+ROLL_BODY="${ROLL_RAW%|*}"
+ROLL_VER=$(printf '%s' "$ROLL_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("currentVersionId",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$ROLL_CODE" "201")" "ai-app-builder: rollback returns 201 (got HTTP $ROLL_CODE)"
+assert_ok "$(chk_truthy "$ROLL_VER")" "ai-app-builder: rollback updates currentVersionId (got: $ROLL_VER)"
+
+# 9. PUT /apps/:appId/secrets — store encrypted secret (Cloud: Secret values are write-only).
+sleep 0.12
+SEC_PUT_CODE=$(curl -sS -X PUT "${BASE_URL}/${AAB}/${APP_ID}/secrets" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"secrets":[{"key":"STRIPE_API_KEY","value":"sk_test_demo_abcdef0123456789","description":"stripe live"}]}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$SEC_PUT_CODE" "200")" "ai-app-builder: put secrets returns 200 (got HTTP $SEC_PUT_CODE)"
+
+# 10. GET /apps/:appId/secrets — list secrets but MUST NOT return plaintext value.
+sleep 0.12
+SEC_GET_RAW=$(curl -sS "${BASE_URL}/${AAB}/${APP_ID}/secrets" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -w '|%{http_code}' 2>/dev/null)
+SEC_GET_CODE="${SEC_GET_RAW##*|}"
+SEC_GET_BODY="${SEC_GET_RAW%|*}"
+SEC_HAS_KEY=$(printf '%s' "$SEC_GET_BODY" | python3 -c 'import sys,json; d=json.load(sys.stdin); print("STRIPE_API_KEY" in json.dumps(d))' 2>/dev/null)
+SEC_HAS_PLAIN=$(printf '%s' "$SEC_GET_BODY" | python3 -c 'import sys,json; d=json.load(sys.stdin); print("sk_test_demo_abcdef" in json.dumps(d))' 2>/dev/null)
+SEC_COUNT=$(printf '%s' "$SEC_GET_BODY" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)' 2>/dev/null)
+assert_ok "$(chk_eq "$SEC_GET_CODE" "200")" "ai-app-builder: list secrets returns 200 (got HTTP $SEC_GET_CODE)"
+assert_ok "$(chk_eq "$SEC_HAS_KEY" "True")" "ai-app-builder: list secrets exposes STRIPE_API_KEY name (got: $SEC_HAS_KEY)"
+assert_ok "$(chk_eq "$SEC_HAS_PLAIN" "False")" "ai-app-builder: list secrets HIDES plaintext (write-only, got leaked: $SEC_HAS_PLAIN)"
+assert_ok "$(chk_eq "$SEC_COUNT" "1")" "ai-app-builder: list secrets count = 1 (got: $SEC_COUNT)"
+
+# 11. PUT /apps/:appId/files — write a sandbox file.
+sleep 0.12
+FILE_PUT_CODE=$(curl -sS -X PUT "${BASE_URL}/${AAB}/${APP_ID}/files" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -d '{"path":"index.html","content":"<html><body>Sales Pipeline</body></html>"}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$FILE_PUT_CODE" "200")" "ai-app-builder: put file returns 200 (got HTTP $FILE_PUT_CODE)"
+
+# 12. GET /apps/:appId/files — list files for the app (should include index.html).
+sleep 0.12
+FILES_RAW=$(curl -sS "${BASE_URL}/${AAB}/${APP_ID}/files" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_427[@]}" \
+  -w '|%{http_code}' 2>/dev/null)
+FILES_CODE="${FILES_RAW##*|}"
+FILES_BODY="${FILES_RAW%|*}"
+FILES_HAS=$(printf '%s' "$FILES_BODY" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(any(f.get("path")=="index.html" for f in (d if isinstance(d,list) else [])))' 2>/dev/null)
+assert_ok "$(chk_eq "$FILES_CODE" "200")" "ai-app-builder: list files returns 200 (got HTTP $FILES_CODE)"
+assert_ok "$(chk_eq "$FILES_HAS" "True")" "ai-app-builder: list files includes index.html (got: $FILES_HAS)"
+
+# 13. unauthenticated requests rejected (regression — LicenseCapabilityGuard).
+sleep 0.12
+UNAUTH=$(curl -sS "${BASE_URL}/${AAB}" -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_starts "$UNAUTH" "4")" "ai-app-builder: unauthenticated request rejected (got HTTP $UNAUTH)"
+
+# Cleanup demo rows so subsequent runs start from baseline.
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c \
+  "DELETE FROM meta.app_file WHERE app_id IN (SELECT id FROM meta.app_instance WHERE base_id='bse_round_ai4_demo');
+   DELETE FROM meta.app_secret WHERE app_id IN (SELECT id FROM meta.app_instance WHERE base_id='bse_round_ai4_demo');
+   DELETE FROM meta.app_version WHERE app_id IN (SELECT id FROM meta.app_instance WHERE base_id='bse_round_ai4_demo');
+   DELETE FROM meta.app_instance WHERE base_id='bse_round_ai4_demo';
+   DELETE FROM meta.collaborator WHERE id='collab_round_ai4_demo';
+   DELETE FROM meta.base WHERE id='bse_round_ai4_demo';" -q > /dev/null 2>&1
+rm -f /tmp/teable-cookies-427.txt
+
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"
