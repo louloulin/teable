@@ -87,12 +87,7 @@ it('R-AI-7b: update() mirrors gateway fields into aiConfig row', async () => {
     }),
   });
 
-  await svc.update({
-    enabled: true,
-    defaultModel: 'gpt-4o-mini',
-    aiGatewayApiKey: 'vck_test_9999',
-    aiGatewayBaseUrl: 'https://ai-gateway.vercel.sh/v1',
-  });
+  await svc.setGateway('vck_test_9999', 'https://ai-gateway.vercel.sh/v1');
 
   const aiConfigRow = prisma.rows.get('aiConfig');
   expect(aiConfigRow).toBeDefined();
@@ -133,4 +128,98 @@ it('R-AI-7b: aiConfig row is created when missing (no prior content)', async () 
   const parsed = JSON.parse(aiConfigRow!.content);
   expect(parsed.aiGatewayApiKey).toBe('vck_fresh');
   expect(parsed.aiGatewayBaseUrl).toBe('https://gateway-fresh.example/v1');
+});
+
+it('R-AI-9: setDefaultModel("gpt-4o-mini") mirrors chatModel.lg into aiConfig as standard', async () => {
+  const { svc, prisma } = makeService();
+
+  prisma.rows.set('aiConfig', {
+    name: 'aiConfig',
+    content: JSON.stringify({
+      enable: true,
+      llmProviders: [
+        { type: 'openai', name: 'teable', apiKey: 'sk-existing', models: 'gpt-3.5-turbo' },
+      ],
+    }),
+  });
+
+  await svc.setDefaultModel('gpt-4o-mini', 'medium');
+
+  const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
+  expect(parsed.chatModel.lg).toBe('openai@gpt-4o-mini@teable');
+  expect(parsed.chatModel.md).toBe('openai@gpt-4o-mini@teable');
+  expect(parsed.chatModel.sm).toBe('openai@gpt-4o-mini@teable');
+  // Preserves apiKey, appends to models list
+  const openai = parsed.llmProviders.find(
+    (p: { type: string }) => p.type === 'openai'
+  );
+  expect(openai.apiKey).toBe('sk-existing');
+  expect(openai.models.split(',')).toContain('gpt-3.5-turbo');
+  expect(openai.models.split(',')).toContain('gpt-4o-mini');
+});
+
+it('R-AI-9: setDefaultModel("anthropic/claude-3-5-sonnet") uses gateway model key', async () => {
+  const { svc, prisma } = makeService();
+
+  prisma.rows.set('aiConfig', {
+    name: 'aiConfig',
+    content: JSON.stringify({ enable: true }),
+  });
+
+  await svc.setDefaultModel('anthropic/claude-3-5-sonnet');
+
+  const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
+  expect(parsed.chatModel.lg).toBe('anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.md).toBe('anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.sm).toBe('anthropic/claude-3-5-sonnet@teable');
+  // No new openai provider auto-created when gateway model selected.
+  // llmProviders may be inherited as empty array, that's fine.
+  const openaiProviders = (parsed.llmProviders ?? []).filter(
+    (p: { type: string }) => p.type === 'openai'
+  );
+  expect(openaiProviders).toHaveLength(0);
+});
+
+it('R-AI-9: setDefaultModel with no existing openai provider auto-creates one', async () => {
+  const { svc, prisma } = makeService();
+
+  prisma.rows.set('aiConfig', {
+    name: 'aiConfig',
+    content: JSON.stringify({ enable: true }),
+  });
+
+  await svc.setDefaultModel('gpt-4o-mini');
+
+  const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
+  const openai = parsed.llmProviders.find(
+    (p: { type: string }) => p.type === 'openai'
+  );
+  expect(openai).toBeDefined();
+  expect(openai.name).toBe('teable');
+  expect(openai.models).toBe('gpt-4o-mini');
+  expect(openai.apiKey).toBe(''); // empty so admin must fill in
+  expect(openai.baseUrl).toBe('https://api.openai.com/v1');
+});
+
+it('R-AI-9: setDefaultModel preserves existing gateway apiKey from earlier R-AI-7b mirror', async () => {
+  const { svc, prisma } = makeService();
+
+  // Simulate prior gateway mirror
+  prisma.rows.set('aiConfig', {
+    name: 'aiConfig',
+    content: JSON.stringify({
+      enable: true,
+      aiGatewayApiKey: 'vck_prior',
+      aiGatewayBaseUrl: 'https://ai-gateway.vercel.sh/v1',
+    }),
+  });
+
+  await svc.setDefaultModel('anthropic/claude-3-5-sonnet');
+
+  const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
+  // R-AI-7b gateway config preserved
+  expect(parsed.aiGatewayApiKey).toBe('vck_prior');
+  expect(parsed.aiGatewayBaseUrl).toBe('https://ai-gateway.vercel.sh/v1');
+  // R-AI-9 chatModel updated
+  expect(parsed.chatModel.lg).toBe('anthropic/claude-3-5-sonnet@teable');
 });

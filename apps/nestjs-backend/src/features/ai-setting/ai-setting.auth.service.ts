@@ -60,28 +60,111 @@ function safeParseJson(raw: unknown): Record<string, unknown> {
 }
 
 /**
- * Mirror `aiGatewayApiKey` / `aiGatewayBaseUrl` from the admin ai_setting
- * module into the canonical `meta.setting.aiConfig` row so the AI runtime
+ * Mirror admin-set gateway credentials (`apiKey`, `baseUrl`) into the
+ * canonical `meta.setting.aiConfig` row so the AI runtime
  * (`ai.service.ts`) can pick them up via SettingService.getSetting() and
- * `SettingKey.AI_CONFIG = 'aiConfig'`. Without this mirror, admin UI changes
- * never reach `ai.service` because it reads `name='aiConfig'` while this
- * module persists to `name='ai_config'`.
+ * `SettingKey.AI_CONFIG = 'aiConfig'`. Without this mirror, admin UI
+ * changes never reach `ai.service` because it reads `name='aiConfig'`
+ * while this module persists to `name='ai_config'`.
  */
 async function mirrorGatewayToAiConfig(
   prisma: PrismaService,
-  setting: { aiGatewayApiKey: string | null; aiGatewayBaseUrl: string | null }
+  setting: { apiKey: string | null; baseUrl: string | null }
 ): Promise<void> {
   const AI_CONFIG_CANONICAL = 'aiConfig';
   const existing = await prisma.setting.findFirst({
     where: { name: AI_CONFIG_CANONICAL },
     select: { content: true },
   });
+  // Always overwrite — callers (setGateway) decide whether null = clear.
   const merged = {
     ...safeParseJson(existing?.content),
-    aiGatewayApiKey: setting.aiGatewayApiKey,
-    aiGatewayBaseUrl: setting.aiGatewayBaseUrl,
+    aiGatewayApiKey: setting.apiKey,
+    aiGatewayBaseUrl: setting.baseUrl,
   };
   const userId = 'admin_ai_setting_mirror';
+  await prisma.setting.upsert({
+    where: { name: AI_CONFIG_CANONICAL },
+    create: {
+      name: AI_CONFIG_CANONICAL,
+      content: JSON.stringify(merged),
+      createdBy: userId,
+    },
+    update: {
+      content: JSON.stringify(merged),
+      lastModifiedBy: userId,
+    },
+  });
+}
+
+/**
+ * Mirror `defaultModel` into `meta.setting.aiConfig.chatModel` so admin UI
+ * changes actually reach `ai.service.getChatModelInstance`. Without this
+ * mirror, defaultModel is only stored in the ai_setting row and never
+ * affects runtime behavior. Splits on `/` to decide gateway vs standard:
+ *   - contains '/' → gateway model (anthropic/claude-sonnet-4)
+ *     chatModel.{lg,md,sm} = `<model>@teable` (instance-level suffix)
+ *   - otherwise → standard model (gpt-4o-mini)
+ *     chatModel.{lg,md,sm} = `openai@<model>@teable`
+ *     and ensures a matching llmProviders entry exists.
+ */
+async function mirrorDefaultModelToAiConfig(
+  prisma: PrismaService,
+  defaultModel: string
+): Promise<void> {
+  if (!defaultModel || typeof defaultModel !== 'string') return;
+  const AI_CONFIG_CANONICAL = 'aiConfig';
+  const existing = await prisma.setting.findFirst({
+    where: { name: AI_CONFIG_CANONICAL },
+    select: { content: true },
+  });
+  const parsed = safeParseJson(existing?.content);
+  const isGateway = defaultModel.includes('/');
+  const modelKey = isGateway
+    ? `${defaultModel}@teable`
+    : `openai@${defaultModel}@teable`;
+  const nextChatModel = {
+    ...((parsed.chatModel as Record<string, unknown>) ?? {}),
+    lg: modelKey,
+    md: modelKey,
+    sm: modelKey,
+  };
+  let llmProviders = (parsed.llmProviders as Array<Record<string, unknown>>) ?? [];
+  if (!isGateway) {
+    const openaiIdx = llmProviders.findIndex(
+      (p) => String(p.type).toLowerCase() === 'openai'
+    );
+    if (openaiIdx === -1) {
+      llmProviders = [
+        ...llmProviders,
+        {
+          type: 'openai',
+          name: 'teable',
+          apiKey: '',
+          baseUrl: 'https://api.openai.com/v1',
+          models: defaultModel,
+        },
+      ];
+    } else {
+      const cur = llmProviders[openaiIdx];
+      const models = String(cur.models ?? '')
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean);
+      if (!models.includes(defaultModel)) models.push(defaultModel);
+      llmProviders = [
+        ...llmProviders.slice(0, openaiIdx),
+        { ...cur, models: models.join(',') },
+        ...llmProviders.slice(openaiIdx + 1),
+      ];
+    }
+  }
+  const merged = {
+    ...parsed,
+    chatModel: nextChatModel,
+    llmProviders,
+  };
+  const userId = 'admin_ai_setting_default_model';
   await prisma.setting.upsert({
     where: { name: AI_CONFIG_CANONICAL },
     create: {
@@ -141,10 +224,24 @@ export class AiSettingAuthService {
       create: { name: AI_CONFIG_NAME, content: json, createdBy: userId },
       update: { content: json, lastModifiedBy: userId },
     });
-    // R-AI-7b: mirror gateway fields to canonical aiConfig row so ai.service
-    // (which reads SettingKey.AI_CONFIG = 'aiConfig') actually picks them up.
-    await mirrorGatewayToAiConfig(this.prisma, next);
     return next;
+  }
+
+  /**
+   * Internal helper: run gateway + default-model mirrors in sequence with
+   * explicit values. Callers (setGateway, setDefaultModel) choose which
+   * mirrors to invoke so that null clears and undefined preserves.
+   */
+  async syncMirrors(args: {
+    gateway?: { apiKey: string | null; baseUrl: string | null };
+    defaultModel?: string;
+  }): Promise<void> {
+    if (args.gateway) {
+      await mirrorGatewayToAiConfig(this.prisma, args.gateway);
+    }
+    if (args.defaultModel) {
+      await mirrorDefaultModelToAiConfig(this.prisma, args.defaultModel);
+    }
   }
 
   /** Flip the global enabled flag. */
@@ -156,7 +253,9 @@ export class AiSettingAuthService {
   async setDefaultModel(defaultModel: string, smartLevel?: IAiSetting['defaultSmartLevel']): Promise<IAiSetting> {
     const input: Partial<IAiSetting> = { defaultModel };
     if (smartLevel) input.defaultSmartLevel = smartLevel;
-    return this.update(input);
+    const result = await this.update(input);
+    await this.syncMirrors({ defaultModel });
+    return result;
   }
 
   /** Update credit policy. */
@@ -187,6 +286,7 @@ export class AiSettingAuthService {
       aiGatewayApiKey: apiKey,
       aiGatewayBaseUrl: baseUrl ?? current.aiGatewayBaseUrl ?? null,
     });
+    await this.syncMirrors({ gateway: { apiKey, baseUrl: baseUrl ?? current.aiGatewayBaseUrl ?? null } });
     return {
       aiGatewayApiKey: next.aiGatewayApiKey,
       aiGatewayBaseUrl: next.aiGatewayBaseUrl,

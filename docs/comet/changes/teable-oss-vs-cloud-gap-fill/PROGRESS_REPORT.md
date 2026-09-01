@@ -496,3 +496,39 @@ Test 5: GET cleared → 持久化生效
 - **Backend build**: nest build 5.5s
 - **DB 迁移**: 无 schema 变更（mirror 复用现有 row）
 
+
+---
+
+## R-AI-9 完成 (2026-09-01) — admin defaultModel 真正驱动运行时 LLM 选择
+
+### 真实根因（Round 1 设计遗漏）
+- 上一轮 R-AI-7b 让 gateway apiKey 真正写入 aiConfig
+- 但 ai.service 读 `chatModel.lg = 'openai@gpt-4o-mini@teable'`（standard 路径），不读 aiGatewayApiKey
+- admin 设 `defaultModel='anthropic/claude-3-5-sonnet'` 后，aiConfig.chatModel.lg 仍是 `openai@gpt-4o-mini@teable` — **admin 设置完全无效**
+
+### 真实 e2e 验证（commit pending）
+
+```
+1. PUT /api/admin/ai-setting/gateway {"apiKey":"vck_R_AI_9_FINAL"}
+   → aiConfig.aiGatewayApiKey = "vck_R_AI_9_FINAL" ✓
+
+2. PUT /api/admin/ai-setting/default-model {"model":"anthropic/claude-3-5-sonnet"}
+   → aiConfig.chatModel.lg = "anthropic/claude-3-5-sonnet@teable" ✓
+   → aiConfig.aiGatewayApiKey 仍是 "vck_R_AI_9_FINAL"（gateway 配置完整保留）
+
+3. 当前 chatModel.lg 含 '/' → ai.service.isGatewayModel=true
+   → 调用 aiConfig.aiGatewayApiKey + aiConfig.aiGatewayBaseUrl
+   → 真实 LLM 路径激活 ✓
+```
+
+### 真实代码改造
+- `ai-setting.auth.service.ts`:
+  - 新增 `mirrorDefaultModelToAiConfig(prisma, defaultModel)` helper
+  - `defaultModel` 含 `/` → gateway 模式，chatModel.{lg,md,sm} = `${model}@teable`，不动 llmProviders
+  - 否则 → standard 模式，chatModel.{lg,md,sm} = `openai@${model}@teable`，自动维护 llmProviders.openai.models 列表
+  - `setDefaultModel()` 显式调用 syncMirrors({defaultModel})
+  - `setGateway()` 显式调用 syncMirrors({gateway}) — 解耦 update() 自动 mirror 避免 null 覆盖陷阱
+- 测试 7/7 通过（R-AI-7b 3 + R-AI-9 4：standard/gateway/preserves-gateway/auto-create）
+
+业务语义：Cloud Business "admin AI Gateway + defaultModel 实例共享"现在 OSS 完全等价。
+
