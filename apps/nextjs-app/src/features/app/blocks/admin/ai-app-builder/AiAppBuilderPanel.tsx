@@ -8,6 +8,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
   Input,
   Label,
   Select,
@@ -18,6 +24,8 @@ import {
   Skeleton,
   Textarea,
 } from '@teable/ui-lib';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 import { useState } from 'react';
 
@@ -107,6 +115,7 @@ export const AiAppBuilderPanel = () => {
   const [secretValue, setSecretValue] = useState('');
   const [filePath, setFilePath] = useState('/config.yaml');
   const [fileContent, setFileContent] = useState('');
+  const [previewVersion, setPreviewVersion] = useState<IAppVersion | null>(null);
 
   const basesQuery = useQuery({
     queryKey: ['admin', 'ai-app-builder', 'bases'],
@@ -396,12 +405,20 @@ export const AiAppBuilderPanel = () => {
           </CardHeader>
           <CardContent>
             {(versionsQuery.data ?? []).map((v) => (
-              <div key={v.id} className="flex items-center justify-between border-b py-2 text-sm">
-                <span>v{v.versionNumber}</span>
+              <div
+                key={v.id}
+                className="flex items-center justify-between border-b py-2 text-sm"
+              >
+                <span className="font-medium">v{v.versionNumber}</span>
                 <Badge variant={v.status === 'deployed' ? 'secondary' : 'outline'}>
                   {v.status}
                 </Badge>
-                <span className="text-xs text-muted-foreground">{v.id.slice(0, 12)}…</span>
+                <span className="flex-1 truncate pl-2 text-xs text-muted-foreground">
+                  {v.sourcePrompt?.slice(0, 32) ?? v.id.slice(0, 12)}
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setPreviewVersion(v)}>
+                  Preview
+                </Button>
               </div>
             ))}
           </CardContent>
@@ -477,6 +494,61 @@ export const AiAppBuilderPanel = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* ─── R-AI-12 — App Builder Live Preview (Cloud §app-builder) ──
+          Surfaces each deployed version's snapshot. If the snapshot
+          carries an `html` key (custom AI-generated markup) we render
+          it inside a sandboxed iframe via srcdoc; otherwise we fall
+          back to JSON syntax-highlight so operators can audit the
+          generated design even without a browser-renderable payload. */}
+      <Dialog
+        open={Boolean(previewVersion)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewVersion(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              Preview · v{previewVersion?.versionNumber ?? '?'} ·{' '}
+              <Badge variant="outline">{previewVersion?.status ?? 'unknown'}</Badge>
+            </DialogTitle>
+            <DialogDescription>
+              {previewVersion?.sourcePrompt
+                ? `Source prompt: ${previewVersion.sourcePrompt}`
+                : 'No source prompt recorded for this version.'}
+            </DialogDescription>
+          </DialogHeader>
+          {previewVersion?.snapshot ? (
+            <div className="space-y-3">
+              {(() => {
+                const snap = previewVersion.snapshot as Record<string, unknown>;
+                const html = typeof snap.html === 'string' ? snap.html : null;
+                if (html) {
+                  return (
+                    <iframe
+                      title="app-preview"
+                      sandbox=""
+                      srcDoc={html}
+                      className="h-72 w-full rounded-md border bg-white"
+                    />
+                  );
+                }
+                return null;
+              })()}
+              <SyntaxHighlighter
+                language="json"
+                style={oneDark}
+                customStyle={{ maxHeight: 320, borderRadius: 6, fontSize: 12 }}
+              >
+                {JSON.stringify(previewVersion.snapshot, null, 2)}
+              </SyntaxHighlighter>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">This version has no snapshot data.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
