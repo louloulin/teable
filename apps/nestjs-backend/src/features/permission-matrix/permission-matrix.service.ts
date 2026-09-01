@@ -34,6 +34,13 @@ interface ICreateRoleInput {
  * — same user with `销售代表` + `全局客户观察员` gets the union of
  * permissions, matching the guide's "复盘视角" example.
  */
+
+const DEFAULT_ROLE_SETTING_NAME = 'perm_default_role_for_unassigned';
+function safeIso(d: Date | string | null | undefined): string {
+  if (!d) return new Date().toISOString();
+  if (d instanceof Date) return d.toISOString();
+  return new Date(d).toISOString();
+}
 @Injectable()
 export class PermissionMatrixService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PermissionMatrixService.name);
@@ -137,7 +144,6 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
         roleId,
         nodeType,
         nodeId,
-        tableId: nodeType === 'table' ? nodeId : `${nodeType}_${nodeId}`,
         access,
       },
       update: { access },
@@ -318,6 +324,41 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
    * OSS path (admin / owner / explicit perms), so this stays purely
    * additive.
    */
+  /**
+   * Default role for members without any explicit assignment on a base.
+   * Persisted in `meta.setting` (key=`perm_default_role_for_unassigned`) so
+   * we do not need a schema migration. roleId===null means "no permission"
+   * (Cloud describes this as the default option in the role-management UI).
+   */
+  async setDefaultRoleForUnassigned(baseId: string, roleId: string | null): Promise<void> {
+    if (roleId !== null) {
+      const exists = await this.prisma.permissionRole.findUnique({ where: { id: roleId } });
+      if (!exists || exists.baseId !== baseId) {
+        throw new CustomHttpException('role not found in base', HttpErrorCode.NOT_FOUND);
+      }
+    }
+    const json = JSON.stringify({ baseId, roleId, updatedAt: new Date().toISOString() });
+    await this.prisma.setting.upsert({
+      where: { name: DEFAULT_ROLE_SETTING_NAME },
+      create: { name: DEFAULT_ROLE_SETTING_NAME, content: json, createdBy: 'permission-matrix' },
+      update: { content: json, lastModifiedBy: 'permission-matrix' },
+    });
+  }
+
+  async getDefaultRoleForUnassigned(baseId: string): Promise<string | null> {
+    const row = await this.prisma.setting.findFirst({
+      where: { name: DEFAULT_ROLE_SETTING_NAME },
+      select: { content: true },
+    });
+    if (!row?.content) return null;
+    try {
+      const parsed = JSON.parse(row.content) as { baseId?: string; roleId?: string | null };
+      return parsed.baseId === baseId ? (parsed.roleId ?? null) : null;
+    } catch {
+      return null;
+    }
+  }
+
   async resolveRolesForUser(baseId: string, userId: string): Promise<IPermissionRoleVo[]> {
     const cached = this.cache.get(this.cacheKey(baseId, userId));
     if (cached && cached.expiresAt > Date.now()) return cached.value;

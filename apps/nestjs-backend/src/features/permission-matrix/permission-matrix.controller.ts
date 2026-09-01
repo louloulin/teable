@@ -44,6 +44,23 @@ interface IAddMemberDto {
   userId: string;
 }
 
+interface IAppAccessDto {
+  baseId: string;
+  appId: string;
+  access: 'none' | 'accessible' | 'editable';
+}
+
+interface IWorkflowAccessDto {
+  baseId: string;
+  workflowId: string;
+  access: 'none' | 'accessible' | 'editable';
+}
+
+interface IDefaultRoleDto {
+  baseId: string;
+  roleId: string | null;
+}
+
 interface IImportExportDto {
   baseId: string;
   tableId: string;
@@ -199,5 +216,52 @@ export class PermissionMatrixController {
     @Query('baseId') baseId: string
   ) {
     return this.svc.deleteImportExport(baseId, roleId, tableId);
+  }
+
+  // ─── Cloud §权限矩阵 §配置角色访问范围 ────────────────────────────────────
+  // Cloud says: 应用选择 可访问/无权限 ; 工作流选择 可访问/无权限 ;
+  //   默认角色 只用于未分配任何自定义角色的成员.
+  // setNodeAccess() already supports (table|app|workflow); we expose the app
+  // and workflow paths through dedicated controllers and persist the
+  // default-role setting in `meta.setting` so we avoid a schema migration.
+
+  @Put('roles/:roleId/app-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setAppAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IAppAccessDto
+  ) {
+    const stored = body.access === 'accessible' ? 'editable' : body.access;
+    await this.svc.setNodeAccess(body.baseId, roleId, 'app', body.appId, stored);
+    return { ok: true, nodeType: 'app', access: body.access };
+  }
+
+  @Put('roles/:roleId/workflow-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setWorkflowAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IWorkflowAccessDto
+  ) {
+    const stored = body.access === 'accessible' ? 'editable' : body.access;
+    await this.svc.setNodeAccess(body.baseId, roleId, 'workflow', body.workflowId, stored);
+    return { ok: true, nodeType: 'workflow', access: body.access };
+  }
+
+  @Put('default-role')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setDefaultRole(@Body() body: IDefaultRoleDto) {
+    await this.svc.setDefaultRoleForUnassigned(body.baseId, body.roleId);
+    return { ok: true, baseId: body.baseId, defaultRoleId: body.roleId };
+  }
+
+  @Get('default-role')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async getDefaultRole(@Query('baseId') baseId: string) {
+    const defaultRoleId = await this.svc.getDefaultRoleForUnassigned(baseId);
+    return { baseId, defaultRoleId };
   }
 }

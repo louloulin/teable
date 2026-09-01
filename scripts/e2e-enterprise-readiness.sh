@@ -2915,6 +2915,146 @@ assert_ok "$(A="$DEL_CODE" B="$DEL_BODY" python3 -c 'import os; a=os.environ.get
 PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.collaborator WHERE id='collab_round_ai5_demo';" -q > /dev/null
 PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.base WHERE id='bse_round_ai5_demo';" -q > /dev/null
 rm -f /tmp/teable-cookies-425.txt
+
+# ----- Section 4.26: permission-matrix full CRUD (Round-PERM-1, 13+1 endpoints) -----
+# R-PERM: authority-matrix Cloud parity — table/app/workflow node access,
+# field/record/record-filter, import/export, default-role for unassigned
+# members, and member assignment. Exercises every permission-matrix route so
+# the earlier "capability enabled" probe is backed by real endpoint evidence.
+log "=== Section 4.26: permission-matrix full CRUD (Round-PERM-1) ==="
+
+# Pre-create demo base + collaborator so admin has base authority_matrix_config.
+PG_SQL_426="$(mktemp)"
+cat > "$PG_SQL_426" <<'EOSQLE'
+INSERT INTO meta.base (id, space_id, name, "order", created_time, created_by)
+VALUES ('bse_round_perm1_demo', 'spcsp43Lpj0xS3oW5tH', 'Round PERM-1 Demo', 0, now(), 'usrzdwQ3PgckZuDlQvo')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO meta.collaborator (id, role_name, resource_type, resource_id, principal_id, principal_type, created_by, created_time)
+VALUES ('collab_round_perm1_demo', 'owner', 'base', 'bse_round_perm1_demo', 'usrzdwQ3PgckZuDlQvo', 'user', 'usrzdwQ3PgckZuDlQvo', now())
+ON CONFLICT (id) DO NOTHING;
+EOSQLE
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -f "$PG_SQL_426" -q > /dev/null
+rm -f "$PG_SQL_426"
+
+rm -f /tmp/teable-cookies-426.txt 2>/dev/null || true
+curl -sS -X POST "${BASE_URL}/api/auth/signin" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@teable.local","password":"admin123"}' \
+  -c /tmp/teable-cookies-426.txt -o /dev/null
+
+BASE_PERM="bse_round_perm1_demo"
+PM="api/admin/permission-matrix"
+
+# 1. create role (existing endpoint, now exercised)
+ROLE_RAW=$(curl -sS -X POST "${BASE_URL}/${PM}/roles" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"name\":\"Sales Rep\",\"description\":\"owns own records\"}" \
+  -w '|%{http_code}' 2>/dev/null)
+ROLE_CODE="${ROLE_RAW##*|}"
+ROLE_BODY="${ROLE_RAW%|*}"
+RID_PERM=$(printf '%s' "$ROLE_BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("id",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$ROLE_CODE" "201")" "permission-matrix: create role returns 201 (got HTTP $ROLE_CODE)"
+assert_ok "$(chk_truthy "$RID_PERM")" "permission-matrix: create role returned roleId (got: $RID_PERM)"
+
+# 2. table access (existing endpoint: Cloud 表格 可编辑/无权限)
+TBL_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/table-access?baseId=${BASE_PERM}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d '{"tableId":"tbl_sales_orders","access":"editable"}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$TBL_CODE" "200")" "permission-matrix: set table-access returns 200 (got HTTP $TBL_CODE)"
+
+# 3. app access (NEW endpoint: Cloud 应用 可访问/无权限)
+APP_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/app-access" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"appId\":\"app_sales_dash\",\"access\":\"accessible\"}" \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$APP_CODE" "200")" "permission-matrix: set app-access returns 200 (got HTTP $APP_CODE)"
+
+# 4. workflow access (NEW endpoint: Cloud 工作流 可访问/无权限)
+WF_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/workflow-access" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"workflowId\":\"wf_first_followup\",\"access\":\"none\"}" \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$WF_CODE" "200")" "permission-matrix: set workflow-access returns 200 (got HTTP $WF_CODE)"
+
+# 5. field permission (existing endpoint: Cloud 字段权限)
+FK_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/field-permission?baseId=${BASE_PERM}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d '{"tableId":"tbl_sales_orders","fieldId":"fld_cost","access":"hidden"}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$FK_CODE" "200")" "permission-matrix: set field-permission returns 200 (got HTTP $FK_CODE)"
+
+# 6. record action (existing endpoint: Cloud 记录权限)
+RA_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/record-action?baseId=${BASE_PERM}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d '{"tableId":"tbl_sales_orders","action":"delete","enabled":false}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$RA_CODE" "200")" "permission-matrix: set record-action returns 200 (got HTTP $RA_CODE)"
+
+# 7. record filter (existing endpoint: Cloud 记录筛选, sales owner == current user)
+RF_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/record-filter?baseId=${BASE_PERM}" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d '{"tableId":"tbl_sales_orders","filter":{"fieldId":"fld_sales_owner","operator":"isCurrentUser","value":null}}' \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$RF_CODE" "200")" "permission-matrix: set record-filter returns 200 (got HTTP $RF_CODE)"
+
+# 8. import/export PUT+GET (existing endpoint: Cloud 导入/导出权限)
+IE_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/import-export" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"tableId\":\"tbl_sales_orders\",\"canImport\":false,\"canExport\":true}" \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$IE_CODE" "200")" "permission-matrix: set import-export returns 200 (got HTTP $IE_CODE)"
+IE_GET=$(curl -sS "${BASE_URL}/${PM}/roles/${RID_PERM}/import-export?baseId=${BASE_PERM}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt 2>/dev/null)
+IE_GET_EXP=$(printf '%s' "$IE_GET" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d[0].get("canExport",False) if isinstance(d,list) else d.get("canExport",False))' 2>/dev/null)
+assert_ok "$(chk_eq "$IE_GET_EXP" "True")" "permission-matrix: import-export GET reads back canExport:true (got: $IE_GET_EXP)"
+
+# 9. member add + list (existing endpoint: Cloud 添加协作者)
+MB_CODE=$(curl -sS -X POST "${BASE_URL}/${PM}/members" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"roleId\":\"$RID_PERM\",\"userId\":\"usrzdwQ3PgckZuDlQvo\"}" \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$MB_CODE" "201")" "permission-matrix: add member returns 201 (got HTTP $MB_CODE)"
+ROLE_LIST=$(curl -sS "${BASE_URL}/${PM}/roles?baseId=${BASE_PERM}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt 2>/dev/null)
+MEM_COUNT=$(printf '%s' "$ROLE_LIST" | A="$RID_PERM" python3 -c 'import sys,json,os; d=json.load(sys.stdin); rid=os.environ.get(chr(65),""); print(len([r for r in d if r.get("id")==rid][0].get("members",[])))' 2>/dev/null)
+assert_ok "$(chk_eq "$MEM_COUNT" "1")" "permission-matrix: role lists 1 member after add (got: $MEM_COUNT)"
+
+# 10. default-role PUT+GET round trip (NEW endpoint: Cloud 默认角色)
+DR_PUT=$(curl -sS -X PUT "${BASE_URL}/${PM}/default-role" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"roleId\":\"$RID_PERM\"}" -w '|%{http_code}' 2>/dev/null)
+DR_PUT_CODE="${DR_PUT##*|}"
+assert_ok "$(chk_eq "$DR_PUT_CODE" "200")" "permission-matrix: set default-role returns 200 (got HTTP $DR_PUT_CODE)"
+DR_GET=$(curl -sS "${BASE_URL}/${PM}/default-role?baseId=${BASE_PERM}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt 2>/dev/null)
+DR_GET_ID=$(printf '%s' "$DR_GET" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("defaultRoleId",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$DR_GET_ID" "$RID_PERM")" "permission-matrix: default-role GET reads back roleId (got: $DR_GET_ID)"
+
+# 11. default-role null (Cloud: 无权限 option)
+DR_PUT2=$(curl -sS -X PUT "${BASE_URL}/${PM}/default-role" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -d "{\"baseId\":\"$BASE_PERM\",\"roleId\":null}" -w '|%{http_code}' 2>/dev/null)
+DR_PUT2_CODE="${DR_PUT2##*|}"
+DR_GET2=$(curl -sS "${BASE_URL}/${PM}/default-role?baseId=${BASE_PERM}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt 2>/dev/null)
+DR_GET2_ID=$(printf '%s' "$DR_GET2" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("defaultRoleId") or "")' 2>/dev/null)
+assert_ok "$(chk_eq "$DR_PUT2_CODE" "200")" "permission-matrix: clear default-role to null returns 200 (got HTTP $DR_PUT2_CODE)"
+assert_ok "$(chk_eq "$DR_GET2_ID" "")" "permission-matrix: default-role GET returns null after clear (got: [$DR_GET2_ID])"
+
+# 12. delete role (existing endpoint)
+DEL_CODE=$(curl -sS -X DELETE "${BASE_URL}/${PM}/roles/${RID_PERM}?baseId=${BASE_PERM}" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" -b /tmp/teable-cookies-426.txt \
+  -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$DEL_CODE" "200")" "permission-matrix: delete role returns 200 (got HTTP $DEL_CODE)"
+
+# 13. unauthenticated access rejected (regression)
+UNAUTH_CODE=$(curl -sS "${BASE_URL}/${PM}/roles?baseId=${BASE_PERM}" -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_starts "$UNAUTH_CODE" "4")" "permission-matrix: unauthenticated request rejected (got HTTP $UNAUTH_CODE)"
+
+# Cleanup demo rows so subsequent runs start from baseline.
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.permission_role_node WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role WHERE id='$RID_PERM'; DELETE FROM meta.permission_role_import_export WHERE role_id='$RID_PERM'; DELETE FROM meta.collaborator WHERE id='collab_round_perm1_demo'; DELETE FROM meta.base WHERE id='bse_round_perm1_demo'; DELETE FROM meta.setting WHERE name='perm_default_role_for_unassigned';" -q > /dev/null 2>&1
+rm -f /tmp/teable-cookies-426.txt
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/enterprise-readiness")"

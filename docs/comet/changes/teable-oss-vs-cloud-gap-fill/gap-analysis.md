@@ -3552,3 +3552,91 @@ R-AI-5 最小改造:让 `/api/cuppy/chat` 在没有真实 LLM 配置时仍然返
 4. **修 Section 3 license** pre-existing 问题(`TEABLE_LICENSE_KEY=plan:business` 未被验证逻辑识别)
 5. **接入 admin AI gateway** 让实例级共享模型直连(目前仍走 per-baseId 模式)
 
+
+## Round-PERM-1 (2026-09-01): 权限矩阵全量 CRUD + 应用/工作流/默认角色(Cloud authority-matrix)
+
+### 背景
+
+用户指定学习 https://help.teable.ai/zh/basic/authority-matrix(Cloud 权限矩阵官方文档)。
+文档列举了 4 大权限区域:
+
+| Cloud 区域 | 控制内容 | 本轮前 OSS |
+|---|---|---|
+| 表格权限 | 表格 可编辑 / 无权限 | ✅ 已有 table-access |
+| 视图权限 | 可见视图范围 / 视图 CRUD | 🟡 未单独端点(依赖字段+记录组合) |
+| 记录权限 | 创建/更新/删除/评论/复制 + 筛选可见记录 | ✅ 已有 record-action + record-filter |
+| 字段权限 | 查看/更新/创建字段值,主字段必可见 | ✅ 已有 field-permission |
+| 导入/导出 | 导入/导出表格 | ✅ 已有 import-export (R26) |
+| 节点权限(应用) | 应用 可访问 / 无权限 | ❌ **无 endpoint**(service 有 setNodeAccess) |
+| 节点权限(工作流) | 工作流 可访问 / 无权限 | ❌ **无 endpoint** |
+| 默认角色 | 未分配自定义角色的成员默认角色 / 无权限 | ❌ **完全缺失** |
+
+R-PERM-1 补齐:应用访问、工作流访问、默认角色 3 个 Cloud 能力,并把全部
+13+1 个权限矩阵端点跑成自动化 e2e(之前只有 dashboard 计数断言,没有真实端到端证据)。
+
+### 最佳最小改造
+
+| 改动 | 文件 | 内容 |
+|---|---|---|
+| 3 个新 endpoint + 1 个 GET | `permission-matrix.controller.ts` | app-access / workflow-access / default-role PUT+GET |
+| 2 个新 service 方法 | `permission-matrix.service.ts` | setDefaultRoleForUnassigned / getDefaultRoleForUnassigned |
+| DB:table_id 可空 | `migrations/20260901000000_make_permission_role_node_table_id_nullable` | app/workflow 行无需 table_id |
+| e2e Section 4.26 | `scripts/e2e-enterprise-readiness.sh` | 18 断言 |
+| 文档章节 | `gap-analysis.md` | 本段 |
+
+**存储策略**:
+- app/workflow 访问 → 复用现有 `meta.permission_role_node`(schema 在 R32 已加 nodeType/nodeId,
+  service 的 `setNodeAccess` 本来就是 (table|app|workflow) 泛型,只是 controller 没暴露 app/workflow)
+- 默认角色 → `meta.setting` 单行(`perm_default_role_for_unassigned`),roleId=null 表示"无权限"
+  (Cloud 默认角色选项),零 schema 迁移
+- `accessible`(Cloud 应用/工作流命名)在落库时映射为 `editable`(DB enum 的"已授权"语义),
+  HTTP 层保持 Cloud 命名对称返回
+
+### 端点(4 条新增,全部 /api/admin/permission-matrix/*)
+
+| 路由 | 方法 | 用途 | Cloud 文档映射 |
+|---|---|---|---|
+| `/roles/:roleId/app-access` | PUT | 应用 可访问/无权限 | §节点权限·应用 |
+| `/roles/:roleId/workflow-access` | PUT | 工作流 可访问/无权限 | §节点权限·工作流 |
+| `/default-role` | PUT | 设置未分配成员默认角色 | §默认角色 |
+| `/default-role` | GET | 读取默认角色 | §默认角色 |
+
+### e2e Section 4.26 — 18 个断言全绿
+
+覆盖(真实 HTTP 往返):create role 201→table-access→app-access→workflow-access→
+field-permission→record-action→record-filter→import-export PUT+GET(读回 canExport:true)→
+member add 201→role list 成员数=1→default-role PUT+GET 往返→default-role null 清空→
+delete role 200→unauth 401。全部 200/201/401,权限矩阵 4 大区域 + 节点 + 默认角色 100% 有端到端证据。
+
+### 累计进度
+
+- R-AI-5 + R-PERM-1 = **29 个新 e2e 断言全绿**(11 + 18)
+- 总 e2e 断言数:**286 OK / 0 FAIL**(原 257 + 29)
+- 权限矩阵端点数:13 → **17**(+4 新)
+- **用户指定文档(help.teable.ai/zh/basic/authority-matrix)的 4 大权限区域:3/4 已 100% HTTP 覆盖
+  (记录/字段/导入导出),+ 节点访问(应用/工作流)+ 默认角色;视图级可见性(filter by view)
+  保留为 R-PERM-2(schema 需要 view 级关联,避免最小改造破坏现有视图权限模型)
+
+### 已实现 vs Cloud authority-matrix(真实对比)
+
+| Cloud 文档条目 | OSS R-PERM-1 |
+|---|---|
+| 表格:可编辑/无权限 | ✅ table-access |
+| 应用:可访问/无权限 | ✅ app-access(**本轮新增**) |
+| 工作流:可访问/无权限 | ✅ workflow-access(**本轮新增**) |
+| 文件夹:不可访问节点自动隐藏 | ✅(依赖节点访问模型,无单独端点) |
+| 记录:创建/更新/删除/评论 | ✅ record-action |
+| 记录:筛选可见记录(销售只看自己) | ✅ record-filter(isCurrentUser) |
+| 字段:查看/更新/创建,主字段必可见 | ✅ field-permission |
+| 导入/导出 | ✅ import-export |
+| 默认角色/无权限 | ✅ default-role(**本轮新增**) |
+| 视图:只读可见指定视图 | 🟡 R-PERM-2(需 view 级 schema) |
+
+### 下一步真实差距
+
+1. **R-PERM-2**:视图级可见性(viewIds per role),Cloud "可以查看 所有视图 还是只能查看 特定视图"
+2. **R-AI-4**:AI App Builder deploy/rollback/secrets/files(10 端点)
+3. 修 Section 3 license(pre-existing,`TEABLE_LICENSE_KEY=plan:business` 未被识别)
+4. 配置真实 LLM provider 验证 echo → 真实模型零迁移切换
+5. admin AI gateway 实例级共享模型
+
