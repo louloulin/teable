@@ -201,7 +201,7 @@
 | R33 + R-AI-1/2/3 | 43 | cuppy 23 + ai-builder 6 + custom-ai-model 8 + ai-setting 8 | ✅ committed |
 | **R-AI-5**(`/api/cuppy/chat` 真实对话回退) | **11** | chat 不再 503,echo 兜底 + 真实 LLM 零迁移让位 | ✅ `a89e5ae54` |
 | **R-PERM-1**(权限矩阵 4 区域 CRUD) | **18** | +app-access / workflow-access / default-role | ✅ `968ae71b4` |
-| **总计** | **286 OK / 0 FAIL** | 权限矩阵 17 端点 | |
+| **总计 (含本轮 e2e 修复)** | **288 OK / 0 FAIL** | 权限矩阵 17 端点,全量 e2e 一次跑通 | |
 
 ### 本轮真实改进(用户点名的两项)
 
@@ -223,4 +223,40 @@
 3. Section 3 license 修复(pre-existing,`TEABLE_LICENSE_KEY=plan:business` 未被识别)
 4. 配置真实 LLM provider 验证 echo 让位
 5. admin AI gateway 实例级共享模型
+
+
+---
+
+## 六、本轮(Round-E2E-FIXES, 2026-09-01 09:41 全量一次跑通)
+
+### 全量 e2e 结果
+- `bash scripts/e2e-enterprise-readiness.sh` 一次跑通,**exit 0 / 288 OK / 0 FAIL**
+- Section 1: 构建产物就绪
+- Section 2: self_hosted plan,55/85 capabilities enabled(>=46 ✓,total>=80 ✓)
+- Section 3: business license,`plan.level=business` ✓,`cloudBusinessParity 46/46 >= 38` ✓
+- Section 4.1–4.26:全绿,含 R-AI-1(23)+ R-AI-2(8)+ R-AI-3(8)+ R-AI-5(11)+ R-PERM-1(18)
+- Section 5: 未授权 401 ✓
+
+### 排查到的 6 个真实脚本问题与最佳最小改造
+
+| # | 问题 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | Section 3 license e2e 一直 `plan.level==business (got: self_hosted)` | 主机 launchd 代理 `com.teable.backend.dev`(KeepAlive)在 e2e 启动时抢占 PORT,无 license 后端先绑定 3000,e2e 后端静默回落到 3001,healthz 命中的是 launchd 进程 | `start_backend` 前 `launchctl bootout` 该 agent,cleanup 时按需 `bootstrap` 恢复;并加 `kill -0 $BACKEND_PID` + listener-PID 一致性检查 |
+| 2 | `assert_ok "y"` 在 4.25/4.26 `chk_*` 返回 `y`/`n` 时崩溃 `y: unbound variable` | `[[ $1 -ne 0 ]]` 把 `y` 当算术上下文做变量查找,触发 set -u | `assert_ok` 改为白名单 `[[ "$ok" == "0" || "$ok" == "y" ]]`,与 0/1 数值语义等价 |
+| 3 | Section 4.24 `ai-setting` 第二次跑 first-assert 失败 | 该 section 只 PUT 不还原,`meta.setting WHERE name='ai_config'` 残留了 `claude-3-5-sonnet` | section 首行 `DELETE FROM meta.setting WHERE name='ai_config'`,并在 cleanup() 全局兜底 |
+| 4 | Section 4.26 全部 401 | curl `-c /tmp/jar` 对 IP 地址(127.0.0.1)的 `Set-Cookie` 不会持久化,后续 `-b` 读到空 jar | signin 用 `-D` 抓 `Set-Cookie` 头,grep 出 `auth_session=...`,改用 `-H "Cookie: ..."` 显式带 |
+| 5 | Section 4.26 第一发请求直接 429 | 4.25 一次性发 11 个 cuppy 请求,已经用满 10/s,4.26 signin 第 12 个越界 | 4.26 开头 `sleep 2` 重置窗口,section 内 18 个 curl 各前置 `sleep 0.12` 控速 |
+| 6 | Section 2 capability 总数断言失败 `total=85, 期望 80` | 之前是 `==` 硬编码,主仓新增能力把总数推高了 | 改为 `>= EXPECTED_TOTAL` / `>= EXPECTED_ENABLED` 下限回归保护 |
+
+### 本轮未触动
+- 后端业务代码零改动
+- 数据库 schema 零改动(上一轮 R-PERM-1 的 `permission_role_node.table_id` 仍保持可空,符合预期)
+- 主仓预存在的 byok-kms、data-residency 等 uncommitted 改动按 AGENTS.md 隔离
+
+### 后续(真实差距,按优先级)
+1. **R-PERM-2** — 视图级可见性(Cloud "特定视图",需 view 级 schema 关联)
+2. **R-AI-4** — AI App Builder deploy / rollback / secrets / files(10 端点,源码需重写)
+3. **真实 LLM provider** — 配置 OPENAI_API_KEY 后验证 echo 兜底让位给真实模型
+4. **admin AI gateway** — 实例级共享模型
+5. **e2e 日志** — `start_backend` 当前用 `> $LOG` 覆盖,应改为 `>>` 追加并加 `tee`,否则 backend 重启会丢失前段断言日志
 
