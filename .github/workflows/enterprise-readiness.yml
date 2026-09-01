@@ -1,0 +1,79 @@
+name: Enterprise Readiness Gate
+
+# Runs `pnpm ci:gate` on every push & PR that touches the enterprise-readiness
+# surface (auth, AI/Cuppy, permission matrix, view filtering, CI scripts).
+# Fails the check if the gate reports a regression so we catch drift before
+# merge instead of on a future audit.
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'apps/nestjs-backend/src/features/agent-orchestrator/**'
+      - 'apps/nestjs-backend/src/features/permission-matrix/**'
+      - 'apps/nestjs-backend/src/features/auth/**'
+      - 'apps/nestjs-backend/src/features/view/**'
+      - 'apps/nestjs-backend/src/features/ai/**'
+      - 'apps/nestjs-backend/src/features/sso/**'
+      - 'apps/nestjs-backend/src/features/saml/**'
+      - 'scripts/ci-*.sh'
+      - 'scripts/ci-*.json'
+      - 'scripts/generate-module-index.py'
+      - 'package.json'
+      - '.github/workflows/enterprise-readiness.yml'
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'apps/nestjs-backend/src/features/agent-orchestrator/**'
+      - 'apps/nestjs-backend/src/features/permission-matrix/**'
+      - 'apps/nestjs-backend/src/features/auth/**'
+      - 'apps/nestjs-backend/src/features/view/**'
+      - 'apps/nestjs-backend/src/features/ai/**'
+      - 'apps/nestjs-backend/src/features/sso/**'
+      - 'apps/nestjs-backend/src/features/saml/**'
+      - 'scripts/ci-*.sh'
+      - 'scripts/ci-*.json'
+      - 'scripts/generate-module-index.py'
+      - 'package.json'
+      - '.github/workflows/enterprise-readiness.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: Enterprise Readiness Gate
+
+    env:
+      # The dev server isn't running on CI runners — skip the healthz gate
+      # rather than failing on an expected-unreachable URL.
+      HEALTH_URL: http://127.0.0.1:65535/healthz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.22.3
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+
+      - name: 📥 Monorepo install
+        uses: ./.github/actions/pnpm-install
+
+      - name: 🧩 Generate Prisma Client
+        working-directory: packages/db-main-prisma
+        run: |
+          pnpm -F @teable/db-main-prisma prisma-generate --schema ./prisma/postgres/schema.prisma
+
+      - name: 🏗 Build workspace packages
+        run: |
+          pnpm -F "./packages/**" -F "!@teable/v2-*" run build
+
+      - name: 🚦 Run ci:gate
+        run: |
+          pnpm ci:gate
