@@ -27,6 +27,7 @@ import {
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useState } from 'react';
 
 type AppStatus = 'draft' | 'deployed' | 'archived';
@@ -79,27 +80,27 @@ interface IBase {
 }
 
 async function fetchBases(): Promise<IBase[]> {
-  const r = await axios.get<IBase[]>('/api/base');
+  const r = await axios.get<IBase[]>('/base/access/all');
   return r.data;
 }
 
 async function fetchApps(baseId: string): Promise<IApp[]> {
-  const r = await axios.get<IApp[]>(`/api/${baseId}/apps`);
+  const r = await axios.get<IApp[]>(`/${baseId}/apps`);
   return r.data;
 }
 
 async function fetchVersions(baseId: string, appId: string): Promise<IAppVersion[]> {
-  const r = await axios.get<IAppVersion[]>(`/api/${baseId}/apps/${appId}/versions`);
+  const r = await axios.get<IAppVersion[]>(`/${baseId}/apps/${appId}/versions`);
   return r.data;
 }
 
 async function fetchSecrets(baseId: string, appId: string): Promise<IAppSecret[]> {
-  const r = await axios.get<IAppSecret[]>(`/api/${baseId}/apps/${appId}/secrets`);
+  const r = await axios.get<IAppSecret[]>(`/${baseId}/apps/${appId}/secrets`);
   return r.data;
 }
 
 async function fetchFiles(baseId: string, appId: string): Promise<IAppFile[]> {
-  const r = await axios.get<IAppFile[]>(`/api/${baseId}/apps/${appId}/files`);
+  const r = await axios.get<IAppFile[]>(`/${baseId}/apps/${appId}/files`);
   return r.data;
 }
 
@@ -116,6 +117,14 @@ export const AiAppBuilderPanel = () => {
   const [filePath, setFilePath] = useState('/config.yaml');
   const [fileContent, setFileContent] = useState('');
   const [previewVersion, setPreviewVersion] = useState<IAppVersion | null>(null);
+  // V25 — multi-device preview (Cloud §app-builder §实时预览面板)
+  type PreviewViewport = 'desktop' | 'tablet' | 'mobile';
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
+  const VIEWPORT_PX: Record<PreviewViewport, { w: number; h: number; label: string }> = {
+    desktop: { w: 1280, h: 720, label: '1280×720' },
+    tablet:  { w: 768,  h: 1024, label: '768×1024' },
+    mobile:  { w: 375,  h: 667,  label: '375×667'  },
+  };
 
   const basesQuery = useQuery({
     queryKey: ['admin', 'ai-app-builder', 'bases'],
@@ -151,7 +160,7 @@ export const AiAppBuilderPanel = () => {
 
   const createApp = useMutation({
     mutationFn: () =>
-      axios.post<IApp>(`/api/${baseId}/apps`, {
+      axios.post<IApp>(`/${baseId}/apps`, {
         name: name.trim(),
         description: description.trim() || undefined,
       }),
@@ -176,7 +185,7 @@ export const AiAppBuilderPanel = () => {
         appId: string;
         currentVersionId: string;
         version: IAppVersion;
-      }>(`/api/${baseId}/apps/${selectedApp!.id}/deploy`, {
+      }>(`/${baseId}/apps/${selectedApp!.id}/deploy`, {
         snapshot: parsed,
         sourcePrompt: sourcePrompt.trim() || undefined,
       });
@@ -192,7 +201,7 @@ export const AiAppBuilderPanel = () => {
   const rollback = useMutation({
     mutationFn: () =>
       axios.post<{ currentVersionId: string }>(
-        `/api/${baseId}/apps/${selectedApp!.id}/rollback`,
+        `/${baseId}/apps/${selectedApp!.id}/rollback`,
         {}
       ),
     onSuccess: () => {
@@ -203,7 +212,7 @@ export const AiAppBuilderPanel = () => {
   });
 
   const remove = useMutation({
-    mutationFn: () => axios.delete<{ ok: boolean }>(`/api/${baseId}/apps/${selectedApp!.id}`),
+    mutationFn: () => axios.delete<{ ok: boolean }>(`/${baseId}/apps/${selectedApp!.id}`),
     onSuccess: () => {
       toast.success('Deleted');
       invalidate();
@@ -213,7 +222,7 @@ export const AiAppBuilderPanel = () => {
 
   const putSecret = useMutation({
     mutationFn: () =>
-      axios.post<{ count: number }>(`/api/${baseId}/apps/${selectedApp!.id}/secrets`, {
+      axios.post<{ count: number }>(`/${baseId}/apps/${selectedApp!.id}/secrets`, {
         secrets: [
           {
             key: secretKey.trim(),
@@ -233,7 +242,7 @@ export const AiAppBuilderPanel = () => {
 
   const putFile = useMutation({
     mutationFn: () =>
-      axios.post<{ id: string }>(`/api/${baseId}/apps/${selectedApp!.id}/files`, {
+      axios.post<{ id: string }>(`/${baseId}/apps/${selectedApp!.id}/files`, {
         path: filePath.trim(),
         content: fileContent,
         sizeBytes: new Blob([fileContent]).size,
@@ -507,17 +516,47 @@ export const AiAppBuilderPanel = () => {
           if (!open) setPreviewVersion(null);
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>
               Preview · v{previewVersion?.versionNumber ?? '?'} ·{' '}
               <Badge variant="outline">{previewVersion?.status ?? 'unknown'}</Badge>
+              <Badge variant="secondary" className="ml-2 font-mono">
+                {VIEWPORT_PX[previewViewport].label}
+              </Badge>
             </DialogTitle>
             <DialogDescription>
               {previewVersion?.sourcePrompt
                 ? `Source prompt: ${previewVersion.sourcePrompt}`
                 : 'No source prompt recorded for this version.'}
             </DialogDescription>
+            {/* V25 viewport switcher — Cloud §实时预览面板 */}
+            <div className="flex items-center gap-1 pt-2" data-testid="preview-viewport-switcher">
+              <Button
+                size="sm"
+                variant={previewViewport === 'desktop' ? 'default' : 'outline'}
+                onClick={() => setPreviewViewport('desktop')}
+                data-testid="preview-viewport-desktop"
+              >
+                <Monitor className="mr-1 h-3 w-3" /> Desktop
+              </Button>
+              <Button
+                size="sm"
+                variant={previewViewport === 'tablet' ? 'default' : 'outline'}
+                onClick={() => setPreviewViewport('tablet')}
+                data-testid="preview-viewport-tablet"
+              >
+                <Tablet className="mr-1 h-3 w-3" /> Tablet
+              </Button>
+              <Button
+                size="sm"
+                variant={previewViewport === 'mobile' ? 'default' : 'outline'}
+                onClick={() => setPreviewViewport('mobile')}
+                data-testid="preview-viewport-mobile"
+              >
+                <Smartphone className="mr-1 h-3 w-3" /> Mobile
+              </Button>
+            </div>
           </DialogHeader>
           {previewVersion?.snapshot ? (
             <div className="space-y-3">
@@ -525,13 +564,24 @@ export const AiAppBuilderPanel = () => {
                 const snap = previewVersion.snapshot as Record<string, unknown>;
                 const html = typeof snap.html === 'string' ? snap.html : null;
                 if (html) {
+                  const vp = VIEWPORT_PX[previewViewport];
                   return (
-                    <iframe
-                      title="app-preview"
-                      sandbox=""
-                      srcDoc={html}
-                      className="h-72 w-full rounded-md border bg-white"
-                    />
+                    <div className="flex justify-center overflow-auto rounded-md border bg-slate-50 p-4">
+                      <iframe
+                        title="app-preview"
+                        sandbox=""
+                        srcDoc={html}
+                        data-testid="preview-iframe"
+                        style={{
+                          width: `${vp.w}px`,
+                          height: `${vp.h}px`,
+                          maxWidth: '100%',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: 6,
+                          background: 'white',
+                        }}
+                      />
+                    </div>
                   );
                 }
                 return null;
