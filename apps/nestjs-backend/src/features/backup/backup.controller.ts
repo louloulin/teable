@@ -72,11 +72,12 @@ export class BackupController {
   @HttpCode(200)
   async create(
     @Body() body: ICreateBackupInput & { actor?: IAdminCaller },
+    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<ISnapshotRow> {
-    if (!adminMatches(adminToken) && !body?.actor?.admin) {
-      throw new ForbiddenException('admin scope required');
-    }
+    // R-V7: removed `body?.actor?.admin` check — client-controlled body
+    // should never grant authority. Use query-string actor OR admin-token.
+    this.assertAdmin(actor, adminToken);
     return this.service.createBackup({
       baseId: body.baseId,
       createdBy: body.createdBy,
@@ -114,11 +115,11 @@ export class BackupController {
   @HttpCode(200)
   async restore(
     @Body() body: IRestoreInput & { actor?: IAdminCaller },
+    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<IRestoreLogRow> {
-    if (!adminMatches(adminToken) && !body?.actor?.admin) {
-      throw new ForbiddenException('admin scope required');
-    }
+    // R-V7: see `create` — admin gate is via query-string actor OR admin-token.
+    this.assertAdmin(actor, adminToken);
     return this.service.restore({
       snapshotId: body.snapshotId,
       targetBaseId: body.targetBaseId,

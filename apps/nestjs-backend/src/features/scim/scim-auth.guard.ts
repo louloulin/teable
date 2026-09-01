@@ -40,6 +40,8 @@ export class ScimAuthGuard implements CanActivate {
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const req = ctx.switchToHttp().getRequest<Request>();
+    // eslint-disable-next-line no-console
+    console.error('[SCIM-GUARD] hit', req.method, req.path, 'auth-header=', req.headers['authorization'] ? 'yes' : 'no');
     const header = req.headers['authorization'];
     if (typeof header !== 'string' || !header.toLowerCase().startsWith('bearer ')) {
       throw new UnauthorizedException('Missing or invalid Authorization header');

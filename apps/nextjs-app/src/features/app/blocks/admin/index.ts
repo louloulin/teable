@@ -20,3 +20,12 @@ export * from './sandbox-agent';
 export * from './byok';
 export * from './custom-ai-model';
 export * from './billing';
+
+// Enterprise-capability placeholder pages — bridge the OSS/Cloud gap so the
+// admin nav always resolves a real page even when the dedicated UI is not
+// shipped yet. Each page renders an honest description + the OSS backend
+// route that operators can target with curl.
+export {
+  EnterprisePlaceholderPage,
+  type IEnterprisePlaceholderPageProps,
+} from './enterprise-placeholder';

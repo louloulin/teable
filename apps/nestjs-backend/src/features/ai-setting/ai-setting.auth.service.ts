@@ -12,6 +12,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import type { IAiCreditPolicy, IAiSetting } from './ai-setting.types';
 import { DEFAULT_AI_SETTING } from './ai-setting.types';
+import { SettingService } from '../setting/setting.service';
 
 const AI_CONFIG_NAME = 'ai_config';
 
@@ -34,13 +35,20 @@ function normalize(input: Partial<IAiSetting> | null | undefined, prev?: IAiSett
     },
     allowCustomModels: input?.allowCustomModels ?? base.allowCustomModels,
     streamingEnabled: input?.streamingEnabled ?? base.streamingEnabled,
+    aiGatewayApiKey:
+      input?.aiGatewayApiKey !== undefined ? input.aiGatewayApiKey : base.aiGatewayApiKey,
+    aiGatewayBaseUrl:
+      input?.aiGatewayBaseUrl !== undefined ? input.aiGatewayBaseUrl : base.aiGatewayBaseUrl,
     updatedAt: new Date().toISOString(),
   };
 }
 
 @Injectable()
 export class AiSettingAuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settingService: SettingService
+  ) {}
 
   /** Load current setting (returns defaults if unset). */
   async load(): Promise<IAiSetting> {
@@ -71,6 +79,8 @@ export class AiSettingAuthService {
       creditPolicy: next.creditPolicy,
       allowCustomModels: next.allowCustomModels,
       streamingEnabled: next.streamingEnabled,
+      aiGatewayApiKey: next.aiGatewayApiKey,
+      aiGatewayBaseUrl: next.aiGatewayBaseUrl,
     });
     const userId = 'admin_ai_setting';
     await this.prisma.setting.upsert({
@@ -96,5 +106,34 @@ export class AiSettingAuthService {
   /** Update credit policy. */
   async updateCreditPolicy(policy: Partial<IAiCreditPolicy>): Promise<IAiSetting> {
     return this.update({ creditPolicy: { ...(await this.load()).creditPolicy, ...policy } });
+  }
+
+  /**
+   * R-AI-7: Configure or clear the instance-level Admin AI Gateway.
+   *
+   * Setting `apiKey` to null disables the gateway; supplying a non-empty
+   * string enables it. `baseUrl` is optional (defaults to Vercel's gateway
+   * inside `ai.service.ts`).
+   *
+   * The setting is persisted into `meta.setting.aiConfig.{aiGatewayApiKey,aiGatewayBaseUrl}`
+   * via the existing `update()` path. After successful update, the gateway
+   * key is honored on every subsequent `/api/cuppy/chat` and
+   * `/api/:baseId/ai/generate-stream` call for bases that have not overridden
+   * their own LLM provider.
+   */
+  async setGateway(
+    apiKey: string | null,
+    baseUrl: string | null
+  ): Promise<{ aiGatewayApiKey: string | null; aiGatewayBaseUrl: string | null }> {
+    const current = await this.load();
+    const next = await this.update({
+      ...current,
+      aiGatewayApiKey: apiKey,
+      aiGatewayBaseUrl: baseUrl ?? current.aiGatewayBaseUrl ?? null,
+    });
+    return {
+      aiGatewayApiKey: next.aiGatewayApiKey,
+      aiGatewayBaseUrl: next.aiGatewayBaseUrl,
+    };
   }
 }

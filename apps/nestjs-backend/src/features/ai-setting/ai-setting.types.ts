@@ -26,6 +26,13 @@ export interface IAiSetting {
   allowCustomModels: boolean;
   /** Stream responses to the UI (else buffered). */
   streamingEnabled: boolean;
+  /**
+   * R-AI-7: Instance-level Admin AI Gateway. When set, all bases that
+   * have not overridden their own LLM provider route through this
+   * gateway key. null = gateway disabled.
+   */
+  aiGatewayApiKey: string | null;
+  aiGatewayBaseUrl: string | null;
   updatedAt: string;
 }
 
@@ -40,5 +47,7 @@ export const DEFAULT_AI_SETTING: IAiSetting = {
   },
   allowCustomModels: true,
   streamingEnabled: true,
+  aiGatewayApiKey: null,
+  aiGatewayBaseUrl: null,
   updatedAt: new Date(0).toISOString(),
 };

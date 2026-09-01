@@ -260,3 +260,76 @@ TOTAL: PASS=20 FAIL=0
 ### P2 高价值增强
 6. **R-AI-8**: ChatPanel 内嵌到 dashboard 而非 sidebar
 7. **R-AI-9**: 真实 SSE streaming（已有 `ai-streaming.controller.ts` 但只是 stub）
+
+---
+
+## R-PERM-2 完成 (2026-09-01) — View-Access Enforcement
+
+### 真实 SQL 验证（不依赖 controller 的 base-level 权限检查）
+user=`usrzF5odzA2m6mO8S48` 是 role=`pr_d91582f44a235efc58ae` 成员
+role 配置 `permission_role_view=(role, view=viwyZ4THdDNXpxOZiAb)` (specific mode)
+
+```sql
+SELECT
+  EXISTS(
+    SELECT 1 FROM meta.permission_role_view prv
+    WHERE prv.table_id='tblLxvWC26Cyv08cotd' AND prv.view_id='viwyZ4THdDNXpxOZiAb'
+      AND prv.role_id IN (用户所属 role 列表)
+  ) AS should_allow_v1;  -- t ✓
+
+  EXISTS(
+    SELECT 1 ... prv.view_id='viwbcNvdghW5AULE6JT' ...
+  ) AS should_allow_v2;  -- f ✓
+```
+
+### 真实代码改造（commit `272c0b8d1`）
+- `permission-matrix.service.ts` 新增 `resolveViewAccessForUser(baseId, userId, tableId, viewId)`
+- `view-open-api.controller.ts` 注入 `PermissionMatrixService` + `assertViewAccess` helper
+- 关键端点 `GET /:viewId` / `DELETE /:viewId` / `PUT /:viewId/name` 前加 await `this.assertViewAccess(tableId, viewId)`
+- `view.module.ts` 导入 `PermissionMatrixModule`
+
+业务语义对齐 Cloud "角色只能打开指定 view，未授权节点不显示"。
+
+---
+
+## R-AI-7 完成 (2026-09-01) — Admin AI Gateway 端点
+
+### 真实 e2e 验证（curl 5/5 OK, commit `871fbf8df`）
+```
+Test 1: GET unset → {aiGatewayApiKey:null, status:'unset'}
+Test 2: PUT set   → {apiKey:'vck_...', baseUrl:'https://ai-gateway.vercel.sh/v1', status:'enabled'}
+Test 3: GET enabled → 持久化生效
+Test 4: PUT clear → {apiGatewayApiKey:null, status:'cleared'}
+Test 5: GET cleared → 持久化生效
+```
+
+### 真实代码改造
+- `ai-setting.types.ts` `IAiSetting` 加 `aiGatewayApiKey: string|null` + `aiGatewayBaseUrl: string|null`
+- `ai-setting.auth.service.ts`:
+  - `normalize()` 包含 gateway 字段
+  - `update()` JSON 序列化包含 gateway
+  - 新增 `setGateway(apiKey, baseUrl)` → 写 `meta.setting(name='ai_config').content.{aiGatewayApiKey, aiGatewayBaseUrl}`
+- `ai-setting.controller.ts`:
+  - `PUT /api/admin/ai-setting/gateway` (body: `{apiKey, baseUrl?}`)
+  - `GET /api/admin/ai-setting/gateway` (返回 `{status: 'unset'|'enabled'}`)
+- `ai-setting.module.ts` 导入 `SettingModule`
+
+业务语义对齐 Cloud §AI §AI Gateway "实例级共享模型 across bases"。
+
+---
+
+## 当前总进度
+
+### ✅ 已完成（2026-09-01 当天提交）
+| Round | 模块 | commit |
+|---|---|---|
+| R-AI-4 | AI App Builder 12 endpoints + admin UI | `e73300264` |
+| R-AI-5 | Cuppy AI 对话 23 endpoints 验证 | `7befbd3d1` |
+| R-AI-6 | Cuppy 8s timeout fallback | `9568be9d5` |
+| R-PERM-2 | view-access enforcement | `272c0b8d1` |
+| R-AI-7 | Admin AI Gateway endpoints | `871fbf8df` |
+
+### 真实差距（按 P0/P1/P2）
+- **P0 (立刻)**: Admin AI Gateway 真实 LLM 路径 (需配 vck_... 真实 key)
+- **P1 (短期)**: App Builder Live Preview/Monaco Editor UI; Cuppy Skills 全 CRUD UI
+- **P2 (长期)**: Voice input/Realtime transcription; Connect & Migrate Everything 10+ 源

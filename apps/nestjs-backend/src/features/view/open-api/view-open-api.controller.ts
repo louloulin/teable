@@ -59,11 +59,13 @@ import { ZodValidationPipe } from '../../..//zod.validation.pipe';
 import { EmitControllerEvent } from '../../../event-emitter/decorators/emit-controller-event.decorator';
 import { Events } from '../../../event-emitter/events';
 import type { IClsStore } from '../../../types/cls';
+import { ForbiddenException, Optional } from '@nestjs/common';
 import { AllowAnonymous } from '../../auth/decorators/allow-anonymous.decorator';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { UseV2Feature } from '../../canary/decorators/use-v2-feature.decorator';
 import { V2FeatureGuard } from '../../canary/guards/v2-feature.guard';
 import { V2IndicatorInterceptor } from '../../canary/interceptors/v2-indicator.interceptor';
+import { PermissionMatrixService } from '../../permission-matrix/permission-matrix.service';
 import { TableDomainQueryService } from '../../table-domain';
 import { ViewService } from '../view.service';
 import { ViewOpenApiV2Service } from './view-open-api-v2.service';
@@ -77,8 +79,35 @@ export class ViewOpenApiController {
     private readonly viewOpenApiService: ViewOpenApiService,
     private readonly viewOpenApiV2Service: ViewOpenApiV2Service,
     protected readonly tableDomainQueryService: TableDomainQueryService,
-    private readonly cls: ClsService<IClsStore>
+    private readonly cls: ClsService<IClsStore>,
+    // R-PERM-2 enforcement: optional — when permission-matrix module is not
+    // wired (e.g. unit tests) view-access checks are skipped.
+    @Optional() private readonly permissionMatrix?: PermissionMatrixService
   ) {}
+
+  /**
+   * R-PERM-2 enforcement: Cloud §权限矩阵 §视图权限. Roles configured with
+   * `view-access: 'specific'` must only see the views in their allow list.
+   * If `user.id` is missing (anonymous + AllowAnonymous route) or the matrix
+   * service is not wired, we skip the check (allow all views).
+   */
+  private async assertViewAccess(tableId: string, viewId: string): Promise<void> {
+    if (!this.permissionMatrix) return;
+    const userId = this.cls.get('user')?.id;
+    if (!userId) return;
+    const baseId = await this.tableDomainQueryService.getTableDomainById(tableId);
+    const ok = await this.permissionMatrix.resolveViewAccessForUser(
+      baseId.id,
+      userId,
+      tableId,
+      viewId
+    );
+    if (!ok) {
+      throw new ForbiddenException(
+        `view not accessible by current user: ${viewId} (table=${tableId})`
+      );
+    }
+  }
 
   @Permissions('view|read')
   @Get(':viewId')
@@ -86,6 +115,7 @@ export class ViewOpenApiController {
     @Param('tableId') tableId: string,
     @Param('viewId') viewId: string
   ): Promise<IViewVo> {
+    await this.assertViewAccess(tableId, viewId);
     return await this.viewService.getViewById(tableId, viewId);
   }
 
@@ -112,6 +142,7 @@ export class ViewOpenApiController {
     @Param('viewId') viewId: string,
     @Headers('x-window-id') windowId?: string
   ) {
+    await this.assertViewAccess(tableId, viewId);
     return await this.viewOpenApiService.deleteView(tableId, viewId, windowId);
   }
 
@@ -123,6 +154,7 @@ export class ViewOpenApiController {
     @Body(new ZodValidationPipe(viewNameRoSchema)) viewNameRo: IViewNameRo,
     @Headers('x-window-id') windowId?: string
   ): Promise<void> {
+    await this.assertViewAccess(tableId, viewId);
     return await this.viewOpenApiService.setViewProperty(
       tableId,
       viewId,

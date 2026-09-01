@@ -20,6 +20,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import { ScimAuthGuard } from './scim-auth.guard';
 import { ScimService } from './scim.service';
 
@@ -57,6 +58,7 @@ const paginate = <T>(rows: T[], startIndex?: string, count?: string) => {
   return rows.slice(sI - 1, sI - 1 + c);
 };
 
+@Public()
 @UseGuards(ScimAuthGuard)
 @Controller('scim/v2')
 export class ScimController {
