@@ -14,6 +14,7 @@ import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
 import { AiModule } from '../ai/ai.module';
 import { AiService } from '../ai/ai.service';
 import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
+import { analyzeRecords, type AnalysisAggregation } from '../cuppy-prompt-router/cuppy-data-analysis';
 import { InstanceSkillModule } from '../instance-skills/instance-skill.module';
 import { LicenseModule } from '../license/license.module';
 import { SkillScopeModule } from '../skill-scope/skill-scope.module';
@@ -157,6 +158,36 @@ import { CuppyController } from './cuppy.controller';
             } catch (error) {
               return { error: error instanceof Error ? error.message : 'describe failed' };
             }
+          },
+        });
+        orchestrator.registerTool({
+          name: 'data_analysis',
+          description: 'Compute bounded count, sum, average, minimum, or maximum over permission-checked records and optionally group the result for a chart.',
+          parameters: {
+            type: 'object',
+            properties: {
+              tableId: { type: 'string' },
+              metricField: { type: 'string' },
+              groupByField: { type: 'string' },
+              aggregation: { type: 'string', enum: ['count', 'sum', 'avg', 'min', 'max'] },
+            },
+            required: ['tableId'],
+            additionalProperties: false,
+          },
+          invoke: async (args, ctx) => {
+            const tableId = typeof args.tableId === 'string' ? args.tableId : '';
+            if (!tableId) return { error: 'tableId is required' };
+            if (!ctx.base_id) return { error: 'baseId is required' };
+            await tables.getTable(ctx.base_id, tableId);
+            const response = await records.getRecords(tableId, { take: 50, skip: 0 } as never);
+            const aggregation = ['count', 'sum', 'avg', 'min', 'max'].includes(String(args.aggregation))
+              ? (String(args.aggregation) as AnalysisAggregation)
+              : undefined;
+            return analyzeRecords(response.records ?? [], {
+              aggregation,
+              metricField: typeof args.metricField === 'string' ? args.metricField : undefined,
+              groupByField: typeof args.groupByField === 'string' ? args.groupByField : undefined,
+            });
           },
         });
         orchestrator.registerTool({
