@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AiSettingAuthService } from './ai-setting.auth.service';
+import type { IAiSetting } from './ai-setting.types';
 
 const AiGuard = LicenseCapabilityGuard.for('ai');
 
@@ -60,9 +61,15 @@ const creditPolicySchema = z.object({
   refundOnFailure: z.boolean().optional(),
 });
 
+const gatewaySchema = z.object({
+  apiKey: z.string().trim().min(1).max(1024).nullable(),
+  baseUrl: z.string().url().max(512).nullable().optional(),
+});
+
 type UpdateBody = z.infer<typeof updateSchema>;
 type DefaultModelBody = z.infer<typeof defaultModelSchema>;
 type CreditPolicyBody = z.infer<typeof creditPolicySchema>;
+type GatewayBody = z.infer<typeof gatewaySchema>;
 
 @Controller('api/admin/ai-setting')
 @UseGuards(AiGuard)
@@ -76,7 +83,7 @@ export class AiSettingController {
 
   @Put()
   async update(@Body(new ZodValidationPipe(updateSchema)) body: UpdateBody): Promise<unknown> {
-    return this.auth.update(body);
+    return this.auth.update(body as Partial<IAiSetting>);
   }
 
   @Post('enable')
@@ -116,5 +123,39 @@ export class AiSettingController {
     @Body(new ZodValidationPipe(creditPolicySchema)) body: CreditPolicyBody
   ): Promise<unknown> {
     return (await this.auth.updateCreditPolicy(body)).creditPolicy;
+  }
+
+  // ─── R-AI-7: Admin AI Gateway (instance-level shared model) ─────────────
+  // Cloud Business §AI §AI Gateway: admins can register a Vercel AI Gateway
+  // (or any OpenAI-compatible gateway) URL + API key. Once set, every base
+  // that has not overridden its own LLM provider inherits the gateway.
+  //
+  // PUT body { apiKey: string|null, baseUrl?: string|null }
+  //   apiKey=null clears the gateway. baseUrl defaults to Vercel's gateway.
+  // Returns the persisted gateway config plus a status string for ops dashboards.
+  @Put('gateway')
+  async setGateway(
+    @Body(new ZodValidationPipe(gatewaySchema)) body: GatewayBody
+  ): Promise<{ aiGatewayApiKey: string | null; aiGatewayBaseUrl: string | null; status: string }> {
+    const s = await this.auth.setGateway(body.apiKey, body.baseUrl ?? null);
+    return {
+      aiGatewayApiKey: s.aiGatewayApiKey,
+      aiGatewayBaseUrl: s.aiGatewayBaseUrl,
+      status: s.aiGatewayApiKey ? 'enabled' : 'cleared',
+    };
+  }
+
+  @Get('gateway')
+  async getGateway(): Promise<{
+    aiGatewayApiKey: string | null;
+    aiGatewayBaseUrl: string | null;
+    status: string;
+  }> {
+    const s = await this.auth.load();
+    return {
+      aiGatewayApiKey: s.aiGatewayApiKey,
+      aiGatewayBaseUrl: s.aiGatewayBaseUrl,
+      status: s.aiGatewayApiKey ? 'enabled' : 'unset',
+    };
   }
 }

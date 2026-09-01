@@ -6,11 +6,12 @@
 
 import { Module } from '@nestjs/common';
 import { LicenseModule } from '../license/license.module';
+import { SettingModule } from '../setting/setting.module';
 import { AiSettingController } from './ai-setting.controller';
 import { AiSettingAuthService } from './ai-setting.auth.service';
 
 @Module({
-  imports: [LicenseModule],
+  imports: [LicenseModule, SettingModule],
   controllers: [AiSettingController],
   providers: [AiSettingAuthService],
   exports: [AiSettingAuthService],
