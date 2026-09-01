@@ -91,3 +91,25 @@ describe('EnterpriseReadinessService.permission capabilities', () => {
     expect(cap.enabled).toBe(true);
   });
 });
+
+it('R-PERM-3 batch: comment_subscription / approval_workflow / dashboard / dr_canvas all flip to enabled', async () => {
+  const svc = buildService();
+  const report = await svc.report();
+  for (const key of [
+    'comment_subscription',
+    'approval_workflow',
+    'dashboard',
+    'dr_canvas',
+    'conditional_format_rule',
+    'conflict_event',
+    'automation_canvas_revision',
+    'automation_secret',
+    'backup_restore_log',
+    'data_residency_policy',
+  ]) {
+    const cap = report.capabilities[key];
+    expect(cap, `capability ${key} should be defined`).toBeDefined();
+    expect(cap.enabled, `${key} should be enabled`).toBe(true);
+    expect(cap.reason, `${key} should have no reason`).toBeUndefined();
+  }
+});

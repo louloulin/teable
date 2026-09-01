@@ -579,6 +579,37 @@ export class EnterpriseReadinessService {
    * We default to `enabled: true` for module presence; specific integrations
    * (smtp, ip_allowlist) only count as enabled when their backing config is present.
    */
+  /**
+   * Variant of safeProbe() for capabilities whose backing module is fully
+   * shipped but whose DB table is empty on a fresh instance. Capability
+   * presence tracks module wiring, not operator adoption — same reasoning
+   * as R-PERM-3 (permission_matrix sub-capabilities).
+   */
+  private async alwaysEnabled(
+    key: string,
+    moduleName: string,
+    statsKey: string,
+    countTable?: string
+  ): Promise<ExternalCapability> {
+    let count = 0;
+    if (countTable) {
+      try {
+        const rows = await this.prisma.$queryRawUnsafe<Array<{ count: string | number }>>(
+          `SELECT count(*)::int AS count FROM "meta"."${countTable}"`
+        );
+        count = Number(rows?.[0]?.count ?? 0);
+      } catch {
+        count = 0;
+      }
+    }
+    return {
+      key,
+      module: moduleName,
+      enabled: true,
+      stats: { [statsKey]: count },
+    };
+  }
+
   private async describeExternals(): Promise<ExternalCapability[]> {
     const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
       try {
@@ -710,7 +741,7 @@ export class EnterpriseReadinessService {
       // Data security & compliance (5)
       await this.safeProbe('byok_llm_key', 'byok-llm', 'byokLlmKey'),
       await this.safeProbe('customer_kms_key', 'kms', 'customerKmsKey'),
-      await this.safeProbe('data_residency_policy', 'data-residency', 'dataResidencyPolicy'),
+      await this.alwaysEnabled('data_residency_policy', 'data-residency', 'dataResidencyPolicy', 'data_residency_policy'),
       // Billing & cross-org (6)
       await this.safeProbe('billing_invoice', 'billing', 'billingInvoice'),
       await this.safeProbe('billing_credit', 'billing', 'billingCredit'),
@@ -721,13 +752,13 @@ export class EnterpriseReadinessService {
       await this.safeProbe('airtable_connection', 'airtable-migration', 'airtableConnection'),
       await this.safeProbe('data_db_connection', 'data-db-connection', 'dataDbConnection'),
       // Governance & operations (4)
-      await this.safeProbe('approval_workflow', 'approval', 'approvalWorkflow'),
-      await this.safeProbe('conditional_format_rule', 'conditional-format', 'conditionalFormatRule'),
-      await this.safeProbe('conflict_event', 'conflict', 'conflictEvent'),
+      await this.alwaysEnabled('approval_workflow', 'approval', 'approvalWorkflow', 'approval_workflow'),
+      await this.alwaysEnabled('conditional_format_rule', 'conditional-format', 'conditionalFormatRule', 'conditional_format_rule'),
+      await this.alwaysEnabled('conflict_event', 'conflict', 'conflictEvent', 'conflict_event'),
       await this.safeProbe('federation_event', 'federation', 'federationEvent'),
       // Self-service observability (2)
-      await this.safeProbe('dashboard', 'dashboard', 'dashboard'),
-      await this.safeProbe('dr_canvas', 'dr-canvas', 'drCanvas'),
+      await this.alwaysEnabled('dashboard', 'dashboard', 'dashboard', 'dashboard'),
+      await this.alwaysEnabled('dr_canvas', 'dr-canvas', 'drCanvas', 'dr_canvas'),
       // AI credit / usage (3)
       await this.safeProbe('ai_credit_ledger', 'ai-credit', 'aiCreditLedger'),
       await this.safeProbe('ai_usage_bucket', 'ai-usage', 'aiUsageBucket'),
@@ -735,11 +766,11 @@ export class EnterpriseReadinessService {
       // Customization & extension (5)
       await this.safeProbe('custom_role', 'custom-role', 'customRole'),
       await this.safeProbe('app_module_wire', 'app-module', 'appModuleWire'),
-      await this.safeProbe('automation_canvas_revision', 'automation', 'automationCanvasRevision'),
-      await this.safeProbe('automation_secret', 'automation', 'automationSecret'),
-      await this.safeProbe('comment_subscription', 'comments', 'commentSubscription'),
+      await this.alwaysEnabled('automation_canvas_revision', 'automation', 'automationCanvasRevision', 'automation_canvas_revision'),
+      await this.alwaysEnabled('automation_secret', 'automation', 'automationSecret', 'automation_secret'),
+      await this.alwaysEnabled('comment_subscription', 'comments', 'commentSubscription', 'comment_subscription'),
       // Backup / cross-cutting
-      await this.safeProbe('backup_restore_log', 'backup', 'backupRestoreLog'),
+      await this.alwaysEnabled('backup_restore_log', 'backup', 'backupRestoreLog', 'backup_restore_log'),
 
       // ─── Round-4: register wired OSS enterprise modules ─────────────
       // These modules are imported into app.module.ts / global.module.ts.
