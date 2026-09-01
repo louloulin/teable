@@ -111,6 +111,11 @@ cleanup() {
      DELETE FROM meta.airtable_connection WHERE id = 'airc_round6_demo'; \
      DELETE FROM meta.permission_role_import_export WHERE id = 'prie_round26_demo'; \
      DELETE FROM meta.permission_role_node WHERE id = 'prn_round26_demo'; \
+     DELETE FROM meta.permission_role_view; \
+     DELETE FROM meta.permission_role_member; \
+     DELETE FROM meta.permission_role_node; \
+     DELETE FROM meta.permission_role_import_export; \
+     DELETE FROM meta.permission_role WHERE base_id='bse_round_perm1_demo'; \
      DELETE FROM meta.data_residency_policy; \
      DELETE FROM meta.region WHERE code IN ('us','eu','ap'); \
      DELETE FROM meta.approval_request; \
@@ -3120,6 +3125,47 @@ IE_GET=$(curl -sS "${BASE_URL}/${PM}/roles/${RID_PERM}/import-export?baseId=${BA
 IE_GET_EXP=$(printf '%s' "$IE_GET" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d[0].get("canExport",False) if isinstance(d,list) else d.get("canExport",False))' 2>/dev/null)
 assert_ok "$(chk_eq "$IE_GET_EXP" "True")" "permission-matrix: import-export GET reads back canExport:true (got: $IE_GET_EXP)"
 
+# 8b. view-level visibility (Cloud §权限矩阵 §视图权限: 特定视图 vs 所有视图)
+sleep 0.12
+VIEW_BODY1='{"baseId":"'"$BASE_PERM"'","tableId":"tbl_sales_orders","viewIds":["viw_team_pipeline","viw_my_quotes"]}'
+VA_CODE=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" \
+  -d "$VIEW_BODY1" -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_CODE" "200")" "permission-matrix: set view-access returns 200 (got HTTP $VA_CODE)"
+sleep 0.12
+VA_GET1=$(curl -sS "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access?baseId=${BASE_PERM}&tableId=tbl_sales_orders" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" 2>/dev/null)
+VA_MODE=$(printf '%s' "$VA_GET1" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("mode",""))' 2>/dev/null)
+VA_LEN=$(printf '%s' "$VA_GET1" | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("viewIds",[])))' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_MODE" "specific")" "permission-matrix: GET view-access mode=specific (got: $VA_MODE)"
+assert_ok "$(chk_eq "$VA_LEN" "2")" "permission-matrix: GET view-access returns 2 viewIds (got: $VA_LEN)"
+
+# Replace list with a single viewId — idempotent, drops the other.
+sleep 0.12
+VIEW_BODY2='{"baseId":"'"$BASE_PERM"'","tableId":"tbl_sales_orders","viewIds":["viw_my_quotes"]}'
+VA_CODE2=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" \
+  -d "$VIEW_BODY2" -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_CODE2" "200")" "permission-matrix: replace view-access returns 200 (got HTTP $VA_CODE2)"
+sleep 0.12
+VA_GET2=$(curl -sS "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access?baseId=${BASE_PERM}&tableId=tbl_sales_orders" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" 2>/dev/null)
+VA_LEN2=$(printf '%s' "$VA_GET2" | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("viewIds",[])))' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_LEN2" "1")" "permission-matrix: replace view-access leaves 1 viewId (got: $VA_LEN2)"
+
+# Empty array resets to "all views" (Cloud 默认所有视图).
+sleep 0.12
+VIEW_BODY3='{"baseId":"'"$BASE_PERM"'","tableId":"tbl_sales_orders","viewIds":[]}'
+VA_CODE3=$(curl -sS -X PUT "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access" \
+  -H "Content-Type: application/json" -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" \
+  -d "$VIEW_BODY3" -o /dev/null -w '%{http_code}' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_CODE3" "200")" "permission-matrix: clear view-access (empty list) returns 200 (got HTTP $VA_CODE3)"
+sleep 0.12
+VA_GET3=$(curl -sS "${BASE_URL}/${PM}/roles/${RID_PERM}/view-access?baseId=${BASE_PERM}&tableId=tbl_sales_orders" \
+  -H "x-admin-token: ${ADMIN_TOKEN}" "${COOKIE_ARGS_426[@]}" 2>/dev/null)
+VA_MODE3=$(printf '%s' "$VA_GET3" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("mode",""))' 2>/dev/null)
+assert_ok "$(chk_eq "$VA_MODE3" "all")" "permission-matrix: clear view-access resets mode to all (got: $VA_MODE3)"
+
 # 9. member add + list (existing endpoint: Cloud 添加协作者)
 sleep 0.12
 MB_CODE=$(curl -sS -X POST "${BASE_URL}/${PM}/members" \
@@ -3172,7 +3218,7 @@ UNAUTH_CODE=$(curl -sS "${BASE_URL}/${PM}/roles?baseId=${BASE_PERM}" -o /dev/nul
 assert_ok "$(chk_starts "$UNAUTH_CODE" "4")" "permission-matrix: unauthenticated request rejected (got HTTP $UNAUTH_CODE)"
 
 # Cleanup demo rows so subsequent runs start from baseline.
-PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.permission_role_node WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role WHERE id='$RID_PERM'; DELETE FROM meta.permission_role_import_export WHERE role_id='$RID_PERM'; DELETE FROM meta.collaborator WHERE id='collab_round_perm1_demo'; DELETE FROM meta.base WHERE id='bse_round_perm1_demo'; DELETE FROM meta.setting WHERE name='perm_default_role_for_unassigned';" -q > /dev/null 2>&1
+PGPASSWORD=teable psql -h 127.0.0.1 -p 42345 -U teable -d teable -c "DELETE FROM meta.permission_role_view WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_member WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_node WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role_import_export WHERE role_id='$RID_PERM'; DELETE FROM meta.permission_role WHERE id='$RID_PERM'; DELETE FROM meta.collaborator WHERE id='collab_round_perm1_demo'; DELETE FROM meta.base WHERE id='bse_round_perm1_demo'; DELETE FROM meta.setting WHERE name='perm_default_role_for_unassigned';" -q > /dev/null 2>&1
 rm -f /tmp/teable-cookies-426.txt
 # ----- Section 5: unauthenticated request rejected -----
 log "=== Section 5: unauth rejected ==="

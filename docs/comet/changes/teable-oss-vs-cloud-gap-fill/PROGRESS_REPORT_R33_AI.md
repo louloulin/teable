@@ -201,7 +201,7 @@
 | R33 + R-AI-1/2/3 | 43 | cuppy 23 + ai-builder 6 + custom-ai-model 8 + ai-setting 8 | ✅ committed |
 | **R-AI-5**(`/api/cuppy/chat` 真实对话回退) | **11** | chat 不再 503,echo 兜底 + 真实 LLM 零迁移让位 | ✅ `a89e5ae54` |
 | **R-PERM-1**(权限矩阵 4 区域 CRUD) | **18** | +app-access / workflow-access / default-role | ✅ `968ae71b4` |
-| **总计 (含本轮 e2e 修复)** | **288 OK / 0 FAIL** | 权限矩阵 17 端点,全量 e2e 一次跑通 | |
+| **总计 (Round-PERM-2)** | **295 OK / 0 FAIL** | 权限矩阵 19 端点,视图级可见性补齐 | |
 
 ### 本轮真实改进(用户点名的两项)
 

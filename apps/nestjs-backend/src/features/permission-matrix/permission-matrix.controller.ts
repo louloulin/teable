@@ -68,6 +68,14 @@ interface IImportExportDto {
   canExport: boolean;
 }
 
+// Cloud Business §权限矩阵 §视图权限: a role may see either ALL views of a
+// table or a SPECIFIC list of view IDs. An empty array resets to "all".
+interface IViewAccessDto {
+  baseId: string;
+  tableId: string;
+  viewIds: string[];
+}
+
 @Controller('api/admin/permission-matrix')
 @UseGuards(MatrixGuard)
 export class PermissionMatrixController {
@@ -263,5 +271,28 @@ export class PermissionMatrixController {
   async getDefaultRole(@Query('baseId') baseId: string) {
     const defaultRoleId = await this.svc.getDefaultRoleForUnassigned(baseId);
     return { baseId, defaultRoleId };
+  }
+
+  // ─── Cloud §权限矩阵 §视图权限 ────────────────────────────────────────────
+  // PUT body { baseId, tableId, viewIds: string[] }; empty array = "all views".
+  @Put('roles/:roleId/view-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'body')
+  async setViewAccess(
+    @Param('roleId') roleId: string,
+    @Body() body: IViewAccessDto
+  ) {
+    return this.svc.setViewAccess(body.baseId, roleId, body.tableId, body.viewIds ?? []);
+  }
+
+  @Get('roles/:roleId/view-access')
+  @Permissions('base|authority_matrix_config')
+  @ResourceMeta('baseId', 'query')
+  async getViewAccess(
+    @Param('roleId') roleId: string,
+    @Query('baseId') baseId: string,
+    @Query('tableId') tableId: string
+  ) {
+    return this.svc.getViewAccess(baseId, roleId, tableId);
   }
 }

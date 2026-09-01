@@ -1481,6 +1481,19 @@ model PermissionRoleImportExport {
   @@index([roleId])
   @@map("permission_role_import_export")
 }
+model PermissionRoleView {
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  tableId   String   @map("table_id")
+  viewId    String   @map("view_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  role PermissionRole @relation("PermissionRoleViewToPermissionRole", fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, tableId, viewId])
+  @@index([roleId, tableId])
+  @@map("permission_role_view")
+}
 
 model PermissionRoleMember {
   id        String   @id @default(cuid())
@@ -1512,6 +1525,7 @@ model PermissionRole {
   fieldPerms    PermissionRoleFieldPermission[] @relation("PermissionRoleFieldPermissionToPermissionRole")
   recordActions PermissionRoleRecordAction[]    @relation("PermissionRoleRecordActionToPermissionRole")
   recordFilters PermissionRoleRecordFilter[]    @relation("PermissionRoleRecordFilterToPermissionRole")
+  views         PermissionRoleView[]              @relation("PermissionRoleViewToPermissionRole")
 
   @@unique([baseId, name])
   @@index([baseId])

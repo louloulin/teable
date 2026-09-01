@@ -296,6 +296,54 @@ export class PermissionMatrixService implements OnApplicationBootstrap {
     return { ok: true, deleted: count };
   }
 
+
+  // ─── view-level visibility (Cloud Business §权限矩阵 §视图权限) ─────────
+  // Cloud docs: a role can see either ALL views of a table, or a SPECIFIC
+  // list of view IDs. We model "specific" as rows in permission_role_view;
+  // an empty set (no rows) means "all views" — so the default is correct
+  // without any seed data. setViewAccess() is idempotent: it deletes any
+  // existing rows for (role, table) then inserts the supplied viewIds.
+  async setViewAccess(
+    baseId: string,
+    roleId: string,
+    tableId: string,
+    viewIds: string[]
+  ): Promise<{ viewIds: string[]; mode: 'all' | 'specific' }> {
+    await this.assertRole(baseId, roleId);
+    const unique = Array.from(new Set(viewIds.filter((v) => typeof v === 'string' && v.length > 0)));
+    await this.prisma.$transaction([
+      this.prisma.permissionRoleView.deleteMany({ where: { roleId, tableId } }),
+      ...(unique.length === 0
+        ? []
+        : unique.map((viewId) =>
+            this.prisma.permissionRoleView.create({
+              data: {
+                id: `prv_${randomBytes(10).toString('hex')}`,
+                roleId,
+                tableId,
+                viewId,
+              },
+            })
+          )),
+    ]);
+    this.invalidate(baseId);
+    return { viewIds: unique, mode: unique.length === 0 ? 'all' : 'specific' };
+  }
+
+  async getViewAccess(
+    baseId: string,
+    roleId: string,
+    tableId: string
+  ): Promise<{ viewIds: string[]; mode: 'all' | 'specific' }> {
+    await this.assertRole(baseId, roleId);
+    const rows = await this.prisma.permissionRoleView.findMany({
+      where: { roleId, tableId },
+      select: { viewId: true },
+      orderBy: { viewId: 'asc' },
+    });
+    const viewIds = rows.map((r) => r.viewId);
+    return { viewIds, mode: viewIds.length === 0 ? 'all' : 'specific' };
+  }
   // ─── members ───────────────────────────────────────────────────────────
 
   async addMember(baseId: string, roleId: string, userId: string) {
