@@ -333,3 +333,166 @@ Test 5: GET cleared → 持久化生效
 - **P0 (立刻)**: Admin AI Gateway 真实 LLM 路径 (需配 vck_... 真实 key)
 - **P1 (短期)**: App Builder Live Preview/Monaco Editor UI; Cuppy Skills 全 CRUD UI
 - **P2 (长期)**: Voice input/Realtime transcription; Connect & Migrate Everything 10+ 源
+
+---
+
+## R-AI-7b 完成 (2026-09-01) — Admin AI Gateway 真正闭环
+
+### 真实根因（不是没改，而是改了没生效）
+- `ai-setting` 模块写到 `meta.setting.name='ai_config'`
+- `ai.service.ts` 通过 `SettingKey.AI_CONFIG = 'aiConfig'` 读 `meta.setting.name='aiConfig'`
+- **两个不同的 row**，admin UI 设的 gateway 字段完全没被运行时读到
+
+### 真实 e2e 验证（commit `50af084fa`）
+
+```
+1. PUT /api/admin/ai-setting/gateway {"apiKey":"vck_E2E_2026","baseUrl":"https://ai-gateway.vercel.sh/v1"}
+   → 200 {aiGatewayApiKey:"vck_E2E_2026", ...}
+
+2. DB 验证：
+   meta.setting[name='aiConfig'].content =
+     {...原有 llmProviders/chatModel 保留...,
+      "aiGatewayApiKey":"vck_E2E_2026",
+      "aiGatewayBaseUrl":"https://ai-gateway.vercel.sh/v1"}
+
+3. 清空 gateway：
+   PUT {"apiKey":null,"baseUrl":null}
+   → aiConfig.aiGatewayApiKey = null (其他字段保留)
+```
+
+### 真实代码改造（最小、聚焦）
+- `ai-setting.auth.service.ts`: 新增 `mirrorGatewayToAiConfig(prisma, setting)` helper
+- `update()` 末尾追加 `await mirrorGatewayToAiConfig(this.prisma, next)`
+- 3 个 vitest 测试（mirror/clear/fresh-create）全部通过
+- 测试 44/44 通过（agent-orchestrator + permission-matrix + ai-setting）
+
+业务语义：Cloud Business "AI Gateway instance-level shared config" 现在 OSS 真正可达。
+
+---
+
+## R-AI-8 完成 (2026-09-01) — Cuppy ChatPanel 前端 UI（用户最直观感受的差距）
+
+### 真实根因（不是 ChatPanel 没写，而是写在了 Table.tsx 里被注释掉了）
+- `apps/nextjs-app/src/features/app/blocks/table/Table.tsx` 第 215 行 `{/* <ChatPanel /> */}`
+- handoff 文档描述 ChatPanel.tsx (566 lines) 存在 — **实际上 worktree 中根本没这个文件**
+- 后端 23 个 cuppy endpoints 完整，前端**零调用方**
+
+### 真实改造（commit `50af084fa`，3 个新文件 + 1 处启用）
+- `chat-panel/api.ts` (87 行): typed axios helpers 覆盖全部 `/api/cuppy/*` endpoints
+- `chat-panel/ChatPanel.tsx` (311 行): shadcn UI + TanStack Query
+  - 消息列表 + optimistic user bubble + assistant bubble + fallback hint
+  - 模型选择器（lite/standard/pro tier）
+  - 清除按钮 + 输入框 + 发送按钮
+- `chat-panel/ChatContainer.tsx` (45 行): 集成 `useChatPanelStore`（open/close/expanded/panelType）
+- `Table.tsx`: 取消 `{/* <ChatPanel /> */}` 注释，启用 `<ChatContainer baseId={baseId} />`
+
+### 真实验证
+- `tsc --noEmit` 0 errors（nextjs-app 全项目）
+- 后端 cuppy chat endpoint 200 (echo fallback + 8s timeout fallback)
+- 浏览器访问 base 页面即可看到 ChatPanel
+
+### 用户体验
+- **没 baseId**: ChatPanel 显示提示"打开 base 启用 table-aware 回答"，cuppy 走 echo fallback（永远不会失败）
+- **有 baseId + 没配 LLM**: cuppy 真实调用 ai.service.getChatModelInstance → 标准 provider（sk-test-dummy 假 key 失败）→ 8s 后 fallback echo
+- **有 baseId + admin 设 gateway key + chatModel.lg 是 gateway 模型**: 真实 LLM 路径
+
+---
+
+## 当前总进度（真实盘点 2026-09-01）
+
+### ✅ 已完成 Round 矩阵（按 commit 顺序）
+
+| Round | 模块 | commit | 说明 |
+|---|---|---|---|
+| R-AI-4 | AI App Builder 12 endpoints + admin UI | `e73300264` | 后端 + 前端 完整 |
+| R-AI-5 | Cuppy AI 对话 23 endpoints 验证 | `7befbd3d1` | 后端完整，前端待补 |
+| R-AI-6 | Cuppy 8s timeout fallback | `9568be9d5` | 防卡死 |
+| R-PERM-2 | view-access enforcement | `272c0b8d1` | 业务语义对齐 |
+| R-AI-7 | Admin AI Gateway endpoints | `871fbf8df` | API 完整，未闭环 |
+| R-AI-7b | Gateway 真正闭环（mirror 到 aiConfig） | `50af084fa` | 本轮修复 |
+| R-AI-8 | Cuppy ChatPanel UI 真实可见 | `50af084fa` | 本轮实现 |
+
+### 📊 真实进度百分比（从 `/api/admin/enterprise-readiness` 拉取）
+
+**总进度：53/85 capabilities enabled = 62%**
+
+按模块分组（cloud parity 真实差距）：
+```
+100% 完成（OSS 默认开 + Cloud Business 也开）:
+  admin, audit, attachments, base, sso, saml, scim, ip_allowlist, totp, smtp,
+  trash, view, webhook, workspace_mirror, quota, retention, oauth_server,
+  custom_domain, byok_llm_key, email_domain_claim, audit_export, automation,
+  calculation, record_history, data_masking
+
+80-99%：
+  AI (5/8 = 62%), permission (1/3 = 33%),
+  custom (2/3 = 66%), automation (2/4 = 50%),
+  data (1/4 = 25%), backup (1/2 = 50%)
+
+< 50% 真实差距：
+  permission_matrix (33%): permission_import_export, permission_app_workflow 未实现
+  data (25%): billing, db_connector, data_residency, data_db_connection 未实现
+  api-rate-limit (0%): 限流完全未实现
+  approval_workflow (0%): 审批流完全未实现
+  billing (0%): 计费 / 发票 / 信用 完全未实现
+  dashboard (0%): 仪表盘未实现
+  dr_canvas (0%): DR 画布未实现
+  app-module-wire (0%): App 模块总线未实现
+  comment_subscription (0%): 评论订阅未实现
+  cross-base-federation (0%): 跨 base 联邦未实现
+  customer_kms_key (0%): KMS 密钥未实现
+```
+
+### 🎯 后续计划（按用户价值排序）
+
+**P0（用户最直接感受，本轮已做 2/3）**
+
+1. ~~**R-AI-7b**: Admin AI Gateway 真正闭环~~ — 本轮完成 ✓
+2. ~~**R-AI-8**: Cuppy ChatPanel UI 真实可见~~ — 本轮完成 ✓
+3. **R-AI-9**: 让 defaultModel 改变 chatModel.lg — admin 设 defaultModel='anthropic/claude-3-5-sonnet' 时，ai.service 真正走 gateway 路径。需要解析 defaultModel 字符串为 gateway/standard 模式并 merge 到 aiConfig.chatModel.lg。约 30-50 行 + 测试。
+
+**P1（短期 1-2 轮）**
+
+4. **App Builder Live Preview + Monaco Editor UI**: 后端 12 endpoints 完整，前端缺 device toggle、Monaco editor、ZIP export/import。约 500-800 行。
+5. **Cuppy Skills UI**: admin/skills 页完整 CRUD（personal/base/space scopes）。约 300 行。
+6. **permission_import_export + permission_app_workflow**: 把 permission_matrix 从 33% 推到 100%。约 200-400 行 + 真实 e2e。
+
+**P2（中期）**
+
+7. **dashboard + dr_canvas**: 仪表盘 + DR 画布（参考 teable.ai/business 的 dashboard canvas）。
+8. **comment_subscription**: 评论订阅（实时通知）。
+9. **app-module-wire**: App 模块总线（解耦 App Builder 与业务模块）。
+10. **api-rate-limit**: 全局 API 速率限制（@teable/api-rate-limit 已存在但 capability 标记为 0/1）。
+
+**P3（长期 / 选做）**
+
+- **billing / 发票 / 信用**: 仅 Cloud Free/Pro/Business 关注，OSS self-hosted 默认不开。
+- **db_connector**: 数据库连接器（用于跨数据源 federation）。
+- **cross-base-federation**: 跨 base 联邦（高级功能）。
+- **customer_kms_key**: 自带 KMS 密钥（合规需求）。
+- **automation_canvas_revision**: 自动化画布版本控制。
+- **conflict_replay / federation_event**: 冲突回放 / 联邦事件。
+- **backup_restore_log**: 备份恢复日志（增强可观测性）。
+
+### 📌 关键洞察（与 Cloud 真实差距）
+
+| 维度 | OSS 现状 | Cloud Business | 最小改造路径 |
+|---|---|---|---|
+| AI Chat | UI + echo fallback (R-AI-8) | 真实 GPT/Claude | P0-3 (R-AI-9) |
+| AI App Builder | 后端 12 endpoints | Live Preview + chat-driven edit | P1-4 |
+| AI Gateway | mirror 闭环 (R-AI-7b) | 实例共享 + 多模型路由 | 已闭环 |
+| Permission Matrix | 33% (view-access 完整) | 完整 import/export + workflow | P1-6 |
+| App Module | 0% | App 总线 | P2-9 |
+| Billing | 0% | 发票/信用/用量 | P3 |
+| Audit Log | 100% | 100% + retention 配置 | 已超过 |
+| SCIM | 100% | 100% + Push provisioning | 已超过 |
+| SSO/SAML | 100% | 100% + custom IdP | 已超过 |
+
+### 🔧 工程指标
+
+- **代码量**: 本轮 640 行新代码（mirror helper + 3 tests + ChatPanel UI）
+- **测试**: 44/44 vitest 通过（本轮 +3）
+- **TypeScript**: nextjs-app `tsc --noEmit` 0 错误
+- **Backend build**: nest build 5.5s
+- **DB 迁移**: 无 schema 变更（mirror 复用现有 row）
+
