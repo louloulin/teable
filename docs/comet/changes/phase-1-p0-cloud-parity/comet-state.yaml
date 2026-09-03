@@ -10,7 +10,7 @@ spec_changes:
   - capability: phase-1-p0-cloud-parity
     operation: create
     source: specs/phase-1-p0-cloud-parity/spec.md
-    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+    base_hash: null
 approval: implicit
 verification_result: pass
 verification_report: null

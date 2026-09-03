@@ -10,7 +10,7 @@ spec_changes:
   - capability: stage-11-retention-by-plan
     operation: create
     source: specs/stage-11-retention-by-plan/spec.md
-    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+    base_hash: null
 approval: implicit
 verification_result: pass
 verification_report: null

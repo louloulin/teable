@@ -10,7 +10,7 @@ spec_changes:
   - capability: stage-8b-ai-granular-gating
     operation: create
     source: specs/stage-8b-ai-granular-gating/spec.md
-    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+    base_hash: null
 approval: implicit
 verification_result: pass
 verification_report: null

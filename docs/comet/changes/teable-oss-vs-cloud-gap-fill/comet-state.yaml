@@ -10,7 +10,7 @@ spec_changes:
   - capability: teable-oss-vs-cloud-gap-fill
     operation: create
     source: specs/teable-oss-vs-cloud-gap-fill/spec.md
-    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+    base_hash: null
 approval: implicit
 verification_result: pass
 verification_report: null

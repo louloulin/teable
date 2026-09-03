@@ -10,7 +10,7 @@ spec_changes:
   - capability: teable-cloud-coverage-2026
     operation: create
     source: specs/teable-cloud-coverage-2026/spec.md
-    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+    base_hash: null
 approval: implicit
 verification_result: pass
 verification_report: null
