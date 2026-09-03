@@ -270,4 +270,218 @@ export class AiAppBuilderService {
       update: { content, sizeBytes },
     });
   }
+
+  // ─── publish + public URL (Round 45) ──────────────────────────────────────
+
+  /**
+   * Round 45: publish an app so it can be reached at the public URL.
+   *
+   * Steps:
+   *   1. Require a deployed current version (cannot publish a draft).
+   *   2. Generate a 12-char base36 slug; loop until unique.
+   *   3. Persist `public_slug` + `published_at` atomically with the
+   *      status flip to `deployed` (idempotent — re-publishing is a
+   *      no-op that just bumps `published_at`).
+   *
+   * Returns the app row with the new slug + publishedAt. The public
+   * URL itself is composed by `getPublicUrl()` from env (`APP_PUBLIC_HOST`).
+   */
+  async publish(appId: string): Promise<{
+    id: string;
+    publicSlug: string;
+    publishedAt: string;
+  }> {
+    const app = await this.getApp(appId);
+    if (!app.currentVersionId) {
+      throw new CustomHttpException(
+        'cannot publish: app has no deployed version',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+    // Idempotent — if already published, keep the slug, just bump the
+    // publishedAt so callers can confirm the operation succeeded.
+    if (app.publicSlug && app.publishedAt) {
+      return {
+        id: app.id,
+        publicSlug: app.publicSlug,
+        publishedAt: app.publishedAt.toISOString(),
+      };
+    }
+    const publicSlug = await this.generateUniquePublicSlug();
+    const publishedAt = new Date();
+    const updated = await this.prisma.appInstance.update({
+      where: { id: appId },
+      data: { publicSlug, publishedAt, status: 'deployed' },
+      select: { id: true, publicSlug: true, publishedAt: true },
+    });
+    this.logger.log(`app ${appId} published as /a/${updated.publicSlug}`);
+    return {
+      id: updated.id,
+      publicSlug: updated.publicSlug!,
+      publishedAt: updated.publishedAt!.toISOString(),
+    };
+  }
+
+  /**
+   * Round 45: unpublish an app. Clears `public_slug` + `published_at`
+   * and flips status back to `draft`. The deployed version is kept so
+   * the operator can re-publish without losing work.
+   */
+  async unpublish(appId: string): Promise<{ id: string; unpublished: true }> {
+    const app = await this.getApp(appId);
+    if (!app.publicSlug) {
+      // Idempotent — already unpublished.
+      return { id: app.id, unpublished: true };
+    }
+    await this.prisma.appInstance.update({
+      where: { id: appId },
+      data: { publicSlug: null, publishedAt: null, status: 'draft' },
+    });
+    this.logger.log(`app ${appId} unpublished (was /a/${app.publicSlug})`);
+    return { id: app.id, unpublished: true };
+  }
+
+  /**
+   * Round 45: return the public URL config for an app. The host is
+   * read from `APP_PUBLIC_HOST` env (default `http://localhost:3000`).
+   * Returns `{ published: false }` when the app is not published so
+   * the UI can render the "Publish" CTA without a second round-trip.
+   */
+  async getPublicUrl(appId: string): Promise<
+    | { published: false }
+    | {
+        published: true;
+        publicSlug: string;
+        publishedAt: string;
+        url: string;
+      }
+  > {
+    const app = await this.prisma.appInstance.findUnique({
+      where: { id: appId },
+      select: { publicSlug: true, publishedAt: true },
+    });
+    if (!app) {
+      throw new CustomHttpException('app not found', HttpErrorCode.NOT_FOUND);
+    }
+    if (!app.publicSlug || !app.publishedAt) {
+      return { published: false };
+    }
+    const host = (process.env.APP_PUBLIC_HOST ?? 'http://localhost:3000').replace(
+      /\/$/,
+      ''
+    );
+    return {
+      published: true,
+      publicSlug: app.publicSlug,
+      publishedAt: app.publishedAt.toISOString(),
+      url: `${host}/a/${app.publicSlug}`,
+    };
+  }
+
+  /**
+   * Round 45: resolve an app by its public slug. Used by the future
+   * runtime endpoint `GET /a/<slug>` to serve the deployed snapshot.
+   * Returns `null` when the slug is unknown — the runtime endpoint
+   * then 404s (vs throwing, so we can keep the cache layer clean).
+   */
+  async resolveBySlug(slug: string): Promise<{
+    id: string;
+    baseId: string;
+    currentVersionId: string | null;
+    publicSlug: string;
+    publishedAt: Date;
+  } | null> {
+    const app = await this.prisma.appInstance.findUnique({
+      where: { publicSlug: slug },
+      select: {
+        id: true,
+        baseId: true,
+        currentVersionId: true,
+        publicSlug: true,
+        publishedAt: true,
+      },
+    });
+    if (!app || !app.publicSlug || !app.publishedAt) return null;
+    // Hand-roll the typed shape — `app.publicSlug` is `string | null` in
+    // the Prisma return type even though we just narrowed it.
+    return {
+      id: app.id,
+      baseId: app.baseId,
+      currentVersionId: app.currentVersionId,
+      publicSlug: app.publicSlug,
+      publishedAt: app.publishedAt,
+    };
+  }
+
+  /**
+   * Round 46: fetch the deployed snapshot for the runtime endpoint.
+   *
+   * The caller already validated the app is published (via
+   * `resolveBySlug`); we just need to load the current version and
+   * pull out the snapshot JSON plus metadata the runtime can use to
+   * render the page (version number, deployedAt, app name).
+   *
+   * Returns `null` if the app is somehow published but the version
+   * was deleted out from under it (data-integrity guard). The runtime
+   * endpoint then 404s.
+   */
+  async getSnapshotByAppId(appId: string): Promise<{
+    appId: string;
+    appName: string;
+    versionNumber: number;
+    deployedAt: string;
+    snapshot: Record<string, unknown>;
+  } | null> {
+    const app = await this.prisma.appInstance.findUnique({
+      where: { id: appId },
+      select: { id: true, name: true, currentVersionId: true },
+    });
+    if (!app || !app.currentVersionId) return null;
+    const version = await this.prisma.appVersion.findUnique({
+      where: { id: app.currentVersionId },
+      select: { versionNumber: true, snapshot: true, deployedAt: true },
+    });
+    if (!version) return null;
+    const snapshot = (version.snapshot ?? { files: [], components: [] }) as Record<
+      string,
+      unknown
+    >;
+    return {
+      appId: app.id,
+      appName: app.name,
+      versionNumber: version.versionNumber,
+      deployedAt: (version.deployedAt ?? new Date(0)).toISOString(),
+      snapshot,
+    };
+  }
+
+  /**
+   * Round 45: 12-char base36 slug generator with collision retry. We
+   * don't use crypto.randomUUID because UUIDs are too long for URLs.
+   * `slug-nanoid` would be ideal but isn't installed — `randomBytes`
+   * + base36 keeps the implementation dependency-free.
+   */
+  private async generateUniquePublicSlug(): Promise<string> {
+    const MAX_TRIES = 6;
+    for (let i = 0; i < MAX_TRIES; i += 1) {
+      const slug = this.randomBase36Slug(12);
+      const existing = await this.prisma.appInstance.findUnique({
+        where: { publicSlug: slug },
+        select: { id: true },
+      });
+      if (!existing) return slug;
+    }
+    throw new Error('failed to generate unique public slug after retries');
+  }
+
+  private randomBase36Slug(length: number): string {
+    // base36 = [0-9a-z]; pick length chars from 36-symbol alphabet
+    const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
+    const bytes = randomBytes(length);
+    let out = '';
+    for (let i = 0; i < length; i += 1) {
+      out += alphabet[bytes[i] % alphabet.length];
+    }
+    return out;
+  }
 }

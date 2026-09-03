@@ -1352,6 +1352,12 @@ model SsoLoginState {
   providerId     String   @map("provider_id")
   // Email the user claimed to log in as; used for the post-auth user match.
   emailHint      String?  @map("email_hint")
+  // R50 — SAML AuthnRequest ID. Persisted on the login-state row so the
+  // callback can verify the IdP's <samlp:Response InResponseTo="...">
+  // attribute matches the AuthnRequest we actually issued. Without this
+  // a malicious party could forward a Response from another SP to us
+  // and we'd accept it as ours (cross-service replay).
+  requestId      String?  @map("request_id")
   // Redirect target after success — typically the dashboard or invitation link.
   redirectTo     String?  @map("redirect_to")
   // Bumped on every retry so old links stop working once consumed.
@@ -1360,6 +1366,7 @@ model SsoLoginState {
   createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([expiresAt])
+  @@index([state, requestId])
   @@map("sso_login_state")
 }
 
@@ -4447,6 +4454,13 @@ model AppInstance {
   description  String?
   currentVersionId String? @unique @map("current_version_id")
   status       String   @default("draft")
+  /// Round 45: globally-unique 12-char base36 slug for the public URL.
+  /// Null when the app is unpublished. We index it (partial unique)
+  /// so the runtime endpoint can resolve `GET /a/<slug>` in O(log n).
+  publicSlug   String?  @unique @map("public_slug")
+  /// Round 45: wall-clock at which the app was last published. Cleared
+  /// on unpublish. Used for cache invalidation and "last deployed" UI.
+  publishedAt  DateTime? @map("published_at")
   createdBy    String   @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -4459,6 +4473,7 @@ model AppInstance {
 
   @@unique([baseId, name])
   @@index([baseId])
+  @@index([publicSlug])
   @@map("app_instance")
 }
 

@@ -22,3 +22,13 @@ export { AuditLogListener } from './audit-log.listener';
 export { AuditScope, IAuditAction, IAuditOperation, INewAuditOperationInput, IEmitAtomicAuditInput } from './audit-scope';
 export { Audit, IAuditCtx, IAuditEmitDirective, IAuditResolved, IAuditDeclarativeConfig, IAuditResolverFn, IAuditConfig } from './audit.decorator';
 export { RecordAuditListener } from './record-audit.listener';
+// ─── Manual re-exports (R53 redact) ──────────────────────────────
+export {
+  redactAuditValue,
+  redactAuditMetadata,
+  isSensitiveValue,
+  isPiiValue,
+  REDACTED_MARKER,
+  SENSITIVE_KEY_PATTERNS,
+} from './audit-redact';
+export type { IRedactOptions, IRedactionReport } from './audit-redact';

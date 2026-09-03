@@ -183,6 +183,9 @@ it('R-INFRA-7: Phase 5.3 + 5.5 billing capabilities are enabled in the report', 
     'billing_add_on',
     'billing_metered_invoice',
     'billing_portal_org_guard',
+    // Round 29 — invoice PDF cache table presence is the proof that
+    // the read-through fast path has somewhere to land its bytes.
+    'billing_pdf_export_cache',
   ]) {
     const cap = report.capabilities[key];
     expect(cap, `capability ${key} should be defined`).toBeDefined();
@@ -201,6 +204,16 @@ it('R-INFRA-6: behavior probe stub is wired to capability evidence', async () =>
     (c) => c.evidence !== undefined
   ).length;
   expect(evidenceCount).toBeGreaterThan(0);
+});
+
+
+it('R47-IPMW-1: ip_allowlist_middleware_registered is wired and enabled', async () => {
+  const svc = buildService();
+  const report = await svc.report();
+  const cap = report.capabilities.ip_allowlist_middleware_registered;
+  expect(cap, 'ip_allowlist_middleware_registered should be defined').toBeDefined();
+  expect(cap.enabled).toBe(true);
+  expect(cap.module).toBe('ip-allowlist');
 });
 
 

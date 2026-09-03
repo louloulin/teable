@@ -31,7 +31,7 @@ interface IBackupRestoreLogDelegate {
  * Default on-disk store. Writes gzipped JSON into a configurable
  * directory (default TEABLE_BACKUP_DIR or /tmp/teable-backups).
  */
-class FsBackupStore implements IBackupStore {
+export class FsBackupStore implements IBackupStore {
   constructor(private readonly dir: string) {}
   private async ensure(): Promise<void> {
     await fs.mkdir(this.dir, { recursive: true });

@@ -1,17 +1,23 @@
 import { Module } from '@nestjs/common';
+import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
 import { ClickUpImportController } from './clickup-import.controller';
 import { ClickUpImportService } from './clickup-import.service';
 
 /**
  * Round-17: ClickUp import module — minimal driver mirroring the
- * baserow-import module pattern (Round-16 wired). Provides:
- *   - ClickUpImportService: probe, listSpaces, listLists, fetchTasks
- *   - ClickUpImportController: /api/clickup-import/{probe,spaces,lists,tasks}
+ * baserow-import (R16) + jira-import (R18) + monday-import (R19)
+ * module pattern.
  *
- * ~200 LOC; the actual translation from ClickUp tasks → Teable records
- * is out of scope for Round-17; that's a follow-up Round-18+ task.
+ * Round-40: imports `RecordOpenApiModule` so the service can drive
+ * `recordOpenApiV2Service.createRecords` for the full record-creation
+ * path. Adds `listAllTasks` + `importTable` to the service surface.
+ *
+ * Provides:
+ *   - ClickUpImportService: probe, listSpaces, listLists, fetchTasks, listAllTasks, importTable
+ *   - ClickUpImportController: /api/clickup-import/{probe,spaces,lists,tasks}
  */
 @Module({
+  imports: [RecordOpenApiModule],
   controllers: [ClickUpImportController],
   providers: [ClickUpImportService],
   exports: [ClickUpImportService],

@@ -19,3 +19,19 @@ export { InMemoryBackupStore, BackupService } from './backup.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { MergeMode, IBackupManifest, ICreateBackupInput, IRestoreInput, ISnapshotRow, IRestoreLogRow, IBackupStore } from './backup.types';
+// ─── Manual re-exports (R55 FsBackupStore) ──────────────────────────────
+export { FsBackupStore } from './backup.service';
+export {
+  wrapForArchive,
+  unwrapFromArchive,
+  encryptPayload,
+  decryptPayload,
+  sha256Checksum,
+  verifyChecksum,
+  deriveBackupKey,
+  assertRestoreTargetAllowed,
+  BACKUP_ENVELOPE_VERSION,
+  BACKUP_ENVELOPE_ALG,
+  BACKUP_CHECKSUM_ALG,
+} from './backup-integrity';
+export type { IBackupEnvelope, IBackupWrapInput, IBackupUnwrapResult, BackupKey } from './backup-integrity';

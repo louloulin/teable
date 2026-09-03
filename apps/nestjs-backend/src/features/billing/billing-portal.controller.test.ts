@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import { BillingPortalController } from './billing-portal.controller';
 
@@ -281,24 +281,130 @@ describe('BillingPortalController (Phase 5.4 + 5.5 part 3)', () => {
     });
   });
 
-  describe('stripePortal', () => {
+  describe('stripePortal (Round 32 — real Stripe API)', () => {
+    let originalFetch: typeof fetch;
+    let fetchMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      originalFetch = global.fetch;
+      fetchMock = vi.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      global.fetch = fetchMock as any;
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
     it('returns 503 when STRIPE_SECRET_KEY is missing', async () => {
       await expect(
         ctrl.stripePortal({ organizationId: 'o_a', returnUrl: 'https://app.example.com/billing' })
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('still returns 503 when STRIPE_SECRET_KEY is configured (Cloud-only stub)', async () => {
+    it('rejects 400 when returnUrl is missing', async () => {
       config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
       ctrl = new BillingPortalController(
-        auth as never,
-        config,
-        ledger as never,
-        addOns as never,
-        metered as never,
-        pdf as never,
-        {} as never
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
       );
+      await expect(
+        // @ts-expect-error — returnUrl intentionally missing
+        ctrl.stripePortal({ organizationId: 'o_a' })
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 503 with hint when subscription has no externalCustomerId', async () => {
+      config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
+      ctrl = new BillingPortalController(
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
+      );
+      auth.getSubscription.mockResolvedValueOnce({ id: 'sub_a', organizationId: 'o_a', externalCustomerId: '' });
+      await expect(
+        ctrl.stripePortal({ organizationId: 'o_a', returnUrl: 'https://app.example.com/billing' })
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 503 when there is no subscription at all', async () => {
+      config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
+      ctrl = new BillingPortalController(
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
+      );
+      auth.getSubscription.mockResolvedValueOnce(null);
+      await expect(
+        ctrl.stripePortal({ organizationId: 'o_a', returnUrl: 'https://app.example.com/billing' })
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('POSTs to Stripe billing_portal/sessions with customer + return_url and returns the session URL', async () => {
+      config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
+      ctrl = new BillingPortalController(
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
+      );
+      auth.getSubscription.mockResolvedValueOnce({ id: 'sub_a', organizationId: 'o_a', externalCustomerId: 'cus_test_1' });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'bps_1', url: 'https://billing.stripe.com/p/session/test' }),
+      });
+      const out = await ctrl.stripePortal({
+        organizationId: 'o_a',
+        returnUrl: 'https://app.example.com/billing',
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [calledUrl, calledInit] = fetchMock.mock.calls[0]!;
+      expect(calledUrl).toBe('https://api.stripe.com/v1/billing_portal/sessions');
+      expect(calledInit.method).toBe('POST');
+      expect(calledInit.headers.Authorization).toBe('Bearer sk_test_1');
+      expect(calledInit.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
+      const body = String(calledInit.body);
+      expect(body).toContain('customer=cus_test_1');
+      expect(body).toContain('return_url=https%3A%2F%2Fapp.example.com%2Fbilling');
+      expect(out).toEqual({
+        organizationId: 'o_a',
+        sessionId: 'bps_1',
+        url: 'https://billing.stripe.com/p/session/test',
+      });
+    });
+
+    it('propagates Stripe 4xx as 503 with the response body in the message', async () => {
+      config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
+      ctrl = new BillingPortalController(
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
+      );
+      auth.getSubscription.mockResolvedValueOnce({ id: 'sub_a', organizationId: 'o_a', externalCustomerId: 'cus_test_1' });
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => 'No such customer: cus_test_1',
+      });
+      await expect(
+        ctrl.stripePortal({ organizationId: 'o_a', returnUrl: 'https://app.example.com/billing' })
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('400'),
+      });
+    });
+
+    it('propagates Stripe 5xx as 503', async () => {
+      config = { get: vi.fn((key: string) => (key === 'STRIPE_SECRET_KEY' ? 'sk_test_1' : undefined)) } as unknown as ConfigService;
+      ctrl = new BillingPortalController(
+        auth as never, config, ledger as never, addOns as never,
+        metered as never, pdf as never, {} as never
+      );
+      auth.getSubscription.mockResolvedValueOnce({ id: 'sub_a', organizationId: 'o_a', externalCustomerId: 'cus_test_1' });
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: async () => 'Service Unavailable',
+      });
       await expect(
         ctrl.stripePortal({ organizationId: 'o_a', returnUrl: 'https://app.example.com/billing' })
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -307,13 +413,14 @@ describe('BillingPortalController (Phase 5.4 + 5.5 part 3)', () => {
 
   describe('invoicePdf (Phase 5.4 续 — real PDF)', () => {
     it('returns a PDF buffer for a valid invoiceId + organizationId', async () => {
-      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[2];
-      const out = await ctrl.invoicePdf('inv_1', 'o_a', fakeRes);
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      const out = await ctrl.invoicePdf('inv_1', 'o_a', undefined, fakeRes);
       expect(Buffer.isBuffer(out)).toBe(true);
       expect(out.length).toBeGreaterThan(0);
       expect(pdf.renderInvoice).toHaveBeenCalledWith({
         invoiceId: 'inv_1',
         organizationId: 'o_a',
+        fresh: false,
       });
       expect(fakeRes.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
@@ -327,21 +434,57 @@ describe('BillingPortalController (Phase 5.4 + 5.5 part 3)', () => {
     });
 
     it('rejects missing invoiceId (400)', async () => {
-      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[2];
-      await expect(ctrl.invoicePdf('', 'o_a', fakeRes)).rejects.toBeInstanceOf(BadRequestException);
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await expect(ctrl.invoicePdf('', 'o_a', undefined, fakeRes)).rejects.toBeInstanceOf(BadRequestException);
       expect(pdf.renderInvoice).not.toHaveBeenCalled();
     });
 
     it('rejects missing organizationId (400)', async () => {
-      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[2];
-      await expect(ctrl.invoicePdf('inv_1', '', fakeRes)).rejects.toBeInstanceOf(BadRequestException);
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await expect(ctrl.invoicePdf('inv_1', '', undefined, fakeRes)).rejects.toBeInstanceOf(BadRequestException);
       expect(pdf.renderInvoice).not.toHaveBeenCalled();
     });
 
     it('propagates NotFound from the PDF service (per-org guard)', async () => {
       pdf.renderInvoice.mockRejectedValueOnce(new NotFoundException('invoice not found'));
-      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[2];
-      await expect(ctrl.invoicePdf('inv_x', 'o_other', fakeRes)).rejects.toBeInstanceOf(NotFoundException);
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await expect(ctrl.invoicePdf('inv_x', 'o_other', undefined, fakeRes)).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('forwards ?fresh=true to the PDF service (cache bypass)', async () => {
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await ctrl.invoicePdf('inv_1', 'o_a', 'true', fakeRes);
+      expect(pdf.renderInvoice).toHaveBeenLastCalledWith({
+        invoiceId: 'inv_1',
+        organizationId: 'o_a',
+        fresh: true,
+      });
+      expect(fakeRes.setHeader).toHaveBeenCalledWith('X-PDF-Cache', 'bypass');
+    });
+
+    it('forwards ?fresh=1 as truthy cache bypass', async () => {
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await ctrl.invoicePdf('inv_1', 'o_a', '1', fakeRes);
+      expect(pdf.renderInvoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fresh: true })
+      );
+    });
+
+    it('treats absent ?fresh as cache read-through (default)', async () => {
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await ctrl.invoicePdf('inv_1', 'o_a', undefined, fakeRes);
+      expect(pdf.renderInvoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fresh: false })
+      );
+      expect(fakeRes.setHeader).toHaveBeenCalledWith('X-PDF-Cache', 'hit-or-miss');
+    });
+
+    it('rejects non-truthy ?fresh values as cache read-through', async () => {
+      const fakeRes = { setHeader: vi.fn() } as unknown as Parameters<BillingPortalController['invoicePdf']>[3];
+      await ctrl.invoicePdf('inv_1', 'o_a', 'no', fakeRes);
+      expect(pdf.renderInvoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fresh: false })
+      );
     });
   });
 

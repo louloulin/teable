@@ -20,3 +20,11 @@ export { buildAuthnRequest, buildRedirectUrl, buildMetadataXml, parseSamlRespons
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { ISamlProviderRow, ISamlLoginInput, ISamlLoginResult, ISamlAssertion, ISamlMetadata } from './saml.types';
+
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+// R51 — Minimal SAML signature verifier (self-contained, node:crypto).
+// Future R52 will replace with xml-crypto once pnpm cyclic-dep issue
+// is resolved upstream.
+export { verifySamlSignature, normalizeIdpCert } from './saml.signature';
+export type { ISignatureVerificationResult } from './saml.signature';

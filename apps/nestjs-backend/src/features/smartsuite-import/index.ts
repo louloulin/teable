@@ -22,3 +22,6 @@ export { SmartSuiteApp, SmartSuiteTable, SmartSuiteRecord, SmartSuiteConnectionP
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SmartSuiteApiClient } from './smartsuite-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { ISmartSuiteImportCanceledError } from './smartsuite-import.service';

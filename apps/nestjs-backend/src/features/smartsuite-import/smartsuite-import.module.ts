@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
 import { SmartSuiteImportController } from './smartsuite-import.controller';
 import { SmartSuiteImportService } from './smartsuite-import.service';
 
@@ -8,14 +9,12 @@ import { SmartSuiteImportService } from './smartsuite-import.service';
  * monday-import (R19) + nocodb-import (R20) + smartsheet-import (R21)
  * module pattern.
  *
- * Provides:
- *   - SmartSuiteImportService: probe, listApps, listTables, fetchRecords
- *   - SmartSuiteImportController: /api/smartsuite-import/{probe,apps,tables,records}
- *
- * ~225 LOC. SmartSuite uses REST + Bearer token, hierarchical
- * Solution > App > Table > Record model.
+ * Round-41: imports `RecordOpenApiModule` so the service can drive
+ * `recordOpenApiV2Service.createRecords` for the full record-creation
+ * path. Adds `listAllRecords` + `importTable` to the service surface.
  */
 @Module({
+  imports: [RecordOpenApiModule],
   controllers: [SmartSuiteImportController],
   providers: [SmartSuiteImportService],
   exports: [SmartSuiteImportService],

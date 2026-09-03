@@ -18,7 +18,15 @@ export { SmartsheetImportController } from './smartsheet-import.controller';
 export { SmartsheetImportService } from './smartsheet-import.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SmartsheetSheet, SmartsheetRow, SmartsheetConnectionProbe } from './smartsheet-import.types';
+export {
+  SmartsheetSheet,
+  SmartsheetRow,
+  SmartsheetRowPage,
+  SmartsheetConnectionProbe,
+} from './smartsheet-import.types';
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SmartsheetApiClient } from './smartsheet-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { ISmartsheetImportCanceledError } from './smartsheet-import.service';

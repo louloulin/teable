@@ -1,19 +1,22 @@
 import { Module } from '@nestjs/common';
+import { RecordOpenApiModule } from '../record/open-api/record-open-api.module';
 import { JiraImportController } from './jira-import.controller';
 import { JiraImportService } from './jira-import.service';
 
 /**
  * Round-18: Jira import module — minimal driver mirroring the
  * baserow-import (R16) + clickup-import (R17) module pattern.
- * Provides:
- *   - JiraImportService: probe, listProjects, fetchIssues
- *   - JiraImportController: /api/jira-import/{probe,projects,issues}
  *
- * ~290 LOC. Jira Cloud REST v3 with HTTP Basic (email + API token).
- * Jira-specific fields (ADF, custom fields) are out of scope for R18;
- * downstream translator is follow-up.
+ * Round-38: imports `RecordOpenApiModule` so the service can drive
+ * `recordOpenApiV2Service.createRecords` for the full record-creation
+ * path. Adds `listAllIssues` + `importTable` to the service surface.
+ *
+ * Provides:
+ *   - JiraImportService: probe, listProjects, fetchIssues, listAllIssues, importTable
+ *   - JiraImportController: /api/jira-import/{probe,projects,issues}
  */
 @Module({
+  imports: [RecordOpenApiModule],
   controllers: [JiraImportController],
   providers: [JiraImportService],
   exports: [JiraImportService],

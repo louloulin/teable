@@ -4,6 +4,9 @@ import { SmartsheetImportService } from './smartsheet-import.service';
 
 /**
  * Round-21: Smartsheet import controller. 3 endpoints under /api/smartsheet-import/.
+ * Round-42: `/rows` keeps its original `rowCount` + `sample` shape but
+ *   delegates to the new paginated `listRows` (single-page call only —
+ *   the record-creation path uses the service directly).
  * Token provided per-request (not stored).
  */
 @Controller('api/smartsheet-import')
@@ -36,10 +39,18 @@ export class SmartsheetImportController {
     if (!Number.isFinite(sheetIdNum)) {
       return { error: 'invalid sheetId' };
     }
-    return this.service.fetchRows(
+    const effectivePageSize = pageSize ? Math.min(500, Number(pageSize)) : 100;
+    // Single-page fetch for the lightweight preview endpoint — the
+    // record-creation path is service-internal.
+    const { rows } = await this.service.fetchRowsPage(
       token,
       sheetIdNum,
-      pageSize ? Math.min(500, Number(pageSize)) : 100
+      effectivePageSize
     );
+    return {
+      sheetId: sheetIdNum,
+      rowCount: rows.length,
+      sample: rows.slice(0, 5),
+    };
   }
 }

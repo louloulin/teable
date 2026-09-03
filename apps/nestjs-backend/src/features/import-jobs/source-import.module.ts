@@ -9,9 +9,16 @@
  */
 import { Module } from '@nestjs/common';
 import { AirtableImportModule } from '../airtable-import/airtable-import.module';
+import { BaserowImportModule } from '../baserow-import/baserow-import.module';
 import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
+import { JiraImportModule } from '../jira-import/jira-import.module';
+import { MondayImportModule } from '../monday-import/monday-import.module';
+import { ClickUpImportModule } from '../clickup-import/clickup-import.module';
+import { SmartSuiteImportModule } from '../smartsuite-import/smartsuite-import.module';
+import { SmartsheetImportModule } from '../smartsheet-import/smartsheet-import.module';
 import { LicenseModule } from '../license/license.module';
 import { NotionModule } from '../notion/notion.module';
+import { NocoDbImportModule } from '../nocodb-import/nocodb-import.module';
 import { AirtableSourceDriver } from './airtable-source.driver';
 import { GoogleSheetsSourceDriver } from './google-sheets-source.driver';
 import { NocoDbSourceDriver } from './nocodb-source.driver';
@@ -35,6 +42,13 @@ import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
     NotionModule,
     AirtableImportModule,
     GoogleSheetsModule,
+    NocoDbImportModule,
+    BaserowImportModule,
+    JiraImportModule,
+    MondayImportModule,
+    ClickUpImportModule,
+    SmartSuiteImportModule,
+    SmartsheetImportModule,
     EventJobModule.registerQueue(SOURCE_IMPORT_QUEUE),
   ],
   controllers: [SourceImportController],

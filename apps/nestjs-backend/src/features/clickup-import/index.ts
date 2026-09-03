@@ -22,3 +22,6 @@ export { ClickUpSpace, ClickUpList, ClickUpTask, ClickUpConnectionProbe } from '
 
 // ─── Other public exports ─────────────────────────────────────────
 export { ClickUpApiClient } from './clickup-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { IClickUpImportCanceledError } from './clickup-import.service';

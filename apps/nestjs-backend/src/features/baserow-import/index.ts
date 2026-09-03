@@ -22,3 +22,6 @@ export { BaserowField, BaserowTableSchema, BaserowRow, BaserowConnectionProbe } 
 
 // ─── Other public exports ─────────────────────────────────────────
 export { BaserowApiClient } from './baserow-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { IBaserowImportCanceledError } from './baserow-import.service';

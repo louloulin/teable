@@ -89,6 +89,7 @@ export class EnterpriseReadinessBehaviorService {
       case 'totp':        return () => safe('totp', this.probeTotp);
       case 'oauth_server':return () => safe('oauth_server', this.probeOauthServer);
       case 'ip_allowlist':return () => safe('ip_allowlist', this.probeIpAllowlist);
+      case 'ip_allowlist_middleware_registered': return () => safe('ip_allowlist_middleware_registered', this.probeIpAllowlistMiddlewareRegistered);
       case 'audit_log':   return () => safe('audit_log', this.probeAuditLog);
       case 'permission_matrix': return () => safe('permission_matrix', this.probePermissionMatrix);
       case 'record_history':    return () => safe('record_history', this.probeRecordHistory);
@@ -109,6 +110,10 @@ export class EnterpriseReadinessBehaviorService {
       case 'billing_add_on':         return () => safe('billing_add_on', this.probeBillingAddOn);
       // Phase 5.5 part 3 — metered invoice.
       case 'billing_metered_invoice':return () => safe('billing_metered_invoice', this.probeBillingMeteredInvoice);
+      // Phase 5.4 续 (Round 29) — invoice PDF export cache. Probe the
+      // public.billing_pdf_export table that BillingPdfExportAuthService
+      // reads/writes; the consuming route is BillingInvoicePdfService.
+      case 'billing_pdf_export_cache': return () => safe('billing_pdf_export_cache', this.probeBillingPdfExportCache);
       default: return undefined;
     }
   }
@@ -147,10 +152,36 @@ export class EnterpriseReadinessBehaviorService {
   };
 
   private probeIpAllowlist = async () => {
+    // R47 — Stage 26b: verify the table exists AND at least one rule
+    // is configured. The latter proves operators opted in, not just
+    // that the migration ran.
     const rows = await this.prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
       "SELECT to_regclass('meta.organization_ip_allowlist') IS NOT NULL AS exists"
     );
-    return { ok: Boolean(rows?.[0]?.exists), detail: 'ip_allowlist_table_present' };
+    const tableExists = Boolean(rows?.[0]?.exists);
+    if (!tableExists) {
+      return { ok: false, detail: 'ip_allowlist_table_missing' };
+    }
+    const ruleCount = await this.prisma.organizationIpAllowlist.count();
+    if (ruleCount === 0) {
+      return { ok: false, detail: 'ip_allowlist_no_rules_configured' };
+    }
+    return { ok: true, detail: `ip_allowlist_rules=${ruleCount}` };
+  };
+
+  private probeIpAllowlistMiddlewareRegistered = async () => {
+    // R47 — Stage 26b: static-import check that the middleware class
+    // is wired into the module barrel. Catches regressions where the
+    // module is removed but the table is still present.
+    try {
+      const mod = await import('../ip-allowlist');
+      if (typeof mod.IpAllowlistMiddleware !== 'function') {
+        return { ok: false, detail: 'IpAllowlistMiddleware not exported from barrel' };
+      }
+      return { ok: true, detail: 'ip_allowlist_middleware_registered' };
+    } catch (err) {
+      return { ok: false, detail: `barrel_import_failed: ${(err as Error).message}` };
+    }
   };
 
   private probeAuditLog = async () => {
@@ -264,5 +295,16 @@ export class EnterpriseReadinessBehaviorService {
       "SELECT to_regclass('public.invoice') IS NOT NULL AS exists"
     );
     return { ok: Boolean(rows?.[0]?.exists), detail: 'invoice_table_present' };
+  };
+
+  // Round 29 — billing_pdf_export table is the cache backing the
+  // BillingInvoicePdfService.renderInvoice fast path. Missing table
+  // means the cache write path will fail (and silently fall back to
+  // fresh render on every request).
+  private probeBillingPdfExportCache = async (): Promise<{ ok: boolean; detail?: string }> => {
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
+      "SELECT to_regclass('public.billing_pdf_export') IS NOT NULL AS exists"
+    );
+    return { ok: Boolean(rows?.[0]?.exists), detail: 'billing_pdf_export_table_present' };
   };
 }

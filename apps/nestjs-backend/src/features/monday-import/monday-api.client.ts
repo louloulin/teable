@@ -7,10 +7,14 @@ import type {
 
 /**
  * Round-19: Minimal Monday.com GraphQL API client. Provides:
- *   - probe() — query { me { id name } }
+ *   - probe() — query workspaces + boards
  *   - listWorkspaces() — query { workspaces { id name } }
  *   - listBoards() — query { boards { id name } }
  *   - listItems() — query { boards(ids:...) { items_page { items {...} } } }
+ *
+ * Round-39: adds `listItems(boardId, limit, cursor)` so the
+ * record-creation path can paginate via monday.com's GraphQL
+ * `items_page(limit: N, cursor: "...")` cursor. Capped at 500 pages.
  *
  * Auth: Authorization header with personal API token (no prefix).
  * Monday API is GraphQL — one endpoint, many queries via POST body.
@@ -63,11 +67,24 @@ export class MondayApiClient {
     return data.boards ?? [];
   }
 
-  async listItems(boardId: string, limit = 100): Promise<MondayItem[]> {
-    const data = await this.graphql<{ boards: Array<{ items_page: { items: MondayItem[] } }> }>(`
-      query ($boardId: [ID!], $limit: Int!) {
+  /**
+   * List items on a board. Returns both `items` (capped at `limit`)
+   * and the cursor for the next page (Round-39).
+   */
+  async listItems(
+    boardId: string,
+    limit = 100,
+    cursor?: string
+  ): Promise<{ items: MondayItem[]; nextCursor: string | null }> {
+    const variables: Record<string, unknown> = { boardId: [boardId], limit };
+    if (cursor) variables['cursor'] = cursor;
+    const data = await this.graphql<{
+      boards: Array<{ items_page: { items: MondayItem[]; cursor: string | null } }>;
+    }>(
+      `query ($boardId: [ID!], $limit: Int!, $cursor: String) {
         boards(ids: $boardId) {
-          items_page(limit: $limit) {
+          items_page(limit: $limit, cursor: $cursor) {
+            cursor
             items {
               id name
               board { id name }
@@ -77,9 +94,14 @@ export class MondayApiClient {
             }
           }
         }
-      }
-    `, { boardId: [boardId], limit });
-    return data.boards?.[0]?.items_page?.items ?? [];
+      }`,
+      variables
+    );
+    const page = data.boards?.[0]?.items_page;
+    return {
+      items: page?.items ?? [],
+      nextCursor: page?.cursor ?? null,
+    };
   }
 
   async probe(): Promise<{

@@ -13,6 +13,11 @@ interface IMockMeteredInvoice {
   previewMeteredInvoice: ReturnType<typeof vi.fn>;
 }
 
+interface IMockPdfCache {
+  latestExport: ReturnType<typeof vi.fn>;
+  storeExport: ReturnType<typeof vi.fn>;
+}
+
 const RATE_CARDS: ReadonlyArray<IMetricRateCard> = [
   { metric: 'ai_credits', includedQuantity: 10_000, tiers: [] },
 ];
@@ -72,15 +77,21 @@ const buildPreview = (overrides: Partial<{
   grandTotalCents: 0,
 });
 
-const buildService = (prisma: IMockPrisma, metered: IMockMeteredInvoice): BillingInvoicePdfService =>
+const buildService = (
+  prisma: IMockPrisma,
+  metered: IMockMeteredInvoice,
+  cache: IMockPdfCache
+): BillingInvoicePdfService =>
   new BillingInvoicePdfService(
     prisma as unknown as ConstructorParameters<typeof BillingInvoicePdfService>[0],
-    metered as unknown as ConstructorParameters<typeof BillingInvoicePdfService>[1]
+    metered as unknown as ConstructorParameters<typeof BillingInvoicePdfService>[1],
+    cache as unknown as ConstructorParameters<typeof BillingInvoicePdfService>[2]
   );
 
 describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
   let prisma: IMockPrisma;
   let metered: IMockMeteredInvoice;
+  let cache: IMockPdfCache;
 
   beforeEach(() => {
     prisma = {
@@ -88,17 +99,21 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
       subscription: { findUnique: vi.fn() },
     };
     metered = { previewMeteredInvoice: vi.fn() };
+    cache = {
+      latestExport: vi.fn().mockResolvedValue(null),
+      storeExport: vi.fn().mockResolvedValue(undefined),
+    };
   });
 
   it('R-PDF-1: missing invoiceId raises NotFound', async () => {
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await expect(svc.renderInvoice({ invoiceId: '', organizationId: 'org_1' })).rejects.toThrow(
       /invoiceId is required/
     );
   });
 
   it('R-PDF-2: missing organizationId raises NotFound', async () => {
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await expect(svc.renderInvoice({ invoiceId: 'inv_1', organizationId: '' })).rejects.toThrow(
       /organizationId is required/
     );
@@ -106,7 +121,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
 
   it('R-PDF-3: invoice not found raises NotFound (no leakage)', async () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(null);
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await expect(svc.renderInvoice({ invoiceId: 'inv_x', organizationId: 'org_1' })).rejects.toThrow(
       /invoice not found/
     );
@@ -116,7 +131,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
   it('R-PDF-4: invoice belonging to a different org raises NotFound (not 403)', async () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription({ organizationId: 'org_other' }));
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await expect(svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1' })).rejects.toThrow(
       /invoice not found/
     );
@@ -126,7 +141,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
   it('R-PDF-5: subscription missing raises NotFound (defensive)', async () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
     prisma.subscription.findUnique.mockResolvedValueOnce(null);
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await expect(svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1' })).rejects.toThrow(
       /invoice not found/
     );
@@ -145,7 +160,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
         addonMonthlyCostCents: 0,
       })
     );
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     expect(out.doc.size).toBeGreaterThan(0);
     expect(out.summary.lineCount).toBe(2);
@@ -162,7 +177,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
         addonMonthlyCostCents: 1000,
       })
     );
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     expect(out.summary.lineCount).toBe(2);
     expect(out.summary.subtotalCents).toBe(1500);
@@ -172,7 +187,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice({ amountCents: 999 }));
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
     metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     expect(out.summary.lineCount).toBe(1);
     expect(out.summary.subtotalCents).toBe(999);
@@ -182,7 +197,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice({ currency: 'eur' }));
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
     metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     expect(out.summary.currency).toBe('EUR');
   });
@@ -191,7 +206,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice({ currency: 'btc' }));
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
     metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     expect(out.summary.currency).toBe('USD');
   });
@@ -200,7 +215,7 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
     metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1' });
     expect(metered.previewMeteredInvoice).toHaveBeenCalledWith(
       expect.objectContaining({ rateCards: [] })
@@ -213,10 +228,85 @@ describe('BillingInvoicePdfService (Phase 5.4 续)', () => {
     prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice({ periodStart, periodEnd }));
     prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
     metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview({ periodStart, periodEnd }));
-    const svc = buildService(prisma, metered);
+    const svc = buildService(prisma, metered, cache);
     await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
     const call = metered.previewMeteredInvoice.mock.calls[0]?.[0];
     expect(call.periodStart).toEqual(periodStart);
     expect(call.periodEnd).toEqual(periodEnd);
+  });
+
+  // ─── PDF cache (Round 29) ────────────────────────────────────────
+
+  it('R-PDF-13: cache hit short-circuits render and returns cached bytes', async () => {
+    const cachedBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // "%PDF"
+    const cachedSha = 'a'.repeat(64);
+    cache.latestExport.mockResolvedValueOnce({ bytes: cachedBytes, sha256: cachedSha });
+    prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
+    prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
+    metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
+    const svc = buildService(prisma, metered, cache);
+    const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
+    expect(out.doc.bytes).toBe(cachedBytes);
+    expect(out.doc.sha256).toBe(cachedSha);
+    expect(out.doc.size).toBe(cachedBytes.byteLength);
+    expect(out.pageCount).toBe(0);
+    expect(out.warnings).toEqual([]);
+    // Store should NOT be called on cache hit
+    expect(cache.storeExport).not.toHaveBeenCalled();
+  });
+
+  it('R-PDF-14: cache miss renders fresh and writes the export', async () => {
+    cache.latestExport.mockResolvedValueOnce(null);
+    prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
+    prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
+    metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
+    const svc = buildService(prisma, metered, cache);
+    const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
+    expect(out.doc.size).toBeGreaterThan(0);
+    expect(out.pageCount).toBeGreaterThan(0);
+    expect(cache.storeExport).toHaveBeenCalledTimes(1);
+    const storeArg = cache.storeExport.mock.calls[0]?.[0];
+    expect(storeArg.invoiceId).toBe('inv_1');
+    expect(storeArg.doc.size).toBe(out.doc.size);
+    expect(storeArg.doc.sha256).toBe(out.doc.sha256);
+  });
+
+  it('R-PDF-15: fresh=true bypasses cache lookup and re-renders', async () => {
+    cache.latestExport.mockResolvedValueOnce({ bytes: new Uint8Array([1]), sha256: 'b'.repeat(64) });
+    prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
+    prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
+    metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
+    const svc = buildService(prisma, metered, cache);
+    const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS, fresh: true });
+    expect(out.doc.size).toBeGreaterThan(100);
+    expect(out.pageCount).toBeGreaterThan(0);
+    expect(cache.latestExport).not.toHaveBeenCalled();
+    expect(cache.storeExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('R-PDF-16: cache hit summary is recomputed from current metered preview', async () => {
+    cache.latestExport.mockResolvedValueOnce({
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      sha256: 'c'.repeat(64),
+    });
+    prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice({ amountCents: 777 }));
+    prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
+    metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
+    const svc = buildService(prisma, metered, cache);
+    const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
+    expect(out.summary.subtotalCents).toBe(777);
+    expect(out.summary.lineCount).toBe(1);
+  });
+
+  it('R-PDF-17: storeExport failure does not break the response (cache write is best-effort)', async () => {
+    cache.latestExport.mockResolvedValueOnce(null);
+    cache.storeExport.mockRejectedValueOnce(new Error('db unavailable'));
+    prisma.invoice.findUnique.mockResolvedValueOnce(buildInvoice());
+    prisma.subscription.findUnique.mockResolvedValueOnce(buildSubscription());
+    metered.previewMeteredInvoice.mockResolvedValueOnce(buildPreview());
+    const svc = buildService(prisma, metered, cache);
+    const out = await svc.renderInvoice({ invoiceId: 'inv_1', organizationId: 'org_1', rateCards: RATE_CARDS });
+    expect(out.doc.size).toBeGreaterThan(0);
+    expect(out.pageCount).toBeGreaterThan(0);
   });
 });

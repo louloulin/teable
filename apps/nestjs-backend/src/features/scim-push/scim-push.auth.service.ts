@@ -19,6 +19,7 @@ import {
   shouldDeliver,
   validateSubscription,
 } from './scim-push.service';
+import { runOneDelivery, type IScimPushRunnerOptions } from './scim-push-runner';
 import type {
   IScimPushDelivery,
   IScimPushDeliveryAttempt,
@@ -239,6 +240,83 @@ export class ScimPushAuthService {
       },
     });
     return true;
+  }
+
+  /**
+   * Run one delivery end-to-end: load subscription + event from Prisma,
+   * invoke the HTTP runner, persist the attempt via `recordAttempt`.
+   * Returns the runner result + the updated delivery state.
+   *
+   * This is the glue that turns a `pending` delivery row into a real
+   * HTTP roundtrip + persisted attempt. Worker entry point.
+   */
+  async runDelivery(input: {
+    deliveryId: string;
+    options?: IScimPushRunnerOptions;
+  }): Promise<
+    | { ok: true; delivery: IScimPushDelivery; statusCode: number | null; error: string | null; durationMs: number }
+    | { ok: false; reason: 'delivery-not-found' | 'subscription-not-found' | 'event-not-found' }
+  > {
+    const row = await this.prisma.scimPushDelivery.findUnique({ where: { id: input.deliveryId } });
+    if (!row) return { ok: false, reason: 'delivery-not-found' };
+    const delivery = toDelivery(row);
+    const sub = await this.loadSubscription(delivery.subscriptionId);
+    if (!sub) return { ok: false, reason: 'subscription-not-found' };
+    const eventRow = await this.prisma.scimPushEvent.findUnique({ where: { id: delivery.eventId } });
+    if (!eventRow) return { ok: false, reason: 'event-not-found' };
+    const event: IScimPushEvent = {
+      id: String(eventRow['id']),
+      orgId: String(eventRow['orgId']),
+      subscriptionId: delivery.subscriptionId,
+      kind: String(eventRow['kind']) as IScimPushEvent['kind'],
+      subjectId: String(eventRow['subjectId']),
+      externalId: eventRow['externalId'] ? String(eventRow['externalId']) : null,
+      payload: (eventRow['payload'] as Record<string, unknown>) ?? {},
+      occurredAt: new Date(String(eventRow['occurredAt'] ?? Date.now())).toISOString(),
+    };
+    const result = await runOneDelivery({
+      subscription: sub,
+      event,
+      ...(input.options ? { options: input.options } : {}),
+    });
+    // 2xx: mark as delivered (terminal success).
+    if (result.statusCode !== null && result.statusCode >= 200 && result.statusCode < 300) {
+      await this.markDelivered(input.deliveryId, result.statusCode);
+      const delivered = await this.loadDelivery(input.deliveryId);
+      return {
+        ok: true,
+        delivery: delivered ?? {
+          id: input.deliveryId,
+          eventId: event.id,
+          subscriptionId: sub.id,
+          status: 'delivered',
+          attempts: 1,
+          lastAttemptAt: new Date().toISOString(),
+          lastStatusCode: result.statusCode,
+          lastError: null,
+          nextRetryAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        statusCode: result.statusCode,
+        error: result.error,
+        durationMs: result.durationMs,
+      };
+    }
+    // non-2xx or transport error: persist attempt (worker decides retry/dead-letter).
+    const { delivery: next } = await this.recordAttempt({
+      deliveryId: input.deliveryId,
+      statusCode: result.statusCode,
+      error: result.error,
+      durationMs: result.durationMs,
+    });
+    return {
+      ok: true,
+      delivery: next,
+      statusCode: result.statusCode,
+      error: result.error,
+      durationMs: result.durationMs,
+    };
   }
 }
 

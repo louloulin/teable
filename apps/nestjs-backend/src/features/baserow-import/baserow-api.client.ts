@@ -9,6 +9,11 @@ import type {
  * Round-16: Minimal Baserow REST API client. Only the calls needed to
  * (1) verify credentials, (2) list tables, (3) fetch rows.
  *
+ * Round-37: adds `listRows(tableId, pageSize, offset)` so the
+ * record-creation path can paginate via `?size=N&offset=N`. Kept the
+ * original two-arg signature for backward compatibility with the
+ * pre-Round-37 controller.
+ *
  * Baserow API base URL is https://api.baserow.io (hosted) or the
  * self-hosted URL (e.g. https://baserow.example.com). The user provides
  * the base URL along with the token.
@@ -42,9 +47,21 @@ export class BaserowApiClient {
     );
   }
 
-  async listRows(tableId: number, pageSize = 100): Promise<BaserowRow[]> {
+  /**
+   * List rows for a table.
+   *
+   * @param tableId  numeric Baserow table id
+   * @param pageSize cap on rows returned per page (default 100, max 200
+   *                 per Baserow API limits)
+   * @param offset   optional offset for sequential paging (Round-37).
+   *                 Defaults to 0 for backward compatibility.
+   */
+  async listRows(tableId: number, pageSize = 100, offset = 0): Promise<BaserowRow[]> {
+    const params = new URLSearchParams();
+    params.set('size', String(pageSize));
+    if (offset > 0) params.set('offset', String(offset));
     return this.fetchJson<BaserowRow[]>(
-      `/api/database/rows/table/${tableId}/?size=${pageSize}`
+      `/api/database/rows/table/${tableId}/?${params.toString()}`
     );
   }
 

@@ -22,3 +22,6 @@ export { JiraProject, JiraIssue, JiraConnectionProbe } from './jira-import.types
 
 // ─── Other public exports ─────────────────────────────────────────
 export { JiraApiClient } from './jira-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { IJiraImportCanceledError } from './jira-import.service';

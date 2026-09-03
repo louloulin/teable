@@ -110,8 +110,20 @@ export function parseSamlResponse(raw: string): {
     nameId: string;
     attributes: Record<string, string | undefined>;
     notOnOrAfter: number | null;
+    notBefore: number | null;
+    audience: string | null;
     sessionIndex: string | null;
+    /** True when the response carries at least one <ds:Signature>. */
+    hasSignature: boolean;
   };
+  /**
+   * R50 — InResponseTo extracted from the wrapping <samlp:Response>.
+   * Must match the AuthnRequest ID we sent in startLogin. null when
+   * the IdP omitted the attribute (older IdPs, dev mode, etc.).
+   */
+  inResponseTo: string | null;
+  /** R50 — the wrapping <samlp:Response ID="..."> value, useful for logging. */
+  responseId: string | null;
   xml: string;
 } {
   const xml = decodeResponse(raw);
@@ -137,13 +149,37 @@ export function parseSamlResponse(raw: string): {
   const notOnOrAfter = conditions ? matchFirst(/NotOnOrAfter="([^"]+)"/, conditions) : null;
   const sessionIndex = matchFirst(/SessionIndex="([^"]+)"/, assertionBlock) ?? null;
   const attributes = extractAttributes(assertionBlock);
+  // R49 — also extract NotBefore, AudienceRestriction, and signature
+  // presence. We don't validate the cryptographic signature (requires
+  // IdP cert pin via xml-crypto; out of scope for R49) but we DO reject
+  // assertions that arrive without any <ds:Signature> element so a
+  // tampered response can't be smuggled in unverified.
+  const notBeforeStr = conditions ? matchFirst(/NotBefore="([^"]+)"/, conditions) : null;
+  const audienceStr = conditions
+    ? matchFirst(/<saml:Audience>([\s\S]*?)<\/saml:Audience>|<Audience>([\s\S]*?)<\/Audience>/, conditions)
+    : null;
+  const hasSignature =
+    /<ds:Signature[\s>]/.test(xml) || /<Signature[\s>]/.test(xml);
+  // R50 — wrap the assertion block to find the outer <samlp:Response>
+  // attributes. The Response element precedes the Assertion in the XML
+  // so we look at the XML up to and including the Assertion open tag.
+  const headerSlice = xml.slice(0, Math.max(xml.indexOf(assertionBlock), 0));
+  const inResponseTo =
+    matchFirst(/InResponseTo="([^"]+)"/, headerSlice) ??
+    matchFirst(/<samlp:Response[^>]*InResponseTo="([^"]+)"/, xml);
+  const responseId = matchFirst(/<samlp:Response[^>]*ID="([^"]+)"|<Response[^>]*ID="([^"]+)"/, xml);
   return {
     assertion: {
       nameId: nameId.trim(),
       attributes,
       notOnOrAfter: notOnOrAfter ? Date.parse(notOnOrAfter) : null,
+      notBefore: notBeforeStr ? Date.parse(notBeforeStr) : null,
+      audience: audienceStr ? audienceStr.trim() : null,
       sessionIndex,
+      hasSignature,
     },
+    inResponseTo: inResponseTo ?? null,
+    responseId: responseId ?? null,
     xml,
   };
 }

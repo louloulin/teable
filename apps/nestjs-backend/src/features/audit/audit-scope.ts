@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { ClsService } from 'nestjs-cls';
 import { Events } from '../../event-emitter/events';
 import type { IClsStore } from '../../types/cls';
+import { redactAuditMetadata } from './audit-redact';
 
 export type IAuditAction = CreateRecordAction | UpdateRecordAction | string;
 
@@ -106,14 +107,25 @@ export class AuditScope {
       params: _payloadParams,
       rootAction: _payloadRootAction,
       operationId: _payloadOperationId,
-      ...payload
+      ...rawPayload
     } = input.payload ?? {};
+    // R53: redact sensitive values from payload + params BEFORE persistence.
+    // redactPii=false by default to avoid over-masking; org-level retention policy
+    // can opt in via per-call override.
+    const redacted = redactAuditMetadata({ payload: rawPayload, params: input.params });
+    const payload = redacted.payload ?? {};
+    const redactedParams = redacted.params;
+    if (redacted.report.keysRedacted > 0 || redacted.report.valuesRedacted > 0) {
+      this.logger.debug(
+        `audit redact: keys=${redacted.report.keysRedacted} values=${redacted.report.valuesRedacted} pii=${redacted.report.piiRedacted} action=${input.action}`
+      );
+    }
     const rootAction =
       operation?.rootAction && operation.rootAction !== input.action
         ? operation.rootAction
         : undefined;
-    const mergedParams = input.params
-      ? { ...(operation?.params ?? {}), ...input.params }
+    const mergedParams = redactedParams
+      ? { ...(operation?.params ?? {}), ...redactedParams }
       : operation?.params;
 
     await this.scheduleEmit({

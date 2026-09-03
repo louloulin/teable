@@ -22,3 +22,6 @@ export { NocoDbBase, NocoDbTable, NocoDbRow, NocoDbConnectionProbe } from './noc
 
 // ─── Other public exports ─────────────────────────────────────────
 export { NocoDbApiClient } from './nocodb-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { INocoDbImportCanceledError } from './nocodb-import.service';

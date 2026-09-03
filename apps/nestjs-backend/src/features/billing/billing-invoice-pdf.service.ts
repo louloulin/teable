@@ -30,10 +30,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 
 import {
+  BillingPdfExportAuthService,
+  buildSummary,
   renderInvoicePdf,
   type CurrencyCode,
   type IBillingInvoice,
   type IBillingLineItem,
+  type IBillingSummary,
   type IPdfRenderResult,
 } from '../billing-pdf-export';
 import { BillingMeteredInvoiceService, type IMetricRateCard } from './billing-metered-invoice.service';
@@ -47,6 +50,12 @@ export interface IRenderInvoicePdfInput {
    * if omitted — matches what `/upcoming-invoice` displays.
    */
   rateCards?: ReadonlyArray<IMetricRateCard>;
+  /**
+   * Bypass the cached `billing_pdf_export` row and force a fresh
+   * render + write. Use when the operator regenerates an invoice
+   * (e.g. manual adjustment from the dashboard).
+   */
+  fresh?: boolean;
 }
 
 const ALLOWED_CURRENCIES: ReadonlySet<CurrencyCode> = new Set([
@@ -63,7 +72,8 @@ const FALLBACK_CURRENCY: CurrencyCode = 'USD';
 export class BillingInvoicePdfService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly meteredInvoice: BillingMeteredInvoiceService
+    private readonly meteredInvoice: BillingMeteredInvoiceService,
+    private readonly pdfCache: BillingPdfExportAuthService
   ) {}
 
   async renderInvoice(input: IRenderInvoicePdfInput): Promise<IPdfRenderResult> {
@@ -86,25 +96,51 @@ export class BillingInvoicePdfService {
       throw new NotFoundException(`invoice not found: ${input.invoiceId}`);
     }
 
-    const rateCards = input.rateCards ?? [];
-    const preview = await this.meteredInvoice.previewMeteredInvoice({
+    const currency = normalizeCurrency(invoice.currency);
+
+    // Cache fast-path: if the caller hasn't forced a fresh render and
+    // a `billing_pdf_export` row already exists for this invoice, hand
+    // back its bytes directly. We still recompute the summary from the
+    // live metered preview so the response shape stays aligned with
+    // the render path (UI consumers don't branch on cache vs fresh).
+    if (!input.fresh) {
+      const cached = await this.pdfCache.latestExport(invoice.id);
+      if (cached) {
+        const { summary } = await this.computeSummary({
+          organizationId: subscription.organizationId,
+          invoice,
+          rateCards: input.rateCards ?? [],
+        });
+        return {
+          doc: {
+            bytes: cached.bytes,
+            size: cached.bytes.byteLength,
+            sha256: cached.sha256,
+          },
+          pageCount: 0,
+          summary,
+          warnings: [],
+        };
+      }
+    }
+
+    const { summary, preview } = await this.computeSummary({
       organizationId: subscription.organizationId,
-      periodStart: invoice.periodStart,
-      periodEnd: invoice.periodEnd,
-      rateCards,
+      invoice,
+      rateCards: input.rateCards ?? [],
     });
 
     const lines = buildLineItems({
       preview,
       invoiceAmountCents: invoice.amountCents,
-      currency: normalizeCurrency(invoice.currency),
+      currency,
     });
 
     const billingInvoice: IBillingInvoice = {
       id: invoice.id,
       orgId: subscription.organizationId,
       customerName: `Organization ${subscription.organizationId}`,
-      currency: normalizeCurrency(invoice.currency),
+      currency,
       periodStart: invoice.periodStart.toISOString(),
       periodEnd: invoice.periodEnd.toISOString(),
       issuedAt: invoice.issuedAt.toISOString(),
@@ -114,7 +150,60 @@ export class BillingInvoicePdfService {
       notes: `external_invoice_id: ${invoice.externalInvoiceId}`,
     };
 
-    return renderInvoicePdf(billingInvoice);
+    const rendered = renderInvoicePdf(billingInvoice);
+
+    // Persist for next call's cache hit. Failures here are non-fatal —
+    // the caller already has a rendered PDF; a failed cache write just
+    // means the next request will re-render. We swallow the error after
+    // logging via the surrounding NestJS logger in Cloud.
+    try {
+      await this.pdfCache.storeExport({ invoiceId: invoice.id, doc: rendered.doc });
+    } catch {
+      // Intentionally empty: see comment above.
+    }
+
+    return rendered;
+  }
+
+  /**
+   * Recompute the summary from the current metered invoice preview
+   * (overage lines + addon monthly cost + fallback). The cached
+   * fast-path needs the same `summary` shape as a fresh render so the
+   * controller can return a uniform payload.
+   */
+  private async computeSummary(input: {
+    organizationId: string;
+    invoice: {
+      id: string;
+      amountCents: number;
+      currency: string;
+      periodStart: Date;
+      periodEnd: Date;
+    };
+    rateCards: ReadonlyArray<IMetricRateCard>;
+  }): Promise<{ summary: IBillingSummary; preview: Awaited<ReturnType<BillingMeteredInvoiceService['previewMeteredInvoice']>> }> {
+    const preview = await this.meteredInvoice.previewMeteredInvoice({
+      organizationId: input.organizationId,
+      periodStart: input.invoice.periodStart,
+      periodEnd: input.invoice.periodEnd,
+      rateCards: input.rateCards,
+    });
+    const lines = buildLineItems({
+      preview,
+      invoiceAmountCents: input.invoice.amountCents,
+      currency: normalizeCurrency(input.invoice.currency),
+    });
+    const summary = buildSummary({
+      id: input.invoice.id,
+      orgId: input.organizationId,
+      customerName: `Organization ${input.organizationId}`,
+      currency: normalizeCurrency(input.invoice.currency),
+      periodStart: input.invoice.periodStart.toISOString(),
+      periodEnd: input.invoice.periodEnd.toISOString(),
+      issuedAt: input.invoice.periodStart.toISOString(),
+      lines,
+    });
+    return { summary, preview };
   }
 }
 

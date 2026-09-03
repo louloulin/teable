@@ -2,14 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import type {
   SmartsheetConnectionProbe,
   SmartsheetRow,
+  SmartsheetRowPage,
   SmartsheetSheet,
 } from './smartsheet-import.types';
 
 /**
- * Round-21: Minimal Smartsheet REST API client. Provides:
- *   - probe() — verify token via /users/me + count sheets
- *   - listSheets() — /sheets
- *   - listRows() — /sheets/{id}/rows
+ * Round-21: Minimal Smartsheet REST API client.
+ * Round-42: pagination-aware `listRows(sheetId, pageSize, page)` returns
+ *   `{ rows, nextPage }` where `nextPage` is the next numeric page to
+ *   request (null when the current page is the last one — detected by
+ *   `rows.length < pageSize` or explicit `page: null` in the response).
  *
  * Auth: Authorization header with Bearer access token.
  */
@@ -44,11 +46,39 @@ export class SmartsheetApiClient {
     return data.data ?? [];
   }
 
-  async listRows(sheetId: number, pageSize = 100): Promise<SmartsheetRow[]> {
-    const data = await this.fetchJson<{ rows: SmartsheetRow[] }>(
-      `/sheets/${sheetId}/rows?pageSize=${pageSize}`
-    );
-    return data.rows ?? [];
+  /**
+   * Fetch a single page of rows for a sheet. Smartsheet returns up to
+   * `pageSize` rows per call; iteration increments `page` until the
+   * response contains fewer than `pageSize` rows (terminal page).
+   *
+   * Termination rules (in order):
+   *   1. `data.page === null` — server explicitly says no more pages
+   *   2. `rows.length < pageSize` — short page, end of data
+   *   3. else — server hinted a next-page number via `data.page`
+   *   4. fallback — increment locally
+   */
+  async listRows(
+    sheetId: number,
+    pageSize = 500,
+    page = 1
+  ): Promise<SmartsheetRowPage> {
+    const data = await this.fetchJson<{
+      rows?: SmartsheetRow[];
+      page?: number | null;
+      totalRowCount?: number;
+    }>(`/sheets/${sheetId}/rows?pageSize=${pageSize}&page=${page}`);
+    const rows = data.rows ?? [];
+    let nextPage: number | null;
+    if (data.page === null) {
+      nextPage = null;
+    } else if (typeof data.page === 'number' && data.page > page) {
+      nextPage = data.page;
+    } else if (rows.length < pageSize) {
+      nextPage = null;
+    } else {
+      nextPage = page + 1;
+    }
+    return { rows, nextPage };
   }
 
   async probe(): Promise<{

@@ -12,7 +12,12 @@ import type {
  *   - listTables() — /applications/{id}/  (tables are nested under the app)
  *   - fetchRecords() — /applications/{id}/records/list/ (POST)
  *
- * Auth: Authorization header with Bearer access token (no prefix).
+ * Round-41: adds `fetchRecords(appId, limit, offset)` so the
+ * record-creation path can paginate via the `offset` request
+ * parameter and the `offset` field on the response (SmartSuite's
+ * next-cursor convention).
+ *
+ * Auth: Authorization header with `Bearer <apiKey>`.
  * Endpoint: https://api.smartsuite.com/api/v1/
  */
 @Injectable()
@@ -56,17 +61,32 @@ export class SmartSuiteApiClient {
     return data.tables ?? data.structure ?? [];
   }
 
-  async fetchRecords(appId: string, limit = 100): Promise<SmartSuiteRecord[]> {
+  /**
+   * Fetch a single page of records. Returns both the page and the
+   * next offset (Round-41). `null` next-offset means no more pages.
+   */
+  async fetchRecords(
+    appId: string,
+    limit = 100,
+    offset = 0
+  ): Promise<{ items: SmartSuiteRecord[]; nextOffset: number | null }> {
     const body = JSON.stringify({
       filters: { operator: 'and', fields: [] },
       limit,
-      offset: 0,
+      offset,
     });
-    const data = await this.fetchJson<{ items?: SmartSuiteRecord[]; records?: SmartSuiteRecord[] }>(
+    const data = await this.fetchJson<{
+      items?: SmartSuiteRecord[];
+      records?: SmartSuiteRecord[];
+      offset?: number | null;
+    }>(
       `/applications/${encodeURIComponent(appId)}/records/list/`,
       { method: 'POST', body }
     );
-    return data.items ?? data.records ?? [];
+    return {
+      items: data.items ?? data.records ?? [],
+      nextOffset: data.offset ?? null,
+    };
   }
 
   async probe(): Promise<{

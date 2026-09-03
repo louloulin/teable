@@ -22,3 +22,6 @@ export { MondayWorkspace, MondayBoard, MondayItem, MondayConnectionProbe } from 
 
 // ─── Other public exports ─────────────────────────────────────────
 export { MondayApiClient } from './monday-api.client';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { IMondayImportCanceledError } from './monday-import.service';

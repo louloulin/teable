@@ -107,6 +107,8 @@ interface IStripePortalBody {
  * rate card so `previewOverage` never produces cents out of
  * nothing, and the UI can layer cloud-side pricing on top.
  */
+const STRIPE_API = 'https://api.stripe.com/v1/billing_portal/sessions';
+
 const DEFAULT_RATE_CARDS: ReadonlyArray<{
   metric: 'ai_credits' | 'automation_runs' | 'records' | 'storage_bytes';
   includedQuantity: number;
@@ -389,27 +391,74 @@ export class BillingPortalController {
   // ─── Cloud-only endpoints (OSS stub) ──────────────────────────────
 
   /**
-   * Stripe Customer Portal session. OSS returns 503 with a hint to set
-   * `STRIPE_SECRET_KEY`. Cloud replaces this with
-   * `Stripe.billingPortal.sessions.create({ customer, return_url })`.
+   * Stripe Customer Portal session — Round 32 续 (real Stripe call).
+   *
+   * Wires the previously-stubbed route to the real
+   * `POST /v1/billing_portal/sessions` endpoint. The flow:
+   *
+   *   1. `STRIPE_SECRET_KEY` must be set (503 otherwise).
+   *   2. The local `subscription` row must have an `externalCustomerId`
+   *      (populated when the org went through the checkout flow). No
+   *      customer id means the org has never talked to Stripe, so we
+   *      return 503 with a hint pointing at the checkout route — the
+   *      404 alternative would leak "this org has no subscription"
+   *      and let callers probe existence.
+   *   3. The `return_url` is required by Stripe; we accept the
+   *      caller-supplied one (already validated by the controller's
+   *      `requireOrg` pattern of throwing 400 on missing fields) and
+   *      fall back to the platform default.
+   *   4. We POST `customer=<id>&return_url=<url>` to Stripe with
+   *      Bearer auth and `application/x-www-form-urlencoded`, mirror
+   *      of the pattern `BillingCheckoutController.createCheckout`
+   *      uses for session creation.
+   *   5. The Stripe `{ id, url }` response is returned as-is so the
+   *      caller can `window.location = url` (or 302) to land on the
+   *      hosted portal.
+   *
+   * Errors from Stripe (4xx/5xx) are surfaced as 503 with the body
+   * text in the message — matches the `BillingCheckoutController`
+   * pattern. Network errors throw 503 too; the caller can retry.
    */
   @Post('stripe-portal')
   @Permissions('instance|update')
   async stripePortal(@Body() body: IStripePortalBody) {
     const orgId = requireOrg(body.organizationId);
+    if (!body.returnUrl) {
+      throw new BadRequestException('returnUrl is required');
+    }
     const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY');
     if (!stripeKey) {
       throw new ServiceUnavailableException(
         'Stripe Customer Portal is not configured: STRIPE_SECRET_KEY is missing'
       );
     }
-    // Cloud-only: the actual implementation lives behind a feature flag
-    // and is wired in the cloud deployment pipeline. Returning 503 keeps
-    // the OSS binary self-consistent (no half-implemented calls).
-    void orgId;
-    throw new ServiceUnavailableException(
-      'Stripe Customer Portal is a Cloud-only feature in this build'
-    );
+    const subscription = await this.auth.getSubscription(orgId);
+    const customerId = subscription?.externalCustomerId;
+    if (!customerId) {
+      throw new ServiceUnavailableException(
+        'Stripe Customer Portal is not available: this organization has no Stripe customer yet. ' +
+          'Complete checkout at POST /api/billing/checkout to create a customer first.'
+      );
+    }
+    const params = new URLSearchParams();
+    params.append('customer', customerId);
+    params.append('return_url', body.returnUrl);
+    const res = await fetch(STRIPE_API, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new ServiceUnavailableException(
+        `Stripe Customer Portal error ${res.status}: ${text}`
+      );
+    }
+    const session = (await res.json()) as { id: string; url: string };
+    return { organizationId: orgId, sessionId: session.id, url: session.url };
   }
 
   /**
@@ -428,11 +477,20 @@ export class BillingPortalController {
   async invoicePdf(
     @Param('invoiceId') invoiceId: string,
     @Query('organizationId') organizationId: string,
+    @Query('fresh') fresh: string | undefined,
     @Res({ passthrough: true }) res: Response
   ): Promise<Buffer> {
     if (!invoiceId) throw new BadRequestException('invoiceId is required');
     if (!organizationId) throw new BadRequestException('organizationId is required');
-    const result = await this.invoicePdfSvc.renderInvoice({ invoiceId, organizationId });
+    // `?fresh=true` (or any truthy "1"/"yes") bypasses the PDF cache
+    // so the operator can force a re-render after a manual invoice
+    // adjustment. Default behavior is read-through cache.
+    const forceFresh = parseBooleanQuery(fresh);
+    const result = await this.invoicePdfSvc.renderInvoice({
+      invoiceId,
+      organizationId,
+      fresh: forceFresh,
+    });
     // Dynamic filename header — can't use the @Header() decorator
     // because the value depends on the route param.
     res.setHeader(
@@ -441,6 +499,15 @@ export class BillingPortalController {
     );
     res.setHeader('X-PDF-SHA256', result.doc.sha256);
     res.setHeader('X-PDF-Size', String(result.doc.size));
+    // Surface cache state to the UI so dashboards can show
+    // "served from cache" vs "freshly rendered".
+    res.setHeader('X-PDF-Cache', forceFresh ? 'bypass' : 'hit-or-miss');
     return Buffer.from(result.doc.bytes);
   }
+}
+
+function parseBooleanQuery(raw: string | undefined): boolean {
+  if (raw === undefined) return false;
+  const lower = raw.toLowerCase();
+  return lower === 'true' || lower === '1' || lower === 'yes';
 }

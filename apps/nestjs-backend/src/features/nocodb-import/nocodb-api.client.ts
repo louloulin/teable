@@ -13,6 +13,10 @@ import type {
  *   - listTables() — /api/v1/db/meta/projects/{baseId}/tables
  *   - listRows() — /api/v2/tables/{tableId}/records
  *
+ * Round-36: listRows now accepts an `offset` parameter so the
+ * `listAllRows` paginator can stream all rows for the
+ * record-creation path.
+ *
  * Auth: xc-token header (NocoDB API token).
  * Two API versions: v1 for metadata, v2 for rows.
  */
@@ -58,9 +62,22 @@ export class NocoDbApiClient {
     return data.list ?? [];
   }
 
-  async listRows(tableId: string, pageSize = 100): Promise<NocoDbRow[]> {
+  /**
+   * List rows from a table.
+   *
+   * @param tableId  NocoDB table slug or id (NocoDB v2 accepts both)
+   * @param limit    Page size — capped server-side; we default to 100
+   * @param offset   Optional offset (Round-36). NocoDB v2 supports
+   *                 `offset` for sequential paging. `undefined` (or 0)
+   *                 means "from the start" and matches the original
+   *                 Round-20 call.
+   */
+  async listRows(tableId: string, limit = 100, offset = 0): Promise<NocoDbRow[]> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (offset > 0) params.set('offset', String(offset));
     const data = await this.fetchJson<{ list: NocoDbRow[]; pageInfo?: unknown }>(
-      `/api/v2/tables/${tableId}/records?limit=${pageSize}`
+      `/api/v2/tables/${tableId}/records?${params.toString()}`
     );
     return data.list ?? [];
   }

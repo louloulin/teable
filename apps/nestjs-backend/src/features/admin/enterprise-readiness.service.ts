@@ -754,6 +754,11 @@ export class EnterpriseReadinessService {
         stats: { rules: ipAllowlistCount },
       },
       {
+        key: 'ip_allowlist_middleware_registered',
+        module: 'ip-allowlist',
+        enabled: true,
+      },
+      {
         key: 'backup',
         module: 'backup',
         enabled: true,
@@ -849,6 +854,12 @@ export class EnterpriseReadinessService {
       // The guard is class-decorator bound; module registration is the
       // evidence. No table to probe; alwaysEnabled is sufficient.
       await this.alwaysEnabled('billing_portal_org_guard', 'billing', 'billingPortalOrgGuard', 'billing_portal_org_guard'),
+      // Phase 5.4 续 (Round 29) — invoice PDF export cache. The
+      // `billing_pdf_export` table holds the rendered bytes keyed by
+      // invoice id; the BillingInvoicePdfService reads it on every
+      // request and falls back to a fresh render + storeExport when
+      // missing. Behavior probe below checks the table exists.
+      await this.alwaysEnabled('billing_pdf_export_cache', 'billing', 'billingPdfExportCache', 'billing_pdf_export_cache'),
       // R-INFRA-5: cross-org-admin.controller.ts shipped (built from scratch
       // in this round; full CRUD + admin panel endpoint).
       await this.alwaysEnabled('cross_org_admin_grant', 'cross-org-admin', 'crossOrgAdminGrant', 'cross_org_admin_grant'),

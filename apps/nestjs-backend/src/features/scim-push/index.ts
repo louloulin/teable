@@ -20,3 +20,16 @@ export { ScimPushController } from './scim-push.controller';
 
 // ─── Modules ──────────────────────────────────────────────────────
 export { ScimPushModule } from './scim-push.module';
+// ─── Manual re-exports (R52 runner) ──────────────────────────────
+export {
+  runOneDelivery,
+  isValidRunnerResult,
+  DEFAULT_TIMEOUT_MS,
+  MAX_BODY_PREVIEW_BYTES,
+  testHelpers as scimPushRunnerTestHelpers,
+} from './scim-push-runner';
+export type {
+  IScimPushFetchLike,
+  IScimPushRunnerOptions,
+  IScimPushRunnerResult,
+} from './scim-push-runner';

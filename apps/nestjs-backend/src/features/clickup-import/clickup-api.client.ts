@@ -9,8 +9,12 @@ import type {
  * Round-17: Minimal ClickUp REST API client. Only the calls needed to
  * (1) verify credentials, (2) list spaces, (3) list tasks in a list.
  *
+ * Round-40: adds `listTasks(listId, pageSize, page, includeClosed)` so
+ * the record-creation path can paginate via ClickUp's `?page=N&limit=M`
+ * with the `last_page` flag telling us when to stop.
+ *
  * ClickUp API base URL is https://api.clickup.com/api/v2/
- * The user provides the personal token; we attach it as Bearer auth.
+ * The user provides the personal token; we attach it as Authorization.
  */
 @Injectable()
 export class ClickUpApiClient {
@@ -46,11 +50,32 @@ export class ClickUpApiClient {
     return data.lists ?? [];
   }
 
-  async listTasks(listId: string, pageSize = 100): Promise<ClickUpTask[]> {
-    const data = await this.fetchJson<{ tasks: ClickUpTask[] }>(
-      `/list/${listId}/task?page=0&limit=${pageSize}`
+  /**
+   * List tasks in a list. Returns both `tasks` (capped at `pageSize`)
+   * and `lastPage` (Round-40) so the caller knows when pagination ends.
+   *
+   * @param listId        numeric or alphanumeric ClickUp list id
+   * @param pageSize      page size (default 100)
+   * @param page          page index (0-based; Round-40)
+   * @param includeClosed include archived/done tasks (default false)
+   */
+  async listTasks(
+    listId: string,
+    pageSize = 100,
+    page = 0,
+    includeClosed = false
+  ): Promise<{ tasks: ClickUpTask[]; lastPage: boolean }> {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('limit', String(pageSize));
+    params.set('include_closed', String(includeClosed));
+    const data = await this.fetchJson<{ tasks: ClickUpTask[]; last_page?: boolean }>(
+      `/list/${listId}/task?${params.toString()}`
     );
-    return data.tasks ?? [];
+    return {
+      tasks: data.tasks ?? [],
+      lastPage: Boolean(data.last_page),
+    };
   }
 
   async probe(): Promise<{

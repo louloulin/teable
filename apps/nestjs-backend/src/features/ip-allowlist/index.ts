@@ -17,3 +17,8 @@ export { parseCidr, parseIp, ipInCidr, decide, extractClientIp, coerceMode } fro
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { IpAllowlistMode, IIpAllowlistEntry, IIpAllowlistDecision } from './ip-allowlist.types';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+// R47 — Stage 26: middleware that actually enforces the allowlist at the
+// request boundary. Wired by `IpAllowlistModule.configure(consumer)`.
+export { IpAllowlistMiddleware } from './ip-allowlist.middleware';

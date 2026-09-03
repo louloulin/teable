@@ -11,6 +11,12 @@ import type {
  *   - listProjects() — /project/search
  *   - listIssues() — /search with JQL
  *
+ * Round-38: adds `listIssues(jql, maxResults, startAt)` so the
+ * record-creation path can paginate via `startAt` + `maxResults`
+ * (Jira's legacy GET /search uses `startAt` offset paging; the new
+ * POST /search/jql uses `nextPageToken` but the legacy endpoint
+ * remains stable and well-documented, so we keep it for now).
+ *
  * Auth: HTTP Basic with email:api_token (base64-encoded).
  * URL template: https://<site>.atlassian.net/rest/api/3/
  */
@@ -55,12 +61,30 @@ export class JiraApiClient {
     return data.values ?? [];
   }
 
+  /**
+   * List issues matching the given JQL.
+   *
+   * @param jql        JQL query string
+   * @param maxResults page size (default 100, Jira max 100)
+   * @param startAt    offset for sequential paging (Round-38). Defaults
+   *                   to 0 for backward compatibility with the
+   *                   pre-Round-38 controller.
+   */
   async listIssues(
     jql = 'ORDER BY created DESC',
-    maxResults = 100
+    maxResults = 100,
+    startAt = 0
   ): Promise<JiraIssue[]> {
+    const params = new URLSearchParams();
+    params.set('jql', jql);
+    params.set('maxResults', String(maxResults));
+    if (startAt > 0) params.set('startAt', String(startAt));
+    params.set(
+      'fields',
+      'summary,description,status,priority,assignee,reporter,created,updated,issuetype'
+    );
     const data = await this.fetchJson<{ issues: JiraIssue[] }>(
-      `/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,status,priority,assignee,reporter,created,updated,issuetype`
+      `/search?${params.toString()}`
     );
     return data.issues ?? [];
   }

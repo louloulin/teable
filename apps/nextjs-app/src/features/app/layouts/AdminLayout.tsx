@@ -310,6 +310,12 @@ export const AdminLayout: React.FC<{
       route: '/admin/backup',
       pathTo: '/admin/backup',
     },
+    {
+      Icon: ClipboardList,
+      label: 'Enterprise Readiness',
+      route: '/admin/enterprise-readiness',
+      pathTo: '/admin/enterprise-readiness',
+    },
 
   ];
 

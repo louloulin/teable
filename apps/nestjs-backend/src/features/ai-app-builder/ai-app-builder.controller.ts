@@ -166,4 +166,43 @@ export class AiAppBuilderController {
     await this.auth.assertAppInBase(appId, baseId);
     return this.svc.listFiles(appId);
   }
+
+  // ─── publish + public URL (Round 45) ──────────────────────────────────────
+
+  /**
+   * Round 45: publish an app so it can be reached at `/a/<slug>`.
+   * Requires a deployed current version. Idempotent.
+   */
+  @Post(':appId/publish')
+  @Permissions('base|update')
+  async publish(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.publish(appId);
+    return { appId, ...out };
+  }
+
+  /**
+   * Round 45: unpublish an app. Keeps the deployed version but clears
+   * `public_slug` + `published_at` so the runtime endpoint 404s.
+   * Idempotent.
+   */
+  @Post(':appId/unpublish')
+  @Permissions('base|update')
+  async unpublish(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    const out = await this.svc.unpublish(appId);
+    return { appId, ...out };
+  }
+
+  /**
+   * Round 45: return the public URL config. The runtime endpoint is
+   * out of scope for this round; this route feeds the UI that shows
+   * the live URL after publish.
+   */
+  @Get(':appId/public-url')
+  @Permissions('base|read')
+  async publicUrl(@Param('baseId') baseId: string, @Param('appId') appId: string) {
+    await this.auth.assertAppInBase(appId, baseId);
+    return this.svc.getPublicUrl(appId);
+  }
 }

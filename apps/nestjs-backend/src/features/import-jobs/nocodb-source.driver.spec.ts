@@ -5,6 +5,7 @@ import {
   NocoDbInvalidPayloadError,
   NocoDbNotConfiguredError,
   NocoDbSourceDriver,
+  nocodbRowToFields,
   type INocoDbTaskPayload,
 } from './nocodb-source.driver';
 import type {
@@ -18,6 +19,12 @@ interface IRunInputOverrides {
   tableId?: string;
   payload?: INocoDbTaskPayload;
   isCanceled?: () => boolean;
+}
+
+interface IMockNocoDbImports {
+  probe: ReturnType<typeof vi.fn>;
+  fetchRows: ReturnType<typeof vi.fn>;
+  importTable: ReturnType<typeof vi.fn>;
 }
 
 const buildTask = (overrides: IRunInputOverrides = {}): ISourceImportTaskSlice => ({
@@ -37,11 +44,27 @@ const buildInput = (overrides: IRunInputOverrides = {}): ISourceImportRunInput =
   };
 };
 
-describe('NocoDbSourceDriver (Phase 4.4+ stub)', () => {
+describe('NocoDbSourceDriver', () => {
   let driver: NocoDbSourceDriver;
+  let imports: IMockNocoDbImports;
 
   beforeEach(() => {
-    driver = new NocoDbSourceDriver();
+    imports = {
+      probe: vi.fn(async () => ({ ok: true, baseCount: 1, tableCount: 3, fetchedAt: '' })),
+      fetchRows: vi.fn(async (baseUrl: string, token: string, tableName: string) => ({
+        tableId: tableName,
+        rowCount: 5,
+        sample: [{ Id: 1, Title: 'a' }, { Id: 2, Title: 'b' }],
+      })),
+      // Round-36 default mock returns 3 imported rows. Tests that need
+      // a different shape override via `imports.importTable.mockResolvedValueOnce`.
+      importTable: vi.fn(async () => ({
+        processedCount: 3,
+        failedCount: 0,
+        totalCount: 3,
+      })),
+    };
+    driver = new NocoDbSourceDriver(undefined, imports as never);
   });
 
   it('R-NOCO-1: source identifier is "nocodb"', () => {
@@ -75,45 +98,67 @@ describe('NocoDbSourceDriver (Phase 4.4+ stub)', () => {
   it('R-NOCO-5: payload missing baseId falls back to task.remoteId', async () => {
     const input = buildInput({
       remoteId: 'base_remote',
-      payload: { tableName: 'Projects' },
+      payload: { tableName: 'Projects', baseUrl: 'https://x', apiToken: 't' },
     });
-    await expect(driver.runImport(input)).rejects.toBeInstanceOf(
-      NocoDbNotConfiguredError
+    await driver.runImport(input);
+    expect(imports.importTable).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: 'https://x', apiToken: 't', tableName: 'Projects' })
     );
-    await expect(driver.runImport(input)).rejects.toMatchObject({
-      code: 'NOCODB_NOT_CONFIGURED',
-    });
   });
 
-  it('R-NOCO-6: valid payload throws NocoDbNotConfiguredError (API client not wired)', async () => {
+  it('R-NOCO-6: valid payload calls probe + importTable and returns processed/failed/total counts (Round 36 record-creation path)', async () => {
     const input = buildInput({
-      payload: { baseId: 'base_abc', tableName: 'Projects' },
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok_xyz',
+      },
     });
-    await expect(driver.runImport(input)).rejects.toBeInstanceOf(
-      NocoDbNotConfiguredError
-    );
+    const result = await driver.runImport(input);
+    expect(imports.probe).toHaveBeenCalledTimes(1);
+    expect(imports.probe).toHaveBeenCalledWith('https://nocodb.example.com', 'tok_xyz');
+    expect(imports.importTable).toHaveBeenCalledTimes(1);
+    const call = imports.importTable.mock.calls[0][0];
+    expect(call).toMatchObject({
+      baseUrl: 'https://nocodb.example.com',
+      apiToken: 'tok_xyz',
+      tableName: 'Projects',
+      tableId: 'tbl_x',
+      pageSize: 100,
+      batchSize: 100,
+    });
+    expect(typeof call.mapRowToFields).toBe('function');
+    expect(result).toMatchObject({
+      processedCount: 3,
+      failedCount: 0,
+      totalCount: 3,
+      result: { baseId: 'base_abc', tableName: 'Projects', totalSeen: 3 },
+    });
   });
 
-  it('R-NOCO-7: cancel predicate returning true at probe point wins', async () => {
-    // Driver checks spaceId/remoteId/payload first (non-retryable),
-    // then probes cancel twice. With a valid payload but isCanceled=true,
-    // the first probe fires and we get NOCODB_CANCELED — not the
-    // "API not configured" error.
+  it('R-NOCO-7: cancel predicate returning true at first probe wins (no API call)', async () => {
     const input = buildInput({
       isCanceled: () => true,
-      payload: { baseId: 'base_abc', tableName: 'Projects' },
+      payload: { baseId: 'base_abc', tableName: 'Projects', baseUrl: 'https://x', apiToken: 't' },
     });
-    await expect(driver.runImport(input)).rejects.toThrow(/NOCODB_CANCELED/);
+    await expect(driver.runImport(input)).rejects.toMatchObject({ code: 'NOCODB_CANCELED' });
+    expect(imports.probe).not.toHaveBeenCalled();
+    expect(imports.importTable).not.toHaveBeenCalled();
   });
 
-  it('R-NOCO-8: cancel probe returning false at all probe points means the not-configured error wins', async () => {
+  it('R-NOCO-8: cancel at second probe (after probe) wins, before record creation', async () => {
+    let count = 0;
     const input = buildInput({
-      payload: { baseId: 'base_abc', tableName: 'Projects' },
-      isCanceled: () => false,
+      isCanceled: () => {
+        count += 1;
+        return count >= 2; // 2nd probe (after probe, before importTable) wins
+      },
+      payload: { baseId: 'base_abc', tableName: 'Projects', baseUrl: 'https://x', apiToken: 't' },
     });
-    await expect(driver.runImport(input)).rejects.toBeInstanceOf(
-      NocoDbNotConfiguredError
-    );
+    await expect(driver.runImport(input)).rejects.toMatchObject({ code: 'NOCODB_CANCELED' });
+    expect(imports.probe).toHaveBeenCalledTimes(1);
+    expect(imports.importTable).not.toHaveBeenCalled();
   });
 
   it('R-NOCO-9: NocoDbInvalidPayloadError lists every missing field once', async () => {
@@ -131,12 +176,13 @@ describe('NocoDbSourceDriver (Phase 4.4+ stub)', () => {
     }
   });
 
-  it('R-NOCO-10: NocoDbNotConfiguredError carries a remediation hint for the operator', async () => {
+  it('R-NOCO-10: NocoDbNotConfiguredError carries a remediation hint for the operator (no imports service)', async () => {
+    const noImportsDriver = new NocoDbSourceDriver();
     const input = buildInput({
       payload: { baseId: 'base_abc', tableName: 'Projects' },
     });
     try {
-      await driver.runImport(input);
+      await noImportsDriver.runImport(input);
       throw new Error('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(NocoDbNotConfiguredError);
@@ -144,5 +190,152 @@ describe('NocoDbSourceDriver (Phase 4.4+ stub)', () => {
       expect(err.remediation).toMatch(/NocoDbImportService/);
       expect(err.remediation).toMatch(/bearer|createRecords/);
     }
+  });
+
+  it('R-NOCO-11: missing baseUrl or apiToken in payload raises NocoDbInvalidPayloadError', async () => {
+    const input = buildInput({
+      payload: { baseId: 'base_abc', tableName: 'Projects' /* no baseUrl, no apiToken */ },
+    });
+    await expect(driver.runImport(input)).rejects.toMatchObject({
+      code: 'NOCODB_INVALID_PAYLOAD',
+    });
+    expect(imports.probe).not.toHaveBeenCalled();
+    expect(imports.importTable).not.toHaveBeenCalled();
+  });
+
+  it('R-NOCO-12: custom payload.limit is forwarded to importTable as pageSize', async () => {
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok',
+        limit: 25,
+      },
+    });
+    await driver.runImport(input);
+    expect(imports.importTable).toHaveBeenCalledWith(
+      expect.objectContaining({ pageSize: 25 })
+    );
+  });
+
+  it('R-NOCO-13: probe failure surfaces as a thrown error (no record creation)', async () => {
+    imports.probe.mockResolvedValueOnce({ ok: false, error: '401 Unauthorized' });
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok_bad',
+      },
+    });
+    await expect(driver.runImport(input)).rejects.toThrow(/401 Unauthorized/);
+    expect(imports.importTable).not.toHaveBeenCalled();
+  });
+
+  // ─── Round 36 — record-creation tests ─────────────────────────────────
+
+  it('R-NOCO-14: missing tableId on the durable task raises NocoDbInvalidPayloadError', async () => {
+    const input = buildInput({ tableId: '' });
+    await expect(driver.runImport(input)).rejects.toMatchObject({
+      code: 'NOCODB_INVALID_PAYLOAD',
+    });
+    expect(imports.probe).not.toHaveBeenCalled();
+    expect(imports.importTable).not.toHaveBeenCalled();
+  });
+
+  it('R-NOCO-15: failed batches surface as failedCount without aborting the whole import', async () => {
+    imports.importTable.mockResolvedValueOnce({
+      processedCount: 2,
+      failedCount: 1,
+      totalCount: 3,
+    });
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok_xyz',
+      },
+    });
+    const result = await driver.runImport(input);
+    expect(result).toMatchObject({
+      processedCount: 2,
+      failedCount: 1,
+      totalCount: 3,
+    });
+  });
+
+  it('R-NOCO-16: custom payload.batchSize is forwarded to importTable', async () => {
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok_xyz',
+        batchSize: 250,
+      },
+    });
+    await driver.runImport(input);
+    expect(imports.importTable).toHaveBeenCalledWith(
+      expect.objectContaining({ batchSize: 250 })
+    );
+  });
+
+  it('R-NOCO-17: batchSize > 1000 is clamped to 1000', async () => {
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'Projects',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok_xyz',
+        batchSize: 5000,
+      },
+    });
+    await driver.runImport(input);
+    expect(imports.importTable).toHaveBeenCalledWith(
+      expect.objectContaining({ batchSize: 1000 })
+    );
+  });
+
+  it('R-NOCO-18: mapRowToFields strips NocoDB system keys (Id, nc_*, timestamps)', () => {
+    const row = {
+      Id: 42,
+      Title: 'Hello',
+      nc_created_at: '2024-01-01T00:00:00Z',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      Notes: null,
+      Status: 'open',
+    };
+    const fields = nocodbRowToFields(row);
+    expect(fields).toEqual({ Title: 'Hello', Status: 'open' });
+    expect(Object.keys(fields)).not.toContain('Id');
+    expect(Object.keys(fields)).not.toContain('nc_created_at');
+    expect(Object.keys(fields)).not.toContain('created_at');
+    expect(Object.keys(fields)).not.toContain('updated_at');
+    expect(Object.keys(fields)).not.toContain('Notes'); // null dropped
+  });
+
+  it('R-NOCO-19: empty row set still calls onProgress and returns zero counts', async () => {
+    imports.importTable.mockResolvedValueOnce({
+      processedCount: 0,
+      failedCount: 0,
+      totalCount: 0,
+    });
+    const input = buildInput({
+      payload: {
+        baseId: 'base_abc',
+        tableName: 'EmptyTable',
+        baseUrl: 'https://nocodb.example.com',
+        apiToken: 'tok',
+      },
+    });
+    const result = await driver.runImport(input);
+    expect(result).toMatchObject({
+      processedCount: 0,
+      failedCount: 0,
+      totalCount: 0,
+    });
   });
 });
