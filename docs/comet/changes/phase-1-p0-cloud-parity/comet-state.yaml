@@ -1,0 +1,121 @@
+schema: comet.native.v4
+name: phase-1-p0-cloud-parity
+language: zh-CN
+phase: build
+status: done
+state_version: 2
+brief: brief.md
+spec_changes:
+- capability: phase-1-p0-cloud-parity
+  operation: create
+  source: specs/phase-1-p0-cloud-parity/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/phase-1-cloud-parity-r81
+  target_branch: comet/v81-cloud-parity-roadmap
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+- id: A1
+  source: brief.md
+  text: '**A1** R-CHAT-1: ChatPanel 顶部展示当前选中行/列/单元格/区域 → chip → 点击展开预览; Prisma 新增
+    `meta.ai_chat_selection_ref` 表真实持久化; e2e-ai-chat-selection.sh 16/16 pass; verify-enterprise.sh
+    新增 gate 9/9 (AI Chat selection HTTP)。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A2
+  source: brief.md
+  text: '**A2** R-CHAT-2: `/api/chat/sessions/:id/intelligence` PATCH 端点真实有效; 切换模型后下次请求用新模型
+    (curl 验证); Intelligence 滑块影响 `tokenBudget` + `allowedTools`; e2e-ai-chat-intelligence.sh
+    10/10 pass。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A3
+  source: brief.md
+  text: '**A3** R-CHAT-3: 麦克风按钮 → 录音 → MediaRecorder API → 上传 multipart → Whisper
+    转写 → 填入输入框; 录音失败/拒绝权限 → 友好错误; e2e-ai-chat-voice.sh 6/6 pass。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A4
+  source: brief.md
+  text: '**A4** R-ATTACH-1: PDF/Excel/Word/图片 真实解析 (PDF → pdf-parse; Excel → xlsx;
+    Docx → mammoth; 图片 → Tesseract 或 OpenAI Vision); 异步 BullMQ 索引; 文本注入 prompt → AI
+    回复含真实内容; e2e-ai-chat-attach.sh 升级 8/8 → 12/12 pass。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A5
+  source: brief.md
+  text: '**A5** R-ATTACH-2: 下载走 HMAC signed token (≤5min); 过期 token → 401; 跨用户 token
+    → 403; EICAR 测试文件 → ClamAV mock 扫描拦截; e2e-ai-chat-attachment-security.sh 8/8 pass。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A6
+  source: brief.md
+  text: '**A6** R-WRITE-1: `ai-chat-write-plan.service.ts` 覆盖 table/field/view/app/automation;
+    plan → diff → confirm → apply 流程真实工作; WritePlanPreview.tsx 显示 diff 视图; 失败回滚事务化;
+    e2e-ai-chat-write-plan.sh 12/12 pass。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+- id: A7
+  source: brief.md
+  text: '**A7** R-WRITE-2: 每类写操作有 idempotency-key; 重复 plan apply → 第二次返回原结果; `audit_log`
+    含 `actorType=ai`, `planHash=...`, `idempotencyKey=...`; verify-enterprise.sh 新增
+    AI write audit gate。'
+  result: pending
+  reason:
+    text: ''
+    truncated: false
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: true
+created_at: 2026-09-03 16:57:46.683000+00:00
+builder_handoff:
+  candidate_id: r-chat-1-2026-09-04-001
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:r-chat-1-complete
+  iteration: 1
+  summary:
+    text: R-CHAT-1 完整端到端实现就绪（backend + frontend + tests + audit + e2e + gate）
+    truncated: false
+  addressed_acceptance_ids:
+  - A1
+  checks: []
+  checks_truncated: false
+  known_limits: []
+  known_limits_truncated: false
+  submitted_at: '2026-09-03T18:30:00.000Z'
