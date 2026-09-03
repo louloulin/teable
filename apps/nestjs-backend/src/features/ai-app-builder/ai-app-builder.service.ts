@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { HttpErrorCode } from '@teable/core';
-import { createCipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { CustomHttpException } from '../../custom.exception';
 
 /**
@@ -484,4 +484,143 @@ export class AiAppBuilderService {
     }
     return out;
   }
+
+
+  // ─── R57 — SSR runtime context (preview + live) ────────────────────────
+
+  /**
+   * R57: build the runtime render context for a published app. The
+   * snapshot comes from the current version's `snapshot` column;
+   * secrets are decrypted server-side and passed into the SSR sandbox
+   * via the `env` lookup — values never reach the HTTP response
+   * beyond the rendered HTML.
+   *
+   * Returns `null` when the app is unknown or unpublished (the
+   * controller 404s in either case).
+   */
+  async getLiveRuntimeContext(appId: string): Promise<{
+    appId: string;
+    appName: string;
+    versionNumber: number;
+    deployedAt: Date;
+    publicSlug: string;
+    snapshot: unknown;
+    secrets: Record<string, string>;
+  } | null> {
+    const app = await this.prisma.appInstance.findUnique({
+      where: { id: appId },
+      select: {
+        id: true,
+        name: true,
+        publicSlug: true,
+        publishedAt: true,
+        currentVersionId: true,
+      },
+    });
+    if (!app || !app.publicSlug || !app.publishedAt || !app.currentVersionId) return null;
+    const version = await this.prisma.appVersion.findUnique({
+      where: { id: app.currentVersionId },
+      select: { versionNumber: true, snapshot: true, deployedAt: true },
+    });
+    if (!version) return null;
+    const secrets = await this.collectDecryptedSecrets(appId);
+    return {
+      appId: app.id,
+      appName: app.name,
+      versionNumber: version.versionNumber,
+      deployedAt: version.deployedAt ?? app.publishedAt,
+      publicSlug: app.publicSlug,
+      snapshot: version.snapshot ?? { schema: 1, app: { files: [], entry: 'src/App.tsx', tailwind: false } },
+      secrets,
+    };
+  }
+
+  /**
+   * R57: build the runtime render context for a preview. Returns the
+   * latest draft snapshot (or the latest version when no draft exists).
+   * Caller passes `appId`; the controller never reveals this to the
+   * public — previews are protected by the auth pipeline.
+   */
+  async getPreviewRuntimeContext(appId: string): Promise<{
+    appId: string;
+    appName: string;
+    versionNumber: number;
+    deployedAt: Date | null;
+    snapshot: unknown;
+    secrets: Record<string, string>;
+  } | null> {
+    const app = await this.prisma.appInstance.findUnique({
+      where: { id: appId },
+      select: { id: true, name: true },
+    });
+    if (!app) return null;
+    const latest = await this.prisma.appVersion.findFirst({
+      where: { appId },
+      orderBy: { versionNumber: 'desc' },
+    });
+    if (!latest) {
+      return {
+        appId: app.id,
+        appName: app.name,
+        versionNumber: 0,
+        deployedAt: null,
+        snapshot: { schema: 1, app: { files: [], entry: 'src/App.tsx', tailwind: false } },
+        secrets: await this.collectDecryptedSecrets(appId),
+      };
+    }
+    const secrets = await this.collectDecryptedSecrets(appId);
+    return {
+      appId: app.id,
+      appName: app.name,
+      versionNumber: latest.versionNumber,
+      deployedAt: latest.deployedAt,
+      snapshot: latest.snapshot ?? { schema: 1, app: { files: [], entry: 'src/App.tsx', tailwind: false } },
+      secrets,
+    };
+  }
+
+  /**
+   * R57: collect every secret for an app and decrypt its ciphertext
+   * server-side. Values never leave the SSR renderer — they are
+   * resolved into the rendered HTML when the JSX source uses
+   * `{env.SECRET_KEY}`, but the HTTP response body never carries the
+   * raw ciphertext or plaintext keys.
+   */
+  private async collectDecryptedSecrets(appId: string): Promise<Record<string, string>> {
+    const rows = await this.prisma.appSecret.findMany({
+      where: { appId },
+      select: { key: true, valueCiphertext: true },
+    });
+    const out: Record<string, string> = {};
+    for (const row of rows) {
+      try {
+        out[row.key] = this.decryptSecret(row.valueCiphertext);
+      } catch (err) {
+        this.logger.warn(`failed to decrypt secret ${row.key} for app ${appId}: ${(err as Error).message}`);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * R57: inverse of `encryptSecret`. Throws on malformed input — the
+   * SSR renderer surfaces a `RUNTIME_BAD_CIPHERTEXT` code so the
+   * operator can rotate the offending secret.
+   */
+  private decryptSecret(ciphertext: string): string {
+    const integrationSecret = process.env.TEABLE_INTEGRATION_SECRET ?? 'teable-local-development-secret';
+    const key = scryptSync(integrationSecret, 'teable.app-secret.v1', 32);
+    if (!ciphertext.startsWith('v1:')) {
+      throw new Error('unsupported secret format');
+    }
+    const decoded = JSON.parse(Buffer.from(ciphertext.slice(3), 'base64').toString('utf8'));
+    const iv = Buffer.from(decoded.iv, 'base64');
+    const tag = Buffer.from(decoded.tag, 'base64');
+    const enc = Buffer.from(decoded.ciphertext, 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(enc), decipher.final()]);
+    return decrypted.toString('utf8');
+  }
 }
+

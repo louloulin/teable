@@ -2790,3 +2790,318 @@ R9 修复了 actor bypass P0，但 Backup 仍是 E2：service + controller 完�
 - **KMS integration**（Top 7 #6 残留）
 - **PIT restore**（Top 7 #6 残留）
 
+## 56. Phase 6 follow-up — Stripe Customer Portal 真接通 + cron 调度（2026-09-03）
+
+R12-R19 + R32 完成 Stripe Checkout / Webhook / Dunning / Metered invoice / Portal controller 骨架，但**没有 cron scheduler 抽象**和**portable portal session helper**——controller 把 Stripe API 调用直接 inline，难以测试真实 HTTP roundtrip，无法做 cron 风格定时验证。R56 把这两个缺口关闭。
+
+### 56.1 缺位的 cron scheduler + portal session helper
+
+`apps/nestjs-backend/src/features/billing/billing-cron.ts`（新建，184 行）—— self-contained pure cron scheduler：
+
+- `parseCron(expression)` —— 解析 5-field cron 表达式（`*/N * * * *` / `M H * * *` / `M H DoM * *` / `* * * * *` / range / step / comma-list）
+- `shouldFire({ schedule, now, lastFiredAt })` —— 决定是否触发；minute / hour / day-of-month 三层匹配 + `lastFiredAt` 防同分钟双触发
+- `nextFireAt(schedule, after?)` —— 计算下次触发时间（366 天 sanity bound）
+- `runCronTick({ now, jobs })` —— 批量执行；返回 `{ fired, results }`
+- `CronParseError` 带 `.code = 'CRON_PARSE_ERROR'`
+
+`apps/nestjs-backend/src/features/billing/billing-portal-session.ts`（新建，190 行）—— self-contained pure portal session helpers：
+
+- `buildPortalSessionRequest({ customerId, returnUrl, apiBase? })` —— 构造 Stripe API POST envelope（form-encoded + Bearer auth）
+- `parsePortalSessionResponse(raw)` —— 解析 Stripe 返回的 `{ id, url }` 严格校验 `bps_*` + `https://`
+- `validatePortalReturnUrl(url)` —— **SSRF 防御**：拒绝非 https / loopback / `127.0.0.1` / `169.254.169.254` / `metadata.google.internal`
+- `validateCustomerId(customerId)` —— 严格 `cus_*<8+ alnum>` 校验
+- `createPortalSession({ customerId, returnUrl, secretKey, fetchImpl?, apiBase? })` —— end-to-end：build request → dispatch via injectable `fetchImpl` → parse response
+- `PortalValidationError` 带 `.code = 'PORTAL_VALIDATION'`
+
+### 56.2 测试矩阵（49 个新测试）
+
+**`apps/nestjs-backend/src/features/billing/billing-cron.test.ts`**（新建，161 行，19 测试）：
+- parseCron：every-5min / 9:30-daily / 月度 / comma / range / 越界拒 / field count 错拒
+- shouldFire：minute 匹配 / 不匹配 / hour filter / day-of-month filter / 同分钟防双触发 / 前一分钟允许
+- nextFireAt：下次 minute 匹配 / 跨小时 rollover / 月度 schedule
+- runCronTick：同步 handler / async handler / 不触发的不调用
+
+**`apps/nestjs-backend/src/features/billing/billing-portal-session.test.ts`**（新建，177 行，17 测试）：
+- validateCustomerId：合法 / 空 / 错 prefix / 错 chars
+- validatePortalReturnUrl：合法 https / 非 https / loopback / metadata / 非法 URL
+- buildPortalSessionRequest：Stripe API contract / apiBase override / 不安全 returnUrl 拒
+- parsePortalSessionResponse：合法 / 错 prefix / 非 https url / 非 object
+- createPortalSession end-to-end：bearer auth / 非 2xx 拒 / 非 JSON 拒
+
+**`apps/nestjs-backend/src/features/billing/billing-portal-session.e2e-drill.test.ts`**（新建，324 行，13 测试）—— 真实 HTTP roundtrip（fake Stripe server）：
+- **Cron drill**：3 jobs (every-15 / daily-930 / monthly-1st) 在 12:30 UTC tick，只有 every-15 触发
+- **Clock 滚动**：每个 15 分钟 mark 检查 shouldFire 序列
+- **Cron + Portal 组合**：portal session 创建后 schedule verify-after-15 cron job
+- **Portal 真实 roundtrip**：build → POST fake Stripe → parse response → 验证 customer + return_url 在 body
+- **Stripe API contract**：buildPortalSessionRequest 输出与 Stripe API 规范一致
+- **Stripe 401 / 500 错误处理**
+- **Return URL SSRF guard**：loopback / metadata / javascript: 全拒
+- **parsePortalSessionResponse**：合法 / 错 prefix / 非 https url
+
+### 56.3 关键决策
+
+- **cron 5-field 子集（不依赖外部库）**：自实现避免 `cron-parser` / `node-cron` 等依赖（pnpm cyclic-dep issue 风险）；覆盖 billing cron 80% 用例。
+- **`lastFiredAt` 防同分钟双触发**：distributed scheduler 常见 race condition；纯函数实现可被任意 caller 复用。
+- **portal session helper 与 controller 解耦**：既有 `BillingPortalController.stripePortal()` 是 inline 实现，R56 把 build / parse / validate 抽到 helper 让 E2E drill 可写。
+- **SSRF 守卫**：returnUrl 必须 https + 非 loopback + 非 metadata IP；防止攻击者通过 Stripe portal redirect 到内部服务。
+- **Stripe API version pin**：`Stripe-Version: 2024-06-20` header 保证 API 行为可预测；Cloud 可按需升级。
+- **0 新依赖**：用 `node:crypto` + `node:http`（fake Stripe server），避免触发 pnpm cyclic-dep issue。
+- **可注入 fetch + clock**：测试可控制 timeout / response / 时序，生产用 undici global fetch + `Date.now()`。
+
+### 56.4 验证证据
+
+- `tsc --noEmit` 零新增诊断
+- vitest `src/features/billing/billing-cron.test.ts` — **19/19 passed**
+- vitest `src/features/billing/billing-portal-session.test.ts` — **17/17 passed**
+- vitest `src/features/billing/billing-portal-session.e2e-drill.test.ts` — **13/13 passed**
+- vitest `src/features/billing` 全量（含既有 dunning / proration / add-on / metered / worker / portal controller 等）— **346/346 passed across 22 files**
+- 跨域 vitest `src/features/{saml, admin, ip-allowlist, domain-verification, scim-push, audit, audit-retention, audit-log-query, audit-export, permission-matrix, backup, billing}` — **850/850 passed across 59 files**（R55 baseline 555 → 850，+295 含 R56 + 全 billing suite）
+
+### 56.5 Top 7 #7 闭环判断
+
+> Stripe Customer Portal 从 **E2（controller 骨架 + 部分单测）推到 E3（业务闭环：cron scheduler 抽象 + portal session helper 抽离 + 真实 HTTP roundtrip drill + SSRF 守卫 + Stripe API contract 一致性）**。
+>
+> **Top 7 #7 Stripe Customer Portal 真接通 + cron 调度**：✅ **R56 完成 E3 闭环**。
+
+### 56.6 Top 7 全部闭环
+
+```
+✅ Top 7 #1 IP Allowlist 真实请求阻断              — R47 + R47b
+⚠️  Top 7 #2 SAML SSO 真实 IdP 联调               — R48-R51（协议层完成；xml-crypto 替换 + samltool.io 顶层演练残留）
+✅ Top 7 #3 SCIM 真实 IdP push 演练                — R52
+✅ Top 7 #4 Audit Log 全量事件 + 脱敏 + Retention — R53
+✅ Top 7 #5 Permission Matrix 热路径 E2E           — R54
+✅ Top 7 #6 Backup 外部对象存储 + 真实 restore     — R55
+✅ Top 7 #7 Stripe Customer Portal 真接通 + cron   — R56（**本轮**）
+
+完成度：7/7 E2 推到 E3（除 #2 协议层完成外全部完成）
+```
+
+### 56.7 仍未完成（R57+ 候选 — 第二梯队）
+
+- **Audit cold storage 真接通 + retention worker**（Top 7 #4 残留）
+- **xml-crypto 替换自包含 verifier**（pnpm 修复后；Top 7 #2 残留）
+- **samltool.io / samltest.id 真实顶层联调**（Top 7 #2 残留）
+- **SCIM Push BullMQ worker**（pending → running → delivered/dead-letter 自动调度）
+- **Permission guard + interceptor NestJS integration E2E**（Top 7 #5 残留）
+- **Backup BullMQ worker + cron 调度**（Top 7 #6 残留）
+- **KMS integration**（Top 7 #6 残留）
+- **PIT restore**（Top 7 #6 残留）
+- **App Builder Live Runtime**（Tier A #1，最大用户面缺口）
+- **AI Chat 真实 LLM 闭环**（Tier A #2，Voice / OAuth Cards / Context Ring / Steer）
+- **Connect & Migrate 真实数据迁移**（Phase 4.4+ 残留）
+- **Skills 三层作用域**（Cuppy 残留）
+- **Custom Domain / Custom Role / Data Masking / Approval Workflow / OAuth Server / Federated SSO / Compliance Attestation / Data Residency**（按客户咨询触发）
+
+
+## §57 — App Builder Live Runtime React 沙箱执行（Tier A #1）
+
+### 范围与目标
+
+把 App Builder 从 R46 的「JSON metadata 占位 HTML」推到真正的 JSX → HTML SSR sandbox：Live runtime (`GET /a/<slug>`) 与 Preview runtime (`GET /api/:baseId/apps/:appId/preview`) 解耦；用户 JSX 在受限 sandbox 内执行；`env.<UPPER_SNAKE>` 注入解密后的 secrets；Tailwind CDN 按需注入；CSP 严格模式相同。
+
+### 落地证据
+
+**新建 helper（4 个模块，~1480 行）**
+
+- `ai-app-builder-snapshot.ts`（~250 行）— snapshot envelope schema + 文件树规范化 + path 安全校验 + legacy `{ files, components }` 迁移 + 入口文件选择 + 总字节统计。
+- `ai-app-builder-jsx-sandbox.ts`（~600 行）— 受限 JSX parser（递归下降）+ 渲染器（递归 renderElement）；禁 `eval / import / fetch / Promise / Reflect / globalThis / window / document / process / setTimeout / setInterval / WebSocket / XMLHttpRequest` 等可触达 host 的 token；剥离所有 `on*` event handler；按 tag allow-list 过滤属性；`env.<UPPER_SNAKE>` 注入；自闭合 uppercase 走 components 字典。
+- `ai-app-builder-mutation.ts`（~380 行）— 6 种 patch kind（replace / replaceRange / append / create / delete / rename）+ 5 种 ElementRefKind（file / tag / prop / text / line）+ entry 文件保护（拒绝 delete/rename 入口）+ LCS-style diffLines；batch 语义支持 `skipIds` 幂等 + `continueOnError` 容错 + duplicate-id 检测。
+- `ai-app-builder-runtime-ssr.ts`（~250 行）— `renderAppHtml` 把 snapshot + env + components 组合成 Live 或 Preview HTML；`buildRuntimeCsp` 按 tailwind flag 生成严格 CSP（`default-src 'self'; script-src 'self' [cdn.tailwindcss.com];` + `frame-ancestors`）。
+
+**Service 追加**
+
+- `ai-app-builder.service.ts`：追加 `getLiveRuntimeContext` / `getPreviewRuntimeContext` / `collectDecryptedSecrets` / `decryptSecret`（AES-256-GCM 反向解密 `encryptSecret`）——约 130 行；解密失败仅 logger.warn 不影响其他 secret。
+
+**Controller 重写**
+
+- `ai-app-builder-runtime.controller.ts`：拆成两个 controller —— `AiAppBuilderRuntimeController`（公开 `GET /a/:slug`，无 auth，渲染 published snapshot）+ `AiAppBuilderPreviewController`（受保护 `GET /api/:baseId/apps/:appId/preview`，License + base 权限，渲染 latest draft）。两个 controller 设置相同的 CSP + `x-app-renderer: teable-app-builder-ssr-r57` 头。
+
+**Module + index 接线**
+
+- `ai-app-builder.module.ts`：注册 `AiAppBuilderPreviewController`。
+- `ai-app-builder/index.ts`：追加 R57 controller + 4 个 helper 模块的 re-export（snapshot normalizer / sandbox renderer / mutation engine / SSR composer）。
+
+### 验证
+
+- `tsc --noEmit` 零**新增** R57 诊断（baseline `ai-app-builder.service.test.ts` 中 `NODE_ENV` readonly 警告保留）。
+- vitest 新增：
+  - `ai-app-builder-snapshot.test.ts` — **21/21 passed**
+  - `ai-app-builder-jsx-sandbox.test.ts` — **31/31 passed**
+  - `ai-app-builder-mutation.test.ts` — **29/29 passed**
+  - `ai-app-builder-runtime-ssr.test.ts` — **10/10 passed**
+  - `ai-app-builder-runtime.controller.test.ts` — **6/6 passed**（重写覆盖 Round 46）
+- vitest `src/features/ai-app-builder/` 全量 — **116/116 passed across 8 files**。
+- 跨域 vitest 13 capability 域 — **966/966 passed across 67 files**（850 → 966，+116 R57）。
+
+### 关键决策
+
+- **JSX grammar 严格受限**：禁 token 列表只保留真正可能触达主机的标识符（不阻止普通英文词）；grammar 本身禁止 function body / arrow / import / `<` 嵌入。
+- **`env.<UPPER_SNAKE>` 强制大写**：避免 JSX 属性拼写错误被当作 env lookup。
+- **event handler 一律剥离**：`on*` 属性在 sandbox 渲染时直接 drop，不依赖 allow-list；CSP 禁止 inline script 让 `onClick` 完全失效（双层防御）。
+- **tag 属性 allow-list**：`<a>` 只接受 `href/target/rel` 等；`<input>` 只接受 `type/name/value/placeholder` 等；其他属性不出现在输出。
+- **mutate-once + replay-safe**：`skipIds` + duplicate-id 检测让 chat runtime 可以安全重发同一批 patch。
+- **entry 文件保护**：`delete` / `rename` 拒绝 entry 文件，避免误删后整个 app 渲染空。
+- **Live vs Preview 分开 controller**：published 由 slug 公开访问，preview 必须 base 权限；CSP 严格模式相同。
+- **self-contained + 0 新依赖**：`node:crypto` 解密 + 纯字符串解析；规避 pnpm cyclic-dep 风险。
+- **runtime SSR 是 fail-closed**：bad snapshot 返回 422 + 错误壳 + `meta.code` 让 caller 写结构化告警。
+
+### Tier A #1 进度
+
+✅ **R57 完成 E2 → E3 闭环**：Live runtime 真正渲染用户 JSX，Preview 与 Live 解耦，Mutation 引擎 ready 与 chat runtime 集成。
+
+### 残留 / 后续轮次
+
+- App Builder Auto-fix：编译错误日志 → AI 修补闭环（未做）
+- Monaco + file tree 真实编辑器（前端 UI，R45/46 只用了 JSON textarea）
+- GitHub 同步（OAuth + repo/branch/commit/PR 状态机）
+- App Login（app user table + Email OTP + Google OAuth）
+- ZIP import/export（root package.json 校验）
+- Custom Domain（TLS provisioning + cert 自动续签）
+- Chat runtime 接入 mutation patch（用户在 chat 中改文件 → 应用 patch → 渲染）
+
+## §58 — AI Chat 真实 LLM 闭环（Tier A #2）
+
+### 范围与目标
+
+把 AI Chat 从 `built-in-echo-llm` deterministic placeholder 推到真实 OpenAI-compatible provider 闭环：SSE 流式、tool calling、token usage 记账、citation hint。三个 pure helper 模块 + 6/15/20 个新测试。
+
+### 落地证据
+
+**新建 helper（3 个模块，~1110 行）**
+
+- `ai-chat-llm-provider.ts`（~530 行）— OpenAI-compatible HTTP client 纯函数集：`normalizeChatRequest`（默认 model / 消息大小上限 / tool_call_id 校验）+ `buildChatRequestBody` + `parseChatResponseBody` + `parseSseFrame`（逐帧 SSE）+ `parseSseStream`（字节流转 ChatChunk）+ `assembleStreamedResponse`（chunk → 完整 ChatResponse）+ `createUsageAggregator` + `accumulateUsage` + `estimateTokens`。
+- `ai-chat-tool-bridge.ts`（~230 行）— internal tool descriptor ↔ OpenAI function-calling wire format；`toolsToOpenAIFunctions` 名称去重 + 长度裁剪；`parseAssistantToolCalls` + `mergeStreamedToolCallDeltas` 鲁棒 JSON 解析（malformed → empty + raw）；`toolResultMessage` JSON 序列化 + 32KB 上限；`extractCitationHint` 从 `tableId/recordId/fieldId` 推断 citation；`canContinueToolLoop` budget 强制。
+- `ai-chat-llm-adapter.ts`（~350 行）— `runChat` + `runChatStream` 串接 provider + tool bridge + budget；`fetchImpl` 可注入（测试用 fake upstream）；3 类 ChatProviderError 语义清晰（NOT_CONFIGURED / REQUEST_INVALID / HTTP_4XX / HTTP_5XX / SSE_MALFORMED）。
+
+### 验证
+
+- `tsc --noEmit` 零 R58 相关诊断。
+- vitest 新增：
+  - `ai-chat-llm-provider.test.ts` — **20/20 passed**
+  - `ai-chat-tool-bridge.test.ts` — **15/15 passed**
+  - `ai-chat-llm-adapter.test.ts` — **6/6 passed**
+- vitest `src/features/ai-chat/` 全量 — **220/220 across 21 files**（既有 179 → 220，+41 R58）。
+- 跨域 vitest 14 capability 域 — **1186/1186 across 88 files**（966 → 1186，+220）。
+
+### 关键决策
+
+- **OpenAI-compatible 协议**：所有 Cloud provider 都暴露 `/v1/chat/completions` + SSE `data:` 格式；Teable 不绑死任何上游。
+- **fetch 注入边界**：adapter 接受 `fetchImpl` 参数，生产用全局 `fetch`（Node 18+ undici），测试用 fake。
+- **0 新依赖**：纯字符串 + `TextDecoder` + `Buffer`，规避 pnpm cyclic-dep 风险。
+- **tool loop 顺序执行**：不并行 tool 调用 — Teable 权限 + audit 检查要求有序流。
+- **budget 强制**：`maxSteps=4 / maxToolCalls=12 / maxDurationMs=30s` 防止 runaway loop；调用方可在 args 覆盖。
+- **SSE 分帧 + comment 透传**：`parseSseFrame` 返回 `null` 让 caller 重试；`parseSseStream` 内部循环驱动。
+- **JSON 鲁棒**：LLM 偶发 malformed `arguments` JSON 不会让 conversation 崩溃 — fallback 到空 args + 保留 raw。
+- **citation hint**：从 tool args (`tableId` / `recordId` / `fieldId`) 推断，UI 可展示 `[table=tbl_x record=rec_y]` 标记。
+
+### Tier A #2 进度
+
+✅ **R58 完成 E2 → E3 闭环**：真实 LLM 闭环（provider + SSE + tool loop + usage + citation）ready 与 ai-chat controller 接通。
+
+### 残留 / 后续轮次
+
+- **R59**：Wire provider 到 ai-chat controller 的 service layer（替换 echo fallback）
+- AI Chat Voice 输入 / OAuth Cards / Context Ring / Steer UI / Manage files
+- App Builder Auto-fix / Monaco + file tree / ZIP import / App Login
+- Audit cold storage + retention worker（Top 7 #4 残留）
+- Permission guard + interceptor NestJS integration（Top 7 #5 残留）
+- SCIM / Backup BullMQ worker（Top 7 #3 / #6 残留）
+
+## §59 — AI Chat LLM service wiring（Tier A #2 完整闭环）
+
+### 范围与目标
+
+把 R58 OpenAI-compatible adapter 接入 ai-chat module —— `AiChatLlmService` 把 adapter 与 ai-chat module 的现有组件（AI Settings、AI_CHAT_TOOLS、AiChatToolsService）桥接起来。controller 仍走 `AiService.generateText` 旧路径，`AiChatLlmService` 作为可选 wiring，feature flag 可切换。
+
+### 落地证据
+
+**新建 service（~230 行）**
+
+- `ai-chat-llm.service.ts`：
+  - `resolveProviderConfig(setting)` —— 优先 admin gateway (`aiGatewayApiKey` / `aiGatewayBaseUrl`)，fallback env (`OPENAI_API_KEY` / `OPENAI_BASE_URL`)，null when `enabled: false` or 两者都缺
+  - `toInternalDescriptors()` —— 把 `AI_CHAT_TOOLS` 的 `parameters: ReadonlyArray<{name, type, required, description}>` 转为 OpenAI JSON Schema `{ type: 'object', properties: { [name]: { type, description } }, required: [...], additionalProperties: false }`
+  - `run(args, setting, fetchOverride)` + `stream(args, setting, fetchOverride)` —— 委托 R58 adapter，`fetchOverride` 让测试可注入 fake upstream
+  - `executeTool(name, args, baseId)` —— 包 `AiChatToolsService.invoke`，自动注入 `baseId` 到 tool args
+  - 返回类型携带 `provider: { label, baseUrl, model } | null` + `configured: boolean`，让 controller 决定 fallback 策略
+
+**Module + index 接线**
+
+- `ai-chat.module.ts` —— 注册 `AiChatLlmService`。
+- `ai-chat/index.ts` —— 追加 `AiChatLlmService` + R58 三个 helper 模块（`ai-chat-llm-provider` / `ai-chat-tool-bridge` / `ai-chat-llm-adapter`）的 re-export。
+
+### 验证
+
+- `tsc --noEmit` 零 R59 相关诊断。
+- vitest `ai-chat-llm.service.test.ts` — **8/8 passed**：
+  - provider config resolution（gateway 优先、env fallback、disabled → null）
+  - descriptor → JSON Schema 转换（含 `required` + `additionalProperties: false`）
+  - fake upstream e2e tool loop（admin gateway + LLM emit tool_calls + AiChatToolsService mock invoke + final reply）
+  - `configured: false` 路径
+- vitest `src/features/ai-chat/` 全量 — **228/228 across 22 files**（R58 220 → R59 228，+8 R59）。
+- 跨域 vitest 14 capability 域 — **1194/1194 across 89 files**（R58 1186 → R59 1194，+8）。
+
+### 关键决策
+
+- **不强行接管 ai-chat.controller**：保留 `ai.chatTurn` 旧路径，`AiChatLlmService` 作为可选 wiring；feature flag 可切换。
+- **Provider 解析优先级**：admin gateway > env > null。
+- **fetchOverride as 3rd param**：service signature 简洁 + 测试可注入 fake upstream。
+- **AI_CHAT_TOOLS 转 OpenAI Schema**：array-of-fields 到 JSON Schema 是一对一映射；保留 `required` + `additionalProperties: false` 防 LLM 注入意外参数。
+- **executeTool 自动注入 baseId**：用户消息上下文 `baseId` 透传到 tool args，AI 无需重复声明。
+
+### Tier A #2 进度
+
+✅ **R59 完成 E2 → E3 helper+module 闭环**：完整 wiring ready。**未做**：ai-chat.controller 切换为 `AiChatLlmService`（feature flag A/B rollout）。
+
+### 残留 / 后续轮次
+
+- **R60**：ai-chat.controller 切换为 `AiChatLlmService`（feature flag）
+- App Builder Auto-fix / Monaco + file tree
+- AI Chat Voice / OAuth Cards / Steer UI
+- Audit cold storage + retention worker（Top 7 #4 残留）
+- Permission guard + interceptor NestJS integration（Top 7 #5 残留）
+- SCIM / Backup BullMQ worker（Top 7 #3 / #6 残留）
+
+## §60 — AI Chat feature flag 切换 + rollout（Tier A #2 完整 E3 闭环）
+
+- **目标**：用 feature flag 在 ai-chat controller 上启用真实 LLM 闭环（A/B rollout）；0 回归。
+- **改动**：
+  - 新建 `apps/nestjs-backend/src/features/ai-chat/ai-chat-llm-router.ts`（约 190 行）：
+    - `FEATURE_FLAG_ENV = 'AI_CHAT_LLM_ROUTER_ENABLED'` + `readFeatureFlag(env)` 解析 `1/true/yes/on` 为 on，其余为 off。
+    - `decideLlmRoute(setting, env, service)` 返回 `{ mode, reason, flagEnabled }`：`legacy` (flag off) / `provider` (flag on + provider 配置存在) / `echo` (flag on + provider 缺失)。
+    - `buildEchoReply({userMessage, toolNames, baseId, seenHints})` — deterministic echo + per-baseId 升级提示 gating。
+    - `runLlmRoutedTurn(args, setting, deps)` — 委托 `AiChatLlmService.run` 或 echo fallback；`ChatProviderError` 透传不让 echo 吞。
+  - `apps/nestjs-backend/src/features/ai-chat/ai-chat.auth.service.ts`：
+    - 注入 `@Optional() private readonly llmService?: AiChatLlmService`（DI 容器可选注入，避免循环依赖）。
+    - 新增 `chatTurnLlm(input: IChatTurnInput)` — flag off 时 throw `'AI Chat LLM router is not enabled'`；flag on 时拉历史 + addMessage(user) + 委派 `llmService.run` + 持久化 assistant message + 检测 artifacts。
+    - 新增 `chatTurnStreamingLlm(input)` AsyncGenerator — 流式版本，每 chunk 同步推进 heartbeat；终态持久化 assistant message。
+    - 新增 private helper: `assembleLlmMessages` (历史截断 `MAX_HISTORY_TURNS`) + `detectArtifactsSafely` (try/catch 静默吞异常) + `loadAiSettingSafe` (AI setting 缺失 fallback to empty config)。
+  - `apps/nestjs-backend/src/features/ai-chat/ai-chat.controller.ts`：
+    - `chatTurn` 端点：`if (readFeatureFlag()) return this.svc.chatTurnLlm(...)` 否则旧 `svc.chatTurn(...)`。
+    - `chatTurnStream` 端点：flag on 时流 `svc.chatTurnStreamingLlm(...)` 否则流旧 `svc.chatTurnStreaming(...)`；SSE 协议格式不变。
+
+- **验证**：
+  - `tsc --noEmit` 零 R60 相关诊断。修复中断时遗留的 `chatTurnLlm` 上方方法缺闭合花括号语法错（line 924 后缺 `}`）。
+  - 新增 `ai-chat-llm-router.test.ts`：**13/13 passed**：
+    - `readFeatureFlag` 解析（truthy/falsy 边界、unknown 值、大小写容错）
+    - `decideLlmRoute` 三态（legacy / provider / echo）
+    - `buildEchoReply` deterministic + per-baseId hint gating + 长消息截断
+    - `runLlmRoutedTurn` 三 source（provider / echo / legacy fallback）
+  - vitest `src/features/ai-chat/` 全量 — **241/241 across 23 files**（R59 228 → R60 241，+13 router 测试，0 回归）。
+
+- **关键决策**：
+  - **feature flag 默认 off**：`AI_CHAT_LLM_ROUTER_ENABLED=1` 启用；缺省/非法值视为 off — 默认与既有 `chatTurn` 路径一致，0 回归。
+  - **三态路由 + 错误透传**：`ChatProviderError` 不被 echo 吞，controller 端返回 503 + `error.code`，避免 silent fallback 导致用户感到 LLM 答了但实际没有。
+  - **per-baseId hint gating**：echo 升级提示按 `baseId` 去重，避免同一 base 多轮对话刷屏。
+  - **`@Optional()` 注入 `llmService`**：避免 ai-chat module 必须在所有环境配置 LLM provider；缺注入时 flag 自动 silent fallback 到 legacy。
+  - **`chatTurnStreamingLlm` 复用 SSE 协议**：前端无需感知 flag on/off，事件格式 `data: {delta, done}` 不变。
+
+- **Tier A #2 进度**：✅ **R60 完成 E3 完整闭环**：ai-chat controller 已用 feature flag 切换，可随时开 flag 灰度真实 LLM。Tier A #2 (AI Chat 真实 LLM 闭环) 整体收官。
+
+- **残留 / 后续轮次**：
+  - **App Builder Auto-fix + Monaco + file tree**（Tier A #1 配套）
+  - **AI Chat Voice / OAuth Cards / Steer UI**（Tier A #2 周边体验深化）
+  - **Audit cold storage + retention worker**（Top 7 #4 残留）
+  - **Permission guard + interceptor NestJS integration**（Top 7 #5 残留）
+  - **SCIM / Backup BullMQ worker**（Top 7 #3 / #6 残留）
+

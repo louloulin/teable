@@ -24,6 +24,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { readFeatureFlag } from './ai-chat-llm-router';
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
 import { AiChatAuthService } from './ai-chat.auth.service';
@@ -510,6 +511,18 @@ export class AiChatController {
       attachmentIds?: string[];
     }
   ) {
+    // R60 feature flag — when enabled, route through AiChatLlmService.
+    // Legacy path (AiService) is preserved for 0 regression.
+    if (readFeatureFlag()) {
+      return this.svc.chatTurnLlm({
+        sessionId,
+        userMessage: body.userMessage,
+        context: body.context,
+        smartLevel: body.smartLevel,
+        attachmentIds: body.attachmentIds,
+        userId: this.currentUserId(),
+      });
+    }
     return this.svc.chatTurn({
       sessionId,
       userMessage: body.userMessage,
@@ -549,13 +562,24 @@ export class AiChatController {
     res.flushHeaders?.();
 
     try {
-      for await (const chunk of this.svc.chatTurnStreaming({
-        sessionId,
-        userMessage: body.userMessage,
-        context: body.context,
-        userId: this.currentUserId(),
-        attachmentIds: body.attachmentIds,
-      })) {
+      // R60 feature flag — when enabled, stream via AiChatLlmService.
+      // Legacy path (AiService SSE) is preserved for 0 regression.
+      const stream = readFeatureFlag()
+        ? this.svc.chatTurnStreamingLlm({
+            sessionId,
+            userMessage: body.userMessage,
+            context: body.context,
+            userId: this.currentUserId(),
+            attachmentIds: body.attachmentIds,
+          })
+        : this.svc.chatTurnStreaming({
+            sessionId,
+            userMessage: body.userMessage,
+            context: body.context,
+            userId: this.currentUserId(),
+            attachmentIds: body.attachmentIds,
+          });
+      for await (const chunk of stream) {
         res.write(`data: ${JSON.stringify(chunk)}\n\n`);
       }
     } catch (error) {

@@ -17,3 +17,68 @@ export { AiAppBuilderController } from './ai-app-builder.controller';
 // ─── Services ─────────────────────────────────────────────────────
 export { AiAppBuilderAuthService } from './ai-app-builder.auth.service';
 export { AiAppBuilderService, IAppVo, IAppVersionVo, IAppSecretVo, IAppFileVo } from './ai-app-builder.service';
+
+
+// ─── Runtime controllers (R57) ───────────────────────────────────
+export { AiAppBuilderRuntimeController, AiAppBuilderPreviewController } from './ai-app-builder-runtime.controller';
+
+// ─── SSR sandbox + snapshot helpers (R57) ────────────────────────
+export {
+  normalizeSnapshot,
+  normalizeSnapshotPath,
+  inferLanguage,
+  migrateLegacySnapshot,
+  getEntryFile,
+  getFileByPath,
+  totalSnapshotBytes,
+  SnapshotValidationError,
+  SNAPSHOT_MAX_FILE_BYTES,
+  SNAPSHOT_MAX_FILES,
+  type SnapshotSourceFile,
+  type SnapshotApp,
+  type SnapshotEnvelope,
+  type LegacySnapshot,
+  type SnapshotValidationCode,
+} from './ai-app-builder-snapshot';
+export {
+  parseJsx,
+  renderElement,
+  renderSnapshotEntry,
+  escapeHtml,
+  JsxSandboxError,
+  JSX_MAX_DEPTH,
+  JSX_MAX_NODES,
+  type JsxElement,
+  type JsxAttribute,
+  type JsxNode,
+  type JsxComponent,
+  type JsxText,
+  type JsxExpr,
+  type JsxSandboxCode,
+  type RenderResult,
+  type RenderOptions,
+} from './ai-app-builder-jsx-sandbox';
+export {
+  resolveElementRef,
+  applyMutationPatches,
+  diffLines,
+  MutationValidationError,
+  type ElementRef,
+  type ElementRefKind,
+  type MutationPatch,
+  type MutationPatchKind,
+  type ApplyResult,
+  type ApplyOptions,
+  type ApplyFailure,
+  type ApplyOutcome,
+  type DiffLine,
+} from './ai-app-builder-mutation';
+export {
+  renderAppHtml,
+  buildRuntimeCsp,
+  type RenderAppOptions,
+  type RenderAppResult,
+  type RenderAppMeta,
+  type RuntimeMode,
+  type RuntimeSecrets,
+} from './ai-app-builder-runtime-ssr';

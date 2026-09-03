@@ -20,6 +20,7 @@ import { AiChatArtifactService } from './ai-chat-artifact.service';
 import { AiChatSmartLevelService } from './ai-chat-smart-level.service';
 import { AiChatQueueService } from './ai-chat-queue.service';
 import type {
+  AiChatRole,
   IAddChatMessageInput,
   IAiChatMessage,
   IAiChatSession,
@@ -30,6 +31,9 @@ import type {
 import { AiService } from '../ai/ai.service';
 import { AiChatNodeRefService } from './ai-chat-node-ref.service';
 import { AiChatAttachmentExtractor } from './ai-chat-attachment-extractor.service';
+import { AiChatLlmService } from './ai-chat-llm.service';
+import { decideLlmRoute, readFeatureFlag } from './ai-chat-llm-router';
+import { getAiSetting } from '../ai-setting/ai-setting.auth.service';
 
 const MAX_HISTORY_TURNS = 20;
 
@@ -50,7 +54,8 @@ export class AiChatAuthService {
     @Optional() private readonly queueService?: AiChatQueueService,
     @Optional() private readonly permissionService?: PermissionService,
     @Optional() private readonly nodeRefService?: AiChatNodeRefService,
-    @Optional() private readonly attachmentExtractor?: AiChatAttachmentExtractor
+    @Optional() private readonly attachmentExtractor?: AiChatAttachmentExtractor,
+    @Optional() private readonly llmService?: AiChatLlmService
   ) {}
 
   async assertBaseReadable(baseId: string | null | undefined): Promise<void> {
@@ -917,6 +922,236 @@ export class AiChatAuthService {
     parts.push(`User: ${input.userMessage}`);
     parts.push('Assistant:');
     return parts.join('\n\n');
+  }
+
+  // ─── R60 — LLM router (feature-flagged, replaces echo path) ──────
+
+  /**
+   * Single chat turn via the R58/R59 LLM wiring. Used when the
+   * `AI_CHAT_LLM_ROUTER_ENABLED` flag is on; otherwise the existing
+   * `chatTurn` (AiService path) stays in charge.
+   */
+  async chatTurnLlm(input: IChatTurnInput): Promise<IChatTurnResult> {
+    if (!readFeatureFlag() || !this.llmService) {
+      throw new Error('AI Chat LLM router is not enabled');
+    }
+    const session = await this.findOwnedSession(input.sessionId, input.userId);
+    const history = await this.prisma.aiChatMessage.findMany({
+      where: { sessionId: input.sessionId },
+      orderBy: { createdTime: 'asc' },
+      take: MAX_HISTORY_TURNS,
+    });
+    const userMessage = await this.addMessage({
+      sessionId: input.sessionId,
+      role: 'user',
+      content: input.userMessage,
+    });
+    const { system, messages } = await this.assembleLlmMessages(input, session, history);
+    const setting = await this.loadAiSettingSafe();
+    const decision = decideLlmRoute(setting, process.env, this.llmService);
+    if (decision.mode === 'legacy') {
+      throw new Error('AI Chat LLM router disabled by feature flag');
+    }
+    const startedAt = Date.now();
+    const routed = await this.llmService.run(
+      {
+        system,
+        messages,
+        baseId: session.baseId ?? undefined,
+      },
+      setting
+    );
+    const durationMs = Date.now() - startedAt;
+    const assistantContent = (routed.text ?? '').trim();
+    const assistantMessage = await this.addMessage({
+      sessionId: input.sessionId,
+      role: 'assistant',
+      content: assistantContent,
+      model: session.model,
+      promptTokens: routed.usage.prompt_tokens,
+      completionTokens: routed.usage.completion_tokens,
+      durationMs,
+    });
+    await this.detectArtifactsSafely(assistantContent, session.id, assistantMessage.id);
+    if (!session.title) {
+      const titleFromMessage = input.userMessage.slice(0, 40).replace(/\\s+/g, ' ').trim();
+      if (titleFromMessage) {
+        await this.prisma.aiChatSession.update({
+          where: { id: input.sessionId },
+          data: { title: titleFromMessage },
+        });
+      }
+    }
+    void this.drainQueue(input.sessionId);
+    return {
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      assistantContent,
+      promptTokens: routed.usage.prompt_tokens,
+      completionTokens: routed.usage.completion_tokens,
+      durationMs,
+      skillName: undefined,
+    };
+  }
+
+  /**
+   * Streaming chat turn via the R58/R59 LLM wiring. Mirrors
+   * `chatTurnStreaming` but routes through AiChatLlmService.stream
+   * so the real OpenAI-compatible provider (or echo fallback) is the
+   * source of truth.
+   */
+  async *chatTurnStreamingLlm(input: IChatTurnInput): AsyncGenerator<
+    | { delta: string; done: false }
+    | {
+        delta: '';
+        done: true;
+        userMessageId: string;
+        assistantMessageId: string;
+        assistantContent: string;
+        promptTokens: number;
+        completionTokens: number;
+        durationMs: number;
+      }
+  > {
+    if (!readFeatureFlag() || !this.llmService) {
+      throw new Error('AI Chat LLM router is not enabled');
+    }
+    const session = await this.findOwnedSession(input.sessionId, input.userId);
+    const history = await this.prisma.aiChatMessage.findMany({
+      where: { sessionId: input.sessionId },
+      orderBy: { createdTime: 'asc' },
+      take: MAX_HISTORY_TURNS,
+    });
+    const userMessage = await this.addMessage({
+      sessionId: input.sessionId,
+      role: 'user',
+      content: input.userMessage,
+    });
+    const { system, messages } = await this.assembleLlmMessages(input, session, history);
+    const setting = await this.loadAiSettingSafe();
+    const decision = decideLlmRoute(setting, process.env, this.llmService);
+    if (decision.mode === 'legacy') {
+      throw new Error('AI Chat LLM router disabled by feature flag');
+    }
+    const startedAt = Date.now();
+    let accumulated = '';
+    for await (const ev of this.llmService.stream(
+      {
+        system,
+        messages,
+        baseId: session.baseId ?? undefined,
+      },
+      setting
+    )) {
+      if ('delta' in ev && ev.delta) {
+        accumulated += ev.delta;
+        yield { delta: ev.delta, done: false };
+      }
+    }
+    const durationMs = Date.now() - startedAt;
+    const assistantContent = accumulated.trim();
+    const assistantMessage = await this.addMessage({
+      sessionId: input.sessionId,
+      role: 'assistant',
+      content: assistantContent,
+      model: session.model,
+      promptTokens: estimateTokens(system + '\\n' + messages.map((m) => m.content).join('\\n')),
+      completionTokens: estimateTokens(assistantContent),
+      durationMs,
+    });
+    await this.detectArtifactsSafely(assistantContent, session.id, assistantMessage.id);
+    if (!session.title) {
+      const titleFromMessage = input.userMessage.slice(0, 40).replace(/\\s+/g, ' ').trim();
+      if (titleFromMessage) {
+        await this.prisma.aiChatSession.update({
+          where: { id: input.sessionId },
+          data: { title: titleFromMessage },
+        });
+      }
+    }
+    void this.drainQueue(input.sessionId);
+    yield {
+      delta: '',
+      done: true,
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      assistantContent,
+      promptTokens: estimateTokens(system + '\\n' + messages.map((m) => m.content).join('\\n')),
+      completionTokens: estimateTokens(assistantContent),
+      durationMs,
+    };
+  }
+
+  /**
+   * Assemble `system` prompt + `messages[]` from session context.
+   * Mirrors the inline logic in `chatTurn` but stays pure so the
+   * LLM router does not need to re-resolve skills/memory/etc.
+   */
+  private async assembleLlmMessages(
+    input: IChatTurnInput,
+    session: IAiChatSession,
+    history: ReadonlyArray<{ role: AiChatRole; content: string }>
+  ): Promise<{
+    system: string;
+    messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }>;
+  }> {
+    const autoContext = await this.resolveContextPrefix(session, input.context);
+    const attachmentBlock = input.attachmentIds?.length
+      ? await this.attachmentExtractor?.resolveToTextBlock(input.attachmentIds)
+      : '';
+    const skill = await this.resolveSkill({ userMessage: input.userMessage, session });
+    const memory = await this.resolveMemory({
+      userId: session.createdBy,
+      baseId: session.baseId,
+    });
+    const preferences = await this.resolvePreferences(session.createdBy);
+    const nodeRefs = await this.resolveNodeRefs(input.sessionId, session.createdBy);
+    const context = [autoContext || input.context, nodeRefs, attachmentBlock]
+      .filter(Boolean)
+      .join('\\n\\n');
+    const parts: string[] = [];
+    if (skill?.systemPrompt) parts.push(skill.systemPrompt);
+    if (memory) parts.push(`Memory:\\n${memory}`);
+    if (preferences) parts.push(`Preferences:\\n${preferences}`);
+    if (context) parts.push(`Context:\\n${context}`);
+    const system = parts.join('\\n\\n');
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = history
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+    messages.push({ role: 'user', content: skill ? skill.remainder : input.userMessage });
+    return { system, messages: messages as Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }> };
+  }
+
+  private async detectArtifactsSafely(
+    assistantContent: string,
+    sessionId: string,
+    messageId: string
+  ): Promise<void> {
+    if (!this.artifactService) return;
+    try {
+      const detected = this.artifactService.detectFromMessage(assistantContent);
+      for (const d of detected) {
+        await this.artifactService.create({
+          sessionId,
+          messageId,
+          format: d.format,
+          title: d.title,
+          content: d.content,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(
+        `artifact detection failed (R60) for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  private async loadAiSettingSafe() {
+    try {
+      return await getAiSetting();
+    } catch {
+      return null;
+    }
   }
 }
 

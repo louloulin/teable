@@ -24,6 +24,7 @@ import { AiChatQueueService } from './ai-chat-queue.service';
 import { AiChatWritePlanService } from './ai-chat-write-plan.service';
 import { AiChatNodeRefService } from './ai-chat-node-ref.service';
 import { AiChatAttachmentExtractor } from './ai-chat-attachment-extractor.service';
+import { AiChatLlmService } from './ai-chat-llm.service';
 import { AiChatLongTaskProcessor } from './ai-chat-long-task.processor';
 import { AI_CHAT_LONG_TASK_QUEUE } from './ai-chat-long-task.service';
 import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
@@ -55,6 +56,7 @@ import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
     AiChatNodeRefService,
     AiChatAttachmentExtractor,
     AiChatLongTaskProcessor,
+    AiChatLlmService,
   ],
   exports: [
     AiChatAuthService,
@@ -74,6 +76,7 @@ import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
     AiChatWritePlanService,
     AiChatNodeRefService,
     AiChatAttachmentExtractor,
+    AiChatLlmService,
   ],
 })
 export class AiChatModule {}

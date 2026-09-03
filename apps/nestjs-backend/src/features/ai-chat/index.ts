@@ -110,3 +110,54 @@ export {
 
 // ─── Other public exports ─────────────────────────────────────────
 export { estimateTokens } from './ai-chat.helper';
+export { AiChatLlmService, type AiChatLlmRunArgs, type AiChatLlmRunResult } from './ai-chat-llm.service';
+export {
+  normalizeChatRequest,
+  buildChatRequestBody,
+  parseChatResponseBody,
+  parseSseFrame,
+  parseSseStream,
+  assembleStreamedResponse,
+  createUsageAggregator,
+  accumulateUsage,
+  estimateTokens,
+  ChatProviderError,
+  MAX_MESSAGES,
+  MAX_MESSAGE_BYTES,
+  MAX_TOOLS,
+  MAX_MAX_TOKENS,
+  DEFAULT_MAX_TOKENS,
+  type ChatMessage,
+  type ChatRole,
+  type ChatRequest,
+  type ChatResponse,
+  type ChatChunk,
+  type ChatTool,
+  type ChatToolCall,
+  type ChatProviderConfig,
+  type ChatProviderErrorCode,
+  type NormalizedChatRequest,
+  type UsageAggregator,
+  type SseFrame,
+} from './ai-chat-llm-provider';
+export {
+  toolsToOpenAIFunctions,
+  parseAssistantToolCalls,
+  mergeStreamedToolCallDeltas,
+  toolResultMessage,
+  extractCitationHint,
+  canContinueToolLoop,
+  DEFAULT_TOOL_LOOP_BUDGET,
+  MAX_TOOL_NAME_LENGTH,
+  MAX_TOOL_DESCRIPTION_LENGTH,
+  type InternalToolDescriptor,
+  type ParsedToolCall,
+  type ToolLoopBudget,
+} from './ai-chat-tool-bridge';
+export {
+  runChat,
+  runChatStream,
+  type AdapterConfig,
+  type AdapterRunArgs,
+  type AdapterRunResult,
+} from './ai-chat-llm-adapter';

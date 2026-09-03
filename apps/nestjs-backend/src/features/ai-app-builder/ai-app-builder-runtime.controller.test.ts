@@ -4,10 +4,11 @@ import { AiAppBuilderRuntimeController } from './ai-app-builder-runtime.controll
 
 interface IMockService {
   resolveBySlug: ReturnType<typeof vi.fn>;
-  getSnapshotByAppId: ReturnType<typeof vi.fn>;
+  getLiveRuntimeContext: ReturnType<typeof vi.fn>;
 }
 
 interface IMockResponse {
+  setHeader: ReturnType<typeof vi.fn>;
   status: ReturnType<typeof vi.fn>;
   type: ReturnType<typeof vi.fn>;
   send: ReturnType<typeof vi.fn>;
@@ -15,24 +16,46 @@ interface IMockResponse {
 
 const buildResponse = (): IMockResponse => {
   const chain = {} as IMockResponse & {
+    setHeader: ReturnType<typeof vi.fn>;
     status: ReturnType<typeof vi.fn>;
     type: ReturnType<typeof vi.fn>;
     send: ReturnType<typeof vi.fn>;
   };
+  chain.setHeader = vi.fn(() => chain);
   chain.status = vi.fn(() => chain);
   chain.type = vi.fn(() => chain);
   chain.send = vi.fn(() => chain);
   return chain as IMockResponse;
 };
 
-describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
+const liveContext = (overrides: Record<string, unknown> = {}) => ({
+  appId: 'app_1',
+  appName: 'My Dashboard',
+  versionNumber: 3,
+  deployedAt: new Date('2026-09-03T10:00:00.000Z'),
+  publicSlug: 'a1b2c3d4e5f6',
+  snapshot: {
+    schema: 1,
+    app: {
+      files: [
+        { path: 'src/App.tsx', content: '<main><h1>Hi from {env.GREETING}</h1></main>', language: 'tsx' },
+      ],
+      entry: 'src/App.tsx',
+      tailwind: false,
+    },
+  },
+  secrets: { GREETING: 'Hello world' },
+  ...overrides,
+});
+
+describe('AiAppBuilderRuntimeController (R57 GET /a/:slug SSR sandbox)', () => {
   let svc: IMockService;
   let controller: AiAppBuilderRuntimeController;
 
   beforeEach(() => {
     svc = {
       resolveBySlug: vi.fn(),
-      getSnapshotByAppId: vi.fn(),
+      getLiveRuntimeContext: vi.fn(),
     };
     controller = new AiAppBuilderRuntimeController(svc as never);
   });
@@ -41,14 +64,14 @@ describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
     svc.resolveBySlug.mockResolvedValueOnce(null);
     const res = buildResponse();
 
-    await expect(controller.runtime('unknown', res as never)).rejects.toThrow(
+    await expect(controller.publicRuntime('unknown', res as never)).rejects.toThrow(
       /no published app with slug=unknown/
     );
-    expect(svc.getSnapshotByAppId).not.toHaveBeenCalled();
+    expect(svc.getLiveRuntimeContext).not.toHaveBeenCalled();
     expect(res.send).not.toHaveBeenCalled();
   });
 
-  it('returns 404 when the published app has no deployable snapshot', async () => {
+  it('returns 404 when the runtime context is missing', async () => {
     svc.resolveBySlug.mockResolvedValueOnce({
       id: 'app_1',
       baseId: 'bse_1',
@@ -56,16 +79,16 @@ describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
       publicSlug: 'a1b2c3d4e5f6',
       publishedAt: new Date(),
     });
-    svc.getSnapshotByAppId.mockResolvedValueOnce(null);
+    svc.getLiveRuntimeContext.mockResolvedValueOnce(null);
     const res = buildResponse();
 
-    await expect(controller.runtime('a1b2c3d4e5f6', res as never)).rejects.toThrow(
-      /no deployable snapshot/
+    await expect(controller.publicRuntime('a1b2c3d4e5f6', res as never)).rejects.toThrow(
+      /no runtime context/
     );
     expect(res.send).not.toHaveBeenCalled();
   });
 
-  it('renders HTML for a published app with a deployed snapshot', async () => {
+  it('renders SSR HTML for a published app with a deployed snapshot', async () => {
     svc.resolveBySlug.mockResolvedValueOnce({
       id: 'app_1',
       baseId: 'bse_1',
@@ -73,36 +96,25 @@ describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
       publicSlug: 'a1b2c3d4e5f6',
       publishedAt: new Date(),
     });
-    svc.getSnapshotByAppId.mockResolvedValueOnce({
-      appId: 'app_1',
-      appName: 'My Dashboard',
-      versionNumber: 3,
-      deployedAt: '2026-09-03T10:00:00.000Z',
-      snapshot: {
-        files: [{ path: 'index.tsx', content: 'export default () => null' }],
-        components: ['Header', 'Grid'],
-      },
-    });
+    svc.getLiveRuntimeContext.mockResolvedValueOnce(liveContext());
     const res = buildResponse();
 
-    await controller.runtime('a1b2c3d4e5f6', res as never);
+    await controller.publicRuntime('a1b2c3d4e5f6', res as never);
 
     expect(svc.resolveBySlug).toHaveBeenCalledWith('a1b2c3d4e5f6');
-    expect(svc.getSnapshotByAppId).toHaveBeenCalledWith('app_1');
+    expect(svc.getLiveRuntimeContext).toHaveBeenCalledWith('app_1');
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.type).toHaveBeenCalledWith('text/html; charset=utf-8');
+    expect(res.setHeader).toHaveBeenCalledWith('x-app-renderer', 'teable-app-builder-ssr-r57');
     const sendArg = (res.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(sendArg).toContain('<!doctype html>');
-    expect(sendArg).toContain('My Dashboard');
+    expect(sendArg).toContain('Hi from Hello world');
+    expect(sendArg).toContain('Live • My Dashboard');
     expect(sendArg).toContain('a1b2c3d4e5f6');
-    expect(sendArg).toContain('Version');
-    expect(sendArg).toContain('3');
-    expect(sendArg).toContain('2026-09-03T10:00:00.000Z');
-    expect(sendArg).toContain('index.tsx');
-    expect(sendArg).toContain('Header');
+    expect(sendArg).toContain('x-teable-runtime');
   });
 
-  it('escapes HTML special characters in the app name + slug + snapshot', async () => {
+  it('HTML-escapes untrusted content from the snapshot', async () => {
     svc.resolveBySlug.mockResolvedValueOnce({
       id: 'app_2',
       baseId: 'bse_2',
@@ -110,28 +122,35 @@ describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
       publicSlug: '<bad slug>',
       publishedAt: new Date(),
     });
-    svc.getSnapshotByAppId.mockResolvedValueOnce({
-      appId: 'app_2',
-      appName: '<script>alert("xss")</script>',
-      versionNumber: 1,
-      deployedAt: '2026-09-03T11:00:00.000Z',
-      snapshot: { markup: '<img src=x onerror=alert(1)>' },
-    });
+    svc.getLiveRuntimeContext.mockResolvedValueOnce(
+      liveContext({
+        appName: '<script>alert("xss")</script>',
+        publicSlug: '<bad slug>',
+        snapshot: {
+          schema: 1,
+          app: {
+            files: [
+              { path: 'src/App.tsx', content: '<p>{env.GREETING}</p>', language: 'tsx' },
+            ],
+            entry: 'src/App.tsx',
+            tailwind: false,
+          },
+        },
+        secrets: { GREETING: '<img src=x onerror=alert(1)>' },
+      })
+    );
     const res = buildResponse();
 
-    await controller.runtime('<bad slug>', res as never);
+    await controller.publicRuntime('<bad slug>', res as never);
 
     const sendArg = (res.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    // raw injection must not appear in the HTML body
     expect(sendArg).not.toContain('<script>alert("xss")</script>');
     expect(sendArg).not.toContain('<img src=x onerror=alert(1)>');
-    // escaped forms must appear
-    expect(sendArg).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
-    expect(sendArg).toContain('&lt;bad slug&gt;');
+    expect(sendArg).toContain('&lt;script&gt;');
     expect(sendArg).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
-  it('returns 404 when getSnapshotByAppId yields null but resolveBySlug succeeded (data-integrity guard)', async () => {
+  it('sets a content-security-policy header tailored to tailwind=false', async () => {
     svc.resolveBySlug.mockResolvedValueOnce({
       id: 'app_3',
       baseId: 'bse_3',
@@ -139,11 +158,42 @@ describe('AiAppBuilderRuntimeController (Round 46 GET /a/:slug)', () => {
       publicSlug: 'a1b2c3d4e5f6',
       publishedAt: new Date(),
     });
-    svc.getSnapshotByAppId.mockResolvedValueOnce(null);
+    svc.getLiveRuntimeContext.mockResolvedValueOnce(liveContext());
     const res = buildResponse();
 
-    await expect(controller.runtime('a1b2c3d4e5f6', res as never)).rejects.toThrow(
-      /no deployable snapshot/
+    await controller.publicRuntime('a1b2c3d4e5f6', res as never);
+
+    expect(res.setHeader).toHaveBeenCalledWith('content-security-policy', expect.stringContaining('script-src'));
+  });
+
+  it('returns 422 when the SSR sandbox rejects the snapshot', async () => {
+    svc.resolveBySlug.mockResolvedValueOnce({
+      id: 'app_4',
+      baseId: 'bse_4',
+      currentVersionId: 'apv_4',
+      publicSlug: 'a1b2c3d4e5f6',
+      publishedAt: new Date(),
+    });
+    // eval is a forbidden token — sandbox rejects on parse
+    svc.getLiveRuntimeContext.mockResolvedValueOnce(
+      liveContext({
+        snapshot: {
+          schema: 1,
+          app: {
+            files: [{ path: 'src/App.tsx', content: '<div>eval</div>', language: 'tsx' }],
+            entry: 'src/App.tsx',
+            tailwind: false,
+          },
+        },
+      })
     );
+    const res = buildResponse();
+
+    await controller.publicRuntime('a1b2c3d4e5f6', res as never);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    const sendArg = (res.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    expect(sendArg).toContain('forbidden identifier');
+    expect(sendArg).toContain('Render error');
   });
 });

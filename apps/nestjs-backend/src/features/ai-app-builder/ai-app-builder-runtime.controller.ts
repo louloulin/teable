@@ -1,19 +1,25 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /**
- * Public runtime endpoint for published AI App Builder apps.
+ * Runtime endpoints for AI App Builder apps (R57).
  *
- * Round 46: serves `GET /a/<slug>` so a published app can be reached
- * at `https://<host>/a/<publicSlug>`. Auth is intentionally NOT
- * required — the app is public by design (the operator opted in
- * via `POST /api/:baseId/apps/:appId/publish`).
+ * Round 57 replaces the Round 46 snapshot-JSON placeholder with a real
+ * SSR sandbox renderer. Two routes live in two controllers:
  *
- * What we serve today: a JSON-LD-style HTML page that renders the
- * snapshot as readable metadata (app name, version number, deployed
- * timestamp, raw snapshot JSON in a `<pre>` block). This is a
- * minimal-but-real runtime — enough to prove the publish → resolve →
- * render loop end-to-end. The full React-sandbox runtime (snapshot
- * files transpiled into a sandboxed iframe, secrets injected as env,
- * custom-domain routing) is a separate scope.
+ *   GET /a/:slug
+ *     — Public runtime for *published* apps. No auth.
+ *       Renders the deployed snapshot via the JSX sandbox; injects
+ *       Tailwind CDN when the snapshot opts in.
+ *
+ *   GET /api/:baseId/apps/:appId/preview
+ *     — Protected runtime for *draft* apps. Auth + permission
+ *       required. Renders the latest version's snapshot and stamps
+ *       the page with a "Preview" banner so the operator cannot
+ *       confuse it with a Live published app.
+ *
+ * Both routes share the SSR renderer (`renderAppHtml`). The renderer
+ * is pure — same inputs always produce the same HTML (modulo
+ * `renderedAt`). Each controller sets a strict
+ * Content-Security-Policy header tailored to the actual emissions.
  *
  * License: AGPL-3.0
  */
@@ -24,23 +30,35 @@ import {
   NotFoundException,
   Param,
   Res,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
+import { AiAppBuilderAuthService } from './ai-app-builder.auth.service';
 import { AiAppBuilderService } from './ai-app-builder.service';
+import {
+  buildRuntimeCsp,
+  renderAppHtml,
+  type RenderAppOptions,
+} from './ai-app-builder-runtime-ssr';
+import { ClsService } from 'nestjs-cls';
+import type { IClsStore } from '../../types/cls';
 
+const AiAppBuilderGuard = LicenseCapabilityGuard.for('ai_app_builder');
+
+/**
+ * Public runtime for published apps. No auth — anyone with the slug
+ * can fetch. The operator opted in via `POST /api/:baseId/apps/:appId/publish`.
+ */
 @Controller('a')
 export class AiAppBuilderRuntimeController {
   constructor(private readonly svc: AiAppBuilderService) {}
 
-  /**
-   * Public runtime route. Returns 404 when the slug is unknown or
-   * the app has been unpublished (Cloud's `app.teable.ai/a/<slug>`
-   * semantics). The runtime page is HTML so curl + browser share
-   * the same endpoint.
-   */
   @Get(':slug')
-  @Header('cache-control', 'public, max-age=30, stale-while-revalidate=60')
-  async runtime(
+  @Header('cache-control', 'public, max-age=15, stale-while-revalidate=30')
+  async publicRuntime(
     @Param('slug') slug: string,
     @Res() res: Response
   ): Promise<void> {
@@ -48,51 +66,103 @@ export class AiAppBuilderRuntimeController {
     if (!app) {
       throw new NotFoundException(`no published app with slug=${slug}`);
     }
-    const snap = await this.svc.getSnapshotByAppId(app.id);
-    if (!snap) {
-      throw new NotFoundException(
-        `app ${app.id} is published but has no deployable snapshot`
-      );
+    const ctx = await this.svc.getLiveRuntimeContext(app.id);
+    if (!ctx) {
+      throw new NotFoundException(`app ${app.id} is published but has no runtime context`);
     }
-    const escapedName = escapeHtml(snap.appName);
-    const escapedSlug = escapeHtml(slug);
-    const escapedVersion = String(snap.versionNumber);
-    const escapedDeployedAt = escapeHtml(snap.deployedAt);
-    const snapshotJson = JSON.stringify(snap.snapshot, null, 2);
-    const snapshotHtml = escapeHtml(snapshotJson);
-    const appUrl = escapeHtml(`/api/admin/enterprise-readiness/manifest`);
-    const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${escapedName} — Teable App</title>
-<style>
-  body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; line-height: 1.5; }
-  h1 { font-size: 1.5rem; margin: 0 0 .5rem 0; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: 1rem 0; }
-  dt { font-weight: 600; color: #4b5563; }
-  pre { background: #f3f4f6; padding: 1rem; border-radius: .375rem; overflow-x: auto; font-size: .8rem; line-height: 1.4; }
-  footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: .75rem; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-</style>
-</head>
-<body>
-<h1>${escapedName}</h1>
-<p>This is a published Teable App Builder runtime preview. The full React sandbox rendering is part of a future round; today we render the snapshot JSON so operators can verify the publish → resolve → render loop end-to-end.</p>
-<dl>
-  <dt>Slug</dt><dd><code>${escapedSlug}</code></dd>
-  <dt>App ID</dt><dd><code>${escapeHtml(snap.appId)}</code></dd>
-  <dt>Version</dt><dd>${escapedVersion}</dd>
-  <dt>Deployed at</dt><dd>${escapedDeployedAt}</dd>
-</dl>
-<h2>Snapshot</h2>
-<pre>${snapshotHtml}</pre>
-<footer>Round 46 runtime. Operators: see <code>${appUrl}</code> for capability parity.</footer>
-</body>
-</html>`;
-    res.status(200).type('text/html; charset=utf-8').send(html);
+    const opts: RenderAppOptions = {
+      mode: 'live',
+      appName: ctx.appName,
+      versionNumber: ctx.versionNumber,
+      deployedAt: ctx.deployedAt.toISOString(),
+      publicSlug: ctx.publicSlug,
+      secrets: ctx.secrets,
+    };
+    const out = renderAppHtml(ctx.snapshot, opts);
+    const csp = buildRuntimeCsp({ tailwind: out.meta.tailwind, entry: out.meta.entry });
+    res.setHeader('content-security-policy', csp);
+    res.setHeader('x-app-renderer', 'teable-app-builder-ssr-r57');
+    let body = '';
+    if (out.ok) {
+      body = out.html;
+    } else {
+      body = errorShell(out as { message: string; meta: { entry: string; renderedAt: string } }, opts);
+    }
+    res.status(out.ok ? 200 : 422).type('text/html; charset=utf-8').send(body);
   }
+}
+
+/**
+ * Protected preview runtime for draft apps. License + base permission
+ * required. Same renderer, but the banner marks the page as "Preview"
+ * and the entry files are loaded from the latest draft (not the
+ * published snapshot).
+ */
+@Controller('api/:baseId/apps')
+@UseGuards(AiAppBuilderGuard)
+export class AiAppBuilderPreviewController {
+  constructor(
+    private readonly svc: AiAppBuilderService,
+    private readonly auth: AiAppBuilderAuthService,
+    private readonly cls: ClsService<IClsStore>
+  ) {}
+
+  private currentUserId(): string {
+    const userId = this.cls.get('user.id');
+    if (!userId) {
+      throw new UnauthorizedException('AI App Builder preview requires an authenticated user');
+    }
+    return userId;
+  }
+
+  @Get(':appId/preview')
+  @Permissions('base|read')
+  @Header('cache-control', 'private, no-cache')
+  async preview(
+    @Param('baseId') baseId: string,
+    @Param('appId') appId: string,
+    @Res() res: Response
+  ): Promise<void> {
+    this.currentUserId();
+    await this.auth.assertAppInBase(appId, baseId);
+    const ctx = await this.svc.getPreviewRuntimeContext(appId);
+    if (!ctx) {
+      throw new NotFoundException(`app not found: ${appId}`);
+    }
+    const opts: RenderAppOptions = {
+      mode: 'preview',
+      appName: ctx.appName,
+      versionNumber: ctx.versionNumber,
+      deployedAt: (ctx.deployedAt ?? new Date()).toISOString(),
+      secrets: ctx.secrets,
+    };
+    const out = renderAppHtml(ctx.snapshot, opts);
+    const csp = buildRuntimeCsp({ tailwind: out.meta.tailwind, entry: out.meta.entry });
+    res.setHeader('content-security-policy', csp);
+    res.setHeader('x-app-renderer', 'teable-app-builder-ssr-r57');
+    let body = '';
+    if (out.ok) {
+      body = out.html;
+    } else {
+      body = errorShell(out as { message: string; meta: { entry: string; renderedAt: string } }, opts);
+    }
+    res.status(out.ok ? 200 : 422).type('text/html; charset=utf-8').send(body);
+  }
+}
+
+function errorShell(out: { message: string; meta: { entry: string; renderedAt: string } }, opts: RenderAppOptions): string {
+  return `<!doctype html>
+<html><head><meta charset="utf-8" /><title>Render error</title></head>
+<body>
+<h1>SSR sandbox rejected this snapshot</h1>
+<pre>${escapeHtml(out.message)}</pre>
+<dl>
+  <dt>Mode</dt><dd>${escapeHtml(opts.mode)}</dd>
+  <dt>App</dt><dd>${escapeHtml(opts.appName)}</dd>
+  <dt>Entry</dt><dd>${escapeHtml(out.meta.entry)}</dd>
+  <dt>Rendered</dt><dd>${escapeHtml(out.meta.renderedAt)}</dd>
+</dl>
+</body></html>`;
 }
 
 function escapeHtml(input: string): string {
