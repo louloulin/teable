@@ -1,0 +1,30 @@
+schema: comet.native.v4
+name: teable-cloud-coverage-2026
+language: zh-CN
+phase: archive
+status: done
+state_version: 1
+brief: brief.md
+spec_changes:
+  - capability: teable-cloud-coverage-2026
+    operation: create
+    source: specs/teable-cloud-coverage-2026/spec.md
+workspace:
+  isolation: branch
+  change_branch: null
+  target_branch: null
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance: []
+archived: true
+created_at: 2026-08-31 00:00:00.000000+00:00
