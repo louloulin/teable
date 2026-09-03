@@ -96,3 +96,28 @@ export {
   type IPreviewOverageInput,
   type IOveragePreview,
 } from './billing-usage-ledger.service';
+// ─── Manual re-exports (R56 cron + portal session helpers) ─────────
+export {
+  parseCron,
+  shouldFire,
+  nextFireAt,
+  runCronTick,
+  CronParseError,
+} from './billing-cron';
+export type { ICronSchedule, ICronTick, IShouldFireInput } from './billing-cron';
+export {
+  buildPortalSessionRequest,
+  parsePortalSessionResponse,
+  validatePortalReturnUrl,
+  validateCustomerId,
+  createPortalSession,
+  PortalValidationError,
+  DEFAULT_STRIPE_API_BASE,
+  STRIPE_PORTAL_PATH,
+} from './billing-portal-session';
+export type {
+  IBuildPortalRequestInput,
+  IStripeHttpRequest,
+  IStripePortalSession,
+  IPortalFetchLike,
+} from './billing-portal-session';
