@@ -10,11 +10,10 @@ spec_changes:
   - capability: stage-4-1-sso-callback
     operation: create
     source: specs/stage-4-1-sso-callback/spec.md
-approval:
-  kind: implicit
-verified_by: runtime-checks
+    base_hash: 0000000000000000000000000000000000000000000000000000000000000000
+approval: implicit
+verification_result: pass
+verification_report: null
 archived: true
-created_at: '2026-08-31T00:00:00.000Z'
-loop:
-  stage: done
-  next_action: null
+created_at: '2026-08-31'
+run_id: null
