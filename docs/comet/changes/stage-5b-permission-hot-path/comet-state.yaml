@@ -1,4 +1,4 @@
-schema: comet.native.v4
+schema: comet.native.v3
 name: stage-5b-permission-hot-path
 language: zh-CN
 minimum_runtime_version: 3

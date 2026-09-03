@@ -1,4 +1,4 @@
-schema: comet.native.v4
+schema: comet.native.v3
 name: enterprise-readiness-2026
 language: zh-CN
 minimum_runtime_version: 3
