@@ -2,7 +2,7 @@ schema: comet.native.v4
 name: stage-4-2-sso-state-cleanup
 language: zh-CN
 phase: archive
-status: active
+status: done
 state_version: 6
 brief: brief.md
 spec_changes:
@@ -15,7 +15,7 @@ workspace:
   target_branch: comet/teable-oss-vs-cloud-gap-fill
   finish: merge
 loop:
-  stage: archive-ready
+  stage: done
   goal_cycle: 1
   iteration: 1
   attempt: 1
