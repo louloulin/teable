@@ -4,11 +4,15 @@ import {
   Controller,
   Post,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import type { BillingPlanCode } from './billing.types';
+
+const BillingGuard = LicenseCapabilityGuard.for('billing');
 
 /**
  * Stripe Checkout controller.
@@ -28,13 +32,14 @@ import type { BillingPlanCode } from './billing.types';
  *     → { sessionId, url } (frontend redirects to `url`)
  */
 @Controller('api/billing')
+@UseGuards(BillingGuard)
 export class BillingCheckoutController {
   private static readonly STRIPE_API = 'https://api.stripe.com/v1/checkout/sessions';
 
   constructor(private readonly config: ConfigService) {}
 
   @Post('checkout')
-  @Permissions('space|update')
+  @Permissions('instance|update')
   async checkout(
     @Body()
     body: {

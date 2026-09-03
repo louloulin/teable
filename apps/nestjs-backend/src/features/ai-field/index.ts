@@ -8,9 +8,20 @@
  * manual re-exports below the generated block if needed.
  */
 
+// ─── NestJS module ────────────────────────────────────────────────
+export { AiFieldModule } from './ai-field.module';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { AiFieldController } from './ai-field.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
 export { AiFieldAuthService } from './ai-field.auth.service';
+export {
+  AiFieldBatchProcessor,
+  AI_FIELD_BATCH_QUEUE,
+  AI_FIELD_BATCH_JOB,
+} from './ai-field-batch.processor';
 export { isValidOperation, isValidModel, isValidStatusTransition, validateConfig, stringifyConfig, hashConfig, estimateTokens, renderPrompt, buildDefaultPrompt, buildAiFieldRow, guardOutput, foldRuns, buildRunRow, parseSourceFieldIds, parseConfig, buildTemplateRow, DEFAULT_TEMPLATES } from './ai-field.service';
 
 // ─── Types / interfaces ───────────────────────────────────────────
-export { SUPPORTED_OPERATIONS, SUPPORTED_MODELS, AiFieldOperation, AiFieldStatus, AiRunStatus, IClassifyConfig, ISummarizeConfig, ITranslateConfig, AiFieldConfig, IAiField, IAiFieldRun, IAiFieldTemplate, ICreateAiFieldInput, IUpdateAiFieldInput, IRunAiFieldInput, IAiRunResult, IUsageAggregate, ICreateTemplateInput } from './ai-field.types';
+export { SUPPORTED_OPERATIONS, SUPPORTED_MODELS, AiFieldOperation, AiFieldStatus, AiRunStatus, IClassifyConfig, ISummarizeConfig, ITranslateConfig, IScoreConfig, IImageConfig, ICustomPromptConfig, AiFieldConfig, IAiField, IAiFieldRun, IAiFieldTemplate, ICreateAiFieldInput, IUpdateAiFieldInput, IRunAiFieldInput, IAiRunResult, IUsageAggregate, ICreateTemplateInput, BatchGenerationMode, BatchTaskStatus, IBatchGenerationInput, IBatchGenerationResult, IAiGenerationTaskRow } from './ai-field.types';

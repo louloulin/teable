@@ -35,6 +35,7 @@ const KNOWN_ACTION_REFS = new Set([
   'notify_user',
   'ai_prompt',
   'send_teams_message',
+  'send_feishu_message',
 ]);
 
 const KNOWN_CONDITION_REFS = new Set([

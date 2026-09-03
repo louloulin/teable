@@ -2243,6 +2243,129 @@ model Invoice {
   @@map("invoice")
 }
 
+/// Cloud parity — Phase 5.3 / dunning plan.
+///
+/// A plan tracks one recovery sequence for a subscription that has entered
+/// `past_due`. Steps are pre-scheduled at T+24h / T+72h / T+7d / T+14d from
+/// the moment the plan was opened; recovery to `active` (or cancellation)
+/// cancels any pending steps. The worker that executes the steps lives in a
+/// separate process; this table is the source-of-truth for what should run.
+model BillingDunningPlan {
+  id             String   @id
+  subscriptionId String   @map("subscription_id")
+  /// "active" | "recovered" | "completed"
+  status         String   @default("active")
+  reason         String?
+  openedAt       DateTime @default(now()) @map("opened_at")
+  resolvedAt     DateTime? @map("resolved_at")
+  createdTime    DateTime @default(now()) @map("created_time")
+  updatedTime    DateTime @updatedAt @map("updated_time")
+
+  steps BillingDunningStep[]
+
+  @@index([subscriptionId, status])
+  @@index([status, resolvedAt])
+  @@map("billing_dunning_plan")
+}
+
+/// One scheduled recovery step inside a dunning plan. The worker reads
+/// `status = "scheduled" AND dueAt <= now()` and atomically claims it
+/// by transitioning to `executed` (with `executedAt`) or `canceled`.
+model BillingDunningStep {
+  id        String   @id
+  planId    String   @map("plan_id")
+  /// "T1_DUNNING_EMAIL" | "T2_DUNNING_RETRY" | "T3_FINAL_NOTICE" | "T14_CANCEL"
+  kind      String
+  /// "scheduled" | "executed" | "canceled"
+  status    String   @default("scheduled")
+  dueAt     DateTime @map("due_at")
+  executedAt DateTime? @map("executed_at")
+  canceledAt DateTime? @map("canceled_at")
+  /// Free-form worker output (audit / last error). Mirrors the Phase 1
+  /// durable-task result pattern.
+  result    Json?
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+
+  plan BillingDunningPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, dueAt])
+  @@index([status, dueAt])
+  @@unique([planId, kind])
+  @@map("billing_dunning_step")
+}
+
+/// Unified usage ledger (Phase 5.5 part 1).
+///
+/// Append-only event log of metered consumption. Every feature that
+/// generates billable usage (AI credits, automation runs, record
+/// overage, storage growth, email sends) writes one row per event
+/// with a stable `metric` label. The Customer Portal aggregates
+/// events inside `[periodStart, periodEnd)` for a given org and
+/// renders overage previews + final invoices.
+///
+/// Idempotency: `(organizationId, idempotencyKey)` is unique so a
+/// retried record call from a worker becomes a no-op rather than a
+/// double charge. `metadata` carries the source feature, the
+/// request id, and any other forensic field the producer wants to
+/// keep (e.g. token counts, attachment IDs).
+model BillingUsageEvent {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  /// "ai_credits" | "automation_runs" | "records" | "storage_bytes" | "email_sends"
+  metric          String
+  quantity        BigInt   @default(0)
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  /// Source feature that produced the event — e.g. "ai-chat",
+  /// "automation", "record-bulk-create", "attachments".
+  source          String
+  idempotencyKey  String?  @map("idempotency_key")
+  metadata        Json?
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+  createdTime     DateTime @default(now()) @map("created_time")
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, metric, periodStart, periodEnd])
+  @@index([metric, recordedAt])
+  @@map("billing_usage_event")
+}
+
+/// Add-on subscriptions (Phase 5.5 part 2).
+///
+/// Packs a customer can stack on top of their base plan: extra AI
+/// credits, automation runs, record overage allowance, storage GB.
+/// Each add-on has a fixed monthly price + a metric quantity it
+/// grants; the granted quantity is added to `includedQuantity`
+/// when computing overage.
+///
+/// Lifecycle: `active → canceled (atPeriodEnd=true) → expired (period ends)`.
+/// Workers flip `active → expired` when `currentPeriodEnd <= now`.
+model BillingAddOn {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  /// "ai_credits" | "automation_runs" | "records" | "storage_bytes"
+  metric          String
+  /// Pack display code, e.g. "ai-credits-100k", "automation-runs-500".
+  packCode        String   @map("pack_code")
+  /// Quantity granted per period by this add-on (BigInt for storage).
+  grantedQuantity BigInt   @map("granted_quantity")
+  /// Monthly price in cents for this pack.
+  monthlyPriceCents Int    @map("monthly_price_cents")
+  currency        String   @default("usd")
+  /// "active" | "canceled" | "expired"
+  status          String   @default("active")
+  currentPeriodStart DateTime @map("current_period_start")
+  currentPeriodEnd   DateTime @map("current_period_end")
+  canceledAt     DateTime? @map("canceled_at")
+  createdTime    DateTime  @default(now()) @map("created_time")
+  updatedTime    DateTime  @updatedAt @map("updated_time")
+
+  @@index([organizationId, status])
+  @@unique([organizationId, packCode, currentPeriodStart])
+  @@map("billing_add_on")
+}
+
 model WebhookEvent {
   id              String    @id
   externalEventId String    @unique @map("external_event_id")
@@ -2709,12 +2832,22 @@ model AiGenerationTask {
   baseId          String    @map("base_id")
   tableId         String    @map("table_id")
   trigger         String
+  /// "waiting" | "processing" | "done" | "failed" | "cancelled"
   status          String    @default("waiting")
   totalCount      Int       @map("total_count")
   completedCount  Int       @default(0) @map("completed_count")
   failedCount     Int       @default(0) @map("failed_count")
   cancelRequested Boolean   @default(false) @map("cancel_requested")
   lastError       String?   @map("last_error")
+  errorCode       String?   @map("error_code")
+  idempotencyKey  String?   @map("idempotency_key")
+  attempt         Int       @default(0)
+  maxAttempts     Int       @default(1) @map("max_attempts")
+  heartbeatAt     DateTime? @map("heartbeat_at")
+  leaseUntil      DateTime? @map("lease_until")
+  retryAt         DateTime? @map("retry_at")
+  tenantId        String?   @map("tenant_id")
+  correlationId   String?   @map("correlation_id")
   startedTime     DateTime? @map("started_time")
   finishedTime    DateTime? @map("finished_time")
   createdTime     DateTime  @default(now()) @map("created_time")
@@ -2722,6 +2855,8 @@ model AiGenerationTask {
 
   @@index([status, createdTime])
   @@index([spaceId, status])
+  @@index([status, leaseUntil])
+  @@unique([tableId, idempotencyKey])
   @@map("ai_generation_task")
 }
 
@@ -2759,6 +2894,51 @@ model AiBuilderFeedback {
   @@index([proposalId])
   @@map("ai_builder_feedback")
 }
+
+/// Unified source-import task (Cloud §migrations). Backed by the durable
+/// `queued/running/succeeded/failed/canceled` protocol shared with AI Chat
+/// long task, AI Field batch, and Stripe webhook events.
+model SourceImportTask {
+  id              String    @id
+  /// "notion" | "google_sheets" | "airtable" | ...
+  source          String
+  /// Stable idempotency key supplied by the caller (typically
+  /// `${source}:${spaceId}:${remoteId}:${tableId}:v${revision}`).
+  idempotencyKey  String?   @map("idempotency_key")
+  spaceId         String?   @map("space_id")
+  baseId          String?   @map("base_id")
+  tableId         String?   @map("table_id")
+  remoteId        String?   @map("remote_id")
+  triggeredBy     String?   @map("triggered_by")
+  tenantId        String?   @map("tenant_id")
+  correlationId   String?   @map("correlation_id")
+  /// "queued" | "running" | "succeeded" | "failed" | "canceled"
+  status          String    @default("queued")
+  attempt         Int       @default(0)
+  maxAttempts     Int       @default(3) @map("max_attempts")
+  totalCount      Int       @default(0) @map("total_count")
+  processedCount  Int       @default(0) @map("processed_count")
+  failedCount     Int       @default(0) @map("failed_count")
+  heartbeatAt     DateTime? @map("heartbeat_at")
+  leaseUntil      DateTime? @map("lease_until")
+  retryAt         DateTime? @map("retry_at")
+  cancelRequested Boolean   @default(false) @map("cancel_requested")
+  lastError       String?   @map("last_error")
+  errorCode       String?   @map("error_code")
+  payload         Json?
+  result          Json?
+  startedAt       DateTime? @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  createdTime     DateTime  @default(now()) @map("created_time")
+  updatedTime     DateTime  @updatedAt @map("updated_time")
+
+  @@index([status, createdTime])
+  @@index([source, status])
+  @@index([status, leaseUntil])
+  @@unique([source, idempotencyKey])
+  @@map("source_import_task")
+}
+
 
 model VectorCollection {
   id            String    @id
@@ -3370,8 +3550,21 @@ model StripeWebhookEvent {
   invoiceId          String?  @map("invoice_id")
   signature          String
   signatureTimestamp Int      @map("signature_timestamp")
+  /// "queued" | "processing" | "succeeded" | "failed"
+  status             String   @default("queued")
+  attempt            Int      @default(0)
+  maxAttempts        Int      @default(5) @map("max_attempts")
+  heartbeatAt        DateTime? @map("heartbeat_at")
+  leaseUntil         DateTime? @map("lease_until")
+  retryAt            DateTime? @map("retry_at")
+  lastError          String?  @map("last_error")
+  errorCode          String?  @map("error_code")
+  tenantId           String?  @map("tenant_id")
+  correlationId      String?  @map("correlation_id")
+  processedAt        DateTime? @map("processed_at")
 
   @@index([invoiceId, createdAt])
+  @@index([status, leaseUntil])
   @@map("stripe_webhook_event")
 }
 
@@ -4337,4 +4530,179 @@ enum AppVersionStatus {
   rolled_back
 
   @@map("app_version_status")
+}
+
+// ─── AI Chat (Cloud §ai/ai-chat) ─────────────────────────────────
+model AiChatSession {
+  id          String   @id
+  baseId      String?  @map("base_id")
+  tableId     String?  @map("table_id")
+  viewId      String?  @map("view_id")
+  title       String?
+  model       String
+  createdBy   String   @map("created_by")
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+
+  messages AiChatMessage[]
+  longTasks AiChatLongTask[]
+  artifacts AiChatArtifact[]
+  queuedMessages AiChatQueuedMessage[]
+  writePlans AiChatWritePlan[]
+  nodeRefs  AiChatNodeRef[]
+
+  @@index([baseId, createdTime])
+  @@index([createdBy, createdTime])
+  @@map("ai_chat_session")
+}
+
+model AiChatMessage {
+  id          String   @id
+  sessionId   String   @map("session_id")
+  /// "user" | "assistant" | "system"
+  role        String
+  content     String
+  model       String?
+  promptTokens Int    @default(0) @map("prompt_tokens")
+  completionTokens Int @default(0) @map("completion_tokens")
+  durationMs  Int      @default(0) @map("duration_ms")
+  createdTime DateTime @default(now()) @map("created_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  longTask AiChatLongTask?
+
+  @@index([sessionId, createdTime])
+  @@map("ai_chat_message")
+}
+
+/// Stage 49 — Cloud §ai/ai-chat long-running tasks (24h background execution).
+/// Stores the LLM-driven progress of a long task separate from the per-turn
+/// message stream so the UI can poll status independently.
+model AiChatLongTask {
+  id           String   @id
+  sessionId    String   @map("session_id")
+  userMessageId String  @unique @map("user_message_id")
+  /// "queued" | "running" | "succeeded" | "failed" | "canceled"
+  /// "pending" and "completed" are accepted while old rows are migrated.
+  status       String   @default("queued")
+  progress     Int      @default(0)
+  result       String?
+  errorMessage String?  @map("error_message")
+  errorCode    String?  @map("error_code")
+  idempotencyKey String? @map("idempotency_key")
+  attempt      Int      @default(0)
+  maxAttempts  Int      @default(3) @map("max_attempts")
+  heartbeatAt  DateTime? @map("heartbeat_at")
+  leaseUntil   DateTime? @map("lease_until")
+  retryAt      DateTime? @map("retry_at")
+  cancelRequested Boolean @default(false) @map("cancel_requested")
+  tenantId     String?  @map("tenant_id")
+  correlationId String? @map("correlation_id")
+  context      String?
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdTime  DateTime @default(now()) @map("created_time")
+  updatedTime  DateTime @updatedAt @map("updated_time")
+
+  session    AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userMessage AiChatMessage @relation(fields: [userMessageId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status])
+  @@index([status, createdTime])
+  @@index([status, leaseUntil])
+  @@unique([sessionId, idempotencyKey])
+  @@map("ai_chat_long_task")
+}
+
+/// Stage 50 — Cloud §ai/ai-chat Artifact: persistent AI-generated output
+/// (charts, reports, HTML pages) shown as a card in the conversation and
+/// available in an independent viewer even after the chat is closed.
+model AiChatArtifact {
+  id           String   @id
+  sessionId    String   @map("session_id")
+  messageId    String?  @map("message_id")
+  /// "markdown" | "html" | "chart" | "table" | "mermaid"
+  format       String   @default("markdown")
+  title        String
+  content      String
+  version      Int      @default(1)
+  createdTime  DateTime @default(now()) @map("created_time")
+  updatedTime  DateTime @updatedAt @map("updated_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdTime])
+  @@index([format])
+  @@map("ai_chat_artifact")
+}
+
+/// Stage 60 — Cloud §ai/ai-chat message queue: messages a user sent while
+/// AI was busy. Processed in `position` order after the current turn
+/// completes; users can cancel or reorder them before they run.
+model AiChatQueuedMessage {
+  id           String   @id
+  sessionId    String   @map("session_id")
+  userMessage  String   @map("user_message")
+  position     Int      @default(0)
+  /// "pending" | "processing" | "done" | "cancelled"
+  status       String   @default("pending")
+  resultMessageId String? @map("result_message_id")
+  errorMessage String?  @map("error_message")
+  createdTime  DateTime @default(now()) @map("created_time")
+  updatedTime  DateTime @updatedAt @map("updated_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status, position])
+  @@map("ai_chat_queued_message")
+}
+
+/// Cloud parity boundary for AI-assisted data writes. A plan is immutable from
+/// the caller's perspective until it is explicitly confirmed and executed.
+model AiChatWritePlan {
+  id            String   @id
+  sessionId     String   @map("session_id")
+  userId        String   @map("user_id")
+  baseId        String   @map("base_id")
+  tableId       String   @map("table_id")
+  /// "record_create" | "record_update"
+  operation     String
+  payload       Json
+  summary       String
+  /// "pending" | "confirmed" | "executing" | "executed" | "failed" | "rejected" | "expired"
+  status        String   @default("pending")
+  expiresAt     DateTime @map("expires_at")
+  confirmedBy   String?  @map("confirmed_by")
+  confirmedTime DateTime? @map("confirmed_time")
+  executedTime  DateTime? @map("executed_time")
+  result        Json?
+  errorMessage  String?  @map("error_message")
+  createdTime   DateTime @default(now()) @map("created_time")
+  updatedTime   DateTime @updatedAt @map("updated_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdTime])
+  @@index([userId, status, expiresAt])
+  @@index([tableId, status])
+  @@map("ai_chat_write_plan")
+}
+
+/// Persistent, permission-checked @ references attached to an AI Chat session.
+/// Labels are canonicalized server-side and are never trusted from the client.
+model AiChatNodeRef {
+  id          String   @id
+  sessionId   String   @map("session_id")
+  kind        String
+  refId       String   @map("ref_id")
+  label       String
+  createdBy   String   @map("created_by")
+  createdTime DateTime @default(now()) @map("created_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, kind, refId])
+  @@index([sessionId, createdTime])
+  @@index([refId, kind])
+  @@map("ai_chat_node_ref")
 }

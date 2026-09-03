@@ -31,10 +31,11 @@ interface ITeamsStoredConfig {
 }
 
 const KEY = (() => {
-  const raw =
-    process.env.TEABLE_INTEGRATION_SECRET ??
-    'dev-only-secret-do-not-use-in-prod-32b';
-  return scryptSync(raw, 'teable.salt.v1', 32);
+  const raw = process.env.TEABLE_INTEGRATION_SECRET;
+  if (!raw && process.env.NODE_ENV === 'production') {
+    throw new Error('TEABLE_INTEGRATION_SECRET is required for Teams integration secrets');
+  }
+  return scryptSync(raw ?? 'teable-local-development-secret', 'teable.salt.v1', 32);
 })();
 
 const encryptToken = (plaintext: string): string => {

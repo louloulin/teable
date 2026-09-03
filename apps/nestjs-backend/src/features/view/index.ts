@@ -11,7 +11,11 @@
 // ─── NestJS module ────────────────────────────────────────────────
 export { ViewModule } from './view.module';
 
+// ─── Controllers ──────────────────────────────────────────────────
+export { PivotAggregationController } from './pivot-aggregation.controller';
+
 // ─── Services ─────────────────────────────────────────────────────
+export { PivotAggregationService, IPivotAggregateInput, IPivotSerializableResult } from './pivot-aggregation.service';
 export { ViewDataSafetyLimitService } from './view-data-safety-limit.service';
 export { ViewService } from './view.service';
 

@@ -15,7 +15,10 @@ import { generateText, jsonSchema, stepCountIs, streamText, tool } from 'ai';
 import { AiModule } from '../ai/ai.module';
 import { AiService } from '../ai/ai.service';
 import { CuppyPromptRouterModule } from '../cuppy-prompt-router/cuppy-prompt-router.module';
-import { analyzeRecords, type AnalysisAggregation } from '../cuppy-prompt-router/cuppy-data-analysis';
+import {
+  analyzeRecords,
+  type AnalysisAggregation,
+} from '../cuppy-prompt-router/cuppy-data-analysis';
 import { InstanceSkillModule } from '../instance-skills/instance-skill.module';
 import { LicenseModule } from '../license/license.module';
 import { SkillScopeModule } from '../skill-scope/skill-scope.module';
@@ -25,6 +28,9 @@ import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
 import { TableOpenApiService } from '../table/open-api/table-open-api.service';
 import { AutomationService } from '../automation/automation.service';
 import { AutomationModule } from '../automation/automation.module';
+import { AiChatModule } from '../ai-chat/ai-chat.module';
+import { AiChatWritePlanService } from '../ai-chat/ai-chat-write-plan.service';
+import { AttachmentsModule } from '../attachments/attachments.module';
 import { AgentOrchestratorController } from './agent-orchestrator.controller';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 import { BuiltInEchoLlm } from './built-in-echo-llm';
@@ -42,17 +48,26 @@ import { CuppyController } from './cuppy.controller';
     TableOpenApiModule,
     RecordOpenApiModule,
     AutomationModule,
+    AiChatModule,
+    AttachmentsModule,
   ],
   providers: [
     AgentOrchestratorService,
     {
       provide: 'CUPPY_BUILTIN_TOOLS',
-      inject: [AgentOrchestratorService, TableOpenApiService, RecordOpenApiService, AutomationService],
+      inject: [
+        AgentOrchestratorService,
+        TableOpenApiService,
+        RecordOpenApiService,
+        AutomationService,
+        AiChatWritePlanService,
+      ],
       useFactory: (
         orchestrator: AgentOrchestratorService,
         tables: TableOpenApiService,
         records: RecordOpenApiService,
-        automations: AutomationService
+        automations: AutomationService,
+        writePlans: AiChatWritePlanService
       ) => {
         orchestrator.registerTool({
           name: 'schema_query',
@@ -97,7 +112,8 @@ import { CuppyController } from './cuppy.controller';
         });
         orchestrator.registerTool({
           name: 'record_create',
-          description: 'Create a single record in the current base. Requires baseId + tableId + field values + fieldKeyType; otherwise it returns an explicit error.',
+          description:
+            'Create a reviewable write plan for one record. Never writes immediately; the user must explicitly confirm the returned plan.',
           parameters: {
             type: 'object',
             properties: {
@@ -119,15 +135,20 @@ import { CuppyController } from './cuppy.controller';
               return { error: 'fields object is required' };
             }
             try {
-              const created = await records.createRecords(
+              const plan = await writePlans.createForCuppy({
+                conversationId: String(ctx['conversation_id'] ?? ''),
+                userId: ctx.user_id,
+                baseId: ctx.base_id,
                 tableId,
-                {
-                  records: [{ fields: args.fields as Record<string, unknown> }],
-                },
-                false,
-                'cuppy' as never
-              );
-              return { recordCount: created.records?.length ?? 0 };
+                fields: args.fields as Record<string, unknown>,
+                fieldKeyType: typeof args.fieldKeyType === 'string' ? args.fieldKeyType : undefined,
+              });
+              return {
+                requiresConfirmation: true,
+                planId: plan.id,
+                status: plan.status,
+                summary: plan.summary,
+              };
             } catch (error) {
               return { error: error instanceof Error ? error.message : 'create failed' };
             }
@@ -151,9 +172,13 @@ import { CuppyController } from './cuppy.controller';
             if (!ctx.base_id) return { error: 'baseId is required' };
             try {
               const table = await tables.getTable(ctx.base_id, tableId);
-              const fields = Array.isArray((table as Record).fields) ? (table as { fields: Array<Record<string, unknown>> }).fields : [];
+              const fields = Array.isArray((table as Record<string, unknown>).fields)
+                ? (table as unknown as { fields: Array<Record<string, unknown>> }).fields
+                : [];
               if (typeof args.fieldId === 'string' && args.fieldId.length > 0) {
-                const match = fields.find((field) => field['id'] === args.fieldId || field['name'] === args.fieldId);
+                const match = fields.find(
+                  (field) => field['id'] === args.fieldId || field['name'] === args.fieldId
+                );
                 return { field: match ?? null };
               }
               return { fields };
@@ -164,7 +189,8 @@ import { CuppyController } from './cuppy.controller';
         });
         orchestrator.registerTool({
           name: 'data_analysis',
-          description: 'Compute bounded count, sum, average, minimum, or maximum over permission-checked records and optionally group the result for a chart.',
+          description:
+            'Compute bounded count, sum, average, minimum, or maximum over permission-checked records and optionally group the result for a chart.',
           parameters: {
             type: 'object',
             properties: {
@@ -182,7 +208,9 @@ import { CuppyController } from './cuppy.controller';
             if (!ctx.base_id) return { error: 'baseId is required' };
             await tables.getTable(ctx.base_id, tableId);
             const response = await records.getRecords(tableId, { take: 50, skip: 0 } as never);
-            const aggregation = ['count', 'sum', 'avg', 'min', 'max'].includes(String(args.aggregation))
+            const aggregation = ['count', 'sum', 'avg', 'min', 'max'].includes(
+              String(args.aggregation)
+            )
               ? (String(args.aggregation) as AnalysisAggregation)
               : undefined;
             return analyzeRecords(response.records ?? [], {
@@ -278,13 +306,13 @@ import { CuppyController } from './cuppy.controller';
               // gateway, network unreachable, or our own timeout fired). Surface
               // a deterministic echo so the chat endpoint never returns an opaque
               // 503 to the UI.
-              const reason =
-                llmAbort.signal.aborted
-                  ? `timeout after ${timeoutMs}ms`
-                  : (err as Error)?.message ?? 'unknown error';
+              const reason = llmAbort.signal.aborted
+                ? `timeout after ${timeoutMs}ms`
+                : (err as Error)?.message ?? 'unknown error';
+              const fallback = await echo.chat(args);
               return {
-                ...echo.chat(args),
-                text: `${echo.chat(args).text}\n\n[real-LLM provider fallback: ${reason}]`,
+                ...fallback,
+                text: `${fallback.text}\n\n[real-LLM provider fallback: ${reason}]`,
               };
             } finally {
               clearTimeout(timer);
@@ -300,7 +328,11 @@ import { CuppyController } from './cuppy.controller';
             baseId?: string;
             system: string;
             messages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>;
-            tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+            tools: Array<{
+              name: string;
+              description: string;
+              parameters: Record<string, unknown>;
+            }>;
             executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
             abortSignal?: AbortSignal;
           }): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
@@ -360,9 +392,16 @@ import { CuppyController } from './cuppy.controller';
             }
           },
           /** Backward-compat alias of chatStream — older callers/tests reference `stream`. */
-          stream: async function* (args: Parameters<NonNullable<{ chatStream?: unknown }>['chatStream']>[0]) {
-            yield* (this as { chatStream: (a: unknown) => AsyncGenerator<{ delta: string; value?: string; done: boolean }> }).chatStream(args);
-          }.bind(this),
+          stream: async function* (
+            args: Parameters<(...args: unknown[]) => unknown>[0]
+          ): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
+            const self = this as unknown as {
+              chatStream: (
+                a: unknown
+              ) => AsyncGenerator<{ delta: string; value?: string; done: boolean }>;
+            };
+            yield* self.chatStream(args);
+          },
         };
       },
     },
@@ -376,9 +415,30 @@ export class AgentOrchestratorModule {}
 // registration without bootstrapping the entire DI graph. Production callers
 // resolve the providers through NestJS as usual.
 export const __testing__buildCuppyTools = (
-  tables: { getTable(baseId: string, tableId: string): Promise<unknown>; getTables(baseId: string): Promise<unknown> },
-  records: { getRecords(tableId: string, query: unknown): Promise<unknown>; createRecords(tableId: string, body: unknown, ignoreMissingFields: boolean, isAiInternal: string): Promise<{ records?: unknown[] }> },
-  automations: { trigger(automationId: string, input: unknown): Promise<{ id?: string }> }
+  tables: {
+    getTable(baseId: string, tableId: string): Promise<unknown>;
+    getTables(baseId: string): Promise<unknown>;
+  },
+  records: {
+    getRecords(tableId: string, query: unknown): Promise<unknown>;
+    createRecords(
+      tableId: string,
+      body: unknown,
+      ignoreMissingFields: boolean,
+      isAiInternal: string
+    ): Promise<{ records?: unknown[] }>;
+  },
+  automations: { trigger(automationId: string, input: unknown): Promise<{ id?: string }> },
+  writePlans?: {
+    createForCuppy(input: {
+      conversationId: string;
+      userId: string;
+      baseId: string;
+      tableId: string;
+      fields: Record<string, unknown>;
+      fieldKeyType?: string;
+    }): Promise<{ id: string; status: string; summary: string }>;
+  }
 ) => {
   return {
     record_create: {
@@ -393,19 +453,30 @@ export const __testing__buildCuppyTools = (
         additionalProperties: false,
       },
       run: async (
-        ctx: { base_id?: string },
+        ctx: { base_id?: string; user_id?: string; conversation_id?: string },
         args: { tableId?: string; fieldKeyType?: string; fields?: Record<string, unknown> }
       ): Promise<unknown> => {
         if (!args.tableId) return { error: 'tableId is required' };
         if (!ctx.base_id) return { error: 'baseId is required' };
-        if (!args.fields || typeof args.fields !== 'object') return { error: 'fields object is required' };
-        const created = await records.createRecords(
-          args.tableId,
-          { records: [{ fields: args.fields }] },
-          false,
-          'cuppy' as never
-        );
-        return { recordCount: created.records?.length ?? 0 };
+        if (!args.fields || typeof args.fields !== 'object')
+          return { error: 'fields object is required' };
+        if (!writePlans || !ctx.user_id || !ctx.conversation_id) {
+          return { error: 'write plan service is unavailable' };
+        }
+        const plan = await writePlans.createForCuppy({
+          conversationId: ctx.conversation_id,
+          userId: ctx.user_id,
+          baseId: ctx.base_id,
+          tableId: args.tableId,
+          fields: args.fields,
+          fieldKeyType: args.fieldKeyType,
+        });
+        return {
+          requiresConfirmation: true,
+          planId: plan.id,
+          status: plan.status,
+          summary: plan.summary,
+        };
       },
     },
     field_describe: {
@@ -418,7 +489,9 @@ export const __testing__buildCuppyTools = (
       run: async (ctx: { base_id?: string }, args: { tableId?: string; fieldId?: string }) => {
         if (!args.tableId) return { error: 'tableId is required' };
         if (!ctx.base_id) return { error: 'baseId is required' };
-        const table = (await tables.getTable(ctx.base_id, args.tableId)) as { fields?: Array<Record<string, unknown>> };
+        const table = (await tables.getTable(ctx.base_id, args.tableId)) as {
+          fields?: Array<Record<string, unknown>>;
+        };
         const fields = Array.isArray(table.fields) ? table.fields : [];
         if (args.fieldId) {
           const match = fields.find((f) => f['id'] === args.fieldId || f['name'] === args.fieldId);

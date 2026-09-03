@@ -20,7 +20,7 @@ import type { IActionCatalog } from './automation-action-catalog.types';
 
 describe('automation-action-catalog.builtins', () => {
   it('has every executable action type', () => {
-    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(18);
+    expect(BUILTIN_ACTION_CATALOG.types.length).toBe(19);
   });
   it('default is update_record', () => {
     expect(BUILTIN_ACTION_CATALOG.defaultType).toBe('update_record');
@@ -143,7 +143,7 @@ describe('automation-action-catalog.merge / cap / serialize / summarize', () => 
   });
   it('summarize', () => {
     const s = summarizeActionCatalog(BUILTIN_ACTION_CATALOG);
-    expect(s.count).toBe(18);
+    expect(s.count).toBe(19);
     expect(s.rollbackable).toBe(1);
   });
 });

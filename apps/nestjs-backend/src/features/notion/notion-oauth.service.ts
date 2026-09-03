@@ -49,10 +49,11 @@ export type INotionStoredTokensBySpace = Record<string, IStoredNotionToken>;
  * need to look up by when the wizard calls back).
  */
 const TOKEN_KEY = (() => {
-  const raw =
-    process.env.TEABLE_INTEGRATION_SECRET ??
-    'dev-only-secret-do-not-use-in-prod-32b';
-  return scryptSync(raw, 'teable.notion.salt.v1', 32);
+  const raw = process.env.TEABLE_INTEGRATION_SECRET;
+  if (!raw && process.env.NODE_ENV === 'production') {
+    throw new Error('TEABLE_INTEGRATION_SECRET is required for Notion integration secrets');
+  }
+  return scryptSync(raw ?? 'teable-local-development-secret', 'teable.notion.salt.v1', 32);
 })();
 
 const encrypt = (plaintext: string): string => {

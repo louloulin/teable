@@ -21,7 +21,8 @@ import type {
   LLMProvider,
 } from '@teable/openapi';
 import type { ImageModel, LanguageModel } from 'ai';
-import { createGateway, generateText, streamText } from 'ai';
+import { createGateway, generateImage, generateText, streamText } from 'ai';
+import axios from 'axios';
 import type { Response } from 'express';
 import { BaseConfig, IBaseConfig } from '../../configs/base.config';
 import { CustomHttpException } from '../../custom.exception';
@@ -305,6 +306,27 @@ export class AiService {
           }
         );
       }
+      if (model === 'MiniMax-M3' || model === 'MiniMax-Text-01') {
+        const openaiCompatibleProvider = modelProviders[LLMProviderType.OPENAI_COMPATIBLE];
+        if (!openaiCompatibleProvider || !baseUrl) {
+          throw new CustomHttpException(
+            'AI gateway configuration is incomplete',
+            HttpErrorCode.VALIDATION_ERROR,
+            {
+              localization: {
+                i18nKey: 'httpErrors.ai.configurationNotSet',
+              },
+            }
+          );
+        }
+        const modelProvider = openaiCompatibleProvider({
+          name: model,
+          baseURL: baseUrl,
+          apiKey,
+          includeUsage: true,
+        } as never);
+        return modelProvider(model);
+      }
       const gatewayProvider = createGateway({
         apiKey,
         ...(baseUrl && { baseURL: baseUrl }),
@@ -360,12 +382,23 @@ export class AiService {
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   async getAIConfig(baseId: string) {
-    const { spaceId } = await this.prismaService.base.findUniqueOrThrow({
-      where: { id: baseId },
-    });
-    const aiIntegration = await this.prismaService.integration.findFirst({
-      where: { resourceId: spaceId, type: IntegrationType.AI, enable: true },
-    });
+    // Chat/global callers may pass an empty baseId; in that case we only
+    // consult the instance-level admin AI config (no space integration).
+    const baseIdForLookup = baseId?.trim();
+    const aiIntegration = baseIdForLookup
+      ? await this.prismaService.integration.findFirst({
+          where: {
+            resourceId: (
+              await this.prismaService.base.findUnique({
+                where: { id: baseIdForLookup },
+                select: { spaceId: true },
+              })
+            )?.spaceId,
+            type: IntegrationType.AI,
+            enable: true,
+          },
+        })
+      : null;
 
     const aiIntegrationConfig = aiIntegration?.config ? JSON.parse(aiIntegration.config) : null;
     const { aiConfig } = await this.settingService.getSetting();
@@ -565,11 +598,174 @@ export class AiService {
       ? await this.withInstanceSkills(aiGenerateRo.prompt)
       : aiGenerateRo.prompt;
 
+    // R-AI-JSON — JSON mode wiring. When jsonMode is set we forward
+    // providerOptions so the gateway emits a structured response. We
+    // also gently prepend an instruction to nudge free-form models.
+    const wantsJson = aiGenerateRo.jsonMode === true;
+    const effectivePrompt = wantsJson && !prompt.toLowerCase().includes('json')
+      ? `${prompt}\n\nRespond with a single JSON object. Do not include markdown fences.`
+      : prompt;
+
     const { text } = await generateText({
       model: modelInstance,
-      prompt: prompt,
+      prompt: effectivePrompt,
+      providerOptions: wantsJson
+        ? {
+            minimax: { response_format: { type: 'json_object' } },
+            openai: { response_format: { type: 'json_object' } },
+          }
+        : undefined,
     });
+    return wantsJson ? this.extractJsonPayload(text) : text;
+  }
+
+  /**
+   * R-AI-JSON — Strip `<think>...</think>` reasoning wrappers that
+   * reasoning models (MiniMax-M3, DeepSeek-R1) prepend to their output,
+   * then return the first JSON object / array found in the remainder.
+   *
+   * Falls back to the raw text when no JSON is detected so the caller
+   * can still surface a useful error message.
+   */
+  private extractJsonPayload(text: string): string {
+    let body = text;
+    // 1. Strip every <think>...</think> block (case-insensitive, multiline).
+    body = body.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    body = body.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '');
+    body = body.trim();
+
+    // 2. Strip markdown fences (```json ... ```).
+    const fenceMatch = body.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenceMatch) {
+      body = fenceMatch[1].trim();
+    }
+
+    // 3. Extract the first balanced {... or [...] block.
+    const start = body.search(/[{\[]/);
+    if (start < 0) {
+      return text; // no JSON found — return raw
+    }
+    const open = body[start];
+    const close = open === '{' ? '}' : ']';
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < body.length; i++) {
+      const ch = body[i];
+      if (inString) {
+        if (escape) {
+          escape = false;
+        } else if (ch === '\\') {
+          escape = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === open) {
+        depth++;
+      } else if (ch === close) {
+        depth--;
+        if (depth === 0) {
+          return body.slice(start, i + 1);
+        }
+      }
+    }
     return text;
+  }
+
+  /**
+   * Generate an image with the configured image-capable model.
+   * Returns the generated file (uint8Array + mediaType) so callers can
+   * persist it as an attachment.
+   *
+   * MiniMax models (MiniMax-M3 / MiniMax-Text-01) use the provider's
+   * native `/image_generation` endpoint (image-01), while other models
+   * go through the AI SDK `generateImage` path.
+   */
+  async generateImage(
+    baseId: string,
+    modelKey: string,
+    prompt: string,
+    options?: { size?: string; aspectRatio?: string; n?: number }
+  ): Promise<{ images: Array<{ uint8Array: Uint8Array; mediaType: string }>; usage?: unknown }> {
+    const config = await this.getAIConfig(baseId);
+    const { type, model, baseUrl, apiKey } = await this.getModelConfig(modelKey, config.llmProviders);
+
+    // MiniMax native image generation (image-01) via /image_generation
+    if (
+      type === LLMProviderType.AI_GATEWAY &&
+      (model === 'MiniMax-M3' || model === 'MiniMax-Text-01')
+    ) {
+      return this.generateMiniMaxImage(baseUrl ?? '', apiKey ?? '', prompt, options);
+    }
+
+    const modelInstance = await this.getModelInstance(modelKey, config.llmProviders, true);
+    // ai SDK v3 ImageModel vs v4 ImageModelV3 are structurally compatible
+    // but TS can't reconcile the union — runtime call works.
+    const result = await (generateImage as unknown as (
+      args: {
+        model: unknown;
+        prompt: string;
+        n?: number;
+        size?: string;
+        aspectRatio?: string;
+      }
+    ) => Promise<{ images: Array<{ uint8Array: Uint8Array; mediaType: string }>; usage?: unknown }>)({
+      model: modelInstance,
+      prompt,
+      n: options?.n ?? 1,
+      ...(options?.size ? { size: options.size } : {}),
+      ...(options?.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
+    });
+    return {
+      images: result.images.map((image) => ({
+        uint8Array: image.uint8Array,
+        mediaType: image.mediaType,
+      })),
+      usage: result.usage,
+    };
+  }
+
+  private async generateMiniMaxImage(
+    baseUrl: string | undefined,
+    apiKey: string,
+    prompt: string,
+    options?: { size?: string; aspectRatio?: string; n?: number }
+  ): Promise<{ images: Array<{ uint8Array: Uint8Array; mediaType: string }>; usage?: unknown }> {
+    const endpoint = `${baseUrl ?? 'https://api.minimaxi.com/v1'}/image_generation`;
+    const aspectRatio = options?.aspectRatio ?? '1:1';
+    const response = await axios.post(
+      endpoint,
+      {
+        model: 'image-01',
+        prompt,
+        n: options?.n ?? 1,
+        aspect_ratio: aspectRatio,
+        ...(options?.size ? { size: options.size } : {}),
+      },
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        timeout: 60_000,
+      }
+    );
+    const urls: string[] = response.data?.data?.image_urls ?? [];
+    if (urls.length === 0) {
+      throw new Error('MiniMax image generation returned no image URLs');
+    }
+    const images: Array<{ uint8Array: Uint8Array; mediaType: string }> = [];
+    for (const url of urls) {
+      const imageResponse = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 60_000,
+      });
+      const buffer = Buffer.from(imageResponse.data);
+      const contentType = imageResponse.headers['content-type'] ?? 'image/jpeg';
+      images.push({ uint8Array: new Uint8Array(buffer), mediaType: contentType });
+    }
+    return { images };
   }
 
   private async withInstanceSkills(prompt: string): Promise<string> {

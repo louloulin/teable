@@ -21,3 +21,78 @@ export { signWebhook, verifyWebhookSignature, parseEventPayload, resolvePlan, co
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { PLAN_TABLE, SubscriptionStatus, InvoiceStatus, BillingPlanCode, ISubscription, IInvoice, IWebhookEvent, ICreateSubscriptionInput, IUpdateSubscriptionInput, ICreateInvoiceInput, IResolvedWebhook, BillingEventHandler, IPlanDescriptor } from './billing.types';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export {
+  BillingProrationService,
+  type IPlanRate,
+  type IProrationPeriod,
+  type IProrationPreview,
+  type ISeatChangePreviewInput,
+  type IPlanChangePreviewInput,
+} from './billing-proration.service';
+export {
+  BillingDunningService,
+  type DunningStepKind,
+  type DunningStepStatus,
+  type DunningPlanStatus,
+  type IDunningStep,
+  type IDunningPlan,
+  type IScheduleRecoveryInput,
+  type IMarkStepExecutionInput,
+} from './billing-dunning.service';
+export {
+  BillingDunningWorkerService,
+  type IProcessDueStepsInput,
+  type IProcessDueStepsError,
+  type IProcessDueStepsResult,
+} from './billing-dunning-worker.service';
+export { BillingPortalController } from './billing-portal.controller';
+export {
+  BillingInvoicePdfService,
+  type IRenderInvoicePdfInput,
+} from './billing-invoice-pdf.service';
+export {
+  BillingPortalOrgGuard,
+  type IBillingPortalOrgPrincipal,
+} from './billing-portal-org.guard';
+export {
+  BillingMeteredInvoiceWorkerService,
+  DEFAULT_WORKER_INTERVAL_MS,
+  DEFAULT_WORKER_RATE_CARDS,
+  type IProcessDueInvoicesInput,
+  type IProcessDueInvoicesError,
+  type IProcessDueInvoicesResult,
+} from './billing-metered-invoice-worker.service';
+export {
+  BillingMeteredInvoiceService,
+  type IMetricRateCard,
+  type IMetricLinePreview,
+  type IPreviewMeteredInvoiceInput,
+  type IPreviewMeteredInvoiceResult,
+  type IMaterializeMeteredInvoiceInput,
+  type IMaterializeMeteredInvoiceResult,
+} from './billing-metered-invoice.service';
+export {
+  BillingAddOnService,
+  type AddOnMetric,
+  type AddOnStatus,
+  type IAddOn,
+  type IAddOnDescriptor,
+  type IActivateAddOnInput,
+  type ICancelAddOnInput,
+  type IExpireDueInput,
+  type IPreviewMonthlyCostInput,
+  type IPreviewMonthlyCostResult,
+} from './billing-add-on.service';
+export {
+  BillingUsageLedgerService,
+  type BillingUsageMetric,
+  type IRecordUsageInput,
+  type IUsageEvent,
+  type IAggregateInput,
+  type IAggregateResult,
+  type IOverageTier,
+  type IPreviewOverageInput,
+  type IOveragePreview,
+} from './billing-usage-ledger.service';

@@ -15,11 +15,32 @@ export interface IGridSelectionCacheColumns {
   names?: string[];
 }
 
-interface IGridSelectionCacheData {
+export interface IGridSelectionCacheData {
   rows?: [number, number][];
   columns?: IGridSelectionCacheColumns;
   timestamp: number;
   addToChat?: boolean;
+}
+
+export function formatGridSelectionForChat(data?: IGridSelectionCacheData): string | undefined {
+  if (!data) return undefined;
+
+  const parts: string[] = [];
+  if (data.rows?.length) {
+    parts.push(
+      `行 ${data.rows.map(([start, end]) => (start === end ? `${start + 1}` : `${start + 1}-${end + 1}`)).join(', ')}`
+    );
+  }
+  if (data.columns) {
+    const range =
+      data.columns.columnStart === data.columns.columnEnd
+        ? `${data.columns.columnStart + 1}`
+        : `${data.columns.columnStart + 1}-${data.columns.columnEnd + 1}`;
+    const names = data.columns.names?.filter(Boolean).slice(0, 20);
+    parts.push(`列 ${names?.length ? `${names.join(', ')} (${range})` : range}`);
+  }
+
+  return parts.length ? `当前用户选中的网格范围：${parts.join('，')}。请优先基于此范围回答。` : undefined;
 }
 
 function setGridSelectionCache(

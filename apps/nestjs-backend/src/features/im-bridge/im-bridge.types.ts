@@ -18,6 +18,18 @@ export interface IBridgeMessage {
   title?: string;
   /** Optional structured key/value pairs (rendered as sections.facts in Teams). */
   fields?: Array<{ name: string; value: string }>;
+  /** Optional provider-specific message kind. Defaults to `text`. */
+  kind?: 'text' | 'image' | 'file' | 'post';
+  /** Feishu image key for `kind=image`. */
+  imageKey?: string;
+  /** Feishu file key for `kind=file`. */
+  fileKey?: string;
+  /** Optional source URL; Feishu automation may upload it before sending. */
+  imageUrl?: string;
+  fileUrl?: string;
+  fileName?: string;
+  /** Provider-native rich content, used by Feishu `kind=post`. */
+  providerPayload?: Record<string, unknown>;
 }
 
 export interface IBridgeAdapter {

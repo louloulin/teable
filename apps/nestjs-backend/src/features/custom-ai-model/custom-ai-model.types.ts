@@ -11,11 +11,11 @@
  */
 
 export type CustomAiProvider =
-  | 'custom-openai'      // OAI-compatible (OpenAI, Together, Groq, etc.)
-  | 'custom-anthropic'   // Anthropic messages API
-  | 'custom-azure'       // Azure OpenAI deployments
-  | 'custom-ollama'      // Self-hosted Ollama
-  | 'custom-bedrock';    // AWS Bedrock (future)
+  | 'custom-openai' // OAI-compatible (OpenAI, Together, Groq, etc.)
+  | 'custom-anthropic' // Anthropic messages API
+  | 'custom-azure' // Azure OpenAI deployments
+  | 'custom-ollama' // Self-hosted Ollama
+  | 'custom-bedrock'; // AWS Bedrock (future)
 
 export type CustomAiIsolation = 'shared' | 'per_base' | 'per_user';
 
@@ -34,6 +34,7 @@ export interface ICustomAiModel {
   alias: string;
   baseUrl?: string;
   modelName: string;
+  imageGenerationModel: boolean;
   /** API key id (in byok_llm_key) — never the plaintext itself. */
   apiKeyId?: string;
   status: 'active' | 'disabled' | 'pending_verification';
@@ -48,7 +49,8 @@ export interface ICreateCustomAiModelInput {
   alias: string;
   baseUrl?: string;
   modelName: string;
-  apiKey?: string;        // plaintext; hashed + stored in byok_llm_key
+  imageGenerationModel?: boolean;
+  apiKey?: string; // plaintext; hashed + stored in byok_llm_key
   isolation?: CustomAiIsolation;
 }
 
@@ -56,6 +58,7 @@ export interface IUpdateCustomAiModelInput {
   alias?: string;
   baseUrl?: string;
   modelName?: string;
+  imageGenerationModel?: boolean;
   apiKey?: string;
   isolation?: CustomAiIsolation;
   status?: ICustomAiModel['status'];
@@ -65,7 +68,17 @@ export interface ICustomAiModelTestResult {
   ok: boolean;
   latencyMs?: number;
   message?: string;
+  capabilities?: {
+    chat: boolean;
+    vision: boolean;
+    imageGeneration: boolean;
+  };
   testedAt: string;
+}
+
+export interface ICustomAiModelBatchTestResult {
+  testedAt: string;
+  results: Array<ICustomAiModelTestResult & { modelId: string; alias: string }>;
 }
 
 export interface ICustomAiModelUsage {

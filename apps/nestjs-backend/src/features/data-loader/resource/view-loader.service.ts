@@ -16,29 +16,16 @@ export class ViewLoaderService extends TableCommonLoader<IViewLoaderItem> {
       filterDataByParentId: (tableId: string) => this.getViewsInCache(tableId),
       getLoaderData: () => this.cls.get('dataLoaderCache.viewData'),
       setLoaderData: (data: IViewLoaderData) => this.cls.set('dataLoaderCache.viewData', data),
-      findManyByParentId: <K extends keyof IViewLoaderItem>(
+      findManyByParentId: (
         tableId: string,
-        keys?: Partial<Record<K, IViewLoaderItem[K][]>>
+        keys?: Partial<Record<string, unknown[]>>
       ) =>
         this.prismaService.txClient().view.findMany({
-          where: { tableId, deletedTime: null },
-          ...(keys
-            ? Object.keys(keys).reduce(
-                (acc, kStr) => {
-                  const key = kStr as K;
-                  const value = keys[key];
-                  if (value && value.length > 0) {
-                    if (value.length === 1) {
-                      acc[key] = value[0];
-                    } else {
-                      acc[key] = { in: value };
-                    }
-                  }
-                  return acc;
-                },
-                {} as Partial<Record<K, IViewLoaderItem[K] | { in: IViewLoaderItem[K][] }>>
-              )
-            : {}),
+          where: {
+            tableId,
+            deletedTime: null,
+            ...buildKeyWhere(keys),
+          },
         }),
       findByIds: (viewIds: string[]) =>
         this.prismaService
@@ -56,4 +43,18 @@ export class ViewLoaderService extends TableCommonLoader<IViewLoaderItem> {
     }
     return Array.from(viewMap.values()).filter((view) => view.tableId === tableId);
   }
+}
+
+
+function buildKeyWhere(
+  keys?: Partial<Record<string, unknown[]>>
+): Record<string, unknown> {
+  if (!keys) return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(keys)) {
+    if (Array.isArray(v) && v.length > 0) {
+      out[k] = v.length === 1 ? v[0] : { in: v };
+    }
+  }
+  return out;
 }

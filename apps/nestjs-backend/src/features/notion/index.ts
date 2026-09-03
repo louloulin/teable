@@ -23,3 +23,6 @@ export { NotionApiError, NOTION_API_VERSION, NOTION_API_BASE, NOTION_OAUTH_AUTHO
 
 // ─── Other public exports ─────────────────────────────────────────
 export { SUPPORTED_NOTION_TYPES, mapNotionPropertyToField, mapNotionDatabaseSchema, notionPropertyValueToCell, notionPageToRecord, INotionFieldMapping, INotionSchemaMappingResult, NotionPropertyType, INotionRecordValue } from './notion-schema-mapper';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export { INotionImportCanceledError } from './notion-import.service';

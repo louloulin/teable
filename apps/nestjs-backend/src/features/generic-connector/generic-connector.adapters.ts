@@ -1,4 +1,7 @@
 import { Logger } from '@nestjs/common';
+import { isIP } from 'node:net';
+import type { Response } from 'node-fetch';
+import { safeFetch } from '../../utils/ssrf-http';
 import type {
   GenericAdapterType,
   GenericFetchResult,
@@ -15,6 +18,56 @@ import type {
  */
 
 export type GenericAdapterFn = (spec: GenericSourceSpec) => Promise<GenericFetchResult>;
+
+const REQUEST_TIMEOUT_MS = 15_000;
+const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+
+const requestOptions = (headers: Record<string, string>) => ({
+  headers,
+  signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+});
+
+function assertPublicEndpoint(endpoint: string): void {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new Error('endpoint must be an absolute URL');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('endpoint protocol must be http or https');
+  }
+  if (url.username || url.password) {
+    throw new Error('endpoint credentials are not allowed');
+  }
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const ipVersion = isIP(hostname);
+  const isPrivateIpv4 =
+    ipVersion === 4 &&
+    (hostname === '0.0.0.0' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('127.') ||
+      hostname.startsWith('169.254.') ||
+      hostname.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname));
+  const normalizedIpv6 = hostname.replace(/:/g, '').toLowerCase();
+  const isPrivateIpv6 =
+    ipVersion === 6 &&
+    (hostname === '::1' || hostname === '::' || normalizedIpv6.startsWith('fc') || normalizedIpv6.startsWith('fd') || normalizedIpv6.startsWith('fe80'));
+  if (hostname === 'localhost' || isPrivateIpv4 || isPrivateIpv6) {
+    throw new Error('endpoint resolves to a private or loopback address');
+  }
+}
+
+async function readResponseText(response: Response): Promise<string> {
+  const declaredLength = Number(response.headers.get('content-length') ?? 0);
+  if (declaredLength > MAX_RESPONSE_BYTES) throw new Error('response exceeds 10 MiB limit');
+  const text = await response.text();
+  if (Buffer.byteLength(text, 'utf8') > MAX_RESPONSE_BYTES) {
+    throw new Error('response exceeds 10 MiB limit');
+  }
+  return text;
+}
 
 /** Walk a dotted path against an object — supports "data.items" / "result.records". */
 function pluckPath(obj: unknown, path: string | undefined): unknown {
@@ -61,16 +114,17 @@ export const jsonEndpointAdapter: GenericAdapterFn = async (spec) => {
   const startMs = Date.now();
   const logger = new Logger('jsonEndpointAdapter');
   try {
-    const res = await fetch(spec.endpoint, {
+    assertPublicEndpoint(spec.endpoint);
+    const res = await safeFetch(spec.endpoint, {
       method: spec.method ?? 'GET',
-      headers: {
+      ...requestOptions({
         Accept: 'application/json',
         ...(spec.token ? { Authorization: `Bearer ${spec.token}` } : {}),
         ...(spec.headers ?? {}),
-      },
+      }),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await readResponseText(res).catch(() => '');
       return buildResult({
         ok: false,
         spec,
@@ -78,7 +132,7 @@ export const jsonEndpointAdapter: GenericAdapterFn = async (spec) => {
         startMs,
       });
     }
-    const raw = (await res.json()) as unknown;
+    const raw = JSON.parse(await readResponseText(res)) as unknown;
     const body = pluckPath(raw, spec.recordsPath);
     const records: GenericRecord[] = Array.isArray(body)
       ? (body as GenericRecord[])
@@ -100,6 +154,7 @@ export const restApiAdapter: GenericAdapterFn = async (spec) => {
   const startMs = Date.now();
   const logger = new Logger('restApiAdapter');
   try {
+    assertPublicEndpoint(spec.endpoint);
     const pagination = spec.pagination ?? {};
     const limit = pagination.limit ?? 100;
     const body = JSON.stringify({
@@ -107,18 +162,18 @@ export const restApiAdapter: GenericAdapterFn = async (spec) => {
       offset: 0,
       ...(spec.meta ?? {}),
     });
-    const res = await fetch(spec.endpoint, {
+    const res = await safeFetch(spec.endpoint, {
       method: spec.method ?? 'POST',
-      headers: {
+      ...requestOptions({
         Accept: 'application/json',
         'Content-Type': 'application/json',
         ...(spec.token ? { Authorization: `Bearer ${spec.token}` } : {}),
         ...(spec.headers ?? {}),
-      },
+      }),
       body,
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await readResponseText(res).catch(() => '');
       return buildResult({
         ok: false,
         spec,
@@ -126,7 +181,7 @@ export const restApiAdapter: GenericAdapterFn = async (spec) => {
         startMs,
       });
     }
-    const raw = (await res.json()) as unknown;
+    const raw = JSON.parse(await readResponseText(res)) as unknown;
     const body2 = pluckPath(raw, spec.recordsPath ?? 'items');
     const records: GenericRecord[] = Array.isArray(body2)
       ? (body2 as GenericRecord[])
@@ -148,16 +203,17 @@ export const csvUrlAdapter: GenericAdapterFn = async (spec) => {
   const startMs = Date.now();
   const logger = new Logger('csvUrlAdapter');
   try {
-    const res = await fetch(spec.endpoint, {
+    assertPublicEndpoint(spec.endpoint);
+    const res = await safeFetch(spec.endpoint, {
       method: spec.method ?? 'GET',
-      headers: {
+      ...requestOptions({
         Accept: 'text/csv, text/plain;q=0.9, */*;q=0.5',
         ...(spec.token ? { Authorization: `Bearer ${spec.token}` } : {}),
         ...(spec.headers ?? {}),
-      },
+      }),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await readResponseText(res).catch(() => '');
       return buildResult({
         ok: false,
         spec,
@@ -165,7 +221,7 @@ export const csvUrlAdapter: GenericAdapterFn = async (spec) => {
         startMs,
       });
     }
-    const text = await res.text();
+    const text = await readResponseText(res);
     const totalBytes = text.length;
     const lines = text
       .split(/\r?\n/)

@@ -47,6 +47,22 @@ interface INotionImportOptions {
   databaseId: string;
   /** When true, only pages with `lastEditedTime > since` are imported. */
   incremental?: boolean;
+  /** Optional cancel predicate. Checked between pages and between record
+   *  batches. Throws `INotionImportCanceledError` when true so callers
+   *  can distinguish cancel from genuine failures. */
+  isCanceled?: () => boolean | Promise<boolean>;
+  /** Optional progress hook. Called after each successful record batch with
+   *  cumulative (imported, skipped, total) counts so the task row stays
+   *  observable while the import runs. */
+  onProgress?: (counts: { imported: number; skipped: number; total: number }) => void | Promise<void>;
+}
+
+export class INotionImportCanceledError extends Error {
+  readonly code = 'NOTION_IMPORT_CANCELED';
+  constructor() {
+    super('notion import was canceled');
+    this.name = 'INotionImportCanceledError';
+  }
 }
 
 export interface INotionImportResult {
@@ -141,6 +157,7 @@ export class NotionImportService {
     const allPages: INotionPageListItem[] = [];
     let cursor: string | undefined;
     while (true) {
+      if (await options.isCanceled?.()) throw new INotionImportCanceledError();
       const page = await this.queryPages(token.accessToken, databaseId, {
         pageSize: QUERY_PAGE_SIZE,
         startCursor: cursor,
@@ -157,6 +174,7 @@ export class NotionImportService {
     let skipped = 0;
     let maxLastEdited: string | undefined = since;
     for (let i = 0; i < allPages.length; i += CREATE_BATCH_SIZE) {
+      if (await options.isCanceled?.()) throw new INotionImportCanceledError();
       const slice = allPages.slice(i, i + CREATE_BATCH_SIZE);
       const payloads = slice
         .map((page) => notionPageToRecord(page, mapping))
@@ -179,6 +197,11 @@ export class NotionImportService {
             }
           }
         }
+        await options.onProgress?.({
+          imported,
+          skipped,
+          total: allPages.length,
+        });
       } catch (error) {
         this.logger.warn(
           `Failed to import Notion page batch ${i / CREATE_BATCH_SIZE + 1}: ${

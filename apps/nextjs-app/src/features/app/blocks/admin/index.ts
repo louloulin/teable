@@ -26,6 +26,7 @@ export { SamlAdminPanel } from './saml-panel';
 export { TotpAdminPanel } from './totp-admin-panel';
 export { QuotaAdminPanel } from './quota-panel';
 export { AiCostAdminPanel } from './ai-cost-panel';
+export { AiFieldPanel } from './ai-field/AiFieldPanel';
 export { AirtableAdminPanel } from './airtable-panel';
 
 // Enterprise-capability placeholder pages — bridge the OSS/Cloud gap so the

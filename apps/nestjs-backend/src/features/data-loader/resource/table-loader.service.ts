@@ -16,29 +16,16 @@ export class TableLoaderService extends TableCommonLoader<ITableLoaderItem> {
       filterDataByParentId: (baseId: string) => this.filterTablesByParentId(baseId),
       getLoaderData: () => this.cls.get('dataLoaderCache.tableData'),
       setLoaderData: (data: ITableLoaderData) => this.cls.set('dataLoaderCache.tableData', data),
-      findManyByParentId: <K extends keyof ITableLoaderItem>(
+      findManyByParentId: (
         baseId: string,
-        keys?: Partial<Record<K, ITableLoaderItem[K][]>>
+        keys?: Partial<Record<string, unknown[]>>
       ) =>
         this.prismaService.txClient().tableMeta.findMany({
-          where: { baseId, deletedTime: null },
-          ...(keys
-            ? Object.keys(keys).reduce(
-                (acc, kStr) => {
-                  const key = kStr as K;
-                  const value = keys[key];
-                  if (value && value.length > 0) {
-                    if (value.length === 1) {
-                      acc[key] = value[0];
-                    } else {
-                      acc[key] = { in: value };
-                    }
-                  }
-                  return acc;
-                },
-                {} as Partial<Record<K, ITableLoaderItem[K] | { in: ITableLoaderItem[K][] }>>
-              )
-            : {}),
+          where: {
+            baseId,
+            deletedTime: null,
+            ...buildKeyWhere(keys),
+          },
         }),
       findByIds: (tableIds: string[]) =>
         this.prismaService
@@ -56,4 +43,27 @@ export class TableLoaderService extends TableCommonLoader<ITableLoaderItem> {
     }
     return Array.from(tableMap.values()).filter((table) => table.baseId === baseId);
   }
+
+  private findTables(baseId: string, keys?: Partial<Record<string, unknown[]>>) {
+    return this.prismaService.txClient().tableMeta.findMany({
+      where: {
+        baseId,
+        deletedTime: null,
+        ...buildKeyWhere(keys),
+      },
+    });
+  }
+}
+
+function buildKeyWhere(
+  keys?: Partial<Record<string, unknown[]>>
+): Record<string, unknown> {
+  if (!keys) return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(keys)) {
+    if (Array.isArray(v) && v.length > 0) {
+      out[k] = v.length === 1 ? v[0] : { in: v };
+    }
+  }
+  return out;
 }

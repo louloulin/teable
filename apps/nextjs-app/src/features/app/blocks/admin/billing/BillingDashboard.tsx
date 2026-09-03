@@ -45,7 +45,7 @@ interface IInvoice {
   id: string;
   subscriptionId: string;
   externalInvoiceId: string;
-  amountDueCents: number;
+  amountCents: number;
   currency: string;
   status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
   periodStart: string;
@@ -80,7 +80,7 @@ export const BillingDashboard = () => {
     queryFn: () =>
       axios
         .get<{ subscription: ISubscription | null }>(
-          `/api/billing/subscription/${orgId}`
+          `/api/admin/billing/subscriptions/${orgId}`
         )
         .then((r) => r.data.subscription),
     enabled: Boolean(orgId),
@@ -91,7 +91,7 @@ export const BillingDashboard = () => {
     queryFn: () =>
       axios
         .get<{ invoices: IInvoice[]; count: number }>(
-          `/api/billing/invoices?subscriptionId=${subscriptionQuery.data?.externalSubscriptionId ?? ''}`
+          `/api/admin/billing/invoices/${orgId}`
         )
         .then((r) => r.data),
     enabled: Boolean(subscriptionQuery.data),
@@ -101,7 +101,7 @@ export const BillingDashboard = () => {
     queryKey: ['admin', 'billing', 'plans'],
     queryFn: () =>
       axios
-        .get<{ plans: IPlan[] }>('/api/billing/plans')
+        .get<{ plans: IPlan[] }>('/api/admin/billing/plans')
         .then((r) => r.data.plans),
   });
 
@@ -123,7 +123,7 @@ export const BillingDashboard = () => {
   const cancel = useMutation({
     mutationFn: () =>
       axios.post<{ status: SubscriptionStatus }>(
-        `/api/billing/subscription/${orgId}/cancel`,
+        `/api/admin/billing/subscriptions/${orgId}/cancel`,
         { atPeriodEnd: true }
       ),
     onSuccess: () => {
@@ -239,7 +239,7 @@ export const BillingDashboard = () => {
                         <Badge variant="outline">{inv.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        ${(inv.amountDueCents / 100).toFixed(2)} {inv.currency}
+                        ${(inv.amountCents / 100).toFixed(2)} {inv.currency}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(inv.periodStart).toLocaleDateString()} -{' '}

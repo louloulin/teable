@@ -101,8 +101,10 @@ async function mirrorGatewayToAiConfig(
  * Mirror `defaultModel` into `meta.setting.aiConfig.chatModel` so admin UI
  * changes actually reach `ai.service.getChatModelInstance`. Without this
  * mirror, defaultModel is only stored in the ai_setting row and never
- * affects runtime behavior. Splits on `/` to decide gateway vs standard:
- *   - contains '/' → gateway model (anthropic/claude-sonnet-4)
+ * affects runtime behavior. Splits on `/` or an AI gateway setting to decide
+ * gateway vs standard:
+ *   - contains '/' or has an AI gateway key → gateway model
+ *     (e.g. `anthropic/claude-sonnet-4` or `MiniMax-M3`)
  *     chatModel.{lg,md,sm} = `<model>@teable` (instance-level suffix)
  *   - otherwise → standard model (gpt-4o-mini)
  *     chatModel.{lg,md,sm} = `openai@<model>@teable`
@@ -119,9 +121,9 @@ async function mirrorDefaultModelToAiConfig(
     select: { content: true },
   });
   const parsed = safeParseJson(existing?.content);
-  const isGateway = defaultModel.includes('/');
+  const isGateway = defaultModel.includes('/') || Boolean(parsed.aiGatewayApiKey);
   const modelKey = isGateway
-    ? `${defaultModel}@teable`
+    ? `aiGateway@${defaultModel}@teable`
     : `openai@${defaultModel}@teable`;
   const nextChatModel = {
     ...((parsed.chatModel as Record<string, unknown>) ?? {}),

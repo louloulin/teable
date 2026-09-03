@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { OnApplicationBootstrap } from '@nestjs/common';
 import type { PlanLevel } from '@teable/db-main-prisma';
+import { HttpErrorCode } from '@teable/core';
 
+import { CustomHttpException } from '../../custom.exception';
 import { LicenseService } from './license.service';
 
 /**
@@ -45,7 +47,8 @@ export type LicenseCapability =
   | 'announcements'
   | 'sandbox_agent'
   // Round-AI-2: BYOK LLM — Enterprise-only (customer-managed keys)
-  | 'byok_llm_key';
+  | 'byok_llm_key'
+  | 'billing';
 
 const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'ai_field',
@@ -72,6 +75,7 @@ const ALL_CAPABILITIES: readonly LicenseCapability[] = [
   'announcements',
   'sandbox_agent',
   'byok_llm_key',
+  'billing',
 ];
 
 const ALL_CAPABILITIES_SET = new Set<LicenseCapability>(ALL_CAPABILITIES);
@@ -109,6 +113,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'table_query_ops',
     'announcements',
     'sandbox_agent',
+    'billing',
   ]),
   enterprise: new Set<LicenseCapability>([
     'ai_field',
@@ -135,6 +140,7 @@ const PLAN_CAPABILITIES: Record<PlanLevel, ReadonlySet<LicenseCapability>> = {
     'announcements',
     'sandbox_agent',
     'byok_llm_key',
+    'billing',
   ]),
   // Self-hosted OSS does not require a cloud license for local operation.
   self_hosted: ALL_CAPABILITIES_SET,
@@ -171,34 +177,29 @@ export class LicenseCapabilityService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * Strict, throws when the capability is missing.
-   *
-   * OSS / gap-fill mode: enterprise gating is intentionally a no-op so that
-   * the operator-facing surface stays consistent between API and UI. The plan
-   * is still tracked (so cloud-side telemetry keeps working) but no
-   * capability is ever denied here. To re-enable strict enforcement, remove
-   * the unconditional `return` and restore the check against `this.cache`.
-   */
-  require(_cap: LicenseCapability): void {
-    return;
+  /** Throws a stable 402 when the current plan does not include a capability. */
+  require(cap: LicenseCapability): void {
+    if (this.isEnabled(cap)) return;
+    throw new CustomHttpException(
+      `capability "${cap}" requires a license upgrade`,
+      HttpErrorCode.PAYMENT_REQUIRED,
+      { cause: 'LICENSE_REQUIRED', meta: { capability: cap, plan: this.plan } }
+    );
   }
 
-  isEnabled(_cap: LicenseCapability): boolean {
-    return true;
+  isEnabled(cap: LicenseCapability): boolean {
+    return this.cache.get(cap) ?? false;
   }
 
   /**
    * Convenience for the frontend: full feature flag map.
    *
-   * Mirrors the no-op `isEnabled` so the UI never shows a "locked" state
-   * for a capability the API will happily serve. The plan is still reported
-   * for telemetry; capability values are all `true`.
+   * Mirrors `isEnabled` so the UI and API expose the same plan boundary.
    */
   snapshot(): Record<LicenseCapability, boolean> & { plan: PlanLevel } {
     const out = { plan: this.plan } as Record<LicenseCapability, boolean> & { plan: PlanLevel };
     for (const cap of ALL_CAPABILITIES) {
-      out[cap] = true;
+      out[cap] = this.isEnabled(cap);
     }
     return out;
   }

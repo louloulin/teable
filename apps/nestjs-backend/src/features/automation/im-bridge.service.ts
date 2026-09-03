@@ -35,12 +35,12 @@ interface IEncryptedToken {
 }
 
 const KEY = (() => {
-  const raw =
-    process.env.TEABLE_INTEGRATION_SECRET ??
-    // dev fallback; production must set the env var
-    'dev-only-secret-do-not-use-in-prod-32b';
+  const raw = process.env.TEABLE_INTEGRATION_SECRET;
+  if (!raw && process.env.NODE_ENV === 'production') {
+    throw new Error('TEABLE_INTEGRATION_SECRET is required for IM integration secrets');
+  }
   // Derive a 32-byte key via scrypt — never store raw user input as a key.
-  return scryptSync(raw, 'teable.salt.v1', 32);
+  return scryptSync(raw ?? 'teable-local-development-secret', 'teable.salt.v1', 32);
 })();
 
 const encryptToken = (plaintext: string): string => {

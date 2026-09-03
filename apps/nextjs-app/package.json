@@ -94,6 +94,7 @@
     "vitest": "4.0.17"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.10",
     "@asteasolutions/zod-to-openapi": "8.1.0",
     "@belgattitude/http-exception": "1.5.0",
     "@codemirror/autocomplete": "6.15.0",

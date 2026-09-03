@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 import { AiAppBuilderAuthService } from './ai-app-builder.auth.service';
@@ -18,7 +30,9 @@ export class AiAppBuilderController {
   ) {}
 
   private currentUserId(): string {
-    return this.cls.get('user.id') ?? 'usr_admin';
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('AI App Builder requires an authenticated user');
+    return userId;
   }
 
   // ─── app instance CRUD (5 endpoints) ────────────────────────────────────
@@ -74,14 +88,17 @@ export class AiAppBuilderController {
     @Body() body: { sourcePrompt?: string; snapshot?: unknown }
   ) {
     await this.auth.assertAppInBase(appId, baseId);
-    const { app, version } = await this.svc.deploy(
+    const out = await this.svc.deploy(
       appId,
       this.currentUserId(),
       body?.sourcePrompt,
       body?.snapshot
     );
-    // Service returns the freshly-refetched app; use its currentVersionId.
-    return { appId: app.id, currentVersionId: app.currentVersionId ?? null, version };
+    return {
+      appId,
+      currentVersionId: out.app?.currentVersionId ?? out.version.id,
+      version: out.version,
+    };
   }
 
   @Post(':appId/rollback')
@@ -89,6 +106,9 @@ export class AiAppBuilderController {
   async rollback(@Param('baseId') baseId: string, @Param('appId') appId: string) {
     await this.auth.assertAppInBase(appId, baseId);
     const out = await this.svc.rollback(appId, this.currentUserId());
+    if (!out.app) {
+      throw new Error('app not found after rollback');
+    }
     return { appId: appId, currentVersionId: out.app.currentVersionId, version: out.previous };
   }
 

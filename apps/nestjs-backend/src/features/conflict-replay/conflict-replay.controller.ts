@@ -137,14 +137,14 @@ function rowToEvent(row: Record<string, unknown>): IConflictEvent {
     attempts: typeof row['attempts'] === 'number' ? (row['attempts'] as number) : 0,
     lastError:
       row['lastError'] === null || row['lastError'] === undefined
-        ? null
+        ? undefined
         : String(row['lastError']),
     enqueuedAt: new Date(
       String(row['enqueuedAt'] ?? Date.now())
     ).toISOString(),
     lastAttemptAt:
       row['lastAttemptAt'] === null || row['lastAttemptAt'] === undefined
-        ? null
+        ? undefined
         : new Date(String(row['lastAttemptAt'])).toISOString(),
   };
 }

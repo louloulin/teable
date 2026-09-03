@@ -36,7 +36,8 @@ export type AutomationActionType =
   | 'call_webhook'
   | 'notify_user'
   | 'ai_prompt'
-  | 'send_teams_message';
+  | 'send_teams_message'
+  | 'send_feishu_message';
 
 export type AutomationRunStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
 
@@ -81,6 +82,7 @@ export const AUTOMATION_ACTION_TYPES: readonly AutomationActionType[] = [
   'notify_user',
   'ai_prompt',
   'send_teams_message',
+  'send_feishu_message',
 ] as const;
 
 /**

@@ -5,6 +5,7 @@ import { formViewOptionSchema } from './derivate/form-view-option.schema';
 import { galleryViewOptionSchema } from './derivate/gallery-view-option.schema';
 import { gridViewOptionSchema } from './derivate/grid-view-option.schema';
 import { kanbanViewOptionSchema } from './derivate/kanban-view-option.schema';
+import { pivotViewOptionSchema } from './derivate/pivot-view-option.schema';
 import { pluginViewOptionSchema } from './derivate/plugin-view-option.schema';
 
 export const viewOptionsSchema = z.union([
@@ -14,6 +15,7 @@ export const viewOptionsSchema = z.union([
   calendarViewOptionSchema,
   formViewOptionSchema,
   pluginViewOptionSchema,
+  pivotViewOptionSchema,
 ]);
 
 export type IViewOptions = z.infer<typeof viewOptionsSchema>;
@@ -39,6 +41,9 @@ export const validateOptionsType = (type: ViewType, optionsString: IViewOptions)
       break;
     case ViewType.Plugin:
       pluginViewOptionSchema.parse(optionsString);
+      break;
+    case ViewType.Pivot:
+      pivotViewOptionSchema.parse(optionsString);
       break;
     default:
       throw new Error(`Unsupported view type: ${type}`);

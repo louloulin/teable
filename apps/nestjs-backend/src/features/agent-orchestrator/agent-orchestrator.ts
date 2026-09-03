@@ -86,7 +86,10 @@ export class ConversationStore {
     base_id?: string
   ): ConversationContext {
     const existing = this.map.get(conversation_id);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.user_id !== user_id) throw new Error('conversation access denied');
+      return existing;
+    }
     const fresh: ConversationContext = {
       conversation_id,
       user_id,

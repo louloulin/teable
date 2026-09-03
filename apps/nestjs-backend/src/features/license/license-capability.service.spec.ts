@@ -1,13 +1,7 @@
 import { LicenseCapabilityService } from './license-capability.service';
 import type { LicenseService } from './license.service';
 
-/**
- * OSS / gap-fill contract: the license gate is intentionally a no-op.
- * Every capability must report `true` and `require()` must never throw,
- * regardless of the resolved plan. This spec pins that behaviour so a
- * future regression towards strict enforcement is caught immediately.
- */
-describe('LicenseCapabilityService (real-skip / no-op contract)', () => {
+describe('LicenseCapabilityService plan contract', () => {
   const build = (plan: 'free' | 'pro' | 'business' | 'enterprise' | 'self_hosted') => {
     const claims =
       plan === 'self_hosted'
@@ -48,11 +42,39 @@ describe('LicenseCapabilityService (real-skip / no-op contract)', () => {
     'sandbox_agent',
   ] as const;
 
-  it.each(plans)('enables every capability under plan=%s', (plan) => {
+  it('keeps all local capabilities enabled for self-hosted instances', () => {
+    const svc = build('self_hosted');
+    for (const cap of everythingKeys) {
+      expect(svc.isEnabled(cap)).toBe(true);
+      expect(() => svc.require(cap)).not.toThrow();
+    }
+  });
+
+  it('enforces the published capability matrix for licensed plans', () => {
+    const svc = build('free');
+    expect(svc.isEnabled('ai_chat')).toBe(true);
+    expect(svc.isEnabled('billing')).toBe(false);
+    expect(() => svc.require('billing')).toThrow(/requires a license upgrade/);
+
+    const business = build('business');
+    expect(business.isEnabled('billing')).toBe(true);
+    expect(business.isEnabled('byok_llm_key')).toBe(false);
+  });
+
+  it('reports disabled capabilities in snapshot', () => {
+    const svc = build('pro');
+    expect(svc.snapshot().audit_log).toBe(true);
+    expect(svc.snapshot().billing).toBe(false);
+    expect(svc.snapshot().byok_llm_key).toBe(false);
+  });
+
+  it('enables every capability under enterprise and self-hosted plans', () => {
+    for (const plan of ['enterprise', 'self_hosted'] as const) {
     const svc = build(plan);
     for (const cap of everythingKeys) {
       expect(svc.isEnabled(cap)).toBe(true);
       expect(() => svc.require(cap)).not.toThrow();
+    }
     }
   });
 
@@ -64,14 +86,8 @@ describe('LicenseCapabilityService (real-skip / no-op contract)', () => {
     expect(build('self_hosted').currentPlan()).toBe('self_hosted');
   });
 
-  it('snapshot() returns true for every capability regardless of plan', () => {
-    for (const plan of plans) {
-      const snap = build(plan).snapshot();
-      expect(snap.plan).toBe(plan);
-      for (const cap of everythingKeys) {
-        expect(snap[cap]).toBe(true);
-      }
-    }
+  it('snapshot() reflects the plan', () => {
+    for (const plan of plans) expect(build(plan).snapshot().plan).toBe(plan);
   });
 
   it('accepts a runtime activation without an env variable', () => {

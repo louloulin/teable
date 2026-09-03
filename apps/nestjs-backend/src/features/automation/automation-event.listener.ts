@@ -13,6 +13,8 @@ import type {
 import { Events } from '../../event-emitter/events';
 import { safeFetch } from '../../utils/ssrf-http';
 import { AiService } from '../ai/ai.service';
+import { FeishuConfigService } from '../im-bridge/feishu-config.service';
+import { FeishuAdapter } from '../im-bridge/feishu.adapter';
 import { TeamsAdapter } from '../im-bridge/teams.adapter';
 import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { NotificationService } from '../notification/notification.service';
@@ -39,7 +41,9 @@ export class AutomationEventListener {
     private readonly rateLimit?: AutomationRateLimitService,
     private readonly aiService?: AiService,
     @Optional() private readonly notificationService?: NotificationService,
-    @Optional() private readonly teamsAdapter?: TeamsAdapter
+    @Optional() private readonly teamsAdapter?: TeamsAdapter,
+    @Optional() private readonly feishuAdapter?: FeishuAdapter,
+    @Optional() private readonly feishuConfig?: FeishuConfigService
   ) {}
 
   @OnEvent(Events.TABLE_RECORD_CREATE, { async: true })
@@ -68,6 +72,35 @@ export class AutomationEventListener {
     context?: { user?: { id: string } };
   }) {
     await this.dispatchEvent('form_submitted', event.payload, event.context?.user?.id);
+  }
+
+  @OnEvent('im.feishu.message', { async: true })
+  async handleFeishuMessage(input: {
+    spaceId: string;
+    eventId: string;
+    eventType?: string;
+    event: Record<string, unknown>;
+  }): Promise<void> {
+    if (input.eventType !== 'im.message.receive_v1') return;
+    const message = this.asObject(input.event.message) ?? {};
+    const content = this.parseJsonObject(message.content);
+    const runs = await this.automation.triggerExternalEvent({
+      spaceId: input.spaceId,
+      provider: 'feishu',
+      payload: {
+        eventId: input.eventId,
+        eventType: input.eventType,
+        event: input.event,
+        message,
+        content,
+        text: this.asString(content.text) ?? '',
+        chatId: this.asString(message.chat_id),
+        sender: this.asObject(input.event.sender),
+      },
+    });
+    for (const { run, actions } of runs) {
+      await this.executeRun(run.id, actions, run.input, 'webhook_received');
+    }
   }
 
   async dispatchTrigger(
@@ -162,6 +195,15 @@ export class AutomationEventListener {
     if (event.name === Events.TABLE_RECORD_CREATE) return 'record_created';
     if (event.name === Events.TABLE_RECORD_UPDATE) return 'record_updated';
     return 'record_deleted';
+  }
+
+  private parseJsonObject(value: unknown): Record<string, unknown> {
+    if (typeof value !== 'string') return this.asObject(value) ?? {};
+    try {
+      return this.asObject(JSON.parse(value)) ?? {};
+    } catch {
+      return { text: value };
+    }
   }
 
   private async executeRun(
@@ -287,6 +329,9 @@ export class AutomationEventListener {
     }
     if (action.type === 'send_teams_message') {
       return this.executeTeamsMessage(runId, action.config);
+    }
+    if (action.type === 'send_feishu_message') {
+      return this.executeFeishuMessage(runId, action.config);
     }
     if (action.type === 'run_script') {
       return this.executeRunScript(runId, action.config, payload);
@@ -609,6 +654,98 @@ export class AutomationEventListener {
         text,
         ...(this.asString(config.title) ? { title: this.asString(config.title) } : {}),
         ...(Array.isArray(config.fields) ? { fields: config.fields as never } : {}),
+      }
+    );
+    if (!result.delivered) await this.failRun(runId, result.error);
+    return { failed: !result.delivered, output: result };
+  }
+
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  private async executeFeishuMessage(
+    runId: string,
+    config: Record<string, unknown>
+  ): Promise<IActionResult> {
+    const kind = this.asString(config.kind) ?? 'text';
+    const text = this.asString(config.text) ?? '';
+    const spaceId = this.asString(config.spaceId);
+    const validKind = ['text', 'image', 'file', 'post'].includes(kind);
+    const imageUrl = this.asString(config.imageUrl);
+    const fileUrl = this.asString(config.fileUrl);
+    const hasPayload =
+      (kind === 'text' && Boolean(text)) ||
+      (kind === 'image' && Boolean(this.asString(config.imageKey) || imageUrl)) ||
+      (kind === 'file' && Boolean(this.asString(config.fileKey) || fileUrl)) ||
+      (kind === 'post' && Boolean(this.asObject(config.providerPayload)));
+    if (!spaceId || !validKind || !hasPayload || !this.feishuAdapter || !this.feishuConfig) {
+      await this.failRun(runId, 'send_feishu_message requires a valid payload and Feishu support');
+      return { failed: true };
+    }
+    const stored = await this.feishuConfig.getDecryptedConfig(spaceId);
+    if (!stored) {
+      await this.failRun(runId, `no Feishu config for space=${spaceId}`);
+      return { failed: true };
+    }
+    let imageKey = this.asString(config.imageKey);
+    let fileKey = this.asString(config.fileKey);
+    if (kind === 'image' && !imageKey && imageUrl) {
+      const uploaded = await this.feishuAdapter.uploadFromUrl(
+        {
+          appId: stored.appId,
+          appSecret: stored.appSecret,
+          receiveId: stored.receiveId,
+          receiveIdType: stored.receiveIdType,
+        },
+        {
+          kind: 'image',
+          sourceUrl: imageUrl,
+          fileName: this.asString(config.fileName),
+          contentType: this.asString(config.contentType),
+        }
+      );
+      if (!uploaded.uploaded) {
+        await this.failRun(runId, uploaded.error);
+        return { failed: true, output: uploaded };
+      }
+      imageKey = uploaded.key;
+    }
+    if (kind === 'file' && !fileKey && fileUrl) {
+      const uploaded = await this.feishuAdapter.uploadFromUrl(
+        {
+          appId: stored.appId,
+          appSecret: stored.appSecret,
+          receiveId: stored.receiveId,
+          receiveIdType: stored.receiveIdType,
+        },
+        {
+          kind: 'file',
+          sourceUrl: fileUrl,
+          fileName: this.asString(config.fileName),
+          contentType: this.asString(config.contentType),
+        }
+      );
+      if (!uploaded.uploaded) {
+        await this.failRun(runId, uploaded.error);
+        return { failed: true, output: uploaded };
+      }
+      fileKey = uploaded.key;
+    }
+    const result = await this.feishuAdapter.sendMessage(
+      {
+        appId: stored.appId,
+        appSecret: stored.appSecret,
+        receiveId: this.asString(config.receiveId) ?? stored.receiveId,
+        receiveIdType: this.asString(config.receiveIdType) ?? stored.receiveIdType,
+      },
+      {
+        text,
+        ...(this.asString(config.title) ? { title: this.asString(config.title) } : {}),
+        ...(Array.isArray(config.fields) ? { fields: config.fields as never } : {}),
+        kind: kind as 'text' | 'image' | 'file' | 'post',
+        ...(imageKey ? { imageKey } : {}),
+        ...(fileKey ? { fileKey } : {}),
+        ...(this.asObject(config.providerPayload)
+          ? { providerPayload: this.asObject(config.providerPayload) }
+          : {}),
       }
     );
     if (!result.delivered) await this.failRun(runId, result.error);

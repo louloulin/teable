@@ -7,6 +7,7 @@ import { FormView } from './form.view';
 import { GalleryView } from './gallery.view';
 import { GridView } from './grid.view';
 import { KanbanView } from './kanban.view';
+import { PivotView } from './pivot.view';
 import { PluginView } from './plugin.view';
 
 export function createViewInstance(view: IViewVo, doc?: Doc<IViewVo>) {
@@ -24,6 +25,8 @@ export function createViewInstance(view: IViewVo, doc?: Doc<IViewVo>) {
         return plainToInstance(PluginView, view);
       case ViewType.Calendar:
         return plainToInstance(CalendarView, view);
+      case ViewType.Pivot:
+        return plainToInstance(PivotView, view);
       default:
         assertNever(view.type);
     }

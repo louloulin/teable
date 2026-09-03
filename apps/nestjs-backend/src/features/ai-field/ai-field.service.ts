@@ -13,9 +13,12 @@ import type {
   AiFieldOperation,
   AiFieldStatus,
   IClassifyConfig,
+  ICustomPromptConfig,
   ICreateAiFieldInput,
   ICreateTemplateInput,
+  IImageConfig,
   IRunAiFieldInput,
+  IScoreConfig,
   ISummarizeConfig,
   ITranslateConfig,
   IUsageAggregate,
@@ -61,6 +64,48 @@ export function validateConfig(op: AiFieldOperation, config: AiFieldConfig): voi
     const c = config as ITranslateConfig;
     if (typeof c.targetLang !== 'string' || c.targetLang.trim().length === 0) {
       throw new Error('translate.targetLang required');
+    }
+  } else if (op === 'score') {
+    const c = config as IScoreConfig;
+    if (!Number.isInteger(c.min) || !Number.isInteger(c.max)) {
+      throw new Error('score.min/max must be integers');
+    }
+    if (c.min < 0 || c.max > 10_000 || c.min >= c.max) {
+      throw new Error('score range invalid: 0 <= min < max <= 10000');
+    }
+    if (c.criteria !== undefined && typeof c.criteria !== 'string') {
+      throw new Error('score.criteria must be a string');
+    }
+    if (c.description !== undefined && typeof c.description !== 'string') {
+      throw new Error('score.description must be a string');
+    }
+  } else if (op === 'image') {
+    const c = config as IImageConfig;
+    if (typeof c.prompt !== 'string' || c.prompt.trim().length === 0) {
+      throw new Error('image.prompt required');
+    }
+    if (c.size !== undefined && typeof c.size !== 'string') {
+      throw new Error('image.size must be a string');
+    }
+    if (c.count !== undefined && (!Number.isInteger(c.count) || c.count < 1 || c.count > 4)) {
+      throw new Error('image.count must be an integer in [1,4]');
+    }
+    if (c.aspectRatio !== undefined && typeof c.aspectRatio !== 'string') {
+      throw new Error('image.aspectRatio must be a string');
+    }
+    if (c.quality !== undefined && !['standard', 'hd'].includes(c.quality)) {
+      throw new Error('image.quality must be standard or hd');
+    }
+  } else if (op === 'custom') {
+    const c = config as ICustomPromptConfig;
+    if (typeof c.prompt !== 'string' || c.prompt.trim().length === 0) {
+      throw new Error('custom.prompt required');
+    }
+    if (c.systemPrompt !== undefined && typeof c.systemPrompt !== 'string') {
+      throw new Error('custom.systemPrompt must be a string');
+    }
+    if (c.language !== undefined && !['english', 'chinese'].includes(c.language)) {
+      throw new Error('custom.language must be english or chinese');
     }
   }
 }
@@ -111,6 +156,20 @@ export const DEFAULT_TEMPLATES: Record<AiFieldOperation, Record<string, string>>
     english: 'Translate the following text into {{targetLang}}.\n\nText: {{input}}',
     chinese: '将下面的文本翻译成 {{targetLang}}。\n\n文本：{{input}}',
   },
+  score: {
+    english:
+      'Rate the following text on a scale of {{min}} to {{max}}. {{criteria}} Return only the numeric score.\n\nText: {{input}}',
+    chinese:
+      '请根据 {{min}} 到 {{max}} 的评分标准为以下文本评分。{{criteria}} 仅返回数字分数。\n\n文本：{{input}}',
+  },
+  image: {
+    english: '{{prompt}}\n\nSource context:\n{{input}}',
+    chinese: '{{prompt}}\n\n参考上下文：\n{{input}}',
+  },
+  custom: {
+    english: '{{prompt}}',
+    chinese: '{{prompt}}',
+  },
 };
 
 export function buildDefaultPrompt(
@@ -130,6 +189,32 @@ export function buildDefaultPrompt(
       template: tmpl,
       variables: { maxLength: c.maxLength ?? 100, style: c.style ?? 'concise', input },
     });
+  }
+  if (op === 'score') {
+    const c = config as IScoreConfig;
+    return renderPrompt({
+      template: tmpl,
+      variables: {
+        min: c.min,
+        max: c.max,
+        criteria: c.criteria ? `${c.criteria}\n` : '',
+        input,
+      },
+    });
+  }
+  if (op === 'image') {
+    const c = config as IImageConfig;
+    return renderPrompt({
+      template: tmpl,
+      variables: { prompt: c.prompt, input },
+    });
+  }
+  if (op === 'custom') {
+    const c = config as ICustomPromptConfig;
+    // For custom ops the user-provided prompt is authoritative: pass it
+    // straight through. Field placeholder resolution happens in the auth
+    // service which has access to the row's fields.
+    return c.prompt;
   }
   const c = config as ITranslateConfig;
   return renderPrompt({ template: tmpl, variables: { targetLang: c.targetLang, input } });
@@ -190,7 +275,16 @@ export function guardOutput(input: {
     if (trimmed.length <= maxLength) return trimmed;
     return trimmed.slice(0, maxLength - 1).trimEnd() + '…';
   }
-  // translate: no guard besides trim
+  if (input.operation === 'score') {
+    const c = input.config as IScoreConfig;
+    const match = trimmed.match(/-?\d+(?:\.\d+)?/);
+    if (!match) return String(c.min);
+    const raw = Number(match[0]);
+    if (!Number.isFinite(raw)) return String(c.min);
+    const clamped = Math.min(Math.max(raw, c.min), c.max);
+    return String(Math.round(clamped));
+  }
+  // translate / image / custom: no guard besides trim
   return trimmed;
 }
 
@@ -227,6 +321,10 @@ export function buildRunRow(
     id: string;
     model: string;
     outputText: string;
+    status?: 'ok' | 'failed' | 'rate-limited' | 'skipped';
+    promptTokens?: number;
+    completionTokens?: number;
+    errorMessage?: string | null;
     startedAt: Date;
     finishedAt: Date;
   }
@@ -249,14 +347,14 @@ export function buildRunRow(
     id: input.id,
     aiFieldId: input.aiFieldId,
     recordId: input.recordId,
-    status: 'ok',
+    status: input.status ?? 'ok',
     inputText: input.inputText,
     outputText: input.outputText,
-    promptTokens: estimateTokens(input.inputText),
-    completionTokens: estimateTokens(input.outputText),
+    promptTokens: input.promptTokens ?? estimateTokens(input.inputText),
+    completionTokens: input.completionTokens ?? estimateTokens(input.outputText),
     model: input.model,
     durationMs: input.finishedAt.getTime() - input.startedAt.getTime(),
-    errorMessage: null,
+    errorMessage: input.errorMessage ?? null,
     startedAt: input.startedAt,
     finishedAt: input.finishedAt,
   };

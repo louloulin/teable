@@ -4,7 +4,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -16,22 +20,161 @@
     "noEmit": true,
     "incremental": true,
     "newLine": "lf",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "files": [],
   "references": [
-    { "path": "./apps/nestjs-backend" },
-    { "path": "./apps/nextjs-app" },
-    { "path": "./packages/core" },
-    { "path": "./packages/openapi" },
-    { "path": "./packages/db-main-prisma" },
-    { "path": "./packages/db-data-prisma" },
-    { "path": "./packages/formula" },
-    { "path": "./packages/common-i18n" },
-    { "path": "./packages/i18n-keys" },
-    { "path": "./packages/sdk" },
-    { "path": "./packages/ui-lib" },
-    { "path": "./packages/icons" }
+    {
+      "path": "./apps/nestjs-backend"
+    },
+    {
+      "path": "./apps/nextjs-app"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/openapi"
+    },
+    {
+      "path": "./packages/db-main-prisma"
+    },
+    {
+      "path": "./packages/db-data-prisma"
+    },
+    {
+      "path": "./packages/formula"
+    },
+    {
+      "path": "./packages/common-i18n"
+    },
+    {
+      "path": "./packages/i18n-keys"
+    },
+    {
+      "path": "./packages/sdk"
+    },
+    {
+      "path": "./packages/ui-lib"
+    },
+    {
+      "path": "./packages/icons"
+    },
+    {
+      "path": "./packages/v2/adapter-csv-parser-papaparse"
+    },
+    {
+      "path": "./packages/v2/adapter-db-postgres-pg"
+    },
+    {
+      "path": "./packages/v2/adapter-db-postgres-pglite"
+    },
+    {
+      "path": "./packages/v2/adapter-db-postgres-postgresjs"
+    },
+    {
+      "path": "./packages/v2/adapter-db-postgres-shared"
+    },
+    {
+      "path": "./packages/v2/adapter-logger-console"
+    },
+    {
+      "path": "./packages/v2/adapter-logger-pino"
+    },
+    {
+      "path": "./packages/v2/adapter-realtime-broadcastchannel"
+    },
+    {
+      "path": "./packages/v2/adapter-realtime-sharedb"
+    },
+    {
+      "path": "./packages/v2/adapter-repository-postgres"
+    },
+    {
+      "path": "./packages/v2/adapter-table-query-ops-postgres"
+    },
+    {
+      "path": "./packages/v2/adapter-table-repository-postgres"
+    },
+    {
+      "path": "./packages/v2/adapter-undo-redo-keyv"
+    },
+    {
+      "path": "./packages/v2/command-explain"
+    },
+    {
+      "path": "./packages/v2/container-browser"
+    },
+    {
+      "path": "./packages/v2/container-node"
+    },
+    {
+      "path": "./packages/v2/contract-http"
+    },
+    {
+      "path": "./packages/v2/contract-http-client"
+    },
+    {
+      "path": "./packages/v2/contract-http-express"
+    },
+    {
+      "path": "./packages/v2/contract-http-fastify"
+    },
+    {
+      "path": "./packages/v2/contract-http-hono"
+    },
+    {
+      "path": "./packages/v2/contract-http-implementation"
+    },
+    {
+      "path": "./packages/v2/contract-http-openapi"
+    },
+    {
+      "path": "./packages/v2/core"
+    },
+    {
+      "path": "./packages/v2/debug-data"
+    },
+    {
+      "path": "./packages/v2/devtools"
+    },
+    {
+      "path": "./packages/v2/di"
+    },
+    {
+      "path": "./packages/v2/dottea"
+    },
+    {
+      "path": "./packages/v2/field-dependency-core"
+    },
+    {
+      "path": "./packages/v2/formula-sql-pg"
+    },
+    {
+      "path": "./packages/v2/import"
+    },
+    {
+      "path": "./packages/v2/mock-records"
+    },
+    {
+      "path": "./packages/v2/postgres-schema"
+    },
+    {
+      "path": "./packages/v2/table-query-ops"
+    },
+    {
+      "path": "./packages/v2/table-templates"
+    },
+    {
+      "path": "./packages/v2/utils"
+    }
   ],
-  "exclude": ["**/node_modules", "**/dist", "**/.next", "**/.git"]
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/.next",
+    "**/.git"
+  ]
 }

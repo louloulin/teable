@@ -9,7 +9,7 @@
 import { AtSign, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { axios } from '@teable/openapi';
-import { Badge, Button, Input, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@teable/ui-lib';
+import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@teable/ui-lib';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 
 export type AtNodeKind = 'table' | 'view' | 'app' | 'automation' | 'folder';
@@ -21,14 +21,6 @@ export interface IAtNodeRef {
   label: string;
   addedAt: string;
 }
-
-const KIND_LABEL: Record<AtNodeKind, string> = {
-  table: 'Table',
-  view: 'View',
-  app: 'App',
-  automation: 'Automation',
-  folder: 'Folder',
-};
 
 const KIND_BADGE: Record<AtNodeKind, string> = {
   table: 'bg-blue-100 text-blue-700',
@@ -43,10 +35,12 @@ export function AtNodePicker({
   conversationId,
   nodes,
   onChanged,
+  endpointBase = '/api/cuppy/conversations',
 }: {
   conversationId: string;
   nodes: IAtNodeRef[];
   onChanged: () => void;
+  endpointBase?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<AtNodeKind>('table');
@@ -54,15 +48,15 @@ export function AtNodePicker({
   const [label, setLabel] = useState('');
 
   const add = async () => {
-    if (!refId.trim() || !label.trim()) {
-      toast.error('refId + label required');
+    if (!refId.trim()) {
+      toast.error('refId required');
       return;
     }
     try {
-      await axios.post(`/api/cuppy/conversations/${conversationId}/nodes`, {
+      await axios.post(`${endpointBase}/${conversationId}/nodes`, {
         kind,
         refId: refId.trim(),
-        label: label.trim(),
+        ...(label.trim() ? { label: label.trim() } : {}),
       });
       setRefId('');
       setLabel('');
@@ -75,7 +69,7 @@ export function AtNodePicker({
 
   const remove = async (nodeId: string) => {
     try {
-      await axios.delete(`/api/cuppy/conversations/${conversationId}/nodes/${nodeId}`);
+      await axios.delete(`${endpointBase}/${conversationId}/nodes/${nodeId}`);
       onChanged();
     } catch (e) {
       toast.error((e as Error).message);
@@ -150,7 +144,7 @@ export function AtNodePicker({
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="display label"
+              placeholder="display label（可选）"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="h-8 text-xs"

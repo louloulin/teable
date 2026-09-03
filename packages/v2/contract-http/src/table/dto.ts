@@ -61,7 +61,7 @@ const columnMetaSchema = z.record(z.string(), columnMetaEntrySchema);
 export const viewDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin']),
+  type: z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin', 'pivot']),
   columnMeta: columnMetaSchema,
 });
 

@@ -69,7 +69,7 @@ export class AutomationAiBuilderService {
     return [
       'You are Teable automation designer.',
       'Return only valid JSON with this shape:',
-      '{"name":"string","description":"string","enabled":false,"triggers":[{"type":"record_created|record_updated|record_deleted|record_matches_conditions|schedule|button_clicked|form_submitted|webhook_received|email_received","tableId":"optional string","config":{}}],"actions":[{"type":"create_record|get_records|http_request|update_record|conditional_logic|ai_generate|webhook|email|slack|discord|telegram|teams|run_script|send_email|call_webhook|notify_user|ai_prompt|send_teams_message","orderIndex":0,"config":{}}]}',
+      '{"name":"string","description":"string","enabled":false,"triggers":[{"type":"record_created|record_updated|record_deleted|record_matches_conditions|schedule|button_clicked|form_submitted|webhook_received|email_received","tableId":"optional string","config":{}}],"actions":[{"type":"create_record|get_records|http_request|update_record|conditional_logic|ai_generate|webhook|email|slack|discord|telegram|teams|run_script|send_email|call_webhook|notify_user|ai_prompt|send_teams_message|send_feishu_message","orderIndex":0,"config":{}}]}',
       'Use the smallest safe workflow that satisfies the request.',
       'Never put credentials, tokens, passwords, or API keys in config; use {{secrets.NAME}} references.',
       'Always return enabled=false. The user must review and Apply Update before activation.',

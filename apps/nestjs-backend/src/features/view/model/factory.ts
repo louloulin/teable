@@ -7,6 +7,7 @@ import { FormViewDto } from './form-view.dto';
 import { GalleryViewDto } from './gallery-view.dto';
 import { GridViewDto } from './grid-view.dto';
 import { KanbanViewDto } from './kanban-view.dto';
+import { PivotViewDto } from './pivot-view.dto';
 import { PluginViewDto } from './plugin-view.dto';
 
 export function createViewInstanceByRaw(viewRaw: View) {
@@ -25,6 +26,8 @@ export function createViewInstanceByRaw(viewRaw: View) {
       return plainToInstance(FormViewDto, viewVo);
     case ViewType.Plugin:
       return plainToInstance(PluginViewDto, viewVo);
+    case ViewType.Pivot:
+      return plainToInstance(PivotViewDto, viewVo);
     default:
       assertNever(viewVo.type);
   }

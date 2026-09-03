@@ -10,10 +10,14 @@ import {
   Param,
   Post,
   Query,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { timingSafeEqual } from 'node:crypto';
+import { ClsService } from 'nestjs-cls';
+import { AllowAdminToken } from '../auth/decorators/admin-token.decorator';
 
 import { BackupService } from './backup.service';
-import { Public } from '../auth/decorators/public.decorator';
+import type { IClsStore } from '../../types/cls';
 import {
   ICreateBackupInput,
   IRestoreInput,
@@ -21,16 +25,6 @@ import {
   ISnapshotRow,
   MergeMode,
 } from './backup.types';
-
-
-
-function adminMatches(adminToken?: string): boolean {
-  const expected = process.env.TEABLE_ADMIN_TOKEN;
-  return Boolean(adminToken && expected && adminToken === expected);
-}
-interface IAdminCaller {
-  admin?: boolean;
-}
 
 /**
  * Backup / restore controller (Stage 20).
@@ -45,81 +39,68 @@ interface IAdminCaller {
  *   GET    /api/backup/:id/restore-logs     list restore attempts
  */
 /**
- * Backup / restore controller — operator-only. Routes are
- * marked @Public() so the global session guard lets them through;
- * each handler then calls assertAdmin() to verify the operator's
- * x-admin-token header (matches process.env.TEABLE_ADMIN_TOKEN) or
- * an explicit actor string in the request body / query.
+ * Backup / restore controller — operator-only.
  */
 @Controller('api/backup')
+@AllowAdminToken()
 export class BackupController {
-  constructor(private readonly service: BackupService) {}
+  constructor(
+    private readonly service: BackupService,
+    private readonly cls: ClsService<IClsStore>
+  ) {}
 
-  @Public()
   @Get()
   async list(
     @Query('baseId') baseId: string,
-    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<{ snapshots: ISnapshotRow[] }> {
-    this.assertAdmin(actor, adminToken);
+    this.assertAdmin(adminToken);
     if (!baseId) throw new BadRequestException('baseId required');
     return { snapshots: await this.service.listSnapshots(baseId) };
   }
 
-  @Public()
   @Post()
   @HttpCode(200)
   async create(
-    @Body() body: ICreateBackupInput & { actor?: IAdminCaller },
-    @Query('actor') actor: string,
+    @Body() body: ICreateBackupInput,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<ISnapshotRow> {
-    // R-V7: removed `body?.actor?.admin` check — client-controlled body
-    // should never grant authority. Use query-string actor OR admin-token.
-    this.assertAdmin(actor, adminToken);
+    const createdBy = this.assertAdmin(adminToken);
     return this.service.createBackup({
       baseId: body.baseId,
-      createdBy: body.createdBy,
+      createdBy,
       archiveDir: body.archiveDir,
     });
   }
 
-  @Public()
   @Get(':id')
   async getOne(
     @Param('id') id: string,
-    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<ISnapshotRow> {
-    this.assertAdmin(actor, adminToken);
+    this.assertAdmin(adminToken);
     const row = await this.service.getSnapshot(id);
     if (!row) throw new BadRequestException(`snapshot not found: ${id}`);
     return row;
   }
 
-  @Public()
   @Delete(':id')
   @HttpCode(200)
   async remove(
     @Param('id') id: string,
-    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<{ deleted: boolean }> {
-    this.assertAdmin(actor, adminToken);
+    this.assertAdmin(adminToken);
     return { deleted: await this.service.deleteSnapshot(id) };
   }
 
-  @Public()
   @Post('restore')
   @HttpCode(200)
   async restore(
-    @Body() body: IRestoreInput & { actor?: IAdminCaller },
-    @Query('actor') actor: string,
+    @Body() body: IRestoreInput,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<IRestoreLogRow> {
-    // R-V7: see `create` — admin gate is via query-string actor OR admin-token.
-    this.assertAdmin(actor, adminToken);
+    this.assertAdmin(adminToken);
     return this.service.restore({
       snapshotId: body.snapshotId,
       targetBaseId: body.targetBaseId,
@@ -128,26 +109,31 @@ export class BackupController {
     });
   }
 
-  @Public()
   @Get(':id/restore-logs')
   async logs(
     @Param('id') id: string,
-    @Query('actor') actor: string,
     @Headers('x-admin-token') adminToken?: string
   ): Promise<{ logs: IRestoreLogRow[] }> {
-    this.assertAdmin(actor, adminToken);
+    this.assertAdmin(adminToken);
     return { logs: await this.service.listRestoreLogs(id) };
   }
 
-  private assertAdmin(actor: string, adminToken?: string): void {
-    // Real auth wiring: accept either an admin-token header or an
-    // explicit actor string + TEABLE_ADMIN_TOKEN env match. Either path
-    // gates access to the snapshot list/CRUD endpoints so they cannot
-    // be exercised without operator credentials.
+  private assertAdmin(adminToken?: string): string {
+    const user = this.cls.get('user');
+    if (user?.id && user.isAdmin === true) return user.id;
+
     const expected = process.env.TEABLE_ADMIN_TOKEN;
-    if (adminToken && expected && adminToken === expected) return;
-    if (!actor) {
-      throw new ForbiddenException('admin token or actor required');
+    if (adminToken && expected) {
+      const provided = Buffer.from(adminToken);
+      const configured = Buffer.from(expected);
+      if (provided.length === configured.length) {
+        if (timingSafeEqual(provided, configured)) return 'admin-token';
+      }
     }
+
+    if (!user?.id) {
+      throw new UnauthorizedException('backup requires an authenticated administrator');
+    }
+    throw new ForbiddenException('backup requires an administrator');
   }
 }

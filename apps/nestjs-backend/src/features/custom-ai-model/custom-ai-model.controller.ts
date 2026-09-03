@@ -14,7 +14,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -46,6 +45,7 @@ const createSchema = z.object({
   alias: z.string().trim().min(1).max(128),
   baseUrl: z.string().trim().max(512).optional(),
   modelName: z.string().trim().min(1).max(128),
+  imageGenerationModel: z.boolean().optional(),
   apiKey: z.string().min(1).max(2048).optional(),
   isolation: isolationEnum.optional(),
 });
@@ -54,6 +54,7 @@ const updateSchema = z.object({
   alias: z.string().trim().min(1).max(128).optional(),
   baseUrl: z.string().trim().max(512).optional(),
   modelName: z.string().trim().min(1).max(128).optional(),
+  imageGenerationModel: z.boolean().optional(),
   apiKey: z.string().min(1).max(2048).optional(),
   isolation: isolationEnum.optional(),
   status: z.enum(['active', 'disabled', 'pending_verification']).optional(),
@@ -91,6 +92,7 @@ export class CustomAiModelController {
       provider: string;
       alias: string;
       modelName: string;
+      imageGenerationModel: boolean;
       status: string;
       isolation: string;
       createdAt: string;
@@ -106,6 +108,7 @@ export class CustomAiModelController {
         provider: m.provider,
         alias: m.alias,
         modelName: m.modelName,
+        imageGenerationModel: m.imageGenerationModel,
         status: m.status,
         isolation: m.isolation,
         createdAt: m.createdAt,
@@ -119,18 +122,22 @@ export class CustomAiModelController {
   async getModel(
     @Param('id') id: string,
     @Query('orgId') orgId?: string
-  ): Promise<{
-    id: string;
-    orgId: string;
-    provider: string;
-    alias: string;
-    baseUrl?: string;
-    modelName: string;
-    status: string;
-    isolation: string;
-    createdAt: string;
-    updatedAt: string;
-  } | { model: null }> {
+  ): Promise<
+    | {
+        id: string;
+        orgId: string;
+        provider: string;
+        alias: string;
+        baseUrl?: string;
+        modelName: string;
+        imageGenerationModel: boolean;
+        status: string;
+        isolation: string;
+        createdAt: string;
+        updatedAt: string;
+      }
+    | { model: null }
+  > {
     const effective = orgId ?? 'org_default';
     const m = await this.auth.loadModel(effective, id);
     if (!m) return { model: null };
@@ -141,6 +148,7 @@ export class CustomAiModelController {
       alias: m.alias,
       baseUrl: m.baseUrl,
       modelName: m.modelName,
+      imageGenerationModel: m.imageGenerationModel,
       status: m.status,
       isolation: m.isolation,
       createdAt: m.createdAt,
@@ -174,7 +182,9 @@ export class CustomAiModelController {
     @Param('id') id: string,
     @Query('orgId') orgId: string | undefined,
     @Body(new ZodValidationPipe(updateSchema)) body: UpdateBody
-  ): Promise<{ id: string; alias: string; status: string; updatedAt: string } | { updated: false }> {
+  ): Promise<
+    { id: string; alias: string; status: string; updatedAt: string } | { updated: false }
+  > {
     this.requireUserId();
     const effective = orgId ?? 'org_default';
     const m = await this.auth.updateModel(effective, id, body);
@@ -204,11 +214,14 @@ export class CustomAiModelController {
     return this.auth.testModel(effective, id);
   }
 
+  @Post('models/batch-test')
+  async batchTest(@Query('orgId') orgId?: string) {
+    return this.auth.batchTest(orgId ?? 'org_default');
+  }
+
   /** Aggregate usage for an org's custom models. */
   @Get('usage')
-  async usage(
-    @Query('orgId') orgId?: string
-  ): Promise<{
+  async usage(@Query('orgId') orgId?: string): Promise<{
     orgId: string;
     totalRequests: number;
     totalTokens: number;

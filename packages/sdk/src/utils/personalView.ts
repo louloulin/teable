@@ -21,6 +21,7 @@ import {
 } from '@teable/core';
 import { keyBy } from 'lodash';
 import type { GridView, KanbanView, GalleryView, CalendarView, FormView } from '../model';
+import type { PivotView } from '../model/view/pivot.view';
 import type { PluginView } from '../model/view/plugin.view';
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -188,7 +189,7 @@ const validateField = (
 };
 
 export const generatePersonalViewProps = (
-  view: GridView | KanbanView | GalleryView | CalendarView | FormView | PluginView | undefined
+  view: GridView | KanbanView | GalleryView | CalendarView | FormView | PluginView | PivotView | undefined
 ) => {
   if (!view || view.type === ViewType.Plugin || view.type === ViewType.Form) return {};
 

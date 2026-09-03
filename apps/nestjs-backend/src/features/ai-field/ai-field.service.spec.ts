@@ -23,6 +23,8 @@ describe('AI Field helpers (Stage 31)', () => {
     it('isValidOperation', () => {
       expect(isValidOperation('classify')).toBe(true);
       expect(isValidOperation('translate')).toBe(true);
+      expect(isValidOperation('image')).toBe(true);
+      expect(isValidOperation('custom')).toBe(true);
       expect(isValidOperation('embed')).toBe(false);
     });
 
@@ -52,6 +54,57 @@ describe('AI Field helpers (Stage 31)', () => {
 
     it('validateConfig rejects translate without targetLang', () => {
       expect(() => validateConfig('translate', { targetLang: '' })).toThrow();
+    });
+
+    it('validateConfig accepts a valid score range', () => {
+      expect(() => validateConfig('score', { min: 1, max: 5, criteria: 'clarity' })).not.toThrow();
+    });
+
+    it('validateConfig rejects non-integer score bounds', () => {
+      expect(() => validateConfig('score', { min: 1.5, max: 5 })).toThrow();
+    });
+
+    it('validateConfig rejects inverted score range', () => {
+      expect(() => validateConfig('score', { min: 5, max: 1 })).toThrow();
+    });
+
+    it('validateConfig accepts a valid image config', () => {
+      expect(() =>
+        validateConfig('image', { prompt: 'a red circle', size: '1024x1024', count: 1 })
+      ).not.toThrow();
+    });
+
+    it('validateConfig rejects image without prompt', () => {
+      expect(() => validateConfig('image', { prompt: '  ' })).toThrow();
+    });
+
+    it('validateConfig rejects image with invalid count', () => {
+      expect(() => validateConfig('image', { prompt: 'x', count: 0 })).toThrow();
+      expect(() => validateConfig('image', { prompt: 'x', count: 5 })).toThrow();
+    });
+
+    it('validateConfig rejects image with invalid quality', () => {
+      expect(() => validateConfig('image', { prompt: 'x', quality: 'ultra' as never })).toThrow();
+    });
+
+    it('validateConfig accepts a valid custom prompt', () => {
+      expect(() =>
+        validateConfig('custom', { prompt: 'Rewrite {{Name}} in a friendly tone' })
+      ).not.toThrow();
+    });
+
+    it('validateConfig rejects custom prompt without prompt', () => {
+      expect(() => validateConfig('custom', { prompt: '  ' })).toThrow();
+    });
+
+    it('validateConfig rejects custom with invalid language', () => {
+      expect(() =>
+        validateConfig('custom', { prompt: 'x', language: 'klingon' as never })
+      ).toThrow();
+    });
+
+    it('validateConfig rejects out-of-range score bounds', () => {
+      expect(() => validateConfig('score', { min: 0, max: 10001 })).toThrow();
     });
   });
 
@@ -116,6 +169,19 @@ describe('AI Field helpers (Stage 31)', () => {
     it('translate fills targetLang', () => {
       const p = buildDefaultPrompt('translate', 'english', { targetLang: 'fr' }, 'hello');
       expect(p).toContain('fr');
+    });
+
+    it('score fills min/max/criteria', () => {
+      const p = buildDefaultPrompt(
+        'score',
+        'english',
+        { min: 1, max: 5, criteria: 'Rate clarity only.' },
+        'draft text'
+      );
+      expect(p).toContain('1');
+      expect(p).toContain('5');
+      expect(p).toContain('Rate clarity only.');
+      expect(p).toContain('draft text');
     });
 
     it('falls back to english for unknown language', () => {
@@ -185,6 +251,27 @@ describe('AI Field helpers (Stage 31)', () => {
           rawOutput: '  bonjour  ',
         })
       ).toBe('bonjour');
+    });
+
+    it('score clamps an out-of-range numeric output', () => {
+      expect(
+        guardOutput({ operation: 'score', config: { min: 1, max: 5 }, rawOutput: '9' })
+      ).toBe('5');
+      expect(
+        guardOutput({ operation: 'score', config: { min: 1, max: 5 }, rawOutput: '0' })
+      ).toBe('1');
+    });
+
+    it('score rounds fractional output to an integer', () => {
+      expect(
+        guardOutput({ operation: 'score', config: { min: 1, max: 5 }, rawOutput: '3.6' })
+      ).toBe('4');
+    });
+
+    it('score falls back to min when output is not numeric', () => {
+      expect(
+        guardOutput({ operation: 'score', config: { min: 1, max: 5 }, rawOutput: 'excellent' })
+      ).toBe('1');
     });
   });
 

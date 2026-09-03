@@ -23,3 +23,10 @@ export { IBridgeMessage, IBridgeAdapter } from './im-bridge.types';
 // ─── Other public exports ─────────────────────────────────────────
 export { buildAdapterRegistry, resolveAdapter, IBridgeAdapterRegistry } from './im-bridge.registry';
 export { TeamsAdapter } from './teams.adapter';
+
+
+// ─── Feishu adapter (Stage V57) ────────────────────────────────────
+export { FeishuAdapter } from './feishu.adapter';
+export { FeishuConfigService } from './feishu-config.service';
+export { FeishuConfigController } from './feishu-config.controller';
+export { FeishuWebhookController } from './feishu-webhook.controller';

@@ -154,7 +154,7 @@ export class CrossBaseFederationController {
   ): Promise<IFederationRefresh> {
     return this.auth.runRefresh({
       viewId,
-      triggeredBy: body?.triggeredBy ?? null,
+      actorId: body?.triggeredBy ?? '',
     });
   }
 

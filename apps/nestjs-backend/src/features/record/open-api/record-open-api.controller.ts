@@ -140,6 +140,8 @@ export class RecordOpenApiController {
     return await this.recordService.getRecords(tableId, permissionQuery, true);
   }
 
+  @RequirePermissionFilter()
+  @UseInterceptors(PermissionInterceptor)
   @Permissions('record|read')
   @Get(':recordId')
   async getRecord(

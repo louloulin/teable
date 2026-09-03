@@ -18,4 +18,5 @@ export const defaultShareMetaMap: Record<ViewType, IShareViewMeta | undefined> =
     includeRecords: true,
   },
   [ViewType.Plugin]: undefined,
+  [ViewType.Pivot]: undefined,
 };

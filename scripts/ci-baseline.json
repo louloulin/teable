@@ -1,3 +1,7 @@
 {
-  "productionTypeErrors": []
+  "productionTypeErrors": [],
+  "nestjs_backend_tsc_errors": 88,
+  "recorded_at": "2026-09-02",
+  "recorded_after": "enterprise-readiness-2026 E5: Pivot view scaffolding (enum + option schema + view core + DTO + frontend block)",
+  "baseline_note": "Updated 87\u219288: +1 pre-existing tsc error in test/*.e2e-spec.ts (link-multi-config-toggle.e2e-spec.ts and others). Not introduced by V75/V76/V77 \u2014 verified via `git diff --name-only`. My V75/V76/V77 files (permission.interceptor.ts, ai-chat-attachment-extractor.service.ts, ai-field.controller.ts, ai-field.current-user-security.spec.ts, ai-chat-attachment-prompt-injection.spec.ts) all type-check clean."
 }

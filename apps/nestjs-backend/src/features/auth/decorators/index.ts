@@ -10,6 +10,7 @@
 
 // ─── Other public exports ─────────────────────────────────────────
 export { IS_ALLOW_ANONYMOUS, AllowAnonymous, AllowAnonymousType } from './allow-anonymous.decorator';
+export { ALLOW_ADMIN_TOKEN, AllowAdminToken } from './admin-token.decorator';
 export { BASE_NODE_PERMISSIONS_KEY, BaseNodePermissions } from './base-node-permissions.decorator';
 export { IS_DISABLED_PERMISSION, DisabledPermission } from './disabled-permission.decorator';
 export { ENSURE_LOGIN, EnsureLogin } from './ensure-login.decorator';

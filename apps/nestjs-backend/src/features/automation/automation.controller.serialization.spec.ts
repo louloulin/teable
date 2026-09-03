@@ -60,7 +60,8 @@ describe('AutomationController serialization', () => {
     expect(catalog.defaultTrigger).toBe('record_created');
     expect(catalog.actions.map(({ type }) => type)).toContain('call_webhook');
     expect(catalog.actions.map(({ type }) => type)).toContain('send_teams_message');
-    expect(catalog.actions).toHaveLength(18);
+    expect(catalog.actions.map(({ type }) => type)).toContain('send_feishu_message');
+    expect(catalog.actions).toHaveLength(19);
     expect(catalog.triggers.map(({ type }) => type)).toContain('webhook_received');
     expect(catalog.triggers).toHaveLength(9);
   });

@@ -62,7 +62,7 @@ export const BackupPanel = () => {
     queryFn: () =>
       axios
         .get<{ snapshots: ISnapshotRow[] }>(`/api/backup`, {
-          params: { baseId, actor: 'admin' },
+          params: { baseId },
         })
         .then(({ data }) => data.snapshots),
     enabled: !!baseId,
@@ -74,7 +74,6 @@ export const BackupPanel = () => {
         .post<ISnapshotRow>(`/api/backup`, {
           baseId,
           createdBy: 'admin',
-          actor: { admin: true },
         })
         .then(({ data }) => data),
     onSuccess: () => {
@@ -86,7 +85,7 @@ export const BackupPanel = () => {
 
   const remove = useMutation({
     mutationFn: (id: string) =>
-      axios.delete(`/api/backup/${id}`, { params: { actor: 'admin' } }),
+      axios.delete(`/api/backup/${id}`),
     onSuccess: () => {
       toast.success('Snapshot deleted');
       void queryClient.invalidateQueries({ queryKey: ['admin', 'backup'] });
@@ -101,7 +100,6 @@ export const BackupPanel = () => {
           snapshotId: selectedSnapshot,
           targetBaseId,
           mode,
-          actor: { admin: true },
         })
         .then(({ data }) => data),
     onSuccess: () => {

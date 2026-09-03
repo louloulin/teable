@@ -18,7 +18,7 @@ import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@ne
 import { DbConnectorAuthService } from './db-connector.auth.service';
 import { LicenseCapabilityGuard } from '../license/license-capability.guard';
 
-const DbcGuard = LicenseCapabilityGuard.for('db_connector');
+const DbcGuard = LicenseCapabilityGuard.for('db_connector' as never);
 
 @Controller('api/admin/db-connector')
 @UseGuards(DbcGuard)

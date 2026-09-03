@@ -160,4 +160,24 @@ export class EnterpriseReadinessController {
     }
     return this.readiness.buildDashboardSummary();
   }
+
+  /**
+   * Round-28: Per-capability 3-state (oss / self_hosted / cloud)
+   * evidence manifest. Closes Phase 6 §20.4: gives operators a single
+   * endpoint that classifies every capability so a dashboard can
+   * render the OSS / self-hosted / Cloud parity view directly.
+   *
+   * Auth: admin token (same gate as `/dashboard` and `/migration-sources`).
+   */
+  @Public()
+  @Get('manifest')
+  @HttpCode(200)
+  async manifest(
+    @Headers('x-admin-token') adminToken: string | undefined,
+  ): Promise<unknown> {
+    if (!adminToken || adminToken !== process.env.TEABLE_ADMIN_TOKEN) {
+      throw new UnauthorizedException('admin token required');
+    }
+    return this.readiness.buildManifest();
+  }
 }

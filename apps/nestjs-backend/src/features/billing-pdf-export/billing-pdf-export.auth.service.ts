@@ -14,8 +14,6 @@ import {
   validateInvoice,
 } from './billing-pdf-export.service';
 import type {
-  IBillingInvoice,
-  IBillingLineItem,
   IPdfDoc,
   IPdfRenderResult,
 } from './billing-pdf-export.types';
@@ -23,16 +21,6 @@ import type {
 @Injectable()
 export class BillingPdfExportAuthService {
   constructor(private readonly prisma: PrismaService) {}
-
-  /** Render a stored billing invoice (by id) into a PDF document. */
-  async renderInvoice(invoiceId: string): Promise<IPdfRenderResult> {
-    const row = await this.prisma.billingInvoice.findUnique({
-      where: { id: invoiceId },
-    });
-    if (!row) throw new Error(`invoice not found: ${invoiceId}`);
-    const invoice = this.rowToInvoice(row);
-    return renderInvoicePdf(invoice);
-  }
 
   /** Persist the PDF bytes (raw) into the billing_pdf_export table for later download. */
   async storeExport(input: { invoiceId: string; doc: IPdfDoc }): Promise<void> {
@@ -47,7 +35,12 @@ export class BillingPdfExportAuthService {
     });
   }
 
-  /** Re-export a previously stored PDF. */
+  /**
+   * Return the most recent cached PDF bytes for an invoice, or null if
+   * no cache row exists. Callers that need a fresh render should pass
+   * a flag upstream (Round 29: `?fresh=true` on the portal route) so
+   * this method only handles read-through cache hits.
+   */
   async latestExport(invoiceId: string): Promise<{ bytes: Uint8Array; sha256: string } | null> {
     const row = await this.prisma.billingPdfExport.findFirst({
       where: { invoiceId },
@@ -66,22 +59,4 @@ export class BillingPdfExportAuthService {
   formatCents = formatCents;
   paginateLines = paginateLines;
   renderInvoicePdf = renderInvoicePdf;
-
-  private rowToInvoice(r: Record<string, unknown>): IBillingInvoice {
-    const rawLines = (r['lines'] as IBillingLineItem[] | undefined) ?? [];
-    const out: IBillingInvoice = {
-      id: String(r['id']),
-      orgId: String(r['orgId']),
-      customerName: String(r['customerName']),
-      currency: r['currency'] as IBillingInvoice['currency'],
-      periodStart: new Date(String(r['periodStart'])).toISOString(),
-      periodEnd: new Date(String(r['periodEnd'])).toISOString(),
-      issuedAt: new Date(String(r['issuedAt'])).toISOString(),
-      lines: rawLines,
-    };
-    if (r['customerEmail']) out.customerEmail = String(r['customerEmail']);
-    if (typeof r['taxBps'] === 'number') out.taxBps = Number(r['taxBps']);
-    if (r['notes']) out.notes = String(r['notes']);
-    return out;
-  }
 }

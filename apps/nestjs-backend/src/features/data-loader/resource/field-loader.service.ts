@@ -21,30 +21,14 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
       setLoaderData: (data: IFieldLoaderData) => (this.cls as ClsServiceType<Pick<IClsStore, 'dataLoaderCache'>>).set('dataLoaderCache.fieldData', data),
       findManyByParentId: (
         tableId: string,
-        keys?: Partial<Record<keyof IFieldLoaderItem, unknown[]>>
+        keys?: Partial<Record<string, unknown[]>>
       ): Promise<IFieldLoaderItem[]> => {
         this.cacheSet++;
         return this.prismaService.txClient().field.findMany({
           where: {
             tableId,
             deletedTime: null,
-            ...(keys
-              ? Object.keys(keys).reduce(
-                  (acc, kStr) => {
-                    const key = kStr as keyof IFieldLoaderItem;
-                    const value = keys[key] as unknown[] | undefined;
-                    if (value) {
-                      if (value.length === 1) {
-                        (acc as Record<string, unknown>)[key] = value[0];
-                      } else {
-                        (acc as Record<string, unknown>)[key] = { in: value };
-                      }
-                    }
-                    return acc;
-                  },
-                  {} as Record<string, unknown>
-                )
-              : {}),
+            ...buildKeyWhere(keys),
           },
         });
       },
@@ -136,4 +120,17 @@ export class FieldLoaderService extends TableCommonLoader<IFieldLoaderItem> {
     this.logStat();
     return result;
   }
+}
+
+function buildKeyWhere(
+  keys?: Partial<Record<string, unknown[]>>
+): Record<string, unknown> {
+  if (!keys) return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(keys)) {
+    if (Array.isArray(v) && v.length > 0) {
+      out[k] = v.length === 1 ? v[0] : { in: v };
+    }
+  }
+  return out;
 }

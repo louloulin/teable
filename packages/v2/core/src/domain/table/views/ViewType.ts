@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { domainError, type DomainError } from '../../shared/DomainError';
 import { ValueObject } from '../../shared/ValueObject';
 
-const viewTypeSchema = z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin']);
+const viewTypeSchema = z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin', 'pivot']);
 export type IViewTypeLiteral = z.infer<typeof viewTypeSchema>;
 
 export class ViewType extends ValueObject {

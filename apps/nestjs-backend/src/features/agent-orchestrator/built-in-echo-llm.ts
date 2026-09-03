@@ -70,7 +70,7 @@ function truncate(value: string, max: number): string {
 export class BuiltInEchoLlm implements ICuppyEchoLlm {
   private readonly hintShownFor = new Set<string>();
 
-  chat(args: IEchoLlmArgs): IEchoLlmResult {
+  async chat(args: IEchoLlmArgs): Promise<IEchoLlmResult> {
     const lastUser = [...args.messages].reverse().find((m) => m.role === 'user');
     const userText = lastUser ? truncate(lastUser.content, 240) : '(no user message)';
 
@@ -93,7 +93,7 @@ export class BuiltInEchoLlm implements ICuppyEchoLlm {
       MAX_ECHO_TEXT
     );
 
-    return { text, provider: 'built-in-echo' };
+    return Promise.resolve({ text, provider: 'built-in-echo' });
   }
 
   /**
@@ -102,7 +102,7 @@ export class BuiltInEchoLlm implements ICuppyEchoLlm {
    * carries the full text as `value`.
    */
   async *chatStream(args: IEchoLlmArgs, abortSignal?: AbortSignal): AsyncGenerator<{ delta: string; value?: string; done: boolean }> {
-    const result = this.chat(args);
+    const result = await this.chat(args);
     const tokens = result.text.split(/(\s+)/);
     let acc = '';
     for (const token of tokens) {

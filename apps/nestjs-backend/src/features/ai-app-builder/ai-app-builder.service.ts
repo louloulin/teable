@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { HttpErrorCode } from '@teable/core';
-import { randomBytes } from 'crypto';
+import { createCipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { CustomHttpException } from '../../custom.exception';
 
 /**
@@ -172,7 +172,7 @@ export class AiAppBuilderService {
   async rollback(appId: string, deployedBy: string) {
     const app = await this.getApp(appId);
     if (!app.currentVersionId) {
-      throw new CustomHttpException('no current version to roll back from', HttpErrorCode.BAD_REQUEST);
+      throw new CustomHttpException('no current version to roll back from', HttpErrorCode.VALIDATION_ERROR);
     }
     const current = await this.prisma.appVersion.findUnique({ where: { id: app.currentVersionId } });
     if (!current) {
@@ -183,7 +183,7 @@ export class AiAppBuilderService {
       orderBy: { versionNumber: 'desc' },
     });
     if (!previous) {
-      throw new CustomHttpException('no previous version to roll back to', HttpErrorCode.BAD_REQUEST);
+      throw new CustomHttpException('no previous version to roll back to', HttpErrorCode.VALIDATION_ERROR);
     }
     return this.prisma.$transaction(async (tx) => {
       await tx.appVersion.update({
@@ -208,25 +208,39 @@ export class AiAppBuilderService {
 
   /**
    * Write a secret value. Cloud's docs say values are write-only after
-   * saving — we mirror that by NEVER returning the value on GET. The
-   * `valueCiphertext` column is a base64 stand-in for KMS encryption; a
-   * follow-up round will plug in real KMS. For now we base64-encode so the
-   * column is opaque in psql and not plaintext.
+   * saving — we mirror that by NEVER returning the value on GET. Values are
+   * encrypted with AES-256-GCM using the instance integration secret.
    */
   async putSecret(appId: string, key: string, value: string, description?: string) {
     if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
       throw new CustomHttpException(
         'secret key must start with uppercase and contain only uppercase, digits, underscores',
-        HttpErrorCode.BAD_REQUEST
+        HttpErrorCode.VALIDATION_ERROR
       );
     }
     const id = this.newId('sec');
-    const ciphertext = Buffer.from(value, 'utf-8').toString('base64');
+    const ciphertext = this.encryptSecret(value);
     return this.prisma.appSecret.upsert({
       where: { appId_key: { appId, key } },
       create: { id, appId, key, valueCiphertext: ciphertext, description: description ?? null },
       update: { valueCiphertext: ciphertext, description: description ?? null },
     });
+  }
+
+  private encryptSecret(value: string): string {
+    const integrationSecret = process.env.TEABLE_INTEGRATION_SECRET;
+    if (!integrationSecret && process.env.NODE_ENV === 'production') {
+      throw new Error('TEABLE_INTEGRATION_SECRET is required to store app secrets');
+    }
+    const key = scryptSync(integrationSecret ?? 'teable-local-development-secret', 'teable.app-secret.v1', 32);
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
+    return `v1:${Buffer.from(JSON.stringify({
+      iv: iv.toString('base64'),
+      tag: cipher.getAuthTag().toString('base64'),
+      ciphertext: encrypted.toString('base64'),
+    })).toString('base64')}`;
   }
 
   async listSecrets(appId: string) {

@@ -126,3 +126,137 @@ describe('PermissionInterceptor.response projection', () => {
     expect(projected.name).toBe('alice');
   });
 });
+
+/**
+ * V75 — Stage 75b regression test for the field-permission P0.
+ *
+ * Reproduces the exact shape mismatch that caused V74 to fail:
+ *   - `fieldPermission` is stored using `fieldId` (a cuid).
+ *   - `getRecord` does not run `FieldKeyPipe`, so the response
+ *     `fields` envelope is keyed by `fieldName` (e.g. "salary"),
+ *     not by `fieldId`.
+ * The interceptor must therefore look up the matching fieldId via
+ * the table field metadata cache (`nameToId`) and re-test fieldAccess.
+ */
+import type { PrismaService } from '@teable/db-main-prisma';
+
+describe('PermissionInterceptor.resolveFieldAccess (V75 — fieldId vs fieldName P0)', () => {
+  const matrix = () => {
+    const calls: Array<{ fieldId: string; result: 'hidden' | 'editable' | 'unset' }> = [];
+    return {
+      calls,
+      fake: {
+        resolveRolesForUser: vi.fn(async () => []),
+        mergeRecordFilters: vi.fn(() => null),
+        applyCurrentUser: vi.fn((filter) => filter),
+        fieldAccess: vi.fn((_r: unknown, _t: string, fid: string) => {
+          const found = calls.find((c) => c.fieldId === fid);
+          return (found?.result ?? 'unset') as 'hidden' | 'editable' | 'unset';
+        }),
+      } as unknown as PermissionMatrixService,
+      pushCall(fieldId: string, result: 'hidden' | 'editable' | 'unset') {
+        calls.push({ fieldId, result });
+      },
+    };
+  };
+
+  const interceptorWithFieldKeys = (m: PermissionMatrixService, rows: Array<{ id: string; name: string }>) => {
+    const fakePrisma = {
+      tableMeta: {
+        findUnique: vi.fn(async () => null),
+      },
+      field: {
+        findMany: vi.fn(async () => rows.map((r) => ({ id: r.id, name: r.name }))),
+      },
+    } as unknown as PrismaService;
+    return new PermissionInterceptor(m, cls({ id: 'u1' }), reflector(true), fakePrisma);
+  };
+
+  it('maps fieldName → fieldId before checking fieldAccess (the V74 P0 bug)', async () => {
+    const { fake: m, pushCall } = matrix();
+    // The role stores fieldPermission using the cuid:
+    pushCall('fldSalaryId', 'hidden');
+    const interceptor = interceptorWithFieldKeys(m, [
+      { id: 'fldTitleId', name: 'title' },
+      { id: 'fldSalaryId', name: 'salary' },
+    ]) as unknown as {
+      resolveFieldAccess: (
+        roles: IPermissionRoleVo[],
+        tableId: string,
+        key: string,
+        fieldKeys: { nameToId: Map<string, string> }
+      ) => 'hidden' | 'readonly' | 'editable' | 'unset';
+    };
+
+    // Pre-populate the cache (real flow resolves via prisma).
+    const fieldKeys = {
+      nameToId: new Map<string, string>([
+        ['title', 'fldTitleId'],
+        ['salary', 'fldSalaryId'],
+      ]),
+      idToName: new Map<string, string>(),
+      fetchedAt: Date.now(),
+    };
+
+    expect(interceptor.resolveFieldAccess([], 't1', 'salary', fieldKeys)).toBe('hidden');
+    // 'title' is NOT in any role's fieldPermission → must stay 'unset' (no projection).
+    expect(interceptor.resolveFieldAccess([], 't1', 'title', fieldKeys)).toBe('unset');
+  });
+
+  it('falls back to unset when neither direct key nor name→id lookup matches', async () => {
+    const { fake: m, pushCall } = matrix();
+    pushCall('fldSalaryId', 'hidden');
+    const interceptor = interceptorWithFieldKeys(m, [
+      { id: 'fldTitleId', name: 'title' },
+    ]) as unknown as {
+      resolveFieldAccess: (
+        roles: IPermissionRoleVo[],
+        tableId: string,
+        key: string,
+        fieldKeys: { nameToId: Map<string, string> }
+      ) => 'hidden' | 'readonly' | 'editable' | 'unset';
+    };
+    const fieldKeys = {
+      nameToId: new Map<string, string>([['title', 'fldTitleId']]),
+      idToName: new Map<string, string>(),
+      fetchedAt: Date.now(),
+    };
+    // No role entry for "salary" → unset.
+    expect(interceptor.resolveFieldAccess([], 't1', 'salary', fieldKeys)).toBe('unset');
+  });
+
+  it('prefers direct key (fieldId) when response uses fieldKeyType=Id', async () => {
+    const { fake: m, pushCall } = matrix();
+    pushCall('fldSalaryId', 'hidden');
+    const interceptor = interceptorWithFieldKeys(m, [
+      { id: 'fldSalaryId', name: 'salary' },
+    ]) as unknown as {
+      resolveFieldAccess: (
+        roles: IPermissionRoleVo[],
+        tableId: string,
+        key: string,
+        fieldKeys: { nameToId: Map<string, string> }
+      ) => 'hidden' | 'readonly' | 'editable' | 'unset';
+    };
+    const fieldKeys = {
+      nameToId: new Map<string, string>([['salary', 'fldSalaryId']]),
+      idToName: new Map<string, string>(),
+      fetchedAt: Date.now(),
+    };
+    // Pass the key directly as the cuid → first call hits.
+    expect(interceptor.resolveFieldAccess([], 't1', 'fldSalaryId', fieldKeys)).toBe('hidden');
+  });
+
+  it('returns unset when fieldKeys cache is null', async () => {
+    const { fake: m } = matrix();
+    const interceptor = interceptorWithFieldKeys(m, []) as unknown as {
+      resolveFieldAccess: (
+        roles: IPermissionRoleVo[],
+        tableId: string,
+        key: string,
+        fieldKeys: { nameToId: Map<string, string> } | null
+      ) => 'hidden' | 'readonly' | 'editable' | 'unset';
+    };
+    expect(interceptor.resolveFieldAccess([], 't1', 'salary', null)).toBe('unset');
+  });
+});

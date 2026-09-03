@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Label,
   Select,
@@ -33,9 +34,16 @@ interface ICustomAiModel {
   alias: string;
   baseUrl?: string;
   modelName: string;
+  imageGenerationModel: boolean;
   status: string;
   isolation: string;
   createdAt: string;
+}
+
+interface ICustomAiModelTestResult {
+  ok: boolean;
+  capabilities?: { chat: boolean; vision: boolean; imageGeneration: boolean };
+  message?: string;
 }
 
 const PROVIDERS: ReadonlyArray<CustomAiProvider> = [
@@ -54,14 +62,16 @@ export const CustomAiModelPanel = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [modelName, setModelName] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [imageGenerationModel, setImageGenerationModel] = useState(false);
 
   const modelsQuery = useQuery({
     queryKey: ['admin', 'custom-ai-model', 'models', orgId],
     queryFn: () =>
       axios
-        .get<{ models: ICustomAiModel[]; count: number }>(
-          `/api/custom-ai-model/models?orgId=${orgId}`
-        )
+        .get<{
+          models: ICustomAiModel[];
+          count: number;
+        }>(`/api/custom-ai-model/models?orgId=${orgId}`)
         .then((r) => r.data),
     enabled: Boolean(orgId),
   });
@@ -75,12 +85,14 @@ export const CustomAiModelPanel = () => {
         baseUrl: baseUrl.trim() || undefined,
         modelName: modelName.trim(),
         apiKey: apiKey.trim() || undefined,
+        imageGenerationModel,
       }),
     onSuccess: () => {
       setAlias('');
       setBaseUrl('');
       setModelName('');
       setApiKey('');
+      setImageGenerationModel(false);
       void queryClient.invalidateQueries({ queryKey: ['admin', 'custom-ai-model'] });
       toast.success('Custom model registered');
     },
@@ -97,10 +109,23 @@ export const CustomAiModelPanel = () => {
   });
 
   const test = useMutation({
-    mutationFn: (id: string) => axios.post(`/api/custom-ai-model/models/${id}/test`),
+    mutationFn: (id: string) =>
+      axios.post<ICustomAiModelTestResult>(`/api/custom-ai-model/models/${id}/test`),
     onSuccess: (res) => {
-      const ok = (res.data as { ok?: boolean }).ok ?? true;
+      const ok = res.data.ok ?? false;
       toast.success(ok ? 'Test passed' : 'Test failed');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const batchTest = useMutation({
+    mutationFn: () =>
+      axios.post<{
+        results: Array<ICustomAiModelTestResult & { modelId: string; alias: string }>;
+      }>('/api/custom-ai-model/models/batch-test', undefined, { params: { orgId } }),
+    onSuccess: (res) => {
+      const passed = res.data.results.filter((result) => result.ok).length;
+      toast.success(`Capability test complete: ${passed}/${res.data.results.length} reachable`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -138,10 +163,7 @@ export const CustomAiModelPanel = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Provider</Label>
-              <Select
-                value={provider}
-                onValueChange={(v) => setProvider(v as CustomAiProvider)}
-              >
+              <Select value={provider} onValueChange={(v) => setProvider(v as CustomAiProvider)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -191,6 +213,16 @@ export const CustomAiModelPanel = () => {
               placeholder="sk-..."
             />
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="custom-image-generation-model"
+              checked={imageGenerationModel}
+              onCheckedChange={(checked) => setImageGenerationModel(checked === true)}
+            />
+            <Label htmlFor="custom-image-generation-model" className="cursor-pointer">
+              Image generation model
+            </Label>
+          </div>
           <div className="flex justify-end">
             <Button
               disabled={!alias.trim() || !modelName.trim() || create.isPending}
@@ -204,7 +236,17 @@ export const CustomAiModelPanel = () => {
 
       <Card className="max-w-3xl">
         <CardHeader>
-          <CardTitle>Registered models ({models.length})</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>Registered models ({models.length})</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={batchTest.isPending || models.length === 0}
+              onClick={() => batchTest.mutate()}
+            >
+              {batchTest.isPending ? 'Testing all...' : 'Test all capabilities'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {modelsQuery.isLoading ? (
@@ -214,10 +256,7 @@ export const CustomAiModelPanel = () => {
           ) : (
             <div className="space-y-2">
               {models.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between rounded border p-3"
-                >
+                <div key={m.id} className="flex items-center justify-between rounded border p-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{m.alias}</span>
@@ -225,15 +264,38 @@ export const CustomAiModelPanel = () => {
                       <Badge variant={m.status === 'active' ? 'secondary' : 'outline'}>
                         {m.status}
                       </Badge>
+                      {m.imageGenerationModel && <Badge variant="outline">Image Gen</Badge>}
                     </div>
+                    {test.data?.data && test.variables === m.id && (
+                      <div className="flex gap-1 text-xs text-muted-foreground">
+                        <Badge
+                          variant={test.data.data.capabilities?.chat ? 'secondary' : 'outline'}
+                        >
+                          Chat
+                        </Badge>
+                        <Badge
+                          variant={test.data.data.capabilities?.vision ? 'secondary' : 'outline'}
+                        >
+                          Vision
+                        </Badge>
+                        <Badge
+                          variant={
+                            test.data.data.capabilities?.imageGeneration ? 'secondary' : 'outline'
+                          }
+                        >
+                          Image Gen
+                        </Badge>
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground">
                       model: <code>{m.modelName}</code>
                       {m.baseUrl && (
                         <>
-                          {' '}* base: <code>{m.baseUrl}</code>
+                          {' '}
+                          * base: <code>{m.baseUrl}</code>
                         </>
-                      )}
-                      {' '}* isolation: {m.isolation}
+                      )}{' '}
+                      * isolation: {m.isolation}
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -243,7 +305,7 @@ export const CustomAiModelPanel = () => {
                       disabled={test.isPending}
                       onClick={() => test.mutate(m.id)}
                     >
-                      Test
+                      {test.isPending && test.variables === m.id ? 'Testing...' : 'Test'}
                     </Button>
                     <Button
                       size="sm"

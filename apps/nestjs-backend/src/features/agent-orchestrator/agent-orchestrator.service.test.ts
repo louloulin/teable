@@ -114,6 +114,55 @@ describe('AgentOrchestratorService', () => {
       })
     );
   });
+
+  it('injects authorized @ references into the model system prompt', async () => {
+    const chat = vi.fn().mockResolvedValue({ text: 'context-aware reply' });
+    const service = new AgentOrchestratorService(
+      { chat },
+      { route: vi.fn().mockResolvedValue({ system: 'system', tools: [] }) }
+    );
+    const conversation = service.createConversation('user-1', 'base-1');
+    service.addNodeRef(conversation.conversationId, 'user-1', {
+      kind: 'table',
+      refId: 'tbl-1',
+      label: 'Contacts',
+    });
+
+    await service.handle(conversation.conversationId, 'user-1', {
+      user_id: 'user-1',
+      text: 'summarize the attached table',
+      provider_meta: { baseId: 'base-1' },
+    });
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        system: expect.stringContaining('@table: Contacts (id: tbl-1)'),
+      })
+    );
+  });
+
+  it('injects the current selection context into the model system prompt', async () => {
+    const chat = vi.fn().mockResolvedValue({ text: 'selection-aware reply' });
+    const service = new AgentOrchestratorService(
+      { chat },
+      { route: vi.fn().mockResolvedValue({ system: 'system', tools: [] }) }
+    );
+
+    await service.handle('conversation-1', 'user-1', {
+      user_id: 'user-1',
+      text: 'summarize this selection',
+      provider_meta: {
+        baseId: 'base-1',
+        context: '当前用户选中的网格范围：行 2-4，列 Name (1)。',
+      },
+    });
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        system: expect.stringContaining('当前用户选中的网格范围：行 2-4，列 Name (1)。'),
+      })
+    );
+  });
   it('streams replies via the optional LLM stream() and persists the accumulated text', async () => {
     async function* stream() {
       yield 'hello ';

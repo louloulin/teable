@@ -14,3 +14,9 @@ export { isStripeEventKind, validateSignature, mapEventToAction, matchLineItem, 
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { STRIPE_EVENT_KINDS, RECONCILIATION_STATUSES, RECONCILIATION_TOLERANCE_CENTS, STRIPE_WEBHOOK_TOLERANCE_SECONDS, MAX_RECONCILIATION_ENTRIES, StripeEventKind, ReconciliationStatus, IStripeLineItem, IStripeInvoice, IStripeEvent, IReconciliationEntry, IReconciliationSummary, IInternalBillableLine, ReconciliationAction } from './stripe-webhook.types';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { StripeWebhookController } from './stripe-webhook.controller';
+
+// ─── Modules ──────────────────────────────────────────────────────
+export { StripeWebhookModule } from './stripe-webhook.module';

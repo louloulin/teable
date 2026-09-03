@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const viewTypeSchema = z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin']);
+export const viewTypeSchema = z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin', 'pivot']);
 
 export const viewInputSchema = z.object({
   type: viewTypeSchema.optional(),

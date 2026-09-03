@@ -170,3 +170,84 @@ describe('CuppyController — R-AI-7 streaming + list', () => {
     expect((res as unknown as { end: ReturnType<typeof vi.fn> }).end).toHaveBeenCalled();
   });
 });
+
+describe('CuppyController — node reference authorization', () => {
+  const fakeStreaming = {} as unknown as AiStreamingService;
+
+  function buildNodeController(overrides?: Record<string, unknown>) {
+    const cls = { get: vi.fn().mockReturnValue('user-1') };
+    const orchestrator = {
+      assertOwned: vi.fn().mockReturnValue({ base_id: 'base-1' }),
+      inspect: vi.fn().mockReturnValue({ base_id: 'base-1' }),
+      listNodeRefs: vi.fn().mockReturnValue([]),
+      replaceNodeRefs: vi.fn(),
+      handle: vi.fn().mockResolvedValue({ text: 'ok' }),
+      addNodeRef: vi.fn().mockReturnValue({
+        nodeId: 'node-1',
+        kind: 'table',
+        refId: 'tbl-1',
+        label: 'Actual table',
+        addedAt: 'now',
+      }),
+    };
+    const prisma = {
+      tableMeta: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'tbl-1', name: 'Actual table' }),
+      },
+    };
+    const permissions = { validPermissions: vi.fn().mockResolvedValue([]) };
+    return {
+      controller: new CuppyController(
+        { ...orchestrator, ...overrides } as unknown as AgentOrchestratorService,
+        cls as never,
+        permissions as unknown as PermissionService,
+        fakeStreaming,
+        {} as never,
+        prisma as never
+      ),
+      orchestrator,
+      prisma,
+      permissions,
+    };
+  }
+
+  it('uses the authorized resource name instead of a client supplied label', async () => {
+    const { controller, orchestrator } = buildNodeController();
+    await controller.addNode('conversation-1', {
+      kind: 'table',
+      refId: 'tbl-1',
+      label: 'forged label',
+    });
+    expect(orchestrator.addNodeRef).toHaveBeenCalledWith(
+      'conversation-1',
+      'user-1',
+      expect.objectContaining({ label: 'Actual table' })
+    );
+  });
+
+  it('rejects node references when the resource is outside the conversation Base', async () => {
+    const { controller, orchestrator, prisma } = buildNodeController();
+    prisma.tableMeta.findFirst.mockResolvedValue(null);
+    await expect(
+      controller.addNode('conversation-1', {
+        kind: 'table',
+        refId: 'foreign-table',
+      })
+    ).rejects.toThrow('table not found in Base');
+    expect(orchestrator.addNodeRef).not.toHaveBeenCalled();
+  });
+
+  it('removes a previously attached node when read permission is revoked', async () => {
+    const { controller, orchestrator, prisma, permissions } = buildNodeController();
+    orchestrator.listNodeRefs.mockReturnValue([
+      { nodeId: 'node-1', kind: 'table', refId: 'tbl-1', label: 'Old', addedAt: 'now' },
+    ]);
+    permissions.validPermissions
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error('revoked'));
+    await controller.chat({ conversationId: 'conversation-1', baseId: 'base-1', message: 'hi' });
+    expect(prisma.tableMeta.findFirst).toHaveBeenCalled();
+    expect(orchestrator.replaceNodeRefs).toHaveBeenCalledWith('conversation-1', 'user-1', []);
+  });
+});

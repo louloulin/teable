@@ -11,6 +11,7 @@
  * License: AGPL-3.0
  */
 
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { CuppyPromptRouter } from '../cuppy-prompt-router/cuppy-prompt-router';
@@ -31,8 +32,6 @@ export interface ILlmCallResult {
   /** Tool calls returned by a lightweight/mock provider. */
   requestedTools?: Array<string | { name: string; args?: Record<string, unknown> }>;
 }
-
-
 
 /** A minimal LLM client interface so the service is decoupled from the
  *  concrete provider (OpenAI / Anthropic / BYOK). */
@@ -83,7 +82,9 @@ export class AgentOrchestratorService {
   constructor(
     @Optional() @Inject('CUPPY_LLM_CLIENT') private readonly llm?: ILlmClient,
     @Optional() @Inject(CuppyPromptRouter) private readonly router?: IPromptRouter,
-    @Optional() @Inject(InstanceSkillService) private readonly instanceSkills?: InstanceSkillService,
+    @Optional()
+    @Inject(InstanceSkillService)
+    private readonly instanceSkills?: InstanceSkillService,
     @Optional() @Inject(SkillScopeService) private readonly scopedSkills?: SkillScopeService
   ) {}
 
@@ -173,7 +174,12 @@ export class AgentOrchestratorService {
         .join('\n\n');
       llmResult = await this.llm.chat({
         baseId: inboundBaseId,
-        system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
+        system: this.composeSystemPrompt(
+          routed.system,
+          skillContext,
+          ctx,
+          this.inboundContext(inbound)
+        ),
         messages: ctx.messages.map((message) => ({
           role: message.role === 'tool' ? 'user' : message.role,
           content: message.role === 'tool' ? `[tool result] ${message.content}` : message.content,
@@ -252,13 +258,19 @@ export class AgentOrchestratorService {
     const skillContext = [instanceSkillContext, scopedSkillContext]
       .filter((s) => s.length > 0)
       .join('\n\n');
+    const systemPrompt = this.composeSystemPrompt(
+      routed.system,
+      skillContext,
+      ctx,
+      this.inboundContext(inbound)
+    );
 
     let llmStream: AsyncGenerator<{ delta: string; value?: string; done: boolean }> | undefined;
     const streamImpl = this.llm?.chatStream ?? this.llm?.stream;
     if (streamImpl) {
       llmStream = streamImpl({
         baseId: inboundBaseId,
-        system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
+        system: systemPrompt,
         messages: ctx.messages.map((m) => ({
           role: m.role === 'tool' ? 'user' : m.role,
           content: m.role === 'tool' ? `[tool result] ${m.content}` : m.content,
@@ -273,7 +285,7 @@ export class AgentOrchestratorService {
       const result = this.llm
         ? await this.llm.chat({
             baseId: inboundBaseId,
-            system: skillContext ? `${routed.system}\n\n${skillContext}` : routed.system,
+            system: systemPrompt,
             messages: ctx.messages.map((m) => ({
               role: m.role === 'tool' ? 'user' : m.role,
               content: m.role === 'tool' ? `[tool result] ${m.content}` : m.content,
@@ -290,7 +302,13 @@ export class AgentOrchestratorService {
     let accumulated = '';
     for await (const chunk of llmStream) {
       if (abortSignal?.aborted) return;
+      if (typeof (chunk as unknown) === 'string') {
+        accumulated += chunk as unknown as string;
+        yield { delta: chunk as unknown as string, done: false };
+        continue;
+      }
       if (chunk.delta) accumulated += chunk.delta;
+      if (chunk.done && chunk.value && !accumulated) accumulated = chunk.value;
       yield chunk;
       if (chunk.done) break;
     }
@@ -311,9 +329,55 @@ export class AgentOrchestratorService {
     yield* this.chatStream(conversationId, userId, inbound, abortSignal);
   }
 
+  async handleStream(
+    conversationId: string,
+    userId: string,
+    inbound: InboundMessage,
+    options?: { signal?: AbortSignal }
+  ): Promise<{ text: string; deltas: number }> {
+    let text = '';
+    let deltas = 0;
+    for await (const chunk of this.chatStream(conversationId, userId, inbound, options?.signal)) {
+      if (typeof (chunk as unknown) === 'string') {
+        text += chunk as unknown as string;
+        deltas += 1;
+        continue;
+      }
+      if (chunk.delta) {
+        text += chunk.delta;
+        deltas += 1;
+      }
+      if (chunk.done && chunk.value && !text) text = chunk.value;
+    }
+    return { text, deltas };
+  }
+
+  listConversations(userId: string) {
+    return this.store.listByUser(userId).map((context) => ({
+      conversationId: context.conversation_id,
+      baseId: context.base_id,
+      messageCount: context.messages.length,
+      updatedAt: context.updated_at,
+    }));
+  }
+
+  createConversation(userId: string, baseId?: string): { conversationId: string; baseId?: string } {
+    const conversationId = randomUUID();
+    this.store.loadOrCreate(conversationId, userId, baseId);
+    return { conversationId, ...(baseId ? { baseId } : {}) };
+  }
+
   /** Test seam — load a conversation by id without mutating it. */
   inspect(conversationId: string): ConversationContext | undefined {
     return this.store.peek(conversationId);
+  }
+
+  assertOwned(conversationId: string, userId: string): ConversationContext {
+    const context = this.store.peek(conversationId);
+    if (!context || context.user_id !== userId) {
+      throw new ServiceUnavailableException('conversation not found');
+    }
+    return context;
   }
 
   private async invokeTool(
@@ -338,6 +402,39 @@ export class AgentOrchestratorService {
   private inboundBaseId(inbound: InboundMessage): string | undefined {
     const baseId = inbound.provider_meta?.baseId;
     return typeof baseId === 'string' && baseId.length > 0 ? baseId : undefined;
+  }
+
+  private inboundContext(inbound: InboundMessage): string | undefined {
+    const context = inbound.provider_meta?.context;
+    return typeof context === 'string' && context.length > 0 ? context : undefined;
+  }
+
+  private buildNodeReferencePrompt(ctx: ConversationContext): string {
+    const refs = (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+    if (refs.length === 0) return '';
+    return [
+      'Authorized @ references for this conversation:',
+      ...refs.map(
+        (ref) => `- @${String(ref['kind'])}: ${String(ref['label'])} (id: ${String(ref['refId'])})`
+      ),
+      'Use only these referenced resource IDs with permission-checked tools. Do not access unrelated resources.',
+    ].join('\n');
+  }
+
+  private composeSystemPrompt(
+    baseSystem: string,
+    skillContext: string,
+    ctx: ConversationContext,
+    inboundContext?: string
+  ): string {
+    return [
+      baseSystem,
+      inboundContext ? `Current user-selected workspace context:\n${inboundContext}` : '',
+      this.buildNodeReferencePrompt(ctx),
+      skillContext,
+    ]
+      .filter((section) => section.length > 0)
+      .join('\n\n');
   }
   // ───────────────────────── R-AI-1: Cloud AI 对话能力补齐 ─────────────────────────
   // Cuppy 对话状态分四个维度,全部复用 scratchpad 作为内存存储,不扩展 DDD 模型:
@@ -364,13 +461,20 @@ export class AgentOrchestratorService {
   getMemory(conversationId: string): Record<string, { value: string; createdAt: string }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return {};
-    const mem = (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
+    const mem =
+      (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
     return mem;
   }
 
-  setMemory(conversationId: string, userId: string, key: string, value: string): { key: string; createdAt: string } {
+  setMemory(
+    conversationId: string,
+    userId: string,
+    key: string,
+    value: string
+  ): { key: string; createdAt: string } {
     const ctx = this.ensureCtx(conversationId, userId);
-    const mem = (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
+    const mem =
+      (ctx.scratchpad['_memory'] as Record<string, { value: string; createdAt: string }>) || {};
     const createdAt = this.now();
     mem[key] = { value, createdAt };
     ctx.scratchpad['_memory'] = mem;
@@ -395,7 +499,14 @@ export class AgentOrchestratorService {
   }
 
   /** Artifact management (Cloud 'Artifact' feature — chart/report/card with versions). */
-  listArtifacts(conversationId: string): Array<{ id: string; name: string; kind: string; versions: number; createdAt: string; shared: boolean }> {
+  listArtifacts(conversationId: string): Array<{
+    id: string;
+    name: string;
+    kind: string;
+    versions: number;
+    createdAt: string;
+    shared: boolean;
+  }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return [];
     const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
@@ -467,7 +578,12 @@ export class AgentOrchestratorService {
     return next.length < arr.length;
   }
 
-  shareArtifact(conversationId: string, userId: string, artifactId: string, on: boolean): { id: string; shared: boolean } | null {
+  shareArtifact(
+    conversationId: string,
+    userId: string,
+    artifactId: string,
+    on: boolean
+  ): { id: string; shared: boolean } | null {
     const ctx = this.ensureCtx(conversationId, userId);
     const arr = (ctx.scratchpad['_artifacts'] as Array<Record<string, unknown>>) || [];
     const a = arr.find((x) => x['id'] === artifactId);
@@ -493,10 +609,18 @@ export class AgentOrchestratorService {
   }
 
   /** @-node references (Cloud '@' to attach tables/views/apps/automations/folders). */
-  listNodeRefs(conversationId: string): Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }> {
+  listNodeRefs(
+    conversationId: string
+  ): Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return [];
-    return (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
+    return ((ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || []) as Array<{
+      nodeId: string;
+      kind: string;
+      refId: string;
+      label: string;
+      addedAt: string;
+    }>;
   }
 
   addNodeRef(
@@ -507,11 +631,27 @@ export class AgentOrchestratorService {
     const ctx = this.ensureCtx(conversationId, userId);
     const arr = (ctx.scratchpad['_node_refs'] as Array<Record<string, unknown>>) || [];
     const nodeId = this.randId();
-    const entry = { nodeId, kind: input.kind, refId: input.refId, label: input.label, addedAt: this.now() };
+    const entry = {
+      nodeId,
+      kind: input.kind,
+      refId: input.refId,
+      label: input.label,
+      addedAt: this.now(),
+    };
     arr.push(entry);
     ctx.scratchpad['_node_refs'] = arr;
     this.store.setScratchpad(ctx, '_node_refs', arr);
     return entry;
+  }
+
+  replaceNodeRefs(
+    conversationId: string,
+    userId: string,
+    refs: Array<{ nodeId: string; kind: string; refId: string; label: string; addedAt: string }>
+  ): void {
+    const ctx = this.ensureCtx(conversationId, userId);
+    ctx.scratchpad['_node_refs'] = refs;
+    this.store.setScratchpad(ctx, '_node_refs', refs);
   }
 
   removeNodeRef(conversationId: string, userId: string, nodeId: string): boolean {
@@ -524,10 +664,18 @@ export class AgentOrchestratorService {
   }
 
   /** File attachments (Cloud '上传文件' / '文件管理'). */
-  listFiles(conversationId: string): Array<{ fileId: string; name: string; mime: string; size: number; createdAt: string }> {
+  listFiles(
+    conversationId: string
+  ): Array<{ fileId: string; name: string; mime: string; size: number; createdAt: string }> {
     const ctx = this.store.peek(conversationId);
     if (!ctx) return [];
-    return (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+    return ((ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || []) as Array<{
+      fileId: string;
+      name: string;
+      mime: string;
+      size: number;
+      createdAt: string;
+    }>;
   }
 
   addFile(
@@ -538,7 +686,46 @@ export class AgentOrchestratorService {
     const ctx = this.ensureCtx(conversationId, userId);
     const arr = (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
     const fileId = this.randId();
-    const entry = { fileId, name: input.name, mime: input.mime, size: input.size, createdAt: this.now() };
+    const entry = {
+      fileId,
+      name: input.name,
+      mime: input.mime,
+      size: input.size,
+      createdAt: this.now(),
+    };
+    arr.push(entry);
+    ctx.scratchpad['_files'] = arr;
+    this.store.setScratchpad(ctx, '_files', arr);
+    return entry;
+  }
+
+  addUploadedFile(
+    conversationId: string,
+    userId: string,
+    input: {
+      attachmentId: string;
+      token: string;
+      path: string;
+      url?: string;
+      name: string;
+      mime: string;
+      size: number;
+    }
+  ) {
+    const ctx = this.ensureCtx(conversationId, userId);
+    const arr = (ctx.scratchpad['_files'] as Array<Record<string, unknown>>) || [];
+    const entry = {
+      fileId: input.attachmentId,
+      attachmentId: input.attachmentId,
+      token: input.token,
+      path: input.path,
+      url: input.url,
+      name: input.name,
+      mime: input.mime,
+      size: input.size,
+      uploaded: true,
+      createdAt: this.now(),
+    };
     arr.push(entry);
     ctx.scratchpad['_files'] = arr;
     this.store.setScratchpad(ctx, '_files', arr);
@@ -569,10 +756,7 @@ export class AgentOrchestratorService {
    * Returns an empty string when no skills are configured or when the
    * service is not wired (e.g. tests).
    */
-  private async buildScopedSkillPrompt(ctx: {
-    userId: string;
-    baseId?: string;
-  }): Promise<string> {
+  private async buildScopedSkillPrompt(ctx: { userId: string; baseId?: string }): Promise<string> {
     if (!this.scopedSkills) return '';
     let resolved;
     try {
@@ -582,9 +766,7 @@ export class AgentOrchestratorService {
     }
     const formatBucket = (label: string, skills: ScopedSkill[]): string[] => {
       if (skills.length === 0) return [];
-      const lines = skills.map(
-        (s) => `- [${s.scope}] ${s.name}: ${s.description}\n  ${s.content}`
-      );
+      const lines = skills.map((s) => `- [${s.scope}] ${s.name}: ${s.description}\n  ${s.content}`);
       return [`${label} (${skills.length}):`, ...lines];
     };
     const sections = [
@@ -599,6 +781,4 @@ export class AgentOrchestratorService {
       ...sections,
     ].join('\n');
   }
-
-
 }

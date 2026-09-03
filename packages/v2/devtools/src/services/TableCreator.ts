@@ -14,7 +14,7 @@ export interface CreateTableInput {
     readonly options?: Record<string, unknown>;
   }>;
   readonly views?: ReadonlyArray<{
-    readonly type?: 'grid' | 'calendar' | 'kanban' | 'form' | 'gallery' | 'plugin';
+    readonly type?: 'grid' | 'calendar' | 'kanban' | 'form' | 'gallery' | 'plugin' | 'pivot';
     readonly name?: string;
   }>;
 }

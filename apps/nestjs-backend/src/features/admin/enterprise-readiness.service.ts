@@ -4,11 +4,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { LicenseCapabilityService, type LicenseCapability } from '../license/license-capability.service';
+import {
+  EnterpriseReadinessBehaviorService,
+  type IBehaviorEvidence,
+} from './enterprise-readiness-behavior.service';
 
 export type CapabilityDescriptor = {
   enabled: boolean;
   module: string;
+  wired?: boolean;
+  configured?: boolean;
+  verified?: boolean;
+  parity?: boolean;
   reason?: string;
+  evidence?: IBehaviorEvidence;
   [key: string]: unknown;
 };
 
@@ -67,6 +76,13 @@ export type EnterpriseReadinessReport = {
     cloudExclusiveGapCount: number;
     cloudGapCoverage: CloudGapCoverage;
     cloudGapImplementedCount: number;
+    readiness: {
+      wired: number;
+      configured: number;
+      verified: number;
+      parity: number;
+      total: number;
+    };
   };
 };
 
@@ -85,8 +101,8 @@ const PLAN_LABEL: Record<string, string> = {
 //     (password_share, totp, saml, scim, oauth_server, ip_allowlist,
 //      custom_app_domain, permission_app_workflow, permission_import_export,
 //      backup, trash, smtp, workspace_mirror)
-// Keys exist as Probe=true the moment the corresponding runtime / DB state is
-// wired. Capacity (count rows) does not gate parity — only capability presence.
+// These keys describe the Cloud comparison surface. They do not imply parity:
+// a capability must have behavior evidence before it can count as verified.
 const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
   // License-tracked (Business+ differentiators)
   'sso',
@@ -153,19 +169,19 @@ const CLOUD_BUSINESS_CORE_CAPABILITIES: readonly string[] = [
  */
 const CLOUD_EXCLUSIVE_GAPS: readonly CloudExclusiveGap[] = [
   // Connect & Migrate Everything (7)
-  { key: 'baserow_import', name: 'Connect & Migrate Baserow', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-baserow.md', status: 'implemented', ossFramework: 'baserow-import', notes: 'Round-16: baserow-import module wired; probe + listFields + fetchRows endpoints exposed; field translation pending follow-up' },
-  { key: 'smartsuite_import', name: 'Connect & Migrate SmartSuite', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsuite.md', status: 'implemented', ossFramework: 'smartsuite-import', notes: 'Round-22: smartsuite-import module wired; probe + listApps + listTables + fetchRecords endpoints exposed; field type translation pending follow-up' },
-  { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'implemented', ossFramework: 'nocodb-import', notes: 'Round-20: nocodb-import module wired; probe + listBases + listTables + fetchRows endpoints exposed; column type translation pending follow-up' },
-  { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'implemented', ossFramework: 'jira-import', notes: 'Round-18: jira-import module wired; probe + listProjects + fetchIssues endpoints exposed; ADF + custom field translation pending follow-up' },
-  { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'implemented', ossFramework: 'monday-import', notes: 'Round-19: monday-import module wired; probe + listWorkspaces + listBoards + fetchItems endpoints exposed; column value translation pending follow-up' },
-  { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'implemented', ossFramework: 'clickup-import', notes: 'Round-17: clickup-import module wired; probe + listSpaces + listLists + fetchTasks endpoints exposed; field translation pending follow-up' },
-  { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'implemented', ossFramework: 'smartsheet-import', notes: 'Round-21: smartsheet-import module wired; probe + listSheets + fetchRows endpoints exposed; column type translation pending follow-up' },
+  { key: 'baserow_import', name: 'Connect & Migrate Baserow', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-baserow.md', status: 'partial', ossFramework: 'baserow-import', notes: 'Round-16: endpoints exposed; field translation pending follow-up' },
+  { key: 'smartsuite_import', name: 'Connect & Migrate SmartSuite', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsuite.md', status: 'partial', ossFramework: 'smartsuite-import', notes: 'Round-22: endpoints exposed; field type translation pending follow-up' },
+  { key: 'nocodb_import', name: 'Connect & Migrate NocoDB', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-nocodb.md', status: 'partial', ossFramework: 'nocodb-import', notes: 'Round-20: endpoints exposed; column type translation pending follow-up' },
+  { key: 'jira_import', name: 'Connect & Migrate Jira', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-jira.md', status: 'partial', ossFramework: 'jira-import', notes: 'Round-18: endpoints exposed; ADF and custom field translation pending follow-up' },
+  { key: 'monday_import', name: 'Connect & Migrate monday.com', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-monday.md', status: 'partial', ossFramework: 'monday-import', notes: 'Round-19: endpoints exposed; column value translation pending follow-up' },
+  { key: 'clickup_import', name: 'Connect & Migrate ClickUp', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-clickup.md', status: 'partial', ossFramework: 'clickup-import', notes: 'Round-17: endpoints exposed; field translation pending follow-up' },
+  { key: 'smartsheet_import', name: 'Connect & Migrate Smartsheet', category: 'migration', cloudDocPath: 'basic/ai/connect-everything/migrate-smartsheet.md', status: 'partial', ossFramework: 'smartsheet-import', notes: 'Round-21: endpoints exposed; column type translation pending follow-up' },
   // Scripting (3)
   { key: 'run_script_action', name: 'Run Script (JS sandbox)', category: 'scripting', cloudDocPath: 'basic/automation/actions/ai/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: Node vm module (createContext + runInContext) in automation-event.listener.ts executeRunScript; configurable timeout (50-5000ms); input/env/process sandbox shape' },
   { key: 'ai_script', name: 'AI Script (generate automation JS)', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: AutomationAiBuilderService + /api/automation/ai-draft endpoint generates run_script actions via LLM (or offline fallback when AI disabled)' },
   { key: 'api_automation', name: 'Build automations programmatically via API', category: 'scripting', cloudDocPath: 'basic/automation/examples/api-automation.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: Full CRUD on /api/automation (POST create, GET list/detail, DELETE, POST run for manual fire, /ai-draft for AI-generated drafts); action catalog at /api/automation/catalog' },
   // Other / integration (4)
-  { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'implemented', ossFramework: 'generic-connector', notes: 'Round-23: generic-connector module wired; pluggable driver registry with 3 built-in adapters (rest-api / json-endpoint / csv-url); runtime register endpoint for new adapter types' },
+  { key: 'connect_more_sources', name: 'Connect & Migrate More Sources (generic)', category: 'integration', cloudDocPath: 'basic/ai/connect-everything/more-sources.md', status: 'partial', ossFramework: 'generic-connector', notes: 'Round-23: three bounded adapters and authenticated fetch are wired; runtime registration is metadata-only and a resumable field/relationship/attachment migration is not implemented' },
   { key: 'script_samples', name: 'Sample Script Library', category: 'scripting', cloudDocPath: 'archive/basic/automation/ai/scripting/sample-scripts.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: 12 bilingual samples at /api/automation/script-samples (categories: transform/lookup/branch/http/webhook); single-sample fetch at /script-samples/:id' },
   { key: 'ai_script_zh', name: 'AI 脚本 (中文文档)', category: 'scripting', cloudDocPath: 'archive/zh/basic/automation/ai-script.md', status: 'implemented', ossFramework: 'automation', notes: 'Round-24: All 12 script samples include nameZh/descriptionZh/inputs[*].descriptionZh; locale=zh query param returns Chinese strings via listScriptSamples({locale:\'zh\'})' },
   { key: 'ai_skill', name: 'Connect AI Agents to Teable (skill)', category: 'integration', cloudDocPath: 'basic/ai/teable-skill.md', status: 'implemented', ossFramework: 'enterprise-readiness', notes: 'Round-25: 4 inline skill files (SKILL.md/AUTH.md/API.md/EXAMPLES.md) served via /api/admin/enterprise-readiness/ai-skill/files; total self-contained — AI agents can install without external repo' },
@@ -234,7 +250,8 @@ export class EnterpriseReadinessService {
 
   constructor(
     private readonly caps: LicenseCapabilityService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly behavior: EnterpriseReadinessBehaviorService
   ) {}
 
   async report(): Promise<EnterpriseReadinessReport> {
@@ -243,7 +260,9 @@ export class EnterpriseReadinessService {
       this.collectIntegrations(),
       this.collectQuotas(),
     ]);
+    await this.attachBehaviorEvidence(capabilityMap);
 
+    const readiness = this.applyReadinessDimensions(capabilityMap);
     const total = Object.keys(capabilityMap).length;
     const enabled = Object.values(capabilityMap).filter((c) => c.enabled).length;
     const disabled = total - enabled;
@@ -270,6 +289,7 @@ export class EnterpriseReadinessService {
         cloudExclusiveGapCount: cloudGap.length,
         cloudGapCoverage,
         cloudGapImplementedCount: this.cloudGapImplementedCount(),
+        readiness,
       },
     };
   }
@@ -378,6 +398,7 @@ export class EnterpriseReadinessService {
    */
   migrationSourceRegistry(): Array<{
     key: string;
+    wired: boolean;
     implemented: boolean;
     implementedBy:
       | 'airtable-import'
@@ -406,9 +427,11 @@ export class EnterpriseReadinessService {
       smartsuite_import: 'smartsuite-import',
       connect_more_sources: 'generic-connector',
     };
+    const implementedKeys = new Set(['airtable_import', 'notion_import', 'google_sheets_import']);
     return Array.from(MIGRATION_SOURCE_REGISTRY).sort().map((key) => ({
       key,
-      implemented: implementedBy[key] !== undefined,
+      wired: implementedBy[key] !== undefined,
+      implemented: implementedKeys.has(key),
       implementedBy: implementedBy[key] ?? 'pending',
     }));
   }
@@ -478,7 +501,7 @@ export class EnterpriseReadinessService {
    */
   cloudBusinessScore(caps: Record<string, CapabilityDescriptor>): number {
     return CLOUD_BUSINESS_CORE_CAPABILITIES.reduce(
-      (acc, key) => acc + (caps[key]?.enabled ? 1 : 0),
+      (acc, key) => acc + (caps[key]?.parity === true ? 1 : 0),
       0
     );
   }
@@ -491,6 +514,31 @@ export class EnterpriseReadinessService {
     const score = this.cloudBusinessScore(caps);
     const total = this.cloudBusinessParityTotal();
     return `${score}/${total}`;
+  }
+
+  private applyReadinessDimensions(
+    capabilities: Record<string, CapabilityDescriptor>
+  ): EnterpriseReadinessReport['summary']['readiness'] {
+    for (const capability of Object.values(capabilities)) {
+      const evidence = capability.evidence;
+      capability.wired = Boolean(capability.module);
+      capability.configured =
+        capability.enabled === true &&
+        !capability.reason &&
+        (capability.evidence?.kind === 'behaviorVerified' ||
+          capability.evidence?.kind === 'cloudParity');
+      capability.verified = evidence?.kind === 'behaviorVerified';
+      capability.parity = evidence?.kind === 'cloudParity';
+    }
+    const count = (key: 'wired' | 'configured' | 'verified' | 'parity') =>
+      Object.values(capabilities).filter((capability) => capability[key] === true).length;
+    return {
+      wired: count('wired'),
+      configured: count('configured'),
+      verified: count('verified'),
+      parity: count('parity'),
+      total: Object.keys(capabilities).length,
+    };
   }
 
   /**
@@ -784,6 +832,23 @@ export class EnterpriseReadinessService {
       // as R-PERM-3/R-PERM-4 batches.
       await this.alwaysEnabled('billing_invoice', 'billing', 'billingInvoice', 'billing_invoice'),
       await this.alwaysEnabled('billing_credit', 'billing', 'billingCredit', 'billing_credit'),
+      // Phase 5.3 — dunning recovery (scheduler + worker wired). Two
+      // tables, one capability per table so operators can see
+      // active plans vs steps independently.
+      await this.alwaysEnabled('billing_dunning_plan', 'billing', 'billingDunningPlan', 'billing_dunning_plan'),
+      await this.alwaysEnabled('billing_dunning_step', 'billing', 'billingDunningStep', 'billing_dunning_step'),
+      // Phase 5.5 part 1 — unified usage ledger.
+      await this.alwaysEnabled('billing_usage_event', 'billing', 'billingUsageEvent', 'billing_usage_event'),
+      // Phase 5.5 part 2 — add-on subscriptions.
+      await this.alwaysEnabled('billing_add_on', 'billing', 'billingAddOn', 'billing_add_on'),
+      // Phase 5.5 part 3 — metered invoice writes draft rows via the
+      // existing invoice table; expose a separate capability so the
+      // dashboard can distinguish metered drafts from manual drafts.
+      await this.alwaysEnabled('billing_metered_invoice', 'billing', 'billingMeteredInvoice', 'invoice'),
+      // Phase 6 follow-up — per-org membership guard for portal routes.
+      // The guard is class-decorator bound; module registration is the
+      // evidence. No table to probe; alwaysEnabled is sufficient.
+      await this.alwaysEnabled('billing_portal_org_guard', 'billing', 'billingPortalOrgGuard', 'billing_portal_org_guard'),
       // R-INFRA-5: cross-org-admin.controller.ts shipped (built from scratch
       // in this round; full CRUD + admin panel endpoint).
       await this.alwaysEnabled('cross_org_admin_grant', 'cross-org-admin', 'crossOrgAdminGrant', 'cross_org_admin_grant'),
@@ -796,6 +861,32 @@ export class EnterpriseReadinessService {
       // presence tracks module wiring, not whether any airtable-connection
       // row has been created. Same shape as R-PERM-3 batch.
       await this.alwaysEnabled('airtable_connection', 'airtable-import', 'airtableConnection', 'airtable_connections'),
+      // Phase 4.4+ — NocoDB source driver (stub). Real REST API
+      // integration is the follow-up; this registers the route so the
+      // task processor auto-discovers it via the SOURCE_IMPORT_DRIVER
+      // multi-provider.
+      await this.alwaysEnabled('nocodb_connection', 'nocodb-import', 'nocodbConnection', 'nocodb_connection'),
+      // Phase 4.4+ — Baserow source driver (stub). Same template as NocoDB;
+      // real REST API integration follows once `BaserowImportService` ships.
+      await this.alwaysEnabled('baserow_connection', 'baserow-import', 'baserowConnection', 'baserow_connection'),
+      // Phase 4.4+ — Jira source driver (stub). Different data shape
+      // (issues vs rows); real API integration uses /rest/api/3/search/jql
+      // with nextPageToken cursor paging.
+      await this.alwaysEnabled('jira_connection', 'jira-import', 'jiraConnection', 'jira_connection'),
+      // Phase 4.4+ — monday.com source driver (stub). GraphQL API (first
+      // GraphQL source in the migration set); column_values[] decoding
+      // is the main complexity.
+      await this.alwaysEnabled('monday_connection', 'monday-import', 'mondayConnection', 'monday_connection'),
+      // Phase 4.4+ — ClickUp source driver (stub). Hierarchical
+      // workspace/space/folder/list/task; custom_fields[] is the main
+      // shape concern (typed values like drop_down / labels / currency).
+      await this.alwaysEnabled('clickup_connection', 'clickup-import', 'clickupConnection', 'clickup_connection'),
+      // Phase 4.4+ — SmartSuite source driver (stub). Solution/app/record
+      // model; Token auth (not Bearer); offset-based pagination.
+      await this.alwaysEnabled('smartsuite_connection', 'smartsuite-import', 'smartsuiteConnection', 'smartsuite_connection'),
+      // Phase 4.4+ — Smartsheet source driver (stub). Sheet/row/column
+      // model with typed cells[]; opaque `page` token pagination.
+      await this.alwaysEnabled('smartsheet_connection', 'smartsheet-import', 'smartsheetConnection', 'smartsheet_connection'),
       // R-INFRA-5: data-db-connection.controller.ts shipped (built from
       // scratch; admin CRUD for postgres/mysql/mariadb/mssql targets).
       await this.alwaysEnabled('data_db_connection', 'data-db-connection', 'dataDbConnection', 'data_db_connection'),
@@ -1134,11 +1225,11 @@ export class EnterpriseReadinessService {
       schemaDomains: string[];
       wiredDomains: string[];
       coveragePercent: number;
+      verifiedDomains: string[];
     };
     parity: {
       defaultSelfHosted: string;
-      maxSelfHosted: string;
-      businessLicense: string;
+      verified: string;
     };
     recommendations: string[];
   }> {
@@ -1177,7 +1268,7 @@ export class EnterpriseReadinessService {
 
     // Driver health (reuses migrationSourceRegistry + getAiSkillFiles if available)
     const sources = this.migrationSourceRegistry();
-    const wiredDrivers = sources.filter((s) => s.implemented);
+    const wiredDrivers = sources.filter((s) => s.wired);
     const wiredDriverKeys = wiredDrivers.map((d) => d.key);
 
     // AI skill: stat the inline files via fs (best-effort)
@@ -1209,12 +1300,16 @@ export class EnterpriseReadinessService {
       // best-effort
     }
 
-    // Authority matrix — hardcoded after R26 (5/5 wired)
     const authorityMatrixDomains = {
       schemaDomains: ['table-access', 'field-permission', 'record-action', 'record-filter', 'app-workflow-node', 'import-export'],
       wiredDomains: ['table-access', 'field-permission', 'record-action', 'record-filter', 'app-workflow-node', 'import-export'],
-      coveragePercent: 100,
+      verifiedDomains: ['table-access', 'field-permission', 'record-action', 'record-filter']
+        .filter((key) => caps.permission_matrix?.verified === true),
+      coveragePercent: 0,
     };
+    authorityMatrixDomains.coveragePercent = Math.round(
+      (authorityMatrixDomains.verifiedDomains.length / authorityMatrixDomains.schemaDomains.length) * 100
+    );
 
     // Recommendations — actionable insight based on current state
     const recommendations: string[] = [];
@@ -1223,10 +1318,8 @@ export class EnterpriseReadinessService {
         `${r.cloudGap.length - r.summary.cloudGapImplementedCount} cloudGap entries still pending — see cloudGap[] for details`
       );
     }
-    if (r.summary.cloudBusinessParity.startsWith('44')) {
-      recommendations.push(
-        'self_hosted parity 44/46. Upgrade to business license to reach 46/46 (api_rate_limit + dashboard flip on).'
-      );
+    if (r.summary.readiness.parity === 0) {
+      recommendations.push('No capability has Cloud-parity evidence; wired/configured status must not be presented as commercial equivalence.');
     }
     const noRows = (disabledByReason['no_*_rows_yet'] ?? 0) + Object.entries(disabledByReason)
       .filter(([k]) => k.startsWith('no_') && k.endsWith('_rows_yet'))
@@ -1240,9 +1333,6 @@ export class EnterpriseReadinessService {
       recommendations.push(
         'Tip: set TEABLE_LICENSE_KEY=plan:business to enable api_rate_limit + business-only features'
       );
-    }
-    if (implementedKeys.length === 14 && !recommendations.find((x) => x.includes('cloudGap'))) {
-      recommendations.push('All 14 cloudGaps implemented — consider contributing driver samples or admin UI next');
     }
 
     return {
@@ -1286,10 +1376,148 @@ export class EnterpriseReadinessService {
       authorityMatrix: authorityMatrixDomains,
       parity: {
         defaultSelfHosted: r.summary.cloudBusinessParity,
-        maxSelfHosted: '45/46',
-        businessLicense: '46/46',
+        verified: `${r.summary.readiness.parity}/${r.summary.readiness.total}`,
       },
       recommendations,
     };
   }
+  /**
+   * Phase 6 (Round 28): Per-capability 3-state classification.
+   *
+   * Aggregates the existing `report()` output into an "evidence
+   * manifest" view that maps each capability to exactly one of three
+   * states:
+   *
+   *   - `oss`          — OSS ships the capability; no operator setup.
+   *                     `enabled && wired && configured`.
+   *   - `self_hosted`  — OSS ships the capability but the operator must
+   *                     configure it (e.g. SMTP server, IP allowlist,
+   *                     customer KMS key). `enabled && wired && !configured`.
+   *   - `cloud`        — Not available in this OSS build. Either
+   *                     `enabled === false` or no implementation wired.
+   *                     Cloud-only features land here.
+   *
+   * The manifest closes the Phase 6 §20.4 "evidence manifest" gap: it
+   * gives operators a single view of which capabilities are
+   * out-of-the-box, which need operator config, and which require
+   * Cloud. The companion UI can then render three-state dashboards
+   * and CI gates (any capability in `cloud` without an explicit
+   * opt-in cannot be advertised as Cloud-parity).
+   */
+  async buildManifest(): Promise<{
+    generatedAt: string;
+    plan: { level: string; label: string; licenseSource: string };
+    counts: {
+      total: number;
+      oss: number;
+      selfHosted: number;
+      cloud: number;
+    };
+    capabilities: Array<{
+      key: string;
+      module: string;
+      enabled: boolean;
+      state: 'oss' | 'self_hosted' | 'cloud';
+      wired: boolean;
+      configured: boolean;
+      verified: boolean;
+      parity: boolean;
+      reason?: string;
+      evidence?: { kind: string; detail?: string; lastProbeAt?: string };
+    }>;
+  }> {
+    const r = await this.report();
+    const caps = r.capabilities;
+    const items: Array<{
+      key: string;
+      module: string;
+      enabled: boolean;
+      state: 'oss' | 'self_hosted' | 'cloud';
+      wired: boolean;
+      configured: boolean;
+      verified: boolean;
+      parity: boolean;
+      reason?: string;
+      evidence?: { kind: string; detail?: string; lastProbeAt?: string };
+    }> = [];
+    let oss = 0;
+    let selfHosted = 0;
+    let cloud = 0;
+    for (const [key, cap] of Object.entries(caps)) {
+      const wired = Boolean(cap.wired);
+      const configured = Boolean(cap.configured);
+      const enabled = cap.enabled === true;
+      let state: 'oss' | 'self_hosted' | 'cloud';
+      if (!enabled || !wired) {
+        state = 'cloud';
+      } else if (enabled && wired && !configured) {
+        state = 'self_hosted';
+      } else {
+        state = 'oss';
+      }
+      if (state === 'oss') oss += 1;
+      else if (state === 'self_hosted') selfHosted += 1;
+      else cloud += 1;
+      items.push({
+        key,
+        module: cap.module ?? '-',
+        enabled,
+        state,
+        wired,
+        configured,
+        verified: Boolean(cap.verified),
+        parity: Boolean(cap.parity),
+        reason: cap.reason,
+        evidence: cap.evidence
+          ? {
+              kind: cap.evidence.kind,
+              detail: cap.evidence.detail,
+              lastProbeAt: cap.evidence.lastProbeAt,
+            }
+          : undefined,
+      });
+    }
+    // Stable ordering: state first (oss > self_hosted > cloud), then key.
+    items.sort((a, b) => {
+      const rank = { oss: 0, self_hosted: 1, cloud: 2 } as const;
+      const r = rank[a.state] - rank[b.state];
+      if (r !== 0) return r;
+      return a.key.localeCompare(b.key);
+    });
+    return {
+      generatedAt: r.instance.generatedAt,
+      plan: { level: r.plan.level, label: r.plan.label, licenseSource: r.plan.licenseSource },
+      counts: {
+        total: items.length,
+        oss,
+        selfHosted,
+        cloud,
+      },
+      capabilities: items,
+    };
+  }
+
+  private async attachBehaviorEvidence(
+    map: Record<string, CapabilityDescriptor>
+  ): Promise<void> {
+    const keys = Object.keys(map);
+    await Promise.all(
+      keys.map(async (key) => {
+        try {
+          const evidence = await this.behavior.probe(key);
+          map[key].evidence = evidence;
+        } catch (err) {
+          this.logger.warn(
+            `behavior probe failed for ${key}: ${(err as Error)?.message ?? 'unknown'}`
+          );
+          map[key].evidence = {
+            kind: 'blockedByExternalService',
+            lastProbeAt: new Date().toISOString(),
+            detail: 'probe_threw',
+          };
+        }
+      })
+    );
+  }
+
 }

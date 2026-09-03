@@ -22,7 +22,7 @@ describe('PermissionMatrixController — V24 Cloud §应用权限 / §工作流�
       PermissionMatrixService,
       'setNodeAccess' | 'setDefaultRoleForUnassigned' | 'getDefaultRoleForUnassigned'
     > = {
-      setNodeAccess: vi.fn().mockResolvedValue(undefined),
+      setNodeAccess: vi.fn(() => Promise.resolve(undefined)),
       setDefaultRoleForUnassigned: vi.fn().mockResolvedValue(undefined),
       getDefaultRoleForUnassigned: vi.fn().mockResolvedValue('pr_default'),
     };

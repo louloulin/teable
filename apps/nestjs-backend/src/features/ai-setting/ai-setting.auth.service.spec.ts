@@ -169,9 +169,9 @@ it('R-AI-9: setDefaultModel("anthropic/claude-3-5-sonnet") uses gateway model ke
   await svc.setDefaultModel('anthropic/claude-3-5-sonnet');
 
   const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
-  expect(parsed.chatModel.lg).toBe('anthropic/claude-3-5-sonnet@teable');
-  expect(parsed.chatModel.md).toBe('anthropic/claude-3-5-sonnet@teable');
-  expect(parsed.chatModel.sm).toBe('anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.lg).toBe('aiGateway@anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.md).toBe('aiGateway@anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.sm).toBe('aiGateway@anthropic/claude-3-5-sonnet@teable');
   // No new openai provider auto-created when gateway model selected.
   // llmProviders may be inherited as empty array, that's fine.
   const openaiProviders = (parsed.llmProviders ?? []).filter(
@@ -221,5 +221,26 @@ it('R-AI-9: setDefaultModel preserves existing gateway apiKey from earlier R-AI-
   expect(parsed.aiGatewayApiKey).toBe('vck_prior');
   expect(parsed.aiGatewayBaseUrl).toBe('https://ai-gateway.vercel.sh/v1');
   // R-AI-9 chatModel updated
-  expect(parsed.chatModel.lg).toBe('anthropic/claude-3-5-sonnet@teable');
+  expect(parsed.chatModel.lg).toBe('aiGateway@anthropic/claude-3-5-sonnet@teable');
+});
+
+it('R-AI-9: setDefaultModel routes plain model through a configured gateway', async () => {
+  const { svc, prisma } = makeService();
+
+  prisma.rows.set('aiConfig', {
+    name: 'aiConfig',
+    content: JSON.stringify({
+      enable: true,
+      aiGatewayApiKey: 'vck_prior',
+      aiGatewayBaseUrl: 'https://api.minimaxi.com/v1',
+    }),
+  });
+
+  await svc.setDefaultModel('MiniMax-M3');
+
+  const parsed = JSON.parse(prisma.rows.get('aiConfig')!.content);
+  expect(parsed.chatModel.lg).toBe('aiGateway@MiniMax-M3@teable');
+  expect(parsed.chatModel.md).toBe('aiGateway@MiniMax-M3@teable');
+  expect(parsed.chatModel.sm).toBe('aiGateway@MiniMax-M3@teable');
+  expect(parsed.llmProviders ?? []).toHaveLength(0);
 });

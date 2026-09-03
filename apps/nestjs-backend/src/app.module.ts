@@ -15,7 +15,9 @@ import { AggregationOpenApiModule } from './features/aggregation/open-api/aggreg
 import { AiFieldRecordListenerModule } from './features/ai/ai-field-record-listener.module';
 import { AiModule } from './features/ai/ai.module';
 import { AiAppBuilderModule } from './features/ai-app-builder/ai-app-builder.module';
+import { AiChatModule } from './features/ai-chat/ai-chat.module';
 import { AiBuilderModule } from './features/ai-builder/ai-builder.module';
+import { AiFieldModule } from './features/ai-field/ai-field.module';
 import { AiSettingModule } from './features/ai-setting/ai-setting.module';
 import { AiCostForecasterModule } from './features/ai-cost-forecaster/ai-cost-forecaster.module';
 import { AirtableImportModule } from './features/airtable-import/airtable-import.module';
@@ -36,6 +38,7 @@ import { AuthModule } from './features/auth/auth.module';
 import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
+import { BillingModule } from './features/billing/billing.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
 import { BaseShareModule } from './features/base-share/base-share.module';
@@ -59,6 +62,8 @@ import { DataDbConnectionModule } from './features/data-db-connection';
 import { OrgBanListModule } from './features/org-ban-list/org-ban-list.module';
 import { OrgCustomRoleModule } from './features/org-custom-role/org-custom-role.module';
 import { OrgBillingRollupModule } from './features/org-billing-rollup/org-billing-rollup.module';
+import { StripeWebhookModule } from './features/stripe-webhook/stripe-webhook.module';
+import { ScimPushModule } from './features/scim-push/scim-push.module';
 import { OrgQuotaModule } from './features/org-quota/org-quota.module';
 import { OrgQuotaReservationModule } from './features/org-quota-reservation/org-quota-reservation.module';
 import { DrCanvasModule } from './features/dr-canvas/dr-canvas.module';
@@ -95,6 +100,7 @@ import { MultiRegionArbitrationModule } from './features/multi-region-arbitratio
 import { NextModule } from './features/next/next.module';
 import { NotificationModule } from './features/notification/notification.module';
 import { NotionModule } from './features/notion/notion.module';
+import { SourceImportModule } from './features/import-jobs/source-import.module';
 import { OAuthModule } from './features/oauth/oauth.module';
 import { OAuthServerModule } from './features/oauth-server/oauth-server.module';
 import { OrganizationModule } from './features/organization/organization.module';
@@ -157,6 +163,7 @@ export const appModules = {
     TemplateOpenApiModule,
     BaseModule,
     BackupModule,
+    BillingModule,
     GoogleSheetsModule,
     GenericConnectorModule, // Round-23: generic pluggable driver registry (connect_more_sources)
     BaseNodeModule,
@@ -188,6 +195,7 @@ export const appModules = {
     BaseShareModule,
     NotificationModule,
     NotionModule,
+    SourceImportModule, // Phase 1 — unified source-import durable-task pipeline (Cloud §migrations)
     AccessTokenModule,
     AdminOpenApiModule,
     EnterpriseReadinessModule,
@@ -259,6 +267,8 @@ export const appModules = {
     AiModule,
     AiBuilderModule,
     AiAppBuilderModule,
+    AiChatModule,
+    AiFieldModule,
     AiSettingModule,
     AiFieldRecordListenerModule,
     PluginModule,
@@ -282,6 +292,8 @@ export const appModules = {
     EvalHarnessModule,
     WorkspaceMirrorModule,
     WorkspaceSwitchModule,
+    StripeWebhookModule,
+    ScimPushModule,
   ],
   providers: [InitBootstrapProvider],
 };

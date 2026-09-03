@@ -1,0 +1,63 @@
+name: Verify Enterprise (5-Gate)
+
+# Lightweight gate that runs `scripts/verify-enterprise.sh` — the cheapest
+# set of checks that catch regressions in the v2/commercial gap surface:
+#   1. tsconfig.json references match real v2 package tsconfigs
+#   2. Every top-level feature module has an `index.ts` barrel
+#   3. Every nested helper subdir containing .ts files has an `index.ts`
+#   4. Backend `tsc --noEmit` does not exceed the recorded baseline
+#   5. (optional) pnpm -r test-unit — set RUN_TESTS=1 to enable
+#
+# Runs on every push to develop + PR + manual dispatch. Advisory (non-blocking)
+# so unrelated PRs aren't blocked; results still appear in the PR checks UI.
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-enterprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: 5-Gate Enterprise Verify
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.22.3
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+
+      - name: 📥 Monorepo install
+        uses: ./.github/actions/pnpm-install
+
+      - name: 🧩 Generate Prisma Client
+        working-directory: packages/db-main-prisma
+        run: |
+          pnpm -F @teable/db-main-prisma prisma-generate --schema ./prisma/postgres/schema.prisma
+
+      - name: 🏗 Build workspace packages
+        run: |
+          pnpm -F "./packages/**" -F "!@teable/v2-*" run build
+
+      - name: 🚦 Run verify-enterprise.sh
+        run: |
+          bash scripts/verify-enterprise.sh
+
+      - name: 📝 Upload verify log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-enterprise-log
+          path: /tmp/teable-verify-enterprise.log
+          if-no-files-found: ignore

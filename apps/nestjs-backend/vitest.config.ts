@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       buffer: 'node:buffer',
     },
+    extensions: ['.ts', '.tsx', '.js'],
     conditions: ['@teable/source'],
   },
   ssr: {

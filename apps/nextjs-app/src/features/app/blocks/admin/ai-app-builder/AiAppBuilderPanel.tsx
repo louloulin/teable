@@ -222,7 +222,7 @@ export const AiAppBuilderPanel = () => {
 
   const putSecret = useMutation({
     mutationFn: () =>
-      axios.post<{ count: number }>(`/${baseId}/apps/${selectedApp!.id}/secrets`, {
+      axios.put<{ count: number }>(`/${baseId}/apps/${selectedApp!.id}/secrets`, {
         secrets: [
           {
             key: secretKey.trim(),
@@ -242,7 +242,7 @@ export const AiAppBuilderPanel = () => {
 
   const putFile = useMutation({
     mutationFn: () =>
-      axios.post<{ id: string }>(`/${baseId}/apps/${selectedApp!.id}/files`, {
+      axios.put<{ id: string }>(`/${baseId}/apps/${selectedApp!.id}/files`, {
         path: filePath.trim(),
         content: fileContent,
         sizeBytes: new Blob([fileContent]).size,

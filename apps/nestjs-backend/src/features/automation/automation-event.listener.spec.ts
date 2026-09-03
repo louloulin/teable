@@ -6,6 +6,44 @@ vi.mock('../../utils/ssrf-http', () => ({ safeFetch: vi.fn() }));
 const safeFetchMock = vi.mocked(await import('../../utils/ssrf-http')).safeFetch;
 
 describe('AutomationEventListener', () => {
+  it('maps Feishu message events to space-scoped external automations', async () => {
+    const automation = {
+      triggerExternalEvent: vi
+        .fn()
+        .mockResolvedValue([{ run: { id: 'run-feishu', input: { text: 'hello' } }, actions: [] }]),
+      finishRun: vi.fn().mockResolvedValue({}),
+    };
+    const listener = new AutomationEventListener(
+      automation as never,
+      { dispatch: vi.fn() } as never,
+      { dispatch: vi.fn() } as never,
+      { updateRecord: vi.fn() } as never,
+      { sendMail: vi.fn() } as never
+    );
+
+    await listener.handleFeishuMessage({
+      spaceId: 'spc-feishu',
+      eventId: 'evt-feishu',
+      eventType: 'im.message.receive_v1',
+      event: {
+        message: { chat_id: 'oc-chat', content: JSON.stringify({ text: 'hello' }) },
+        sender: { sender_id: { open_id: 'ou-user' } },
+      },
+    });
+
+    expect(automation.triggerExternalEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spaceId: 'spc-feishu',
+        provider: 'feishu',
+        payload: expect.objectContaining({ text: 'hello', chatId: 'oc-chat' }),
+      })
+    );
+    expect(automation.finishRun).toHaveBeenCalledWith(
+      'run-feishu',
+      expect.objectContaining({ status: 'succeeded' })
+    );
+  });
+
   it('exposes only configured action env through process.env and redacts outputs', async () => {
     const automation = {
       triggerRecordEvent: vi.fn().mockResolvedValue([

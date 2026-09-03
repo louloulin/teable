@@ -17,6 +17,7 @@ import { FormView } from './form/FormView';
 import { GalleryView } from './gallery/GalleryView';
 import { GridView } from './grid/GridView';
 import { KanbanView } from './kanban/KanbanView';
+import { PivotView } from './pivot/PivotView';
 import { PluginView } from './plugin/PluginView';
 import type { IViewBaseProps } from './types';
 import { ViewSkeleton } from './ViewSkeleton';
@@ -73,6 +74,8 @@ export const View = (props: IViewBaseProps) => {
         return <GalleryView />;
       case ViewType.Calendar:
         return <CalendarView />;
+      case ViewType.Pivot:
+        return <PivotView />;
       case ViewType.Plugin:
         return <PluginView />;
       default:

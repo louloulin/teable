@@ -6,6 +6,7 @@ import {
   Kanban,
   Component,
   Calendar,
+  Table2,
 } from '@teable/icons';
 
 export const VIEW_ICON_MAP = {
@@ -15,4 +16,5 @@ export const VIEW_ICON_MAP = {
   [ViewType.Calendar]: Calendar,
   [ViewType.Form]: Form,
   [ViewType.Plugin]: Component,
+  [ViewType.Pivot]: Table2,
 };

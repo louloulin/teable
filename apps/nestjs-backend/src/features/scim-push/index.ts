@@ -14,3 +14,9 @@ export { validateSubscription, normalizeSubscription, canRegisterMore, shouldDel
 
 // ─── Types / interfaces ───────────────────────────────────────────
 export { DEFAULT_MAX_ATTEMPTS, DEFAULT_BASE_BACKOFF_MS, DEFAULT_MAX_BACKOFF_MS, MAX_SUBSCRIPTIONS_PER_ORG, MAX_FILTER_KINDS, SCIM_PUSH_KIND_LABELS, ScimPushEventKind, ScimPushDeliveryStatus, IScimPushSubscription, IScimPushEvent, IScimPushDelivery, IScimPushDeliveryAttempt, IScimPushOutcome, IScimPushOptions } from './scim-push.types';
+
+// ─── Controllers ──────────────────────────────────────────────────
+export { ScimPushController } from './scim-push.controller';
+
+// ─── Modules ──────────────────────────────────────────────────────
+export { ScimPushModule } from './scim-push.module';

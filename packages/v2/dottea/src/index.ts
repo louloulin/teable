@@ -75,7 +75,7 @@ const readStructureJson = async (zip: unzipper.CentralDirectory): Promise<string
   return buffer.toString('utf-8');
 };
 
-const allowedViewTypes = new Set(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin']);
+const allowedViewTypes = new Set(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin', 'pivot']);
 
 @injectable()
 export class DotTeaParser implements IDotTeaParser {

@@ -99,6 +99,13 @@ interface ITableMetaDelegate {
   }): Promise<{ baseId: string } | null>;
 }
 
+interface IBaseDelegate {
+  findMany(args: {
+    where: { spaceId: string; deletedTime?: null };
+    select: { id: boolean };
+  }): Promise<Array<{ id: string }>>;
+}
+
 const cuid = () => `cuid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 
 /**
@@ -141,6 +148,10 @@ export class AutomationService {
   private get automationRun(): IAutomationRunDelegate {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (this.prisma as unknown as { automationRun: IAutomationRunDelegate }).automationRun;
+  }
+
+  private get base(): IBaseDelegate {
+    return (this.prisma as unknown as { base: IBaseDelegate }).base;
   }
 
   private get automationSecret(): IAutomationSecretDelegate {
@@ -577,6 +588,44 @@ export class AutomationService {
       runs.push({ run, actions: trigger.automation.actions });
     }
     return runs;
+  }
+
+  async triggerExternalEvent(args: {
+    spaceId: string;
+    provider: 'feishu';
+    payload: Record<string, unknown>;
+  }): Promise<Array<{ run: IAutomationRunRow; actions: IAutomationActionRow[] }>> {
+    const bases = await this.base.findMany({
+      where: { spaceId: args.spaceId, deletedTime: null },
+      select: { id: true },
+    });
+    if (!bases.length) return [];
+    const triggers = await this.automationTrigger.findMany({
+      where: {
+        type: 'webhook_received',
+        automation: { enabled: true, baseId: { in: bases.map(({ id }) => id) } },
+      },
+      include: { automation: { include: { triggers: true, actions: true } } },
+    });
+    const runs: Array<{ run: IAutomationRunRow; actions: IAutomationActionRow[] }> = [];
+    for (const trigger of triggers) {
+      const config = trigger.automation.triggers.find(
+        (candidate) => candidate.id === trigger.id
+      )?.config;
+      if (!this.isExternalTriggerFor(config, args.provider, args.spaceId)) continue;
+      const run = await this.trigger(trigger.automation.id, {
+        triggerType: 'webhook_received',
+        payload: { ...args.payload, spaceId: args.spaceId, provider: args.provider },
+      });
+      if (run.status === 'pending') runs.push({ run, actions: trigger.automation.actions });
+    }
+    return runs;
+  }
+
+  private isExternalTriggerFor(config: unknown, provider: 'feishu', spaceId: string): boolean {
+    if (!config || typeof config !== 'object') return false;
+    const value = config as { provider?: unknown; spaceId?: unknown };
+    return value.provider === provider && value.spaceId === spaceId;
   }
 
   private async syncSchedule(

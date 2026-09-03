@@ -40,7 +40,14 @@ export async function setUpAppMiddleware(app: INestApplication, configService: C
   // `Strict-Transport-Security` headers with potentially different max-age values.
   app.use(helmet({ hsts: false }));
   app.use(relaxOAuthPopupCoop);
-  app.use(json({ limit: '50mb' }));
+  app.use(
+    json({
+      limit: '50mb',
+      verify: (request, _response, buffer) => {
+        (request as typeof request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+      },
+    })
+  );
   app.use(urlencoded({ limit: '50mb', extended: true }));
 
   const apiDocConfig = configService.get<IApiDocConfig>('apiDoc');

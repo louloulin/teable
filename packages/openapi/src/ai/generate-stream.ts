@@ -5,6 +5,7 @@ export enum Task {
   Coding = 'coding',
   Embedding = 'embedding',
   Translation = 'translation',
+  JsonOutput = 'json_output',
 }
 
 export const AI_GENERATE_STREAM = '/api/{baseId}/ai/generate-stream';
@@ -19,6 +20,18 @@ export const aiGenerateRoSchema = z.object({
     description: 'Specify an exact model configuration to use',
     example: 'openai@gpt-4o@custom-name',
   }),
+  jsonMode: z.boolean().optional().meta({
+    description:
+      'Force the model to respond in JSON. Triggers provider-level response_format=json_object on MiniMax / OpenAI-compatible gateways.',
+    example: true,
+  }),
+  jsonSchema: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .meta({
+      description:
+        'Optional JSON schema the model must conform to. Forwarded as response_format.json_schema.',
+    }),
 });
 
 export type IAiGenerateRo = z.infer<typeof aiGenerateRoSchema>;

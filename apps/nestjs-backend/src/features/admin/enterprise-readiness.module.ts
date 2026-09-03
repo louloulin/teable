@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '@teable/db-main-prisma';
 
 import { LicenseModule } from '../license/license.module';
+import { EnterpriseReadinessBehaviorService } from './enterprise-readiness-behavior.service';
 import { AiSkillController } from './ai-skill/ai-skill.controller';
 import { EnterpriseReadinessController } from './enterprise-readiness.controller';
 import { EnterpriseReadinessService } from './enterprise-readiness.service';
@@ -16,7 +17,7 @@ import { EnterpriseReadinessService } from './enterprise-readiness.service';
 @Module({
   imports: [PrismaModule, LicenseModule],
   controllers: [EnterpriseReadinessController, AiSkillController],
-  providers: [EnterpriseReadinessService],
+  providers: [EnterpriseReadinessService, EnterpriseReadinessBehaviorService],
   exports: [EnterpriseReadinessService],
 })
 export class EnterpriseReadinessModule {}
