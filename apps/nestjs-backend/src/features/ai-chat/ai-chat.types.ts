@@ -14,7 +14,10 @@ export interface IAiChatSession {
   tableId: string | null;
   viewId: string | null;
   title: string | null;
-  model: string;
+  model: string | null;
+  smartLevel: string | null;
+  tokenBudget: number | null;
+  allowedTools: unknown;
   createdBy: string;
   createdTime: Date;
   updatedTime: Date;
@@ -37,7 +40,10 @@ export interface ICreateChatSessionInput {
   tableId?: string;
   viewId?: string;
   title?: string;
-  model: string;
+  model: string | null;
+  smartLevel: string | null;
+  tokenBudget: number | null;
+  allowedTools: unknown;
   createdBy: string;
 }
 

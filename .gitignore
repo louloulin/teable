@@ -137,3 +137,7 @@ pnpm-debug.log*
 /docker/.env
 /docker/**/.env
 /docker-compose.local.yml
+
+# Comet Native runtime (machine-local state, never commit)
+.comet/runtime/
+.comet/current-change.json

@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "save": "保存",
+    "saving": "保存中…",
+    "delete": "削除",
+    "cancel": "キャンセル"
+  },
+  "admin": {
+    "setting": {
+      "ai": {
+        "title": "AI 設定",
+        "description": "AI プロバイダー、モデル、アプリビルダーを設定します。",
+        "llmTab": "AI モデル",
+        "appTab": "アプリビルダー",
+        "deployProvider": "デプロイプロバイダー",
+        "vercelToken": "Vercel トークン"
+      },
+      "configuration": {
+        "list": {
+          "appBuilderEngine": {
+            "title": "アプリビルダーエンジン"
+          }
+        }
+      }
+    },
+    "users": "ユーザー",
+    "spaces": "スペース",
+    "backup": "バックアップ",
+    "scim": "SCIM",
+    "sso": "SSO",
+    "saml": "SAML",
+    "totp": "二要素認証",
+    "sandbox": "サンドボックス"
+  }
+}

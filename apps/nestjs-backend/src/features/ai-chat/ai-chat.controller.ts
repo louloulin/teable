@@ -21,6 +21,8 @@ import {
   Put,
   Query,
   Res,
+  ForbiddenException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -38,8 +40,13 @@ import { AiChatLongTaskService } from './ai-chat-long-task.service';
 import { AiChatArtifactService } from './ai-chat-artifact.service';
 import { AiChatSmartLevelService } from './ai-chat-smart-level.service';
 import { AiChatQueueService } from './ai-chat-queue.service';
+import { AiChatSelectionRefService } from './ai-chat-selection-ref.service';
+import { AiChatIntelligenceService } from './ai-chat-intelligence.service';
+import { AiChatAttachmentTokenService } from './ai-chat-attachment-token.service';
 import { AiChatWritePlanService } from './ai-chat-write-plan.service';
+import { AiChatWriteSurfaceService } from './ai-chat-write-surface.service';
 import { AiChatNodeRefService } from './ai-chat-node-ref.service';
+import type { IAiChatWritePlanDocument } from './ai-chat-write-surface';
 import { DEFAULT_AI_SETTING } from '../ai-setting/ai-setting.types';
 
 @Controller('api/chat')
@@ -57,8 +64,12 @@ export class AiChatController {
     private readonly artifacts: AiChatArtifactService,
     private readonly smartLevelService: AiChatSmartLevelService,
     private readonly queue: AiChatQueueService,
+    private readonly selectionRefs: AiChatSelectionRefService,
+    private readonly intelligence: AiChatIntelligenceService,
     private readonly writePlans: AiChatWritePlanService,
-    private readonly nodeRefs: AiChatNodeRefService
+    private readonly writeSurfaces: AiChatWriteSurfaceService,
+    private readonly nodeRefs: AiChatNodeRefService,
+    private readonly attachToken: AiChatAttachmentTokenService
   ) {}
 
   private currentUserId(): string {
@@ -145,6 +156,29 @@ export class AiChatController {
   @Post('write-plans/:planId/confirm')
   async confirmWritePlan(@Param('planId') planId: string) {
     return this.writePlans.confirm(planId, this.currentUserId());
+  }
+
+  // R-WRITE-1: Multi-category write surface (table/field/view/record/automation).
+  @Post('sessions/:sessionId/write-surfaces')
+  async createWriteSurface(
+    @Param('sessionId') sessionId: string,
+    @Body()
+    body: {
+      document: IAiChatWritePlanDocument;
+      expiresInSeconds?: number;
+    }
+  ) {
+    return this.writeSurfaces.createSurface({
+      sessionId,
+      userId: this.currentUserId(),
+      document: body.document,
+      expiresInSeconds: body.expiresInSeconds,
+    });
+  }
+
+  @Post('write-surfaces/:planId/confirm')
+  async confirmWriteSurface(@Param('planId') planId: string) {
+    return this.writeSurfaces.confirm(planId, this.currentUserId());
   }
 
   @Get('skills')
@@ -589,5 +623,131 @@ export class AiChatController {
     } finally {
       res.end();
     }
+  }
+
+  // ── R-CHAT-1: Selection refs (chips) ─────────────────────────────
+  @Get('sessions/:sessionId/selection')
+  async listSelectionRefs(@Param('sessionId') sessionId: string) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    return this.selectionRefs.list(sessionId, userId);
+  }
+
+  @Post('sessions/:sessionId/selection')
+  async addSelectionRef(
+    @Param('sessionId') sessionId: string,
+    @Body()
+    body: {
+      tableId: string;
+      viewId?: string | null;
+      selectionType: 'row' | 'column' | 'cell' | 'range';
+      refKey: string;
+      refValue: Record<string, unknown>;
+      displayLabel: string;
+      rowCount?: number | null;
+    }
+  ) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    return this.selectionRefs.add({
+      sessionId,
+      userId,
+      tableId: body.tableId,
+      viewId: body.viewId ?? null,
+      selectionType: body.selectionType,
+      refKey: body.refKey,
+      refValue: body.refValue ?? {},
+      displayLabel: body.displayLabel,
+      rowCount: body.rowCount ?? null,
+    });
+  }
+
+  @Delete('sessions/:sessionId/selection/:refId')
+  async removeSelectionRef(
+    @Param('sessionId') sessionId: string,
+    @Param('refId') refId: string
+  ) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    // ownership check happens inside service via session lookup
+    void sessionId;
+    return this.selectionRefs.remove(refId, userId);
+  }
+
+  @Delete('sessions/:sessionId/selection')
+  async clearSelectionByTable(
+    @Param('sessionId') sessionId: string,
+    @Query('tableId') tableId: string
+  ) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    return this.selectionRefs.clearTable(sessionId, tableId, userId);
+  }
+
+  // ── R-CHAT-2: Intelligence (smart-level + model) ─────────────────
+  @Get('sessions/:sessionId/intelligence')
+  async getIntelligence(@Param('sessionId') sessionId: string) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    const session = await this.intelligence['prisma'].aiChatSession.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session || session.createdBy !== userId) {
+      throw new NotFoundException('chat session not found');
+    }
+    return this.intelligence.getEffective(session);
+  }
+
+  @Patch('sessions/:sessionId/intelligence')
+  async patchIntelligence(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { smartLevel?: 'low' | 'medium' | 'high' | null; model?: string | null }
+  ) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    return this.intelligence.updateIntelligence({
+      sessionId,
+      userId,
+      smartLevel: body?.smartLevel,
+      model: body?.model,
+    });
+  }
+
+  // ── R-ATTACH-2: short-lived download token ──────────────────────
+  @Post('attachments/:attachmentId/download-token')
+  async issueDownloadToken(@Param('attachmentId') attachmentId: string) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    if (!attachmentId || attachmentId.length > 200) {
+      throw new BadRequestException('attachmentId invalid');
+    }
+    // Best-effort existence check; the real authorization is enforced by the
+    // existing permission layer when the attachment is actually downloaded.
+    const exists = await this.svc.attachmentExistsForUser(attachmentId, userId);
+    if (!exists) throw new NotFoundException('attachment not found');
+    const token = this.attachToken.sign({ attachmentId, userId });
+    return {
+      attachmentId,
+      token,
+      ttlSeconds: Number.parseInt(
+        process.env.AI_CHAT_ATTACHMENT_TOKEN_TTL ?? '300',
+        10,
+      ),
+    };
+  }
+
+  @Post('attachments/download/verify')
+  async verifyDownloadToken(@Body() body: { token: string; attachmentId?: string }) {
+    const userId = this.cls.get('user.id');
+    if (!userId) throw new UnauthorizedException('not signed in');
+    const payload = this.attachToken.verify(body?.token ?? '');
+    // The 403/404 path require an explicit attachmentId match
+    if (body?.attachmentId && payload.att !== body.attachmentId) {
+      throw new NotFoundException('token / attachment mismatch');
+    }
+    if (payload.uid !== userId) {
+      throw new ForbiddenException('token / user mismatch');
+    }
+    return { valid: true, attachmentId: payload.att, expiresAt: payload.exp };
   }
 }

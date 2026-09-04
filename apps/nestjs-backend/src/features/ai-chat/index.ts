@@ -13,6 +13,7 @@ export { AiChatModule } from './ai-chat.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { AiChatController } from './ai-chat.controller';
+export { AiChatVoiceController } from './ai-chat-voice.controller';
 
 // ─── Services ─────────────────────────────────────────────────────
 export {
@@ -161,3 +162,59 @@ export {
   type AdapterRunArgs,
   type AdapterRunResult,
 } from './ai-chat-llm-adapter';
+
+// ─── Manual re-exports (edit freely) ──────────────────────────────
+export {
+  AiChatIntelligenceService,
+  SMART_LEVEL_TOKEN_BUDGET,
+  TOOL_PERMISSIONS,
+  READ_ONLY_TOOLS,
+  COMMENT_TOOLS,
+  WRITE_TOOLS,
+  type IIntelligenceSnapshot,
+  type IUpdateIntelligenceInput,
+} from './ai-chat-intelligence.service';
+export {
+  AiChatSelectionRefService,
+  AI_CHAT_SELECTION_TYPES,
+  type IAiChatSelectionRef,
+  type IAddSelectionInput,
+  type AiChatSelectionType,
+} from './ai-chat-selection-ref.service';
+export {
+  AiChatVoiceService,
+  type ITranscribeInput,
+  type ITranscribeResult,
+} from './ai-chat-voice.service';
+
+// R-ATTACH-1 — file parser registry
+export {
+  AiChatAttachmentParserService,
+  MAX_PARSE_CHARS,
+  type IParseInput,
+  type IParseResult,
+} from './ai-chat-attachment-parser.service';
+
+// R-ATTACH-2 — short-lived attachment download token + virus scan stub
+export {
+  AiChatAttachmentTokenService,
+  type IAttachmentTokenPayload,
+  type IVirusScanResult,
+} from './ai-chat-attachment-token.service';
+
+// R-WRITE-1 + R-WRITE-2 — multi-category write plan + idempotency
+export {
+  AiChatWriteSurfaceService,
+  type IAiChatWriteSurfacePlanInput,
+  type IConfirmResult,
+} from './ai-chat-write-surface.service';
+export {
+  AI_CHAT_WRITE_CATEGORIES,
+  isAiChatWriteCategory,
+  isWriteStepOp,
+  stepId,
+  type IAiChatWritePlanDocument,
+  type IAiChatWriteStep,
+  type AiChatWriteCategory,
+  type AiChatWriteStepOp,
+} from './ai-chat-write-surface';

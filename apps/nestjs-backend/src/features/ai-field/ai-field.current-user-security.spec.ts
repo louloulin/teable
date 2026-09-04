@@ -17,9 +17,9 @@ import type { AiFieldAuthService } from './ai-field.auth.service';
 describe('AiFieldController.currentUserId — security (V75 R-AI-FIELD-SEC)', () => {
   function buildSvcAndCls(opts: { withUserId: boolean; userId?: string }) {
     const svc = {
-      createAiField: vi.fn(async (i: unknown) => ({ ...i, id: 'fake' })),
-      createTemplate: vi.fn(async (i: unknown) => ({ ...i, id: 'fake-tpl' })),
-      executeRun: vi.fn(async (i: unknown) => ({ ...i, id: 'fake-run' })),
+      createAiField: vi.fn(async (i: unknown) => ({ ...(i as Record<string, unknown>), id: 'fake' })),
+      createTemplate: vi.fn(async (i: unknown) => ({ ...(i as Record<string, unknown>), id: 'fake-tpl' })),
+      executeRun: vi.fn(async (i: unknown) => ({ ...(i as Record<string, unknown>), id: 'fake-run' })),
       listAiFields: vi.fn(async () => []),
       getAiField: vi.fn(async () => null),
       updateAiField: vi.fn(async () => null),
@@ -67,7 +67,7 @@ describe('AiFieldController.currentUserId — security (V75 R-AI-FIELD-SEC)', ()
     );
 
     // Critical: the underlying service MUST NOT have been called.
-    expect((svc as { createAiField: ReturnType<typeof vi.fn> }).createAiField).not.toHaveBeenCalled();
+    expect((svc as unknown as { createAiField: ReturnType<typeof vi.fn> }).createAiField).not.toHaveBeenCalled();
   });
 
   it('proceeds normally when CLS carries a valid user id', async () => {
@@ -81,7 +81,7 @@ describe('AiFieldController.currentUserId — security (V75 R-AI-FIELD-SEC)', ()
       prompt: 'x',
     } as never);
     expect(out).toMatchObject({ createdBy: 'usr-real' });
-    expect((svc as { createAiField: ReturnType<typeof vi.fn> }).createAiField).toHaveBeenCalledTimes(1);
+    expect((svc as unknown as { createAiField: ReturnType<typeof vi.fn> }).createAiField).toHaveBeenCalledTimes(1);
   });
 
   it('throws UnauthorizedException on createTemplate without a user id', async () => {
@@ -92,7 +92,7 @@ describe('AiFieldController.currentUserId — security (V75 R-AI-FIELD-SEC)', ()
       ctrl.createTemplate({ name: 't', prompt: 'p' } as never),
       'createTemplate'
     );
-    expect((svc as { createTemplate: ReturnType<typeof vi.fn> }).createTemplate).not.toHaveBeenCalled();
+    expect((svc as unknown as { createTemplate: ReturnType<typeof vi.fn> }).createTemplate).not.toHaveBeenCalled();
   });
 
   // Note: `run()` does not call currentUserId() in the controller — it

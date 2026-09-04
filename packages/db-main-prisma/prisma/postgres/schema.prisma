@@ -4554,7 +4554,10 @@ model AiChatSession {
   tableId     String?  @map("table_id")
   viewId      String?  @map("view_id")
   title       String?
-  model       String
+  model       String?
+  smartLevel  String?  @map("smart_level")
+  tokenBudget Int?     @map("token_budget")
+  allowedTools Json?   @map("allowed_tools")
   createdBy   String   @map("created_by")
   createdTime DateTime @default(now()) @map("created_time")
   updatedTime DateTime @updatedAt @map("updated_time")
@@ -4565,6 +4568,7 @@ model AiChatSession {
   queuedMessages AiChatQueuedMessage[]
   writePlans AiChatWritePlan[]
   nodeRefs  AiChatNodeRef[]
+  selectionRefs AiChatSelectionRef[]
 
   @@index([baseId, createdTime])
   @@index([createdBy, createdTime])
@@ -4720,4 +4724,28 @@ model AiChatNodeRef {
   @@index([sessionId, createdTime])
   @@index([refId, kind])
   @@map("ai_chat_node_ref")
+}
+
+/// V81 R-CHAT-1 — Persistent, permission-checked Grid selection chips
+/// attached to an AI Chat session. Carries the rendered row/column/cell/range
+/// selection so the chat prompt can reference it deterministically.
+model AiChatSelectionRef {
+  id            String   @id
+  sessionId     String   @map("session_id")
+  tableId       String   @map("table_id")
+  viewId        String?  @map("view_id")
+  selectionType String   @map("selection_type")
+  refKey        String   @map("ref_key")
+  refValue      Json     @map("ref_value")
+  displayLabel  String   @map("display_label")
+  rowCount      Int?     @map("row_count")
+  createdBy     String   @map("created_by")
+  createdTime   DateTime @default(now()) @map("created_time")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, refKey])
+  @@index([sessionId, createdTime])
+  @@index([sessionId, tableId])
+  @@map("ai_chat_selection_ref")
 }

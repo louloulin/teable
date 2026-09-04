@@ -19,11 +19,16 @@ import {
   type ChatModelAdapter,
 } from '@assistant-ui/react';
 import { Paperclip, Send, Sparkles } from 'lucide-react';
+import { VoiceButton } from '../VoiceButton';
 
 import { useChatPanelStore } from '../../sidebar/useChatPanelStore';
 import { buildCuppyAdapter } from './Runtime';
 import { formatGridSelectionForChat } from '../../../blocks/view/grid/utils/gridSelectionChat';
 import { ReactQueryKeys } from '@teable/sdk/config';
+import { SelectionChips } from '../SelectionChips';
+import { IntelligenceMenu } from '../IntelligenceMenu';
+import { ModelSelect } from '../ModelSelect';
+import { useAiChatSessionStore } from '../useAiChatSessionStore';
 
 export interface ChatPanelProps {
   baseId?: string;
@@ -66,6 +71,23 @@ const ThreadMessages: React.FC = () => (
 const CuppyComposer: React.FC = () => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  // Listen for R-CHAT-3 voice transcripts dispatched as CustomEvent on window
+  // (set by VoiceButton outside the composer context if needed). The
+  // recommended path is the per-instance onTranscript prop below.
+  const [transcript, setTranscript] = React.useState<string>('');
+
+  const handleVoice = React.useCallback((text: string) => {
+    setTranscript((prev) => (prev ? prev + ' ' : '') + text);
+    requestAnimationFrame(() => {
+      const el = inputRef.current as HTMLInputElement | null;
+      if (el) {
+        el.value = (el.value ? el.value + ' ' : '') + text;
+        el.focus();
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }, []);
+
   return (
     <ComposerPrimitive.Root className="border-t bg-background p-2">
       <div className="flex items-end gap-2">
@@ -74,6 +96,7 @@ const CuppyComposer: React.FC = () => {
           submitOnEnter
           placeholder="Ask Cuppy…"
           className="min-h-10 flex-1 resize-none rounded border bg-transparent p-2 text-sm outline-none"
+          ref={inputRef}
         />
         <ComposerPrimitive.AddAttachment
           multiple
@@ -82,6 +105,7 @@ const CuppyComposer: React.FC = () => {
         >
           <Paperclip className="h-4 w-4" />
         </ComposerPrimitive.AddAttachment>
+        <VoiceButton onTranscript={handleVoice} />
         <ComposerPrimitive.Send
           className="rounded bg-primary p-2 text-primary-foreground disabled:opacity-50"
           aria-label="Send"
@@ -89,12 +113,12 @@ const CuppyComposer: React.FC = () => {
           <Send className="h-4 w-4" />
         </ComposerPrimitive.Send>
       </div>
-      <input
-        ref={inputRef}
-        className="hidden"
-        tabIndex={-1}
-        aria-hidden="true"
-      />
+      {transcript && (
+        <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <Sparkles className="h-2.5 w-2.5" />
+          <span>Voice transcript staged: {transcript.slice(0, 60)}{transcript.length > 60 ? '…' : ''}</span>
+        </div>
+      )}
     </ComposerPrimitive.Root>
   );
 };
@@ -102,6 +126,7 @@ const CuppyComposer: React.FC = () => {
 export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => {
   const status = useChatPanelStore((state) => state.status);
   const baseId = propBaseId;
+  const aiSessionId = useAiChatSessionStore((state) => state.get(baseId));
   const queryClient = useQueryClient();
 
   const selectionQuery = useQuery({
@@ -155,6 +180,14 @@ export const ChatPanel = ({ baseId: propBaseId, className }: ChatPanelProps) => 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ThreadPrimitive.Root className={`flex h-full flex-col ${className ?? ''}`}>
+        <SelectionChips sessionId={aiSessionId} />
+        <div
+          data-testid="intelligence-toolbar"
+          className="flex items-center gap-2 border-b bg-background/60 px-2 py-1.5"
+        >
+          <IntelligenceMenu sessionId={aiSessionId} />
+          <ModelSelect sessionId={aiSessionId} />
+        </div>
         <ThreadPrimitive.Viewport className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
           <ThreadPrimitive.Empty>
             <div className="flex flex-col gap-2 py-6 text-sm text-muted-foreground">

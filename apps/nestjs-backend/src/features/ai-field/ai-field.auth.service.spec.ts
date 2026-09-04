@@ -2,6 +2,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { vi } from 'vitest';
 
+import type { AiService } from '../ai/ai.service';
 import { AiFieldAuthService } from './ai-field.auth.service';
 
 interface IMockAiFieldTable {
@@ -626,7 +627,7 @@ describe('AiFieldAuthService (Stage 31)', () => {
         createdTime: now,
         updatedTime: now,
       } as never);
-      const ai = { generateText: vi.fn().mockResolvedValueOnce('rewritten text') } as never;
+      const ai = { generateText: vi.fn().mockResolvedValueOnce('rewritten text') } as unknown as AiService;
       const customSvc = new AiFieldAuthService(prisma as never, ai, undefined, undefined);
       const run = await customSvc.executeRun({
         aiFieldId: 'aif_custom',
@@ -638,7 +639,7 @@ describe('AiFieldAuthService (Stage 31)', () => {
       expect(run.status).toBe('ok');
       expect(run.outputText).toBe('rewritten text');
       // Verify the placeholder-resolved prompt was actually sent to the provider
-      const lastCall = ai.generateText.mock.calls[0];
+      const lastCall = ((ai.generateText as unknown as { mock: { calls: unknown[][] } }).mock.calls[0] || []) as unknown as { prompt?: string }[];
       expect(lastCall[1].prompt).toContain('Rewrite Alice (score 95) in one sentence.');
     });
 
@@ -678,7 +679,7 @@ describe('AiFieldAuthService (Stage 31)', () => {
         createdTime: now,
         updatedTime: now,
       } as never);
-      const ai = { generateText: vi.fn().mockResolvedValueOnce('ok') } as never;
+      const ai = { generateText: vi.fn().mockResolvedValueOnce('ok') } as unknown as AiService;
       const customSvc = new AiFieldAuthService(prisma as never, ai, undefined, undefined);
       await customSvc.executeRun({
         aiFieldId: 'aif_custom2',
@@ -687,7 +688,7 @@ describe('AiFieldAuthService (Stage 31)', () => {
         force: true,
         rowFields: { fld_name: 'Bob' },
       });
-      const lastCall = ai.generateText.mock.calls[0];
+      const lastCall = ((ai.generateText as unknown as { mock: { calls: unknown[][] } }).mock.calls[0] || []) as unknown as { prompt?: string }[];
       expect(lastCall[1].prompt).toBe('Known: Bob, Unknown: .');
     });
 
@@ -952,6 +953,7 @@ describe('AiFieldAuthService (Stage 31)', () => {
         updatedTime: now,
       } as never);
       const out = await svc.cancelBatchTask('aigt_x');
+      if (!out) throw new Error('out is null');
       expect(out.status).toBe('cancelled');
       expect(out.errorCode).toBe('TASK_CANCELED');
       const call = (

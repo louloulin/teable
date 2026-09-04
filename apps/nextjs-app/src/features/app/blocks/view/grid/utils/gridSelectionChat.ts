@@ -2,6 +2,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { CombinedSelection } from '@teable/sdk';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import { useChatPanelStore } from '@/features/app/components/sidebar/useChatPanelStore';
+import { aiChatApi, type IAiChatSelectionType } from '@/features/app/components/chat-panel/api';
+import { useAiChatSessionStore } from '@/features/app/components/chat-panel/useAiChatSessionStore';
 
 export enum GridSelectionType {
   Rows = 'rows',
@@ -46,14 +48,75 @@ export function formatGridSelectionForChat(data?: IGridSelectionCacheData): stri
 function setGridSelectionCache(
   queryClient: QueryClient,
   baseId: string,
-  data: Omit<IGridSelectionCacheData, 'timestamp'>
+  data: Omit<IGridSelectionCacheData, 'timestamp'> & {
+    tableId?: string;
+    viewId?: string | null;
+    syncToBackend?: boolean;
+  }
 ) {
+  const { tableId, viewId, syncToBackend, ...rest } = data;
   queryClient.setQueryData(ReactQueryKeys.gridSelection(baseId), {
-    ...data,
+    ...rest,
     timestamp: Date.now(),
   });
   if (data.addToChat) {
     useChatPanelStore.getState().open();
+  }
+  if (syncToBackend && tableId) {
+    void syncSelectionToBackend(baseId, tableId, viewId ?? null, rest);
+  }
+}
+
+async function syncSelectionToBackend(
+  baseId: string,
+  tableId: string,
+  viewId: string | null,
+  data: Omit<IGridSelectionCacheData, 'timestamp' | 'addToChat'>
+): Promise<void> {
+  const sessionId = useAiChatSessionStore.getState().get(baseId);
+  if (!sessionId) return; // No active ai session yet — chips will re-sync once session exists.
+
+  const rows = data.rows;
+  const cols = data.columns;
+
+  try {
+    if (rows && cols) {
+      await aiChatApi.addSelectionRef(sessionId, {
+        tableId,
+        viewId,
+        selectionType: 'range',
+        refKey: `${tableId}:range:${rows.map(([s, e]) => `${s}-${e}`).join('_')}:c${cols.columnStart}-${cols.columnEnd}`,
+        refValue: { rows, columns: cols },
+        displayLabel: `Rows ${rows.map(([s, e]) => (s === e ? s + 1 : `${s + 1}-${e + 1}`)).join(', ')} × Cols ${cols.columnStart + 1}-${cols.columnEnd + 1}`,
+        rowCount: rows.reduce((sum, [s, e]) => sum + (e - s + 1), 0),
+      });
+    } else if (rows && rows.length) {
+      for (const [s, e] of rows) {
+        await aiChatApi.addSelectionRef(sessionId, {
+          tableId,
+          viewId,
+          selectionType: 'row',
+          refKey: `${tableId}:row:${s}-${e}`,
+          refValue: { rowStart: s, rowEnd: e },
+          displayLabel: s === e ? `Row ${s + 1}` : `Rows ${s + 1}-${e + 1}`,
+          rowCount: e - s + 1,
+        });
+      }
+    } else if (cols) {
+      await aiChatApi.addSelectionRef(sessionId, {
+        tableId,
+        viewId,
+        selectionType: 'column',
+        refKey: `${tableId}:column:${cols.columnStart}-${cols.columnEnd}`,
+        refValue: { columnStart: cols.columnStart, columnEnd: cols.columnEnd, names: cols.names },
+        displayLabel: cols.names?.length
+          ? `Cols ${cols.names.join(', ')}`
+          : `Cols ${cols.columnStart + 1}-${cols.columnEnd + 1}`,
+        rowCount: 0,
+      });
+    }
+  } catch {
+    // best-effort sync — chips will recover on next user interaction
   }
 }
 
@@ -89,17 +152,35 @@ export function cacheSelectionForChat(
   queryClient: QueryClient,
   baseId: string,
   selection: CombinedSelection,
-  addToChat: boolean
+  addToChat: boolean,
+  tableContext?: { tableId: string; viewId?: string | null }
 ) {
   const rows = getRowRanges(selection);
   const cols = getColRange(selection);
+  const sync = Boolean(addToChat && tableContext?.tableId);
 
   if (selection.isColumnSelection && cols) {
-    setGridSelectionCache(queryClient, baseId, { columns: cols, addToChat });
+    setGridSelectionCache(queryClient, baseId, {
+      columns: cols,
+      addToChat,
+      ...(tableContext ?? {}),
+      syncToBackend: sync,
+    });
   } else if (selection.isCellSelection && rows && cols) {
-    setGridSelectionCache(queryClient, baseId, { rows, columns: cols, addToChat });
+    setGridSelectionCache(queryClient, baseId, {
+      rows,
+      columns: cols,
+      addToChat,
+      ...(tableContext ?? {}),
+      syncToBackend: sync,
+    });
   } else if (rows) {
-    setGridSelectionCache(queryClient, baseId, { rows, addToChat });
+    setGridSelectionCache(queryClient, baseId, {
+      rows,
+      addToChat,
+      ...(tableContext ?? {}),
+      syncToBackend: sync,
+    });
   }
 }
 
@@ -108,11 +189,14 @@ export function cacheColumnSelectionForChat(
   baseId: string,
   columnStart: number,
   columnEnd: number,
-  names?: string[]
+  names?: string[],
+  tableContext?: { tableId: string; viewId?: string | null }
 ) {
   setGridSelectionCache(queryClient, baseId, {
     columns: { columnStart, columnEnd, names },
     addToChat: true,
+    ...(tableContext ?? {}),
+    syncToBackend: Boolean(tableContext?.tableId),
   });
 }
 

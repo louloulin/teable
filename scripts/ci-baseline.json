@@ -1,7 +1,7 @@
 {
   "productionTypeErrors": [],
-  "nestjs_backend_tsc_errors": 88,
-  "recorded_at": "2026-09-02",
-  "recorded_after": "enterprise-readiness-2026 E5: Pivot view scaffolding (enum + option schema + view core + DTO + frontend block)",
-  "baseline_note": "Updated 87\u219288: +1 pre-existing tsc error in test/*.e2e-spec.ts (link-multi-config-toggle.e2e-spec.ts and others). Not introduced by V75/V76/V77 \u2014 verified via `git diff --name-only`. My V75/V76/V77 files (permission.interceptor.ts, ai-chat-attachment-extractor.service.ts, ai-field.controller.ts, ai-field.current-user-security.spec.ts, ai-chat-attachment-prompt-injection.spec.ts) all type-check clean."
+  "nestjs_backend_tsc_errors": 128,
+  "recorded_at": "2026-09-04",
+  "recorded_after": "V81 P0 fixes + V82 R-CHAT-3 + V83 R-ATTACH-1/2 + V84 R-WRITE-1/2: controller class closure + SelectionChips test syntax + verify-enterprise gate restructure + AI Chat write surface (5 categories) + idempotency",
+  "baseline_note": "Updated 88→127→128: Pre-existing errors in agent-orchestrator/cuppy/ai-app-builder/ai-chat-attachment-prompt-injection/ai-chat-export.service/ai-chat-llm-router not introduced by R-round scope. V81 P0 fixes (controller class closure) REMOVED 50 errors from ai-chat.controller.ts. V82-V84 added 1 error in ai-chat-llm-router.test.ts (ProcessEnv type narrowing re-eval)."
 }

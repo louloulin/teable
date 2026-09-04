@@ -6,14 +6,7 @@ import type { Queue } from 'bullmq';
 import type { Job } from 'bullmq';
 import { AiFieldAuthService } from './ai-field.auth.service';
 
-export const AI_FIELD_BATCH_QUEUE = 'ai-field-batch-queue';
-export const AI_FIELD_BATCH_JOB = 'process';
-export const AI_FIELD_BATCH_LEASE_MS = 10 * 60 * 1000;
-export const AI_FIELD_BATCH_HEARTBEAT_MS = 60 * 1000;
-
-export interface IBatchJob {
-  taskId: string;
-}
+import { AI_FIELD_BATCH_QUEUE, AI_FIELD_BATCH_JOB, AI_FIELD_BATCH_LEASE_MS, AI_FIELD_BATCH_HEARTBEAT_MS, type IBatchJob } from './ai-field-batch.constants';
 
 /**
  * Persistent worker for AI Field batch generation. The auth service still

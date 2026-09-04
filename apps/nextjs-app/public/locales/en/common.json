@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
+  "admin": {
+    "setting": {
+      "ai": {
+        "title": "AI settings",
+        "description": "Configure AI providers, models, and App Builder.",
+        "llmTab": "AI models",
+        "appTab": "App Builder",
+        "deployProvider": "Deploy provider",
+        "vercelToken": "Vercel token"
+      },
+      "configuration": {
+        "list": {
+          "appBuilderEngine": {
+            "title": "App Builder engine"
+          }
+        }
+      }
+    },
+    "users": "Users",
+    "spaces": "Spaces",
+    "backup": "Backup",
+    "scim": "SCIM",
+    "sso": "SSO",
+    "saml": "SAML",
+    "totp": "Two-factor auth",
+    "sandbox": "Sandbox"
+  }
+}

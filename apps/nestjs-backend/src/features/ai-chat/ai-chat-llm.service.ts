@@ -18,6 +18,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AI_CHAT_TOOLS, type IAiChatToolDescriptor, AiChatToolsService } from './ai-chat-tools.service';
 import { DEFAULT_AI_SETTING, type IAiSetting } from '../ai-setting/ai-setting.types';
+import { AiModelResolverService } from '../ai/ai-model-resolver.service';
 import {
   runChat,
   runChatStream,
@@ -57,7 +58,10 @@ const PROVIDER_TIMEOUT_MS = 30_000;
 export class AiChatLlmService {
   private readonly logger = new Logger(AiChatLlmService.name);
 
-  constructor(private readonly tools: AiChatToolsService) {}
+  constructor(
+    private readonly tools: AiChatToolsService,
+    private readonly modelResolver: AiModelResolverService
+  ) {}
 
   /**
    * Resolve provider config from the Admin AI Gateway. Returns null
@@ -72,7 +76,12 @@ export class AiChatLlmService {
     if (!s.enabled) return null;
     const baseUrl = (s.aiGatewayBaseUrl ?? '').trim() || (process.env.OPENAI_BASE_URL ?? '').trim() || '';
     const apiKey = (s.aiGatewayApiKey ?? '').trim() || (process.env.OPENAI_API_KEY ?? '').trim() || '';
-    const model = (s.defaultModel ?? '').trim() || (process.env.OPENAI_DEFAULT_MODEL ?? 'gpt-4o-mini').trim();
+    // R-AI-MODEL Phase 2 wire: prefer admin setting, then env, then
+    // matrix default from AiModelResolverService for chat × openai.
+    const settingModel = (s.defaultModel ?? '').trim();
+    const envModel = (process.env.OPENAI_DEFAULT_MODEL ?? '').trim();
+    const matrixModel = this.modelResolver.resolve({ capability: 'chat', provider: 'openai' }).config.model;
+    const model = settingModel || envModel || matrixModel;
     if (!baseUrl || !apiKey) return null;
     return {
       config: {

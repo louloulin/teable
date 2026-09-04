@@ -23,6 +23,11 @@ import { TokenAccess } from '../auth/decorators/token.decorator';
 import { PermissionService } from '../auth/permission.service';
 import { AirtableApiError } from './airtable-api.client';
 import { AirtableImportService } from './airtable-import.service';
+import {
+  AirtableImportAiSuggestService,
+  type ISourceField,
+  type ITargetField,
+} from './airtable-import-ai-suggest.service';
 
 const formatAirtableImportError = (error: unknown): string => {
   if (error instanceof AirtableApiError) {
@@ -43,6 +48,7 @@ export class AirtableImportController {
 
   constructor(
     private readonly airtableImportService: AirtableImportService,
+    private readonly aiSuggestService: AirtableImportAiSuggestService,
     private readonly permissionService: PermissionService,
     private readonly cls: ClsService<IClsStore>
   ) {}
@@ -149,4 +155,23 @@ export class AirtableImportController {
       res.end();
     }
   }
+
+
+  // R-MIGRATE: AI-assisted field mapping suggestion endpoint.
+  // Returns the model the eventual LLM call would use plus a
+  // confidence-ranked list of source → target field mappings.
+  @TokenAccess()
+  @Post('import-airtable/suggest-fields')
+  async suggestFields(
+    @Body() body: { sourceFields: ISourceField[]; targetFields: ITargetField[] }
+  ): Promise<ReturnType<AirtableImportAiSuggestService['suggest']>> {
+    if (!body?.sourceFields || !Array.isArray(body.sourceFields)) {
+      throw new BadRequestException('sourceFields array required');
+    }
+    if (!body?.targetFields || !Array.isArray(body.targetFields)) {
+      throw new BadRequestException('targetFields array required');
+    }
+    return this.aiSuggestService.suggest(body.sourceFields, body.targetFields);
+  }
+
 }

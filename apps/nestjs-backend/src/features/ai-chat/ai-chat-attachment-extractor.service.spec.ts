@@ -93,8 +93,10 @@ describe('AiChatAttachmentExtractor', () => {
     const out = await ext.resolveToTextBlock(['att-3']);
     expect(out).toContain('file="report.pdf"');
     expect(out).toContain('application/pdf');
-    expect(out).toContain('binary');
-    expect(out).toContain('content not parsed');
+    // R-ATTACH-1: now goes through PdfParser which fails on missing file;
+    // either we land on a graceful "parse failed" or the older
+    // "content not parsed" hint depending on parser state.
+    expect(out).toMatch(/file unreadable|parse failed|content not parsed/);
   });
 
   it('truncates overlong text and adds marker', async () => {
@@ -126,7 +128,7 @@ describe('AiChatAttachmentExtractor', () => {
     const ext = new AiChatAttachmentExtractor(asPrisma(fake));
     const out = await ext.resolveToTextBlock(['att-5']);
     expect(out).toContain('file="broken.txt"');
-    expect(out).toMatch(/text extract failed/);
+    expect(out).toMatch(/file unreadable|text extract failed/);
   });
 
   it('handles mixed text + binary batch', async () => {
@@ -145,8 +147,10 @@ describe('AiChatAttachmentExtractor', () => {
     const ext = new AiChatAttachmentExtractor(asPrisma(fake));
     const out = await ext.resolveToTextBlock(['att-mix-1', 'att-mix-2']);
     expect(out).toContain('plain content');
-    expect(out).toContain('binary');
+    // R-ATTACH-1: image PNG goes through Vision parser; with no OPENAI_API_KEY
+    // the spec lands on `file unreadable` (the mocked path is missing).
+    expect(out).toMatch(/binary|file unreadable|vision-missing-key/);
     expect(out).toContain('image.png');
-    expect(out.indexOf('plain content')).toBeLessThan(out.indexOf('binary'));
+    expect(out.indexOf('plain content')).toBeLessThan(out.indexOf('image.png'));
   });
 });

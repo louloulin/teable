@@ -51,6 +51,12 @@
     "./dist/global.shadcn.css": {
       "import": "./dist/global.shadcn.css",
       "require": "./dist/global.shadcn.css"
+    },
+    "./shadcn/ui/*": {
+      "@teable/source": "./src/shadcn/ui/*",
+      "types": "./dist/shadcn/ui/*",
+      "import": "./dist/shadcn/ui/*",
+      "require": "./dist/shadcn/ui/*"
     }
   },
   "scripts": {

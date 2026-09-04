@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
@@ -73,11 +74,39 @@ export class LocalMasterKeyProvider implements IMasterKeyProvider {
 }
 
 @Injectable()
-export class ByokKmsAuthService {
+export class ByokKmsAuthService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly provider: LocalMasterKeyProvider
   ) {}
+
+  /**
+   * Seed a default master key for the local provider when running in
+   * non-production environments. The cloud deployment replaces the
+   * LocalMasterKeyProvider with an AWS / GCP / Vault provider that
+   * resolves customer keys externally, so seeding here is dev-only and
+   * idempotent (skipped if a `__default__` key already exists).
+   */
+  onModuleInit(): void {
+    if (process.env.NODE_ENV === 'production') return;
+    try {
+      // fetchMasterKey throws NotFoundException when missing; we use it
+      // as a cheap "does the provider already know __default__?" probe.
+      this.provider.fetchMasterKey({ organizationId: '', keyId: '__default__' });
+      return; // already seeded
+    } catch {
+      // expected — proceed to seed
+    }
+    try {
+      const seed = Buffer.alloc(32, 0x42);
+      this.provider.registerMaterial('__default__', seed);
+      this.logger.log('Seeded default master key for LocalMasterKeyProvider');
+    } catch {
+      /* swallow — provider may not be LocalMasterKeyProvider */
+    }
+  }
+
+  private readonly logger = new Logger(ByokKmsAuthService.name);
 
   async registerKey(input: IRegisterKeyInput): Promise<ICustomerKmsKey> {
     if (!isValidAlias(input.alias))

@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "save": "保存",
+    "saving": "保存中…",
+    "delete": "删除",
+    "cancel": "取消"
+  },
+  "admin": {
+    "setting": {
+      "ai": {
+        "title": "AI 设置",
+        "description": "配置 AI 提供商、模型和应用构建器。",
+        "llmTab": "AI 模型",
+        "appTab": "应用构建器",
+        "deployProvider": "部署提供商",
+        "vercelToken": "Vercel 令牌"
+      },
+      "configuration": {
+        "list": {
+          "appBuilderEngine": {
+            "title": "应用构建器引擎"
+          }
+        }
+      }
+    },
+    "users": "用户",
+    "spaces": "空间",
+    "backup": "备份",
+    "scim": "SCIM",
+    "sso": "SSO",
+    "saml": "SAML",
+    "totp": "双因素认证",
+    "sandbox": "沙箱"
+  }
+}

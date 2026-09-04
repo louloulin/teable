@@ -324,6 +324,44 @@ export interface IAiChatNodeRef {
   createdTime: string;
 }
 
+export type IAiChatSmartLevel = 'low' | 'medium' | 'high';
+
+export interface IIntelligenceSnapshot {
+  smartLevel: IAiChatSmartLevel | null;
+  model: string | null;
+  effectiveSmartLevel: IAiChatSmartLevel;
+  effectiveModel: string | null;
+  allowedTools: readonly string[];
+  tokenBudget: number;
+  inheritedFromGlobal: { smartLevel: IAiChatSmartLevel | null; model: string | null };
+}
+
+export type IAiChatSelectionType = 'row' | 'column' | 'cell' | 'range';
+
+export interface IAiChatSelectionRef {
+  id: string;
+  sessionId: string;
+  tableId: string;
+  viewId: string | null;
+  selectionType: IAiChatSelectionType;
+  refKey: string;
+  refValue: Record<string, unknown>;
+  displayLabel: string;
+  rowCount: number | null;
+  createdBy: string;
+  createdTime: string;
+}
+
+export interface IAddSelectionInput {
+  tableId: string;
+  viewId?: string | null;
+  selectionType: IAiChatSelectionType;
+  refKey: string;
+  refValue: Record<string, unknown>;
+  displayLabel: string;
+  rowCount?: number | null;
+}
+
 export const aiChatApi = {
   listSessions: async (baseId: string, take = 20): Promise<IAiChatSession[]> => {
     const r = await axios.get<IAiChatSession[]>('/api/chat/sessions', {
@@ -382,6 +420,88 @@ export const aiChatApi = {
   removeNode: async (sessionId: string, nodeId: string): Promise<{ deleted: boolean }> => {
     const r = await axios.delete<{ deleted: boolean }>(
       `/api/chat/sessions/${sessionId}/nodes/${nodeId}`
+    );
+    return r.data;
+  },
+
+
+  // ── R-CHAT-1: selection refs (chips) ─────────────────────────────
+  listSelectionRefs: async (sessionId: string): Promise<IAiChatSelectionRef[]> => {
+    const r = await axios.get<IAiChatSelectionRef[]>(
+      `/api/chat/sessions/${sessionId}/selection`
+    );
+    return r.data;
+  },
+
+  addSelectionRef: async (
+    sessionId: string,
+    input: IAddSelectionInput
+  ): Promise<IAiChatSelectionRef> => {
+    const r = await axios.post<IAiChatSelectionRef>(
+      `/api/chat/sessions/${sessionId}/selection`,
+      input
+    );
+    return r.data;
+  },
+
+  removeSelectionRef: async (
+    sessionId: string,
+    refId: string
+  ): Promise<{ deleted: boolean }> => {
+    const r = await axios.delete<{ deleted: boolean }>(
+      `/api/chat/sessions/${sessionId}/selection/${refId}`
+    );
+    return r.data;
+  },
+
+  clearSelectionByTable: async (
+    sessionId: string,
+    tableId: string
+  ): Promise<{ deleted: number }> => {
+    const r = await axios.delete<{ deleted: number }>(
+      `/api/chat/sessions/${sessionId}/selection`,
+      { params: { tableId } }
+    );
+    return r.data;
+  },
+
+  // ── R-CHAT-2: Intelligence (smart-level + model) ─────────────────
+  getIntelligence: async (sessionId: string): Promise<IIntelligenceSnapshot> => {
+    const r = await axios.get<IIntelligenceSnapshot>(
+      `/api/chat/sessions/${sessionId}/intelligence`
+    );
+    return r.data;
+  },
+
+  patchIntelligence: async (
+    sessionId: string,
+    body: { smartLevel?: IAiChatSmartLevel | null; model?: string | null }
+  ): Promise<IIntelligenceSnapshot> => {
+    const r = await axios.patch<IIntelligenceSnapshot>(
+      `/api/chat/sessions/${sessionId}/intelligence`,
+      body
+    );
+    return r.data;
+  },
+
+  /**
+   * R-CHAT-3: Voice transcription. POSTs the recorded audio blob as
+   * `multipart/form-data` to the Whisper endpoint and returns the
+   * transcript so the caller can edit/discard before sending as a
+   * normal message.
+   */
+  transcribeVoice: async (input: {
+    blob: Blob;
+    filename?: string;
+    language?: string;
+  }): Promise<{ text: string; language?: string; durationSec?: number; model: string }> => {
+    const form = new FormData();
+    const filename = input.filename ?? `voice.${input.blob.type.split('/')[1] ?? 'webm'}`;
+    form.append('file', input.blob, filename);
+    if (input.language) form.append('language', input.language);
+    const r = await axios.post<{ text: string; language?: string; durationSec?: number; model: string }>(
+      '/api/chat/voice/transcribe',
+      form
     );
     return r.data;
   },

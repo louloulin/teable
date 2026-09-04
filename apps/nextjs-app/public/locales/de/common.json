@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "delete": "Löschen",
+    "cancel": "Abbrechen"
+  },
+  "admin": {
+    "setting": {
+      "ai": {
+        "title": "KI-Einstellungen",
+        "description": "KI-Anbieter, Modelle und App-Builder konfigurieren.",
+        "llmTab": "KI-Modelle",
+        "appTab": "App-Builder",
+        "deployProvider": "Bereitstellungsanbieter",
+        "vercelToken": "Vercel-Token"
+      },
+      "configuration": {
+        "list": {
+          "appBuilderEngine": {
+            "title": "App-Builder-Engine"
+          }
+        }
+      }
+    },
+    "users": "Benutzer",
+    "spaces": "Bereiche",
+    "backup": "Sicherung",
+    "scim": "SCIM",
+    "sso": "SSO",
+    "saml": "SAML",
+    "totp": "Zwei-Faktor-Authentifizierung",
+    "sandbox": "Sandbox"
+  }
+}

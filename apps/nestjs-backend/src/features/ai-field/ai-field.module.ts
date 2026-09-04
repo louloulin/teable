@@ -14,7 +14,8 @@ import { RecordModule } from '../record/record.module';
 import { RecordModifyModule } from '../record/record-modify/record-modify.module';
 import { AiFieldController } from './ai-field.controller';
 import { AiFieldAuthService } from './ai-field.auth.service';
-import { AiFieldBatchProcessor, AI_FIELD_BATCH_QUEUE } from './ai-field-batch.processor';
+import { AiFieldBatchProcessor } from './ai-field-batch.processor';
+import { AI_FIELD_BATCH_QUEUE } from './ai-field-batch.constants';
 import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
 
 @Module({

@@ -7,6 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiChatLlmService } from './ai-chat-llm.service';
+import { AiModelResolverService } from '../ai/ai-model-resolver.service';
 import type { AiChatToolsService } from './ai-chat-tools.service';
 import { DEFAULT_AI_SETTING } from '../ai-setting/ai-setting.types';
 import { AI_CHAT_TOOLS, TOOL_GET_RECORDS, TOOL_LIST_TABLES } from './ai-chat-tools.service';
@@ -25,6 +26,25 @@ const buildToolsMock = (): Pick<AiChatToolsService, 'invoke'> => ({
   })),
 });
 
+/**
+ * Build a stub AiModelResolverService for unit tests. The real resolver
+ * returns a config with provider/model/baseUrl — the LLM service only
+ * reads `config.model`, so we stub the minimum needed surface.
+ */
+const buildResolverMock = (): Pick<AiModelResolverService, 'resolve'> => ({
+  resolve: vi.fn().mockReturnValue({
+    source: 'matrix' as const,
+    config: {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      baseUrl: 'https://api.openai.com/v1',
+      contextWindow: 128_000,
+      supportsTools: true,
+      supportsVision: true,
+    },
+  }) as unknown as AiModelResolverService['resolve'],
+});
+
 describe('AiChatLlmService.resolveProviderConfig', () => {
   const prevEnv = { ...process.env };
   beforeEach(() => {
@@ -34,12 +54,12 @@ describe('AiChatLlmService.resolveProviderConfig', () => {
   });
 
   it('returns null when nothing is configured', () => {
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     expect(svc.resolveProviderConfig(baseSettings())).toBeNull();
   });
 
   it('returns config from the admin AI Gateway', () => {
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     const out = svc.resolveProviderConfig({
       ...baseSettings(),
       aiGatewayApiKey: 'sk-gw',
@@ -54,7 +74,7 @@ describe('AiChatLlmService.resolveProviderConfig', () => {
   it('falls back to env when gateway is empty', () => {
     process.env.OPENAI_API_KEY = 'sk-env';
     process.env.OPENAI_BASE_URL = 'https://env.example/v1';
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     const out = svc.resolveProviderConfig(baseSettings());
     expect(out?.config.apiKey).toBe('sk-env');
     expect(out?.config.baseUrl).toBe('https://env.example/v1');
@@ -62,7 +82,7 @@ describe('AiChatLlmService.resolveProviderConfig', () => {
   });
 
   it('refuses when setting is disabled', () => {
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     const out = svc.resolveProviderConfig({
       ...baseSettings(),
       enabled: false,
@@ -75,7 +95,7 @@ describe('AiChatLlmService.resolveProviderConfig', () => {
 
 describe('AiChatLlmService.toInternalDescriptors', () => {
   it('converts AI_CHAT_TOOLS to OpenAI JSON Schema', () => {
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     const out = svc.toInternalDescriptors();
     expect(out.length).toBe(AI_CHAT_TOOLS.length);
     const listTables = out.find((d) => d.name === TOOL_LIST_TABLES);
@@ -87,7 +107,7 @@ describe('AiChatLlmService.toInternalDescriptors', () => {
     });
   });
   it('preserves tool descriptions', () => {
-    const svc = new AiChatLlmService(buildToolsMock() as never);
+    const svc = new AiChatLlmService(buildToolsMock() as never, buildResolverMock() as never);
     const out = svc.toInternalDescriptors();
     const getRecords = out.find((d) => d.name === TOOL_GET_RECORDS);
     expect(getRecords?.description).toMatch(/Fetch/);
@@ -147,7 +167,7 @@ describe('AiChatLlmService.run — e2e with fake upstream', () => {
         { status: 200, headers: { 'content-type': 'application/json' } }
       );
     }) as unknown as typeof fetch;
-    const svc = new AiChatLlmService(toolsMock as never);
+    const svc = new AiChatLlmService(toolsMock as never, buildResolverMock() as never);
     const out = await svc.run(
       {
         system: 'You are helpful',
@@ -174,7 +194,7 @@ describe('AiChatLlmService.run — e2e with fake upstream', () => {
 
   it('returns configured=false when no provider is available', async () => {
     const toolsMock = buildToolsMock();
-    const svc = new AiChatLlmService(toolsMock as never);
+    const svc = new AiChatLlmService(toolsMock as never, buildResolverMock() as never);
     const out = await svc.run(
       {
         system: '',

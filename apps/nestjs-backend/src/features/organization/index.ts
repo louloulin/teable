@@ -13,3 +13,6 @@ export { OrganizationModule } from './organization.module';
 
 // ─── Controllers ──────────────────────────────────────────────────
 export { OrganizationController } from './organization.controller';
+
+// ─── Services ─────────────────────────────────────────────────────
+export { OrganizationService } from './organization.service';

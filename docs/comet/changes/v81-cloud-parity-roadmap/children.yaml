@@ -1,0 +1,94 @@
+schema: comet.native.children.v2
+acceptance_index:
+  A1:
+    source: brief.md
+    text: '**A1** R-CHAT-1:ChatPanel 顶部展示当前选中行/列/单元格/区域 → chip → 点击展开预览;Prisma 新增 `meta.ai_chat_selection_ref` 表真实持久化;e2e-ai-chat-selection.sh 8/8 pass;verify-enterprise.sh 新增 gate 8(AI Chat selection HTTP)。'
+  A2:
+    source: brief.md
+    text: '**A2** R-CHAT-2:`/api/chat/sessions/:id/intelligence` PATCH 端点真实有效;切换模型后下次请求用新模型(curl 验证);Intelligence 滑块影响 `tokenBudget` + `allowedTools`;e2e-ai-chat-intelligence.sh 10/10 pass。'
+  A3:
+    source: brief.md
+    text: '**A3** R-CHAT-3:麦克风按钮 → 录音 → MediaRecorder API → 上传 multipart → Whisper 转写 → 填入输入框;录音失败/拒绝权限 → 友好错误;e2e-ai-chat-voice.sh 6/6 pass。'
+  A4:
+    source: brief.md
+    text: '**A4** R-ATTACH-1:PDF/Excel/Word/图片 真实解析(PDF → pdf-parse;Excel → xlsx;Docx → mammoth;图片 → Tesseract 或 OpenAI Vision);异步 BullMQ 索引;文本注入 prompt → AI 回复含真实内容;e2e-ai-chat-attachment.sh 升级 8/8 → 12/12 pass。'
+  A5:
+    source: brief.md
+    text: '**A5** R-ATTACH-2:下载走 HMAC signed token (≤5min);过期 token → 401;跨用户 token → 403;EICAR 测试文件 → ClamAV mock 扫描拦截;e2e-ai-chat-attachment-security.sh 8/8 pass。'
+  A6:
+    source: brief.md
+    text: '**A6** R-WRITE-1:`ai-chat-write-plan.service.ts` 覆盖 table/field/view/app/automation;plan → diff → confirm → apply 流程真实工作;WritePlanPreview.tsx 显示 diff 视图;失败回滚事务化;e2e-ai-chat-write-plan.sh 12/12 pass。'
+  A7:
+    source: brief.md
+    text: '**A7** R-WRITE-2:每类写操作有 idempotency-key;重复 plan apply → 第二次返回原结果;`audit_log` 含 `actorType=ai`, `planHash=...`, `idempotencyKey=...`;verify-enterprise.sh 新增 AI write audit gate。'
+  A8:
+    source: brief.md
+    text: '**A8** R-IDP-1:外部 OIDC IdP(mock-IdP,参考 V18)端到端登录/登出/refresh/group claim;group claim 自动映射到 permission role;e2e-sso-oidc.sh 10/10 pass。'
+  A9:
+    source: brief.md
+    text: '**A9** R-IDP-2:SP-initiated SSO(用户从 OSS 触发) + IdP-initiated SSO(用户从 IdP 触发,直接到 OSS);assertion 验签 + 加密 assertion 解析;e2e-saml-real-idp.sh 8/8 pass。'
+  A10:
+    source: brief.md
+    text: '**A10** R-IDP-3:SCIM endpoint 支持 `POST /Users` / `PATCH /Users/:id` / `DELETE /Users/:id`;周期性 reconcile;e2e-scim-realtime.sh 10/10 pass。'
+  A11:
+    source: brief.md
+    text: '**A11** R-AI-MODEL:4 capability × 3 provider = 12 组合全 pass;`ai-model-resolver.service.ts` capability → model 解析;verify-enterprise.sh 新增 12 组合 gate;e2e-ai-model-matrix.sh 12/12 pass。'
+  A12:
+    source: brief.md
+    text: '**A12** R-SANDBOX:`sandbox.controller.ts` CRUD + lifecycle;`sandbox-process.service.ts` 资源隔离 + 超时 + 失败恢复;BullMQ delayed cleanup;e2e-sandbox.sh 15/15 pass。'
+  A13:
+    source: brief.md
+    text: '**A13** R-MIGRATE:Airtable/Notion/Google Sheets 迁移器扩展;统一 MigrationTransactionService + 字段类型映射表;失败回滚 + 进度 + 错误定位;e2e-migrate-airtable.sh 8/8 pass。'
+  A14:
+    source: brief.md
+    text: '**A14** R-ADMIN-AUDIT:管理后台 30 个页面逐一走完官方清单 checklist;Skills/AI queue/Sandbox/Query Ops/License/Users-Spaces UI 缺失元素补齐;e2e-admin-pages.sh 30/30 pass。'
+  A15:
+    source: brief.md
+    text: '**A15** R-BACKUP:真实 restore 演练;RPO ≤ 5min / RTO ≤ 30min 证据;e2e-backup-restore.sh 8/8 pass。'
+  A16:
+    source: brief.md
+    text: '**A16** R-RESIDENCY:per-tenant region tag;跨区访问 → 403 + 审计;EU 租户数据 → EU region DB;e2e-residency.sh 6/6 pass。'
+  A17:
+    source: brief.md
+    text: '**A17** R-KMS:BYOK 定期轮换;新写入用新密钥;旧数据用旧密钥解密;verify-enterprise gate 新增 BYOK 轮换成功。'
+  A18:
+    source: brief.md
+    text: '**A18** R-COMPLIANCE:GDPR/CCPA 数据导出 JSON bundle;删除 user 全部数据不可恢复 + 审计;e2e-compliance.sh 8/8 pass。'
+  A19:
+    source: brief.md
+    text: '**A19** R-I18N:zh-CN/en/de/ja 至少覆盖所有 admin page;切换语言 → admin page 完整翻译;e2e-i18n.sh 验证每页 4 语言切换。'
+  A20:
+    source: brief.md
+    text: '**A20** V100:3 个 Phase child 全部 `done` 后,Supervisor 在最终集成分支上检查 95%+ 对齐率(每个 child 已完成的 acceptance pass + 端到端验证)。'
+children:
+- name: phase-1-p0-cloud-parity
+  depends_on: []
+  covers:
+  - A1
+  - A2
+  - A3
+  - A4
+  - A5
+  - A6
+  - A7
+- name: phase-2-p1-cloud-parity
+  depends_on:
+  - phase-1-p0-cloud-parity
+  covers:
+  - A8
+  - A9
+  - A10
+  - A11
+  - A12
+  - A13
+  - A14
+- name: phase-3-p2-cloud-parity
+  depends_on:
+  - phase-2-p1-cloud-parity
+  covers:
+  - A15
+  - A16
+  - A17
+  - A18
+  - A19
+  - A20

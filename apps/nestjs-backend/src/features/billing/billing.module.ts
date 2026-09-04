@@ -28,7 +28,7 @@ import { BillingProrationService } from './billing-proration.service';
 import { BillingUsageLedgerService } from './billing-usage-ledger.service';
 
 @Module({
-  imports: [LicenseModule, MailSenderModule],
+  imports: [LicenseModule, MailSenderModule.register()],
   controllers: [BillingController, BillingCheckoutController, BillingPortalController],
   providers: [
     BillingAuthService,

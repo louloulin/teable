@@ -26,3 +26,14 @@ export { renderPromptTemplate, buildAiFieldPrompt, collectAiFieldSourceIds } fro
 export { AiFieldRecordListener } from './ai-field-record.listener';
 export { TASK_MODEL_MAP } from './constant';
 export { modelProviders, getAdaptedProviderOptions, getTaskModelKey } from './util';
+
+// R-AI-MODEL — capability × provider model resolver
+export {
+  AiModelResolverService,
+  AI_MODEL_RESOLVER_MATRIX,
+  type AiCapability,
+  type AiProviderId,
+  type IAiProviderConfig,
+  type IAiResolverInput,
+  type IAiResolverResult,
+} from './ai-model-resolver.service';

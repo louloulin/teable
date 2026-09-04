@@ -19,7 +19,7 @@ import {
   AI_FIELD_BATCH_JOB,
   AI_FIELD_BATCH_LEASE_MS,
   AI_FIELD_BATCH_QUEUE,
-} from './ai-field-batch.processor';
+} from './ai-field-batch.constants';
 import { RecordCreateEvent, RecordUpdateEvent } from '../../event-emitter/events/table/record.event';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { RecordModifyService } from '../record/record-modify/record-modify.service';

@@ -354,7 +354,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: estimateTokens(prompt),
       completionTokens: estimateTokens(assistantContent),
       durationMs,
@@ -495,7 +495,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: estimateTokens(prompt),
       completionTokens: estimateTokens(assistantContent),
       durationMs,
@@ -682,7 +682,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: estimateTokens(prompt),
       completionTokens: estimateTokens(assistantContent),
       durationMs,
@@ -783,7 +783,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: estimateTokens(prompt),
       completionTokens: estimateTokens(assistantContent),
       durationMs,
@@ -936,11 +936,12 @@ export class AiChatAuthService {
       throw new Error('AI Chat LLM router is not enabled');
     }
     const session = await this.findOwnedSession(input.sessionId, input.userId);
-    const history = await this.prisma.aiChatMessage.findMany({
+    const rawHistory = await this.prisma.aiChatMessage.findMany({
       where: { sessionId: input.sessionId },
       orderBy: { createdTime: 'asc' },
       take: MAX_HISTORY_TURNS,
     });
+    const history = rawHistory.map(toMessageRow);
     const userMessage = await this.addMessage({
       sessionId: input.sessionId,
       role: 'user',
@@ -956,7 +957,7 @@ export class AiChatAuthService {
     const routed = await this.llmService.run(
       {
         system,
-        messages,
+        messages: messages as never,
         baseId: session.baseId ?? undefined,
       },
       setting
@@ -967,7 +968,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: routed.usage.prompt_tokens,
       completionTokens: routed.usage.completion_tokens,
       durationMs,
@@ -1017,11 +1018,12 @@ export class AiChatAuthService {
       throw new Error('AI Chat LLM router is not enabled');
     }
     const session = await this.findOwnedSession(input.sessionId, input.userId);
-    const history = await this.prisma.aiChatMessage.findMany({
+    const rawHistory = await this.prisma.aiChatMessage.findMany({
       where: { sessionId: input.sessionId },
       orderBy: { createdTime: 'asc' },
       take: MAX_HISTORY_TURNS,
     });
+    const history = rawHistory.map(toMessageRow);
     const userMessage = await this.addMessage({
       sessionId: input.sessionId,
       role: 'user',
@@ -1038,7 +1040,7 @@ export class AiChatAuthService {
     for await (const ev of this.llmService.stream(
       {
         system,
-        messages,
+        messages: messages as never,
         baseId: session.baseId ?? undefined,
       },
       setting
@@ -1054,7 +1056,7 @@ export class AiChatAuthService {
       sessionId: input.sessionId,
       role: 'assistant',
       content: assistantContent,
-      model: session.model,
+      model: session.model ?? undefined,
       promptTokens: estimateTokens(system + '\\n' + messages.map((m) => m.content).join('\\n')),
       completionTokens: estimateTokens(assistantContent),
       durationMs,
@@ -1119,7 +1121,7 @@ export class AiChatAuthService {
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
     messages.push({ role: 'user', content: skill ? skill.remainder : input.userMessage });
-    return { system, messages: messages as Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }> };
+    return { system, messages: messages as never as Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }> };
   }
 
   private async detectArtifactsSafely(
@@ -1148,7 +1150,7 @@ export class AiChatAuthService {
 
   private async loadAiSettingSafe() {
     try {
-      return await getAiSetting();
+      return await getAiSetting(this.prisma);
     } catch {
       return null;
     }
@@ -1161,7 +1163,10 @@ function toSessionRow(row: {
   tableId: string | null;
   viewId: string | null;
   title: string | null;
-  model: string;
+  model: string | null;
+  smartLevel: string | null;
+  tokenBudget: number | null;
+  allowedTools: unknown;
   createdBy: string;
   createdTime: Date;
   updatedTime: Date;
@@ -1173,6 +1178,9 @@ function toSessionRow(row: {
     viewId: row.viewId,
     title: row.title,
     model: row.model,
+    smartLevel: row.smartLevel,
+    tokenBudget: row.tokenBudget,
+    allowedTools: row.allowedTools,
     createdBy: row.createdBy,
     createdTime: row.createdTime,
     updatedTime: row.updatedTime,

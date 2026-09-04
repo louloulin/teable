@@ -57,14 +57,21 @@ export class SourceImportProcessor extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(SourceImportProcessor.name);
   private readonly drivers = new Map<string, ISourceImportDriver>();
 
+  private readonly resolvedDrivers: ISourceImportDriver[];
+
   constructor(
     private readonly imports: SourceImportService,
     private readonly cancelSignal: SourceImportCancellationService,
     @Inject(SOURCE_IMPORT_DRIVER)
-    private readonly registeredDrivers: ISourceImportDriver[],
+    registeredDrivers: ISourceImportDriver[] | Record<string, ISourceImportDriver> = [],
     @InjectQueue(SOURCE_IMPORT_QUEUE) private readonly queue: Queue<ISourceImportJob>
   ) {
     super();
+    // NestJS multi-provider tokens can resolve as either an array (legacy)
+    // or a keyed object map. Coerce both shapes into a flat driver list.
+    this.resolvedDrivers = Array.isArray(registeredDrivers)
+      ? registeredDrivers
+      : Object.values(registeredDrivers ?? {});
   }
 
   async onModuleInit(): Promise<void> {
@@ -73,7 +80,7 @@ export class SourceImportProcessor extends WorkerHost implements OnModuleInit {
       this.logger.log(`Recovered ${recovered} expired source-import leases on startup`);
     }
     this.drivers.clear();
-    for (const driver of this.registeredDrivers) {
+    for (const driver of this.resolvedDrivers ?? []) {
       if (!driver?.source) {
         this.logger.warn(`source-import driver missing 'source' field; skipping`);
         continue;

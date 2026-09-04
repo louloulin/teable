@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AiChatAttachmentExtractor } from './ai-chat-attachment-extractor.service';
+import { AiChatAttachmentParserService } from './ai-chat-attachment-parser.service';
 import { AiChatAuthService } from './ai-chat.auth.service';
 
 /**
@@ -90,16 +91,18 @@ describe('AiChatAuthService.chatTurn — attachment prompt injection (V76 P0-1)'
     const svc = new AiChatAuthService(
       fakePrisma as never,
       fakeAi as never,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      extractor
+      undefined, // context
+      undefined, // skill
+      undefined, // memory
+      undefined, // preference
+      undefined, // tools
+      undefined, // artifact
+      undefined, // smartLevel
+      undefined, // queue
+      undefined, // permission
+      undefined, // nodeRef
+      extractor, // attachmentExtractor
+      undefined  // llm
     );
     // Belt-and-suspenders: SWC + parameter-property + decorator can fail
     // to auto-assign in some chains, so we re-assign explicitly. This

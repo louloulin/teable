@@ -34,7 +34,7 @@ export type LlmRouterDecision = {
 
 export const FEATURE_FLAG_ENV = 'AI_CHAT_LLM_ROUTER_ENABLED';
 
-export function readFeatureFlag(env: NodeJS.ProcessEnv = process.env): boolean {
+export function readFeatureFlag(env: Record<string, string | undefined> = process.env): boolean {
   const raw = env[FEATURE_FLAG_ENV];
   if (typeof raw !== 'string') return false;
   const lower = raw.trim().toLowerCase();
@@ -48,7 +48,7 @@ export function readFeatureFlag(env: NodeJS.ProcessEnv = process.env): boolean {
  */
 export function decideLlmRoute(
   setting: Parameters<AiChatLlmService['resolveProviderConfig']>[0],
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
   service?: Pick<AiChatLlmService, 'resolveProviderConfig'>
 ): LlmRouterDecision {
   const flagEnabled = readFeatureFlag(env);
@@ -57,7 +57,7 @@ export function decideLlmRoute(
   }
   const provider = service
     ? service.resolveProviderConfig(setting)
-    : new AiChatLlmService(undefined as never).resolveProviderConfig(setting);
+    : new AiChatLlmService(undefined as never, undefined as never).resolveProviderConfig(setting);
   if (provider) {
     return { mode: 'provider', reason: 'flag enabled + provider configured', flagEnabled };
   }
@@ -117,13 +117,13 @@ export async function runLlmRoutedTurn(
   setting: Parameters<AiChatLlmService['resolveProviderConfig']>[0],
   deps: {
     llmService: AiChatLlmService;
-    env?: NodeJS.ProcessEnv;
+    env?: Record<string, string | undefined>;
   }
 ): Promise<
   | { source: 'provider'; result: AiChatLlmRunResult }
   | { source: 'echo'; result: AiChatLlmRunResult }
 > {
-  const decision = decideLlmRoute(setting, deps.env ?? process.env, deps.llmService);
+  const decision = decideLlmRoute(setting, deps.env ?? (process.env as Record<string, string | undefined>), deps.llmService);
   if (decision.mode === 'echo') {
     const toolNames = deps.llmService.toInternalDescriptors().map((t) => t.name);
     const seen = new Set<string>();

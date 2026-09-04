@@ -38,6 +38,8 @@ import { AuthModule } from './features/auth/auth.module';
 import { ApprovalWorkflowModule } from './features/approval-workflow/approval-workflow.module';
 import { AutomationModule } from './features/automation/automation.module';
 import { BackupModule } from './features/backup/backup.module';
+import { ByokLlmModule } from './features/byok-llm/byok-llm.module';
+import { ByokKmsModule } from './features/byok-kms/byok-kms.module';
 import { BillingModule } from './features/billing/billing.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
@@ -163,6 +165,8 @@ export const appModules = {
     TemplateOpenApiModule,
     BaseModule,
     BackupModule,
+    ByokLlmModule,
+    ByokKmsModule,
     BillingModule,
     GoogleSheetsModule,
     GenericConnectorModule, // Round-23: generic pluggable driver registry (connect_more_sources)

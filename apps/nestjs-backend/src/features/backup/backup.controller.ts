@@ -56,7 +56,8 @@ export class BackupController {
   ): Promise<{ snapshots: ISnapshotRow[] }> {
     this.assertAdmin(adminToken);
     if (!baseId) throw new BadRequestException('baseId required');
-    return { snapshots: await this.service.listSnapshots(baseId) };
+    const snaps = await this.service.listSnapshots(baseId);
+    return { snapshots: snaps.map((s) => this.toJsonSnapshot(s)) };
   }
 
   @Post()
@@ -66,11 +67,11 @@ export class BackupController {
     @Headers('x-admin-token') adminToken?: string
   ): Promise<ISnapshotRow> {
     const createdBy = this.assertAdmin(adminToken);
-    return this.service.createBackup({
+    return this.toJsonSnapshot(await this.service.createBackup({
       baseId: body.baseId,
       createdBy,
       archiveDir: body.archiveDir,
-    });
+    }));
   }
 
   @Get(':id')
@@ -81,7 +82,7 @@ export class BackupController {
     this.assertAdmin(adminToken);
     const row = await this.service.getSnapshot(id);
     if (!row) throw new BadRequestException(`snapshot not found: ${id}`);
-    return row;
+    return this.toJsonSnapshot(row);
   }
 
   @Delete(':id')
@@ -116,6 +117,12 @@ export class BackupController {
   ): Promise<{ logs: IRestoreLogRow[] }> {
     this.assertAdmin(adminToken);
     return { logs: await this.service.listRestoreLogs(id) };
+  }
+
+
+  /** Convert Prisma's BigInt size to a JSON-safe number. */
+  private toJsonSnapshot(row: ISnapshotRow): ISnapshotRow & { sizeBytes: number } {
+    return { ...row, sizeBytes: typeof row.sizeBytes === 'bigint' ? Number(row.sizeBytes) : row.sizeBytes };
   }
 
   private assertAdmin(adminToken?: string): string {

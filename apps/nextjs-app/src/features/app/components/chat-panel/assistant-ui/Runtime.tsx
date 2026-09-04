@@ -15,6 +15,7 @@ import type {
   ThreadAssistantMessagePart,
 } from '@assistant-ui/react';
 import { cuppyApi, aiChatApi, type ICuppyFileRef } from '../api';
+import { useAiChatSessionStore } from '../useAiChatSessionStore';
 
 export interface ICuppyRuntimeInput {
   baseId?: string;
@@ -120,6 +121,9 @@ export class CuppyAdapter implements ChatModelAdapter {
     if (!this.state.aiSessionId) {
       const session = await aiChatApi.createSession(this.input.baseId);
       this.state.aiSessionId = session.id;
+      if (this.input.baseId) {
+        useAiChatSessionStore.getState().set(this.input.baseId, session.id);
+      }
     }
 
     let final = '';

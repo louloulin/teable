@@ -10,6 +10,7 @@ import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
 import { ViewOpenApiModule } from '../view/open-api/view-open-api.module';
 import { AirtableImportController } from './airtable-import.controller';
 import { AirtableImportService } from './airtable-import.service';
+import { AirtableImportAiSuggestService } from './airtable-import-ai-suggest.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { AirtableImportService } from './airtable-import.service';
     PermissionModule,
   ],
   controllers: [AirtableImportController],
-  providers: [AirtableImportService],
-  exports: [AirtableImportService],
+  providers: [AirtableImportService, AirtableImportAiSuggestService],
+  exports: [AirtableImportService, AirtableImportAiSuggestService],
 })
 export class AirtableImportModule {}

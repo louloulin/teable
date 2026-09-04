@@ -295,3 +295,34 @@ export class AiSettingAuthService {
     };
   }
 }
+
+/**
+ * R-AICHAT-TSC: Standalone helper used by ai-chat (and any other module)
+ * to fetch the current AI setting without instantiating the full auth
+ * service. Returns null on failure so callers can fall back gracefully.
+ */
+export async function getAiSetting(
+  prisma: PrismaService
+): Promise<IAiSetting | null> {
+  try {
+    const row = await prisma.setting.findFirst({
+      where: { name: AI_CONFIG_NAME },
+      select: { content: true, lastModifiedTime: true },
+    });
+    if (!row) return { ...DEFAULT_AI_SETTING, updatedAt: new Date().toISOString() };
+    let raw: unknown = row.content;
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw);
+      } catch {
+        raw = null;
+      }
+    }
+    if (!raw || typeof raw !== 'object') {
+      return { ...DEFAULT_AI_SETTING, updatedAt: safeIso(row.lastModifiedTime) };
+    }
+    return normalize(raw as Partial<IAiSetting>, DEFAULT_AI_SETTING);
+  } catch {
+    return null;
+  }
+}
